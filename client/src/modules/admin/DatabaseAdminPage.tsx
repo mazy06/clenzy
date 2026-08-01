@@ -3,9 +3,6 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Button } from '../../components/ui';
-// Snackbar + Alert MUI conserves : ils portent le mecanisme de notification
-// (pas de `toast` sonner dans ce fichier), le remplacer depasse la migration UI.
-import { Snackbar, Alert } from '@mui/material';
 import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
@@ -16,6 +13,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import { useNotification } from '../../hooks/useNotification';
 import { databaseAdminApi, BackupInfo } from '../../services/api/databaseAdminApi';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -52,17 +50,13 @@ const DatabaseAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info';
-  }>({ open: false, message: '', severity: 'info' });
+  const { notify } = useNotification();
 
   const showMessage = useCallback(
     (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
-      setSnackbar({ open: true, message, severity });
+      notify[severity](message);
     },
-    [],
+    [notify],
   );
 
   const fetchBackups = useCallback(async () => {
@@ -171,7 +165,10 @@ const DatabaseAdminPage: React.FC = () => {
                   <TableRow key={backup.filename}>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Storage fontSize="small" color="action" />
+                        {/* `color="action"` etait un jeton MUI, pas une couleur CSS. */}
+                        <span className="inline-flex text-muted-foreground">
+                          <Storage size={18} strokeWidth={1.75} />
+                        </span>
                         <p className="cn-text-body2 font-mono text-[0.8rem]">
                           {backup.filename}
                         </p>
@@ -196,7 +193,7 @@ const DatabaseAdminPage: React.FC = () => {
                             onClick={() => handleDownload(backup.filename)}
                             className="text-[var(--mui-primary)]"
                           >
-                            <Download fontSize="small" />
+                            <Download size={18} strokeWidth={1.75} />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Telecharger</TooltipContent>
@@ -217,7 +214,7 @@ const DatabaseAdminPage: React.FC = () => {
                               {deletingFile === backup.filename ? (
                                 <Spinner className="size-4" />
                               ) : (
-                                <Delete fontSize="small" />
+                                <Delete size={18} strokeWidth={1.75} />
                               )}
                             </Button>
                           </span>
@@ -232,22 +229,6 @@ const DatabaseAdminPage: React.FC = () => {
           </div>
         )}
       </Card>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

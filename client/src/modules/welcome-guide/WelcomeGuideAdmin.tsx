@@ -12,12 +12,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Field,
   FieldDescription,
   FieldLabel,
   Input,
   NativeSelect,
   NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
   Switch,
   Textarea,
@@ -27,16 +37,13 @@ import {
 } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-// Restent en MUI, faute d'equivalent sur ce qui porte le comportement :
-// - Snackbar + Alert : changer le mecanisme de notification depasse la migration
-//   (ce fichier ne dispose pas de sonner).
-// - Menu + MenuItem (+ le Divider qui les separe) : l'ancre est un `anchorEl`
-//   memorise dans l'etat, alors qu'un DropdownMenu Radix exige que le
-//   declencheur vive dans son propre arbre.
-// - TextField : `select` avec `renderValue` (IconSelect), et le champ du mot
-//   d'accueil dont l'`inputRef` sert a inserer un tag a la position du curseur.
-import { Menu, MenuItem, Snackbar, Alert, TextField, Divider as MenuDivider } from '@mui/material';
-import type { AlertColor } from '@mui/material';
+// Seul rescape MUI : le champ du mot d'accueil. Son `inputRef` porte le
+// comportement (insertion du tag {prenom} a la position du curseur via
+// selectionStart/setSelectionRange) ; le Textarea du kit est un composant
+// fonction qui, sous React 18, ne transmet pas de ref — l'insertion retomberait
+// silencieusement en fin de texte.
+import { TextField } from '@mui/material';
+import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
   MessageSquare,
@@ -161,32 +168,38 @@ const newSection = (): GuideSection => ({
 const newSectionItem = (): GuideSectionItem => ({ id: `it-${Date.now()}`, icon: 'sparkles', label: '', detail: '', steps: [] });
 
 /** Sélecteur d'icône lucide compact (aperçu + nom). */
-const IconSelect: React.FC<{ value: string; onChange: (v: string) => void; label?: string }> = ({ value, onChange, label }) => (
-  <TextField
-    select
-    size="small"
-    label={label}
-    value={GUIDE_ICON_OPTIONS.includes(value) ? value : ''}
-    onChange={(e) => onChange(e.target.value)}
-    sx={{ width: 76, '& .MuiSelect-select': { display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 } }}
-    SelectProps={{
-      renderValue: (v) => {
-        const Icon = guideIcon(v as string);
-        return <Icon size={18} strokeWidth={1.75} />;
-      },
-      MenuProps: { PaperProps: { sx: { maxHeight: 320 } } },
-    }}
-  >
-    {GUIDE_ICON_OPTIONS.map((name) => {
-      const Icon = guideIcon(name);
-      return (
-        <MenuItem key={name} value={name}>
-          <Icon size={18} strokeWidth={1.75} style={{ marginRight: 10 }} /> {name}
-        </MenuItem>
-      );
-    })}
-  </TextField>
-);
+const IconSelect: React.FC<{ value: string; onChange: (v: string) => void; label?: string }> = ({ value, onChange, label }) => {
+  const fieldId = React.useId();
+  const current = GUIDE_ICON_OPTIONS.includes(value) ? value : '';
+  const CurrentIcon = current ? guideIcon(current) : null;
+  return (
+    <Field className="w-[76px] shrink-0">
+      {label ? <FieldLabel htmlFor={fieldId}>{label}</FieldLabel> : null}
+      {/* Report du `renderValue` MUI : le declencheur n'affiche que l'icone,
+          la liste deroulee garde icone + nom. */}
+      <Select value={current} onValueChange={onChange}>
+        <SelectTrigger id={fieldId} className="w-[76px] justify-center" aria-label={label ?? 'Icône'}>
+          <SelectValue>
+            {CurrentIcon ? <CurrentIcon size={18} strokeWidth={1.75} /> : null}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="max-h-[320px]">
+          {GUIDE_ICON_OPTIONS.map((name) => {
+            const Icon = guideIcon(name);
+            return (
+              <SelectItem key={name} value={name} textValue={name}>
+                <span className="flex items-center gap-2.5">
+                  <Icon size={18} strokeWidth={1.75} />
+                  {name}
+                </span>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+};
 
 /** Formate une plage de dates d'une réservation (ex : « 12 juin → 15 juin »). Dates ISO en entrée. */
 function formatReservationRange(r: GuideReservationRef, locale: string): string {
@@ -223,9 +236,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   // Initiales du propriétaire (colonne « Propriétaire » de la liste, façon Booking Engine).
   const ownerInitials = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase()
     || (user?.fullName || user?.email || 'V').trim().charAt(0).toUpperCase();
-  // Menu « … » d'actions par ligne de la liste (toutes les actions y sont conservées).
-  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; guide: WelcomeGuide } | null>(null);
   const { properties } = usePropertiesList();
+  const { showNotification } = useNotification();
 
   const { data: guides = [], isLoading, refetch } = useQuery({
     queryKey: ['welcome-guides'],
@@ -349,11 +361,6 @@ const WelcomeGuideAdmin: React.FC = () => {
     selected: new Set(),
   });
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
   const [linkDialog, setLinkDialog] = useState<{ open: boolean; link: string; qrCode: string }>({
     open: false,
     link: '',
@@ -373,8 +380,10 @@ const WelcomeGuideAdmin: React.FC = () => {
     data: null,
   });
 
-  const notify = (message: string, severity: AlertColor = 'success') =>
-    setSnackbar({ open: true, message, severity });
+  // Signature conservee a l'identique (une trentaine d'appels dans le fichier) :
+  // seul le mecanisme d'affichage change, du Snackbar vers le toast partage.
+  const notify = (message: string, severity: NotificationSeverity = 'success') =>
+    showNotification(message, severity);
 
   const openCreate = (opts?: { theme?: string }) => {
     // Nouveau livret pré-rempli avec un modèle riche (template Baitly) que l'hôte
@@ -924,39 +933,43 @@ const WelcomeGuideAdmin: React.FC = () => {
                         <span className="row__meta">{g.language.toUpperCase()}</span>
                         <div className="row__acc"><span className="av-sm">{ownerInitials}</span><span className="row__owner">Vous</span></div>
                       </button>
-                      <button className="row__menu" type="button" aria-label={t('common.actions', 'Actions')} title={t('common.actions', 'Actions')} onClick={(e) => setRowMenu({ el: e.currentTarget, guide: g })}><MoreHorizontal size={18} strokeWidth={2} /></button>
+                      {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="row__menu" type="button" aria-label={t('common.actions', 'Actions')} title={t('common.actions', 'Actions')}><MoreHorizontal size={18} strokeWidth={2} /></button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-auto min-w-[200px]">
+                          <DropdownMenuItem disabled={togglingPublishId === g.id} onSelect={() => handleTogglePublish(g)}>
+                            {g.published ? <Unlink size={16} strokeWidth={2} /> : <Check size={16} strokeWidth={2} />}
+                            {g.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled={!g.published} onSelect={() => handleGenerateLink(g)}>
+                            <Link2 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.generateLink', 'Générer le lien')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleOpenGuestbook(g)}>
+                            <MessageSquare size={16} strokeWidth={2} /> {t('welcomeGuide.actions.guestbook', "Livre d'or")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleOpenStats(g)}>
+                            <BarChart3 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.stats', 'Statistiques')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openEdit(g)}>
+                            <Edit size={16} strokeWidth={2} /> {t('welcomeGuide.actions.edit', 'Modifier')}
+                          </DropdownMenuItem>
+                          {isStaff ? (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem variant="destructive" onSelect={() => handleDelete(g)}>
+                                <Delete size={16} strokeWidth={2} /> {t('welcomeGuide.actions.delete', 'Supprimer')}
+                              </DropdownMenuItem>
+                            </>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   );
                 })}
               </div>
             )}
-            {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
-            <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
-              {rowMenu && ([
-                <MenuItem key="pub" disabled={togglingPublishId === rowMenu.guide.id} onClick={() => { handleTogglePublish(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  {rowMenu.guide.published ? <Unlink size={16} strokeWidth={2} /> : <Check size={16} strokeWidth={2} />}
-                  {rowMenu.guide.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
-                </MenuItem>,
-                <MenuItem key="link" disabled={!rowMenu.guide.published} onClick={() => { handleGenerateLink(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <Link2 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.generateLink', 'Générer le lien')}
-                </MenuItem>,
-                <MenuItem key="gb" onClick={() => { handleOpenGuestbook(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <MessageSquare size={16} strokeWidth={2} /> {t('welcomeGuide.actions.guestbook', "Livre d'or")}
-                </MenuItem>,
-                <MenuItem key="stats" onClick={() => { handleOpenStats(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <BarChart3 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.stats', 'Statistiques')}
-                </MenuItem>,
-                <MenuItem key="edit" onClick={() => { openEdit(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <Edit size={16} strokeWidth={2} /> {t('welcomeGuide.actions.edit', 'Modifier')}
-                </MenuItem>,
-                ...(isStaff ? [
-                  <MenuDivider key="div" sx={{ my: 0.5 }} />,
-                  <MenuItem key="del" onClick={() => { handleDelete(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
-                    <Delete size={16} strokeWidth={2} /> {t('welcomeGuide.actions.delete', 'Supprimer')}
-                  </MenuItem>,
-                ] : []),
-              ])}
-            </Menu>
           </section>
         </div>
       </div>
@@ -1646,7 +1659,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   ) : (
                     <div>
                       {s.items.map((item, iIdx) => (
-                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[1.5px] bg-[var(--hover)]" key={item.id}>
+                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[12px] bg-[var(--hover)]" key={item.id}>
                           <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
                           <div className="flex-1 min-w-0">
                             <Field>
@@ -2077,7 +2090,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
       <Card className="py-[9px]">
         <CardContent className="flex items-center gap-[9px]">
-          <div className="shrink-0 w-[34px] h-[34px] rounded-[1.25px] flex items-center justify-center bg-[var(--hover)] text-muted-foreground">
+          <div className="shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-[var(--hover)] text-muted-foreground">
             <Globe size={18} strokeWidth={1.75} />
           </div>
           <div className="flex-1 min-w-0">
@@ -2295,7 +2308,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   { key: 'activities', icon: <MapPin size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.activities', 'Clics activités'), value: stats.data.activityClicks },
                   { key: 'checkin', icon: <DoorOpen size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.checkin', 'Clics check-in'), value: stats.data.checkinClicks },
                 ].map((tile) => (
-                  <div className="border border-[var(--line)] rounded-[2px] p-2" key={tile.key}>
+                  <div className="border border-[var(--line)] rounded-[16px] p-2" key={tile.key}>
                     <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
                       {tile.icon}
                       <span className="cn-text-caption">{tile.label}</span>
@@ -2419,21 +2432,6 @@ const WelcomeGuideAdmin: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          variant="filled"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

@@ -3,6 +3,12 @@ import {
   Alert,
   AlertDescription,
   Button,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   Field,
   FieldError,
   FieldLabel,
@@ -19,10 +25,6 @@ import {
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-// Reste en MUI : l'Autocomplete du destinataire et le TextField de son
-// `renderInput`, qui recoit des props internes (params.InputProps, ref du
-// popper, aria du combobox) qu'aucun primitif du kit ne sait porter.
-import { TextField, Autocomplete } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
@@ -65,6 +67,9 @@ interface ContactFormProps {
   onCancel?: () => void;
 }
 
+/** Libelle affiche pour un destinataire — sert aussi de cle de filtrage. */
+const recipientLabel = (r: Recipient) => `${r.firstName} ${r.lastName} (${r.email})`;
+
 const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -91,6 +96,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const messageValue = watch('message');
 
   const [attachments, setAttachments] = useState<File[]>([]);
+  // Saisie libre du destinataire : le Combobox du kit n'a pas de `freeSolo`, on
+  // pilote donc le texte du champ et on commet la valeur brute au blur.
+  const [recipientInput, setRecipientInput] = useState('');
   const [usersList, setUsersList] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -155,6 +163,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
       await apiClient.upload('/contact/messages', formDataToSend);
       setSuccess(t('contact.success.messageSent'));
       reset();
+      setRecipientInput('');
       setAttachments([]);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
@@ -212,109 +221,90 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
 
           <form onSubmit={rhfHandleSubmit(onSubmit)}>
             <div className="grid grid-cols-12 gap-[18px]">
-              {/* Destinataire - Autocomplete */}
+              {/* Destinataire - Combobox (liste des destinataires + saisie libre) */}
               <div className="col-span-12">
                 <Controller
                   name="recipientId"
                   control={control}
                   render={({ field }) => (
-                    // Le champ de ce bloc reste en TextField MUI : c'est le `renderInput`
-                    // d'un <Autocomplete>, qui lui injecte ses props internes
-                    // (params.InputProps, ref du popper, aria du combobox) que les
-                    // primitives du kit ne savent pas porter.
-                    <Autocomplete
-                      freeSolo
-                      options={usersList}
-                      getOptionLabel={(option) => {
-                        if (typeof option === 'string') return option;
-                        return `${option.firstName} ${option.lastName} (${option.email})`;
-                      }}
-                      value={usersList.find(u => u.id === field.value) || field.value || null}
-                      onChange={(_, newValue) => {
-                        if (typeof newValue === 'string') {
-                          // Saisie libre (email)
-                          field.onChange(newValue.trim());
-                        } else if (newValue) {
-                          // Selection d'un utilisateur dans la liste
-                          field.onChange(newValue.id);
-                        } else {
-                          field.onChange('');
-                        }
-                      }}
-                      onInputChange={(_, inputValue, reason) => {
-                        if (reason === 'input') {
-                          // Mettre a jour la valeur a chaque frappe pour les saisies libres
-                          const trimmed = inputValue.trim();
-                          if (trimmed && !usersList.find(u => u.id === trimmed)) {
-                            field.onChange(trimmed);
+                    <Field>
+                      <FieldLabel htmlFor="contact-recipient">{t('contact.recipient')}</FieldLabel>
+                      {/* `value` reste NON controle : la valeur du formulaire peut
+                          etre un simple email saisi a la main, qui ne correspond a
+                          aucun item de la liste. Seule la saisie est controlee, la
+                          selection est consommee dans onValueChange. */}
+                      <Combobox<Recipient>
+                        items={usersList}
+                        itemToStringLabel={recipientLabel}
+                        isItemEqualToValue={(option, other) => option.id === other.id}
+                        inputValue={recipientInput}
+                        onInputValueChange={(next, details) => {
+                          setRecipientInput(next);
+                          // `input-change` est le pendant du reason 'input' de MUI :
+                          // on ne remonte que la frappe utilisateur.
+                          if (details.reason === 'input-change') {
+                            const trimmed = next.trim();
+                            if (trimmed && !usersList.some((u) => u.id === trimmed)) {
+                              field.onChange(trimmed);
+                            }
                           }
-                        }
-                      }}
-                      filterOptions={(options, { inputValue }) => {
-                        const lower = inputValue.toLowerCase();
-                        return options.filter(
-                          (o) =>
-                            o.firstName.toLowerCase().includes(lower) ||
-                            o.lastName.toLowerCase().includes(lower) ||
-                            o.email.toLowerCase().includes(lower)
-                        );
-                      }}
-                      loading={loading}
-                      disabled={loading}
-                      isOptionEqualToValue={(option, value) => {
-                        if (typeof value === 'string') return option.id === value || option.email === value;
-                        return option.id === value.id;
-                      }}
-                      renderOption={(props, option) => {
-                        const { key, ...optionProps } = props;
-                        return (
-                          <li key={key} {...optionProps}>
-                            <div className="flex items-center gap-1.5">
-                              <PersonIcon fontSize="small" />
-                              <div>
-                                <p className="cn-text-body2">
-                                  {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
-                                </p>
-                                {typeof option !== 'string' && (
-                                  <span className="cn-text-caption text-muted-foreground">
-                                    {option.email} - {option.role}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </li>
-                        );
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={t('contact.recipient')}
+                        }}
+                        onValueChange={(next) => {
+                          if (next) {
+                            field.onChange(next.id);
+                            setRecipientInput(recipientLabel(next));
+                          } else {
+                            field.onChange('');
+                          }
+                        }}
+                      >
+                        <ComboboxInput
+                          id="contact-recipient"
+                          className="w-full"
+                          disabled={loading}
                           placeholder={t('contact.recipientPlaceholder') || 'Sélectionner un utilisateur ou saisir un email'}
-                          error={!!errors.recipientId}
-                          helperText={errors.recipientId?.message}
-                          onBlur={(e) => {
+                          aria-invalid={!!errors.recipientId}
+                          onBlur={() => {
                             // Commettre la saisie libre quand le champ perd le focus
-                            const inputValue = (e.target as HTMLInputElement).value?.trim();
-                            if (inputValue) {
-                              const matchedUser = usersList.find(u =>
-                                `${u.firstName} ${u.lastName} (${u.email})` === inputValue
-                              );
-                              field.onChange(matchedUser ? matchedUser.id : inputValue);
+                            const typed = recipientInput.trim();
+                            if (typed) {
+                              const matchedUser = usersList.find((u) => recipientLabel(u) === typed);
+                              field.onChange(matchedUser ? matchedUser.id : typed);
                             }
                             field.onBlur();
                           }}
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <>
-                                <span className="inline-flex text-muted-foreground me-1.5"><EmailIcon  /></span>
-                                {params.InputProps.startAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                    />
+                        >
+                          <InputGroupAddon>
+                            <span className="inline-flex text-muted-foreground"><EmailIcon /></span>
+                          </InputGroupAddon>
+                        </ComboboxInput>
+                        <ComboboxContent>
+                          <ComboboxEmpty>
+                            {loading
+                              ? t('common.loading', 'Chargement…')
+                              : t('contact.noRecipientFound', 'Aucun destinataire')}
+                          </ComboboxEmpty>
+                          <ComboboxList>
+                            {(option: Recipient) => (
+                              <ComboboxItem key={option.id} value={option}>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-flex text-muted-foreground"><PersonIcon size={16} strokeWidth={1.75} /></span>
+                                  <div>
+                                    <p className="cn-text-body2">
+                                      {option.firstName} {option.lastName}
+                                    </p>
+                                    <span className="cn-text-caption text-muted-foreground">
+                                      {option.email} - {option.role}
+                                    </span>
+                                  </div>
+                                </div>
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {errors.recipientId && <FieldError>{errors.recipientId.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -502,6 +492,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                         onCancel();
                       } else {
                         reset();
+                        setRecipientInput('');
                         setAttachments([]);
                       }
                     }}

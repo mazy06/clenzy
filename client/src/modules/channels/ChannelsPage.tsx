@@ -1,9 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X, CircleCheck } from 'lucide-react';
-// Snackbar reste MUI : il ne porte plus qu'un contenu du kit, mais remplacer le
-// mecanisme de notification flottante (par un toast sonner) depasse la migration.
-import { Snackbar } from '@mui/material';
+import { TriangleAlert, X } from 'lucide-react';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Link as LinkIcon,
   Refresh as RefreshIcon,
@@ -76,7 +74,7 @@ const ChannelsPage: React.FC = () => {
   const [connectDialogChannel, setConnectDialogChannel] = useState<OtaChannel | null>(null);
   const [disconnectConfirmChannel, setDisconnectConfirmChannel] = useState<OtaChannel | null>(null);
   const [disconnectingChannelId, setDisconnectingChannelId] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { notify } = useNotification();
   const { isConnected: isOtaConnected, getStatus: getOtaStatus, isLoading: otaConnectionsLoading } = useChannelConnections();
   const disconnectChannelMutation = useDisconnectChannel();
 
@@ -176,20 +174,20 @@ const ChannelsPage: React.FC = () => {
     if (channelId in CHANNEL_BACKEND_MAP) {
       setDisconnectingChannelId(channelId);
       disconnectChannelMutation.mutate(channelId as ChannelId, {
-        onSuccess: () => setSuccessMessage(t('channels.connect.successDisconnected', { channel: channelName })),
+        onSuccess: () => notify.success(t('channels.connect.successDisconnected', { channel: channelName })),
         onError: () => setConnectionError(t('channels.connect.errorDisconnecting', { channel: channelName })),
         onSettled: () => setDisconnectingChannelId(null),
       });
     }
     setDisconnectConfirmChannel(null);
-  }, [disconnectConfirmChannel, disconnectChannelMutation, t]);
+  }, [disconnectConfirmChannel, disconnectChannelMutation, notify, t]);
 
   const handleOtaConnected = useCallback(() => {
     if (connectDialogChannel) {
-      setSuccessMessage(t('channels.connect.successConnected', { channel: connectDialogChannel.name }));
+      notify.success(t('channels.connect.successConnected', { channel: connectDialogChannel.name }));
     }
     setConnectDialogChannel(null);
-  }, [connectDialogChannel, t]);
+  }, [connectDialogChannel, notify, t]);
 
   // ── Derived ──
   const isConnected = connectionStatus?.connected === true;
@@ -374,26 +372,6 @@ const ChannelsPage: React.FC = () => {
           onConnected={handleOtaConnected}
         />
       )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Success Snackbar
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <Snackbar
-        open={!!successMessage}
-        autoHideDuration={4000}
-        onClose={() => setSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <BuiAlert variant="success" className="w-full text-[0.8125rem]">
-          <CircleCheck />
-          <AlertDescription>{successMessage}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSuccessMessage(null)}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      </Snackbar>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Disconnect Confirmation Dialog

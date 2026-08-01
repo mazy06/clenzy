@@ -34,7 +34,7 @@ const PROVIDERS: ProviderCardSpec[] = [
 
 /** Badge "QTSP 🇫🇷" (rendu dans le titre via titleAdornment, sans tooltip propre pour eviter l'imbrication). */
 const qtspBadge = (
-  <span className="text-[0.56rem] font-bold tracking-[0.02em] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)] rounded-[3px] px-[2.25px] inline-flex items-center gap-0.5 shrink-0" style={{ color: ACCENT }}>
+  <span className="text-[0.56rem] font-bold tracking-[0.02em] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)] rounded-[24px] px-[2.25px] inline-flex items-center gap-0.5 shrink-0" style={{ color: ACCENT }}>
     QTSP
     <span aria-hidden="true" style={{ fontSize: '0.85em' }}>🇫🇷</span>
   </span>

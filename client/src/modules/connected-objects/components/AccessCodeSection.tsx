@@ -16,11 +16,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-// Snackbar/Alert restent MUI : basculer le mecanisme de notification (sonner)
-// depasse la migration des primitives et changerait le comportement de l'ecran.
-import { Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useNotification } from '../../../hooks/useNotification';
 import { useLockAccessCode } from '../useLockAccessCode';
 import { smartLockApi, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
 
@@ -46,12 +44,12 @@ function formatUntil(iso: string): string {
  */
 export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const qc = useQueryClient();
   const { data: code, isLoading } = useLockAccessCode(deviceId, true);
   const [revealed, setRevealed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
   const [savingMode, setSavingMode] = useState(false);
 
   // Origine du code (PMS pousse / serrure génère) — lue depuis la liste des serrures.
@@ -65,9 +63,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
     try {
       await smartLockApi.updateAccessCodeMode(deviceId, mode);
       await qc.invalidateQueries({ queryKey: ['smart-lock-devices'] });
-      setSnack({ msg: t('connectedObjects.codeMode.saved', 'Origine du code mise à jour (appliquée à la prochaine réservation)'), severity: 'success' });
+      notify.success(t('connectedObjects.codeMode.saved', 'Origine du code mise à jour (appliquée à la prochaine réservation)'));
     } catch {
-      setSnack({ msg: t('connectedObjects.codeMode.error', 'Échec du changement de mode'), severity: 'error' });
+      notify.error(t('connectedObjects.codeMode.error', 'Échec du changement de mode'));
     } finally {
       setSavingMode(false);
     }
@@ -77,9 +75,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
     if (!code?.code) return;
     try {
       await navigator.clipboard.writeText(code.code);
-      setSnack({ msg: 'Code copié', severity: 'success' });
+      notify.success('Code copié');
     } catch {
-      setSnack({ msg: 'Copie impossible', severity: 'error' });
+      notify.error('Copie impossible');
     }
   };
 
@@ -89,9 +87,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
       await smartLockApi.rotateAccessCode(deviceId);
       await qc.invalidateQueries({ queryKey: ['lock-access-code', deviceId] });
       setConfirmOpen(false);
-      setSnack({ msg: 'Nouveau code généré', severity: 'success' });
+      notify.success('Nouveau code généré');
     } catch (e) {
-      setSnack({ msg: e instanceof Error ? e.message : 'Échec de la génération', severity: 'error' });
+      notify.error(e instanceof Error ? e.message : 'Échec de la génération');
     } finally {
       setRotating(false);
     }
@@ -236,19 +234,6 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={!!snack}
-        autoHideDuration={3000}
-        onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {snack ? (
-          <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>
-            {snack.msg}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
     </>
   );
 }

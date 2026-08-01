@@ -3,10 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Snackbar (et l'Alert qu'il transporte) restent en MUI : changer le mecanisme
-// de notification flottante depasse la migration, et le Snackbar pose une ref
-// de transition sur son enfant direct — que les primitifs du kit ne portent pas.
-import { Alert, Snackbar } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Accordion,
   AccordionContent,
@@ -260,7 +257,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const { notify } = useNotification();
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -322,16 +319,16 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       });
 
       if (Object.keys(changed).length === 0) {
-        setSnackbar({ open: true, message: 'Aucune modification a sauvegarder', severity: 'success' });
+        notify.success('Aucune modification a sauvegarder');
         return;
       }
 
       const updated = await notificationPreferencesApi.update(changed);
       setPreferences(updated);
       setOriginalPrefs(updated);
-      setSnackbar({ open: true, message: 'Preferences sauvegardees avec succes', severity: 'success' });
+      notify.success('Preferences sauvegardees avec succes');
     } catch {
-      setSnackbar({ open: true, message: 'Erreur lors de la sauvegarde', severity: 'error' });
+      notify.error('Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -467,21 +464,6 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
           );
         })}
       </div>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Card>
   );
 });

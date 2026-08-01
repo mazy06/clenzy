@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { Spinner, Switch, Input } from '../../components/ui';
-// Snackbar + son Alert restent MUI : porter la notification flottante voudrait
-// dire changer de mecanisme (sonner), ce que ce fichier n'utilise pas.
-import { Alert, Snackbar } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
 import SettingsSection from './components/SettingsSection';
 
@@ -32,17 +30,13 @@ interface PayoutScheduleSettingsProps {
 const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSettingsProps>(
   function PayoutScheduleSettings({ onChangeState }, ref) {
     const { t } = useTranslation();
+    const { notify } = useNotification();
     const { data: config, isLoading } = usePayoutSchedule();
     const updateMutation = useUpdatePayoutSchedule();
 
     const [selectedDays, setSelectedDays] = useState<number[]>([1, 15]);
     const [gracePeriod, setGracePeriod] = useState(2);
     const [autoGenerate, setAutoGenerate] = useState(true);
-    const [snackbar, setSnackbar] = useState({
-      open: false,
-      message: '',
-      severity: 'success' as 'success' | 'error',
-    });
 
     useEffect(() => {
       if (!config) return;
@@ -78,11 +72,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
 
     const handleSave = async () => {
       if (!isValid()) {
-        setSnackbar({
-          open: true,
-          message: t('settings.payoutSchedule.validationDays'),
-          severity: 'error',
-        });
+        notify.error(t('settings.payoutSchedule.validationDays'));
         throw new Error('Validation: au moins un jour requis');
       }
 
@@ -92,17 +82,9 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
           gracePeriodDays: gracePeriod,
           autoGenerateEnabled: autoGenerate,
         });
-        setSnackbar({
-          open: true,
-          message: t('settings.payoutSchedule.saved'),
-          severity: 'success',
-        });
+        notify.success(t('settings.payoutSchedule.saved'));
       } catch (err) {
-        setSnackbar({
-          open: true,
-          message: t('settings.payoutSchedule.error'),
-          severity: 'error',
-        });
+        notify.error(t('settings.payoutSchedule.error'));
         throw err;
       }
     };
@@ -239,20 +221,6 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
             </p>
           </div>
         </div>
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        >
-          <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            severity={snackbar.severity}
-            sx={{ borderRadius: '8px' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </SettingsSection>
     );
   },

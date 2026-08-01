@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box } from '@mui/material';
 
 // ─── Styles « Signature » partagés par ReservationDialog et ses sous-composants ──
 // Tokens var(--…) de theme/signature/tokens.css. Aucune logique — présentation pure.
@@ -254,5 +253,7 @@ export const STEP_BTN_SX = {
 } as const;
 
 /** Icône d'adornment (.rm-ic) */
+// Fichier .ts (pas de JSX) : le span est cree via createElement, comme l'etait
+// le Box MUI qu'il remplace.
 export const AdornIcon: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-  React.createElement(Box, { component: 'span', sx: { display: 'inline-flex', color: 'var(--faint)' } }, children);
+  React.createElement('span', { style: { display: 'inline-flex', color: 'var(--faint)' } }, children);

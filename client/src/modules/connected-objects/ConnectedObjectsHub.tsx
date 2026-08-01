@@ -2,14 +2,11 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { Info, X } from 'lucide-react';
+import { Button as BuiButton } from '../../components/ui';
 import { Card, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-// Snackbar reste MUI : changer le mecanisme de notification de la page
-// depasse la migration des primitives.
-import { Snackbar } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -63,14 +60,14 @@ export default function ConnectedObjectsHub({
   // Netatmo = modèle par-hôte : chaque hôte connecte SON compte depuis le hub (l'onglet
   // Intégrations est réservé aux SUPER_ADMIN/MANAGER). La config de l'app reste admin.
   const netatmoConnected = providers.some((p) => p.provider === 'NETATMO' && p.connected);
-  const [connectMsg, setConnectMsg] = useState<string | null>(null);
+  const { notify } = useNotification();
   const connectNetatmo = async () => {
     try {
       const res = await netatmoApi.connect();
       if (res.authorization_url) { window.location.href = res.authorization_url; return; }
       if (res.status === 'already_connected') { void refetch(); }
     } catch {
-      setConnectMsg("Netatmo n'est pas encore activé par l'administrateur (clé API à configurer dans les Intégrations).");
+      notify.info("Netatmo n'est pas encore activé par l'administrateur (clé API à configurer dans les Intégrations).", 6000);
     }
   };
 
@@ -302,18 +299,6 @@ export default function ConnectedObjectsHub({
       )}
 
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
-
-      <Snackbar open={!!connectMsg} autoHideDuration={6000} onClose={() => setConnectMsg(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {connectMsg ? <BuiAlert variant="info" className="w-full">
-          <Info />
-          <AlertDescription>{connectMsg}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setConnectMsg(null)}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert> : undefined}
-      </Snackbar>
     </div>
   );
 }

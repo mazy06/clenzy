@@ -3,15 +3,18 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Autocomplete MUI conserve : son `renderInput` injecte des props internes dans
-// un TextField, qu'aucun primitif du kit ne sait recevoir.
-import { Autocomplete, TextField } from '@mui/material';
 import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import {
   Avatar,
   AvatarFallback,
   Card,
   CardContent,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   NativeSelect,
   NativeSelectOption,
   Select,
@@ -45,7 +48,9 @@ import {
   hasArrondissements,
   getArrondissementsForDepartment,
 } from '../../data/frenchDepartments';
+import type { Arrondissement, Department } from '../../data/frenchDepartments';
 import { COVERAGE_COUNTRIES, getCitiesForCountry } from '../../data/coverageCountries';
+import type { CoverageCountry } from '../../data/coverageCountries';
 
 interface TeamMember {
   userId: number;
@@ -425,78 +430,130 @@ const TeamEdit: React.FC = () => {
                   const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                   return (
-                    <div key={index} className="grid grid-cols-1 min-[900px]:grid-cols-12 gap-3 mb-[9px] items-center">
+                    // `items-end` et non `items-center` : chaque champ porte desormais
+                    // son libelle au-dessus, la corbeille s'aligne donc sur le bas.
+                    <div key={index} className="grid grid-cols-1 min-[900px]:grid-cols-12 gap-3 mb-[9px] items-end">
                       <div className="min-[900px]:col-span-3">
-                        <Autocomplete
-                          size="small"
-                          options={COVERAGE_COUNTRIES}
-                          getOptionLabel={(opt) => opt.name}
-                          value={countryDef}
-                          disableClearable
-                          onChange={(_e, val) => {
-                            updateCoverageZone(index, 'country', val?.code || 'FR');
-                            updateCoverageZone(index, 'department', undefined);
-                            updateCoverageZone(index, 'arrondissement', undefined);
-                            updateCoverageZone(index, 'city', undefined);
-                          }}
-                          renderInput={(params) => (
-                            <TextField {...params} label="Pays" />
-                          )}
-                        />
+                        <Field>
+                          <FieldLabel htmlFor={`zone-country-${index}`}>Pays</FieldLabel>
+                          <Combobox
+                            items={COVERAGE_COUNTRIES}
+                            itemToStringLabel={(opt: CoverageCountry) => opt.name}
+                            itemToStringValue={(opt: CoverageCountry) => opt.name}
+                            isItemEqualToValue={(a: CoverageCountry, b: CoverageCountry) => a.code === b.code}
+                            value={countryDef}
+                            onValueChange={(val: CoverageCountry | null) => {
+                              updateCoverageZone(index, 'country', val?.code || 'FR');
+                              updateCoverageZone(index, 'department', undefined);
+                              updateCoverageZone(index, 'arrondissement', undefined);
+                              updateCoverageZone(index, 'city', undefined);
+                            }}
+                          >
+                            <ComboboxInput id={`zone-country-${index}`} placeholder="Selectionner un pays" />
+                            <ComboboxContent>
+                              <ComboboxEmpty>Aucun pays</ComboboxEmpty>
+                              <ComboboxList>
+                                {(option: CoverageCountry) => (
+                                  <ComboboxItem key={option.code} value={option}>
+                                    {option.name}
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxList>
+                            </ComboboxContent>
+                          </Combobox>
+                        </Field>
                       </div>
                       {isFr ? (
                         <>
                           <div className={showArr ? 'min-[900px]:col-span-4' : 'min-[900px]:col-span-7'}>
-                            <Autocomplete
-                              size="small"
-                              options={FRENCH_DEPARTMENTS}
-                              getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
-                              value={deptObj || null}
-                              onChange={(_e, val) => {
-                                updateCoverageZone(index, 'department', val?.code || '');
-                                if (!val || !hasArrondissements(val.code)) {
-                                  updateCoverageZone(index, 'arrondissement', undefined);
-                                }
-                              }}
-                              renderInput={(params) => (
-                                <TextField {...params} label="Departement" placeholder="Selectionner un departement" />
-                              )}
-                            />
+                            <Field>
+                              <FieldLabel htmlFor={`zone-department-${index}`}>Departement</FieldLabel>
+                              <Combobox
+                                items={FRENCH_DEPARTMENTS}
+                                itemToStringLabel={(opt: Department) => `${opt.code} - ${opt.name}`}
+                                itemToStringValue={(opt: Department) => `${opt.code} - ${opt.name}`}
+                                isItemEqualToValue={(a: Department, b: Department) => a.code === b.code}
+                                value={deptObj || null}
+                                onValueChange={(val: Department | null) => {
+                                  updateCoverageZone(index, 'department', val?.code || '');
+                                  if (!val || !hasArrondissements(val.code)) {
+                                    updateCoverageZone(index, 'arrondissement', undefined);
+                                  }
+                                }}
+                              >
+                                <ComboboxInput id={`zone-department-${index}`} placeholder="Selectionner un departement" />
+                                <ComboboxContent>
+                                  <ComboboxEmpty>Aucun departement</ComboboxEmpty>
+                                  <ComboboxList>
+                                    {(option: Department) => (
+                                      <ComboboxItem key={option.code} value={option}>
+                                        {option.code} - {option.name}
+                                      </ComboboxItem>
+                                    )}
+                                  </ComboboxList>
+                                </ComboboxContent>
+                              </Combobox>
+                            </Field>
                           </div>
                           {showArr && (
                             <div className="min-[900px]:col-span-4">
-                              <Autocomplete
-                                size="small"
-                                options={arrOptions}
-                                getOptionLabel={(opt) => opt.name}
-                                value={arrOptions.find(a => a.code === zone.arrondissement) || null}
-                                onChange={(_e, val) => {
-                                  updateCoverageZone(index, 'arrondissement', val?.code || undefined);
-                                }}
-                                renderInput={(params) => (
-                                  <TextField {...params} label="Arrondissement" placeholder="Tous les arrondissements" />
-                                )}
-                              />
+                              <Field>
+                                <FieldLabel htmlFor={`zone-arrondissement-${index}`}>Arrondissement</FieldLabel>
+                                <Combobox
+                                  items={arrOptions}
+                                  itemToStringLabel={(opt: Arrondissement) => opt.name}
+                                  itemToStringValue={(opt: Arrondissement) => opt.name}
+                                  isItemEqualToValue={(a: Arrondissement, b: Arrondissement) => a.code === b.code}
+                                  value={arrOptions.find(a => a.code === zone.arrondissement) || null}
+                                  onValueChange={(val: Arrondissement | null) => {
+                                    updateCoverageZone(index, 'arrondissement', val?.code || undefined);
+                                  }}
+                                >
+                                  <ComboboxInput id={`zone-arrondissement-${index}`} placeholder="Tous les arrondissements" />
+                                  <ComboboxContent>
+                                    <ComboboxEmpty>Aucun arrondissement</ComboboxEmpty>
+                                    <ComboboxList>
+                                      {(option: Arrondissement) => (
+                                        <ComboboxItem key={option.code} value={option}>
+                                          {option.name}
+                                        </ComboboxItem>
+                                      )}
+                                    </ComboboxList>
+                                  </ComboboxContent>
+                                </Combobox>
+                              </Field>
                             </div>
                           )}
                         </>
                       ) : (
                         <div className="min-[900px]:col-span-7">
-                          <Autocomplete
-                            size="small"
-                            options={cityOptions}
-                            freeSolo
-                            value={zone.city || ''}
-                            onChange={(_e, val) => {
-                              updateCoverageZone(index, 'city', typeof val === 'string' ? val : (val ?? undefined));
-                            }}
-                            onInputChange={(_e, val) => {
-                              updateCoverageZone(index, 'city', val || undefined);
-                            }}
-                            renderInput={(params) => (
-                              <TextField {...params} label="Ville" placeholder="Saisir ou selectionner une ville" />
-                            )}
-                          />
+                          <Field>
+                            <FieldLabel htmlFor={`zone-city-${index}`}>Ville</FieldLabel>
+                            {/* Report du `freeSolo` : seule la SAISIE est controlee, il n'y a
+                                pas de `value` d'item — une ville hors liste reste donc valide. */}
+                            <Combobox
+                              items={cityOptions}
+                              inputValue={zone.city ?? ''}
+                              onInputValueChange={(next: string) => {
+                                updateCoverageZone(index, 'city', next || undefined);
+                              }}
+                              onValueChange={(val: string | null) => {
+                                updateCoverageZone(index, 'city', val || undefined);
+                              }}
+                            >
+                              <ComboboxInput id={`zone-city-${index}`} placeholder="Saisir ou selectionner une ville" />
+                              <ComboboxContent>
+                                <ComboboxEmpty>Aucune ville proposee</ComboboxEmpty>
+                                <ComboboxList>
+                                  {(option: string) => (
+                                    <ComboboxItem key={option} value={option}>
+                                      {option}
+                                    </ComboboxItem>
+                                  )}
+                                </ComboboxList>
+                              </ComboboxContent>
+                            </Combobox>
+                          </Field>
                         </div>
                       )}
                       <div className="min-[900px]:col-span-2 flex items-center gap-1.5">

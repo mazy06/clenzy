@@ -3,12 +3,12 @@ import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { Snackbar, Alert } from '@mui/material';
+import { useNotification } from '../../../hooks/useNotification';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
 import BatteryIndicator from '../components/BatteryIndicator';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import type { ConnectedDevice, DeviceStatusLevel } from '../types';
 
 // Pilule statut : texte couleur + fond `-soft` (tokens sémantiques Signature,
@@ -42,15 +42,15 @@ function fmt(dt: string | null): string {
 export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   const qc = useQueryClient();
   const sensor = device.raw as EnvironmentSensorDto;
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
+  const { notify } = useNotification();
 
   const refresh = useMutation({
     mutationFn: () => environmentSensorsApi.refresh(device.id),
     onSuccess: () => {
-      setSnack({ msg: 'État rafraîchi', severity: 'success' });
+      notify.success('État rafraîchi');
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => setSnack({ msg: e instanceof Error ? e.message : 'Échec du rafraîchissement', severity: 'error' }),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : 'Échec du rafraîchissement'),
   });
 
   // État principal typé (chip colorée — le seul endroit où la couleur porte un sens).
@@ -127,10 +127,6 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
           {sensor.sensorType === 'SMOKE' ? ' de fumée ou de vape' : ' de mouvement'} (avec anti-spam).
         </span>
       )}
-
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {snack ? <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>{snack.msg}</Alert> : undefined}
-      </Snackbar>
     </div>
   );
 }

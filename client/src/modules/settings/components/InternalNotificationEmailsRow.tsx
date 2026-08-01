@@ -1,7 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import TagChip from '../../../components/TagChip';
-import { Spinner } from '../../../components/ui';
-import { Autocomplete, TextField } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  Field,
+  FieldError,
+  Spinner,
+  useComboboxAnchor,
+} from '../../../components/ui';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -26,10 +39,23 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
   // remount via `key` chez le parent (LaunchSettingsSection) — plus d'effet miroir.
   const [emails, setEmails] = useState<string[]>(value);
   const [inputError, setInputError] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const anchor = useComboboxAnchor();
 
   const hasSelfSend = useMemo(
     () => emails.some((e) => e.trim().toLowerCase() === SENDER),
     [emails],
+  );
+
+  // Saisie libre : la seule proposition de la liste est ce que l'utilisateur est
+  // en train de taper. Entree la selectionne, ce qui reproduit exactement le
+  // comportement free-solo de l'ancien champ (aucune option n'a jamais existe).
+  const candidate = inputValue.trim();
+  const items = useMemo(
+    () => (candidate && !emails.some((e) => e.toLowerCase() === candidate.toLowerCase())
+      ? [candidate]
+      : []),
+    [candidate, emails],
   );
 
   const commit = (next: string[]) => {
@@ -39,6 +65,17 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
     ).filter(Boolean);
     setEmails(cleaned);
     if (cleaned.length > 0) onSave(cleaned);
+  };
+
+  const handleValueChange = (next: string[]) => {
+    const invalid = next.find((e) => !EMAIL_RE.test(e.trim()));
+    if (invalid) {
+      setInputError(`Adresse invalide : ${invalid}`);
+      return;
+    }
+    setInputError(null);
+    commit(next);
+    setInputValue('');
   };
 
   return (
@@ -58,42 +95,53 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
         </div>
       </div>
 
-      <Autocomplete
-        multiple
-        freeSolo
-        size="small"
-        options={[]}
-        value={emails}
-        onChange={(_, newVal) => {
-          const next = newVal as string[];
-          const invalid = next.find((e) => !EMAIL_RE.test(e.trim()));
-          if (invalid) {
-            setInputError(`Adresse invalide : ${invalid}`);
-            return;
-          }
-          setInputError(null);
-          commit(next);
-        }}
-        renderTags={(val: readonly string[], getTagProps) =>
-          val.map((option, index) => {
-            const isSelf = option.trim().toLowerCase() === SENDER;
-            const { key, ...tagProps } = getTagProps({ index });
-            return (
-              <TagChip key={key} {...tagProps} label={option} tone={isSelf ? 'warn' : 'neutral'} />
-            );
-          })
-        }
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            placeholder={emails.length === 0 ? 'ajouter un email puis Entrée' : ''}
-            error={!!inputError}
-            helperText={inputError ?? undefined}
-            sx={{ '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
-          />
-        )}
-        sx={{ ml: { sm: '30px' } }}
-      />
+      <Field className="min-[600px]:ms-[30px]">
+        <Combobox
+          multiple
+          autoHighlight
+          items={items}
+          value={emails}
+          onValueChange={handleValueChange}
+          inputValue={inputValue}
+          onInputValueChange={setInputValue}
+        >
+          <ComboboxChips ref={anchor} className="w-full">
+            <ComboboxValue>
+              {(values) => (
+                <React.Fragment>
+                  {values.map((email: string) => (
+                    <ComboboxChip
+                      key={email}
+                      className={cn(
+                        email.trim().toLowerCase() === SENDER
+                          && 'border-[var(--warn)] text-[var(--warn)] bg-[var(--warn-soft)]',
+                      )}
+                    >
+                      {email}
+                    </ComboboxChip>
+                  ))}
+                  <ComboboxChipsInput
+                    className="text-[0.8rem]"
+                    aria-invalid={!!inputError}
+                    placeholder={values.length === 0 ? 'ajouter un email puis Entrée' : ''}
+                  />
+                </React.Fragment>
+              )}
+            </ComboboxValue>
+          </ComboboxChips>
+          <ComboboxContent anchor={anchor}>
+            <ComboboxEmpty>Saisissez une adresse email.</ComboboxEmpty>
+            <ComboboxList>
+              {(item: string) => (
+                <ComboboxItem key={item} value={item}>
+                  Ajouter « {item} »
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+        {inputError && <FieldError>{inputError}</FieldError>}
+      </Field>
 
       {hasSelfSend && (
         <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">

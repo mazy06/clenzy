@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
-import { Box, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
+// Ne restent de MUI que le fournisseur de theme et le `Box` du conteneur de
+// formulaire : les pages filles (Login, Inscription, InscriptionConfirm…) sont
+// encore en MUI. Le ThemeProvider est ce qui les force en clair + RTL, et le
+// `sx` du Box cible leurs classes `.MuiOutlinedInput-*` — traduit en classes
+// Tailwind (couche `utilities`) il perdrait contre les styles Emotion de MUI,
+// et l'habillage des champs d'authentification disparaitrait sans erreur.
+import { Box, CssBaseline, ThemeProvider } from '@mui/material';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
@@ -219,6 +226,20 @@ const ENABLE_PHOTO_HERO = true;
 // donne ~150KB pour un retina-friendly rendering sur ecran 1440px.
 const HERO_PHOTO_URL = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1600&q=80';
 
+/**
+ * Equivalent CSS de l'ancien helper `alpha()` de MUI. `color-mix` accepte aussi
+ * bien un hexadecimal qu'un `var(--…)`, la ou `alpha()` exigeait une couleur
+ * deja resolue en JS.
+ */
+const softColor = (color: string, percent: number) =>
+  `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+
+/** Pont vers la primary MUI, seule teinte du theme utilisee par ce layout. */
+const PRIMARY = 'var(--mui-primary)';
+
+/** `theme.breakpoints.up('md')` de MUI : md vaut 900px, pas 768px. */
+const MD_UP_QUERY = '(min-width: 900px)';
+
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
   // Geo-detected language : ces pages NE respectent PAS les preferences user.
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
@@ -236,10 +257,9 @@ export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutP
 
 function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+  const isMdUp = useMediaQuery(MD_UP_QUERY);
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const primary = theme.palette.primary.main;
+  const primary = PRIMARY;
 
   // ─── State du carrousel ──────────────────────────────────────────────
   const [slideIndex, setSlideIndex] = useState(0);
@@ -316,11 +336,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           style={{
             // Photo mode : bg ratio composite (photo darkening overlay sous
             // le dot pattern translucide). Sober mode : bg primary alpha 0.04.
-            backgroundColor: ENABLE_PHOTO_HERO ? '#0F1A22' : alpha(primary, 0.04),
+            backgroundColor: ENABLE_PHOTO_HERO ? '#0F1A22' : softColor(primary, 4),
             // Dot pattern visible dans les deux modes, alpha ajuste selon le bg
             backgroundImage: ENABLE_PHOTO_HERO
-              ? `radial-gradient(${alpha('#FFFFFF', 0.10)} 1px, transparent 1px)`
-              : `radial-gradient(${alpha(primary, 0.12)} 1px, transparent 1px)`,
+              ? `radial-gradient(${softColor('#FFFFFF', 10)} 1px, transparent 1px)`
+              : `radial-gradient(${softColor(primary, 12)} 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
             backgroundPosition: '0 0',
           }}
@@ -352,8 +372,8 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   transform: 'scale(1.05)',
                 }}
               />
-              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: alpha('#0F1E28', 0.85) }} aria-hidden />
-              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ background: `linear-gradient(to top right, ${alpha('#0F1E28', 0.55)} 0%, transparent 60%)` }} aria-hidden />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: softColor('#0F1E28', 85) }} aria-hidden />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ background: `linear-gradient(to top right, ${softColor('#0F1E28', 55)} 0%, transparent 60%)` }} aria-hidden />
             </>
           )}
 
@@ -361,8 +381,8 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               En photo mode : color brand-light pour rester visible sur fond fonce.
               En sober mode : color brand classic. */}
           <div className="absolute w-[360px] h-[360px] rounded-[50%] pointer-events-none z-[0]" style={{ top: -120, right: -120, background: ENABLE_PHOTO_HERO
-                ? `radial-gradient(circle, ${alpha('#89B1C2', 0.22)}, transparent 70%)`
-                : `radial-gradient(circle, ${alpha(primary, 0.18)}, transparent 70%)` }} aria-hidden />
+                ? `radial-gradient(circle, ${softColor('#89B1C2', 22)}, transparent 70%)`
+                : `radial-gradient(circle, ${softColor(primary, 18)}, transparent 70%)` }} aria-hidden />
 
           {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
           <div className="relative z-[1]">
@@ -439,7 +459,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 <p
                   className="cn-text-body1 text-[0.8125rem] font-normal leading-[1.7]"
                   style={{
-                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.78) : 'var(--muted)',
+                    color: ENABLE_PHOTO_HERO ? softColor('#FFFFFF', 78) : 'var(--muted)',
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
                   }}
                 >
@@ -477,11 +497,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 // avec le bg fonce. Primary en sober mode.
                 const dotActiveBg = ENABLE_PHOTO_HERO ? '#FFFFFF' : primary;
                 const dotInactiveBg = ENABLE_PHOTO_HERO
-                  ? alpha('#FFFFFF', 0.35)
-                  : alpha(primary, 0.25);
+                  ? softColor('#FFFFFF', 35)
+                  : softColor(primary, 25);
                 const dotInactiveHoverBg = ENABLE_PHOTO_HERO
-                  ? alpha('#FFFFFF', 0.55)
-                  : alpha(primary, 0.45);
+                  ? softColor('#FFFFFF', 55)
+                  : softColor(primary, 45);
                 return (
                   // Les 3 teintes du dot dependent du mode photo et du theme :
                   // elles passent par des custom properties, les classes qui les
@@ -611,9 +631,9 @@ function ServiceChip({
     <div
       className="inline-flex items-center gap-[3.75px] px-[6.75px] py-[3px] rounded-full border border-solid border-[var(--chip-border)] bg-[var(--chip-bg)] hover:bg-[var(--chip-bg-hover)]"
       style={{
-        '--chip-bg': onDark ? alpha('#FFFFFF', 0.08) : alpha('#000000', 0.04),
-        '--chip-bg-hover': onDark ? alpha('#FFFFFF', 0.14) : alpha('#000000', 0.06),
-        '--chip-border': onDark ? alpha('#FFFFFF', 0.12) : alpha('#000000', 0.06),
+        '--chip-bg': onDark ? softColor('#FFFFFF', 8) : softColor('#000000', 4),
+        '--chip-bg-hover': onDark ? softColor('#FFFFFF', 14) : softColor('#000000', 6),
+        '--chip-border': onDark ? softColor('#FFFFFF', 12) : softColor('#000000', 6),
         transition: 'background-color 200ms ease-out',
       } as React.CSSProperties}
     >
@@ -632,7 +652,7 @@ function ServiceChip({
       )}
       <span
         className="cn-text-body1 text-[0.7rem] font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
-        style={{ color: onDark ? alpha('#FFFFFF', 0.88) : 'var(--ink)' }}
+        style={{ color: onDark ? softColor('#FFFFFF', 88) : 'var(--ink)' }}
       >
         {service.name}
       </span>
@@ -649,7 +669,7 @@ function TrustItem({ dot, label, onDark = false }: { dot: string; label: string;
       <div className={cn('w-[5px] h-[5px] rounded-[50%]', onDark ? 'opacity-85' : 'opacity-60')} style={{ backgroundColor: dot }} />
       <span
         className="cn-text-caption text-[0.75rem] font-medium"
-        style={{ color: onDark ? alpha('#FFFFFF', 0.75) : 'var(--muted)' }}
+        style={{ color: onDark ? softColor('#FFFFFF', 75) : 'var(--muted)' }}
       >
         {label}
       </span>

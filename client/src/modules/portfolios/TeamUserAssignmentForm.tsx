@@ -15,9 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui';
-// Reste en MUI : le Stepper (et ses Step / StepLabel) — la bibliotheque Baitly
-// UI n'expose aucun equivalent, le reecrire depasserait la migration.
-import { Stepper, Step, StepLabel } from '@mui/material';
+import { Stepper, Step, StepLabel } from '../../components/ui';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   People,
@@ -410,13 +408,7 @@ const TeamUserAssignmentForm: React.FC = () => {
       />
 
       <BuiCard className="gap-0 py-0 p-4 mt-3">
-        <Stepper
-          activeStep={activeStep}
-          sx={{
-            mb: 4,
-            '& .MuiStepLabel-label': { fontSize: '0.82rem' },
-          }}
-        >
+        <Stepper activeStep={activeStep} className="mb-6">
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>

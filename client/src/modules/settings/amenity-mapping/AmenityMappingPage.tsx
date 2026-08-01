@@ -38,9 +38,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-// Le Snackbar reste MUI : remplacer le mecanisme de notification de la page
-// (le fichier n'utilise pas sonner) depasse la migration des primitives.
-import { Snackbar } from '@mui/material';
 import {
   Search,
   Plus,
@@ -56,6 +53,7 @@ import AmenityIconPicker from './AmenityIconPicker';
 import { resolveAmenityIcon, getCurrentIconName, DEFAULT_AMENITY_ICONS } from './amenityIcons';
 import { useAmenityIconOverrides } from './useAmenityIconOverrides';
 import { useAuth } from '../../../hooks/useAuth';
+import { useNotification } from '../../../hooks/useNotification';
 import { useSettingsHeaderActions } from '../SettingsHeaderContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -125,7 +123,7 @@ export default function AmenityMappingPage() {
   const [reprocessing, setReprocessing] = useState(false);
   const [confirmRescrape, setConfirmRescrape] = useState(false);
   const [rescraping, setRescraping] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { notify } = useNotification();
 
   // ─── Data loading ─────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
@@ -197,10 +195,10 @@ export default function AmenityMappingPage() {
         otaSource: raw.otaSources[0] ?? undefined,
         applyToProperties: true,
       });
-      setToast(`«${raw.rawOtaName}» mappé sur ${codeLabelOf(code)} et appliqué aux ${raw.occurrences} propriété(s)`);
+      notify.success(`«${raw.rawOtaName}» mappé sur ${codeLabelOf(code)} et appliqué aux ${raw.occurrences} propriété(s)`);
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors du mapping.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors du mapping.');
     }
   };
 
@@ -211,10 +209,10 @@ export default function AmenityMappingPage() {
         otaSource: raw.otaSources[0] ?? undefined,
         applyToProperties: true,
       });
-      setToast(`«${raw.rawOtaName}» ignoré`);
+      notify.success(`«${raw.rawOtaName}» ignoré`);
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors de l\'ignore.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors de l\'ignore.');
     }
   };
 
@@ -229,12 +227,12 @@ export default function AmenityMappingPage() {
         otaSource: sample?.otaSources[0] ?? undefined,
         applyToProperties: true,
       });
-      setToast(`${selectedRaw.size} aliases créés → ${result.totalMappedAdded} amenities ajoutées sur ${result.propertiesUpdated} propriété(s)`);
+      notify.success(`${selectedRaw.size} aliases créés → ${result.totalMappedAdded} amenities ajoutées sur ${result.propertiesUpdated} propriété(s)`);
       setSelectedRaw(new Set());
       setBulkCode('');
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors du bulk mapping.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors du bulk mapping.');
     } finally {
       setBulkBusy(false);
     }
@@ -243,30 +241,30 @@ export default function AmenityMappingPage() {
   const handleDeleteAlias = async (id: number) => {
     try {
       await amenitiesManagementApi.deleteAlias(id);
-      setToast('Alias supprimé');
+      notify.success('Alias supprimé');
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
     }
   };
 
   const handleDeleteCustom = async (id: number) => {
     try {
       await amenitiesManagementApi.deleteCustom(id);
-      setToast('Commodité custom supprimée (et ses aliases associés)');
+      notify.success('Commodité custom supprimée (et ses aliases associés)');
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
     }
   };
 
   const handleDeleteIgnored = async (id: number) => {
     try {
       await amenitiesManagementApi.deleteIgnored(id);
-      setToast('Retiré de la liste des ignorés');
+      notify.success('Retiré de la liste des ignorés');
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors de la suppression.');
     }
   };
 
@@ -275,13 +273,13 @@ export default function AmenityMappingPage() {
     setConfirmReprocess(false);
     try {
       const r: ReprocessResult = await amenitiesManagementApi.reprocess();
-      setToast(
+      notify.success(
         `Re-traitement terminé : ${r.propertiesUpdated}/${r.propertiesScanned} propriétés mises à jour `
         + `(${r.totalMappedAdded} mappées, ${r.totalIgnoredRemoved} ignorées, ${r.totalLeftUnmapped} restantes)`,
       );
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors du re-traitement.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors du re-traitement.');
     } finally {
       setReprocessing(false);
     }
@@ -294,13 +292,13 @@ export default function AmenityMappingPage() {
       const results = await channexApi.resyncAllContent();
       const totalMapped = results.reduce((sum, r) => sum + r.mappedAmenities.length, 0);
       const totalRaw = results.reduce((sum, r) => sum + r.rawAmenitiesRemaining.length, 0);
-      setToast(
+      notify.success(
         `Re-scrape terminé sur ${results.length} propriété(s) : `
         + `${totalMapped} commodités mappées, ${totalRaw} brutes restent à mapper.`,
       );
       await loadAll();
     } catch (e: unknown) {
-      setToast(e instanceof Error ? e.message : 'Erreur lors du re-scrape.');
+      notify.error(e instanceof Error ? e.message : 'Erreur lors du re-scrape.');
     } finally {
       setRescraping(false);
     }
@@ -813,7 +811,7 @@ export default function AmenityMappingPage() {
         prefillRawName={createModal.prefillRawName}
         prefillAffectedCount={createModal.prefillAffectedCount}
         onClose={() => setCreateModal({ open: false, prefillRawName: null, prefillAffectedCount: 0 })}
-        onCreated={() => { void loadAll(); setToast('Commodité créée'); }}
+        onCreated={() => { void loadAll(); notify.success('Commodité créée'); }}
       />
 
       <Dialog open={confirmReprocess} onOpenChange={(next) => !next && setConfirmReprocess(false)}>
@@ -863,14 +861,6 @@ export default function AmenityMappingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={!!toast}
-        autoHideDuration={4500}
-        onClose={() => setToast(null)}
-        message={toast}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </div>
   );
 }

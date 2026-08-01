@@ -6,21 +6,19 @@ import { Card } from '../../components/ui';
 import { Button, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Textarea } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-// Restent en MUI : infrastructure de theme, pas du vocabulaire UI. Le
-// ThemeProvider local porte la langue GEO-detectee (pas les prefs user) et le
-// CssBaseline le reset global de cette page autonome.
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient from '../../services/apiClient';
 
 export default function Support() {
   const { t } = useTranslation();
-  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
-  const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
+  // Le hook change la langue i18n GLOBALE : la racine de l'app recalcule alors
+  // son propre theme (Tajawal + RTL) et sa direction. Le ThemeProvider local
+  // qui vivait ici n'habillait plus aucun composant depuis que l'ecran est
+  // passe aux primitives Baitly UI, qui lisent les jetons CSS.
+  useGeoAuthLanguage();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -66,8 +64,6 @@ export default function Support() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
     <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
       <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[var(--card)] border-border">
         {/* Header avec logo */}
@@ -218,6 +214,5 @@ export default function Support() {
         )}
       </Card>
     </div>
-    </ThemeProvider>
   );
 }

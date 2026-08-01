@@ -394,7 +394,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 value={autoCheckTotal > 0 ? (autoCheckProgress / autoCheckTotal) * 100 : 0}
                 className={cn(
                   'h-1.5 rounded-[3px] bg-[var(--accent-soft)]',
-                  '[&_[data-slot=progress-indicator]]:rounded-[3px]',
+                  '[&_[data-slot=progress-indicator]]:rounded-[24px]',
                   '[&_[data-slot=progress-indicator]]:bg-[var(--accent)]',
                   '[&_[data-slot=progress-indicator]]:duration-[600ms]',
                   'motion-reduce:[&_[data-slot=progress-indicator]]:transition-none',

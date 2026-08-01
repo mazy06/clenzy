@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Card, Button } from '../../components/ui';
-import { useMediaQuery, useTheme } from '@mui/material';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -43,8 +43,9 @@ export default function MessagingHubPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Palier 900 : c'est le `md` de MUI (et non le 768 de Tailwind), donc le meme
+  // seuil que les classes `min-[900px]:` qui basculent la mise en page en dessous.
+  const isMobile = useIsMobile(900);
 
   const isAdminOrManager =
     user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;

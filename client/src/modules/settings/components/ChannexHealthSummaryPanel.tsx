@@ -153,7 +153,7 @@ export default function ChannexHealthSummaryPanel({
 
   if (loading && !summary) {
     return (
-      <div className="border border-[var(--line)] rounded-[1px] p-2">
+      <div className="border border-[var(--line)] rounded-[8px] p-2">
         <div className="flex flex-col gap-1.5">
           <Skeleton className="h-[32px] w-full rounded-[8px]" />
           <Skeleton className="h-[48px] w-full rounded-[8px]" />
@@ -179,7 +179,7 @@ export default function ChannexHealthSummaryPanel({
 
   if (summary.totalMappings === 0) {
     return (
-      <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
+      <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
         <div className="flex items-center gap-1.5">
           <Activity size={16} color="var(--muted)" strokeWidth={2.2} />
           <span className="cn-text-caption text-muted-foreground">
@@ -196,7 +196,7 @@ export default function ChannexHealthSummaryPanel({
   const hiddenCount = summary.attentionItems.length - visibleItems.length;
 
   return (
-    <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
+    <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
       {/* Header : total + chips par status + refresh */}
       <div className={cn('flex items-center gap-1.5', summary.attentionItems.length > 0 ? 'mb-[7.5px]' : 'mb-0')}>
         <Activity size={16} color="var(--accent)" strokeWidth={2.2} />

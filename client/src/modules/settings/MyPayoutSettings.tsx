@@ -7,9 +7,7 @@ import { Card } from '../../components/ui';
 import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-// Snackbar reste MUI : changer le MECANISME de notification (vers sonner, non
-// utilise dans ce fichier) depasse la migration de vocabulaire visuel.
-import { Snackbar } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import {
   AccountBalance,
   Save,
@@ -81,10 +79,10 @@ export default function MyPayoutSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const { notify } = useNotification();
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
+  const showMessage = (message: string, severity: 'success' | 'error') => {
+    notify[severity](message);
   };
 
   // ─── SEPA handlers ──────────────────────────────────────────────────────
@@ -105,9 +103,9 @@ export default function MyPayoutSettings() {
       setSepaIban('');
       setSepaBic('');
       setSepaHolder('');
-      showSnackbar(t('settings.myPayout.sepaSuccess', 'Coordonnees bancaires enregistrees'), 'success');
+      showMessage(t('settings.myPayout.sepaSuccess', 'Coordonnees bancaires enregistrees'), 'success');
     } catch {
-      showSnackbar(t('settings.myPayout.sepaError', "Erreur lors de l'enregistrement"), 'error');
+      showMessage(t('settings.myPayout.sepaError', "Erreur lors de l'enregistrement"), 'error');
     }
   };
 
@@ -118,7 +116,7 @@ export default function MyPayoutSettings() {
       const result = await initStripeMutation.mutateAsync();
       window.location.href = result.onboardingUrl;
     } catch {
-      showSnackbar(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
+      showMessage(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
     }
   };
 
@@ -127,7 +125,7 @@ export default function MyPayoutSettings() {
       const result = await onboardingLinkMutation.mutateAsync();
       window.location.href = result.url;
     } catch {
-      showSnackbar(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
+      showMessage(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
     }
   };
 
@@ -374,46 +372,13 @@ export default function MyPayoutSettings() {
         )}
       </Card>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        {/* `div` intercalaire : le Snackbar MUI clone son enfant avec une ref pour
-            l'animer, et la primitive Alert (simple fonction) ne la recoit pas. */}
-        <div className="w-full">
-        <BuiAlert
-          variant={snackbar.severity === 'error' ? 'destructive' : 'success'}
-          className="w-full"
-        >
-          {snackbar.severity === 'error' ? <TriangleAlert /> : <CheckCircle />}
-          <AlertDescription>{snackbar.message}</AlertDescription>
-          <AlertAction>
-            <BuiButton
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Fermer"
-              onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            >
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-        </div>
-      </Snackbar>
-
       <PayoutMethodEditDialog
         open={methodDialogOpen}
         currentConfig={config ?? null}
         mode="self"
         onClose={() => setMethodDialogOpen(false)}
         onSaved={() => {
-          setSnackbar({
-            open: true,
-            message: t('settings.myPayout.methodSaved', 'Méthode de reversement mise à jour'),
-            severity: 'success',
-          });
+          notify.success(t('settings.myPayout.methodSaved', 'Méthode de reversement mise à jour'));
           queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.me });
         }}
       />

@@ -694,7 +694,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                       <Spinner className="size-6" />
                     </div>
                   ) : previewHtml ? (
-                    <div className="mt-0.5 rounded-[1px] border border-[var(--line)] overflow-hidden">
+                    <div className="mt-0.5 rounded-[8px] border border-[var(--line)] overflow-hidden">
                       <iframe
                         sandbox=""
                         srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}

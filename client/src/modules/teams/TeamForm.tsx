@@ -8,6 +8,12 @@ import {
   AvatarFallback,
   Card,
   CardContent,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   NativeSelect,
   NativeSelectOption,
   Select,
@@ -17,9 +23,6 @@ import {
   SelectValue,
   Separator,
 } from '../../components/ui';
-// Autocomplete (et le TextField que son `renderInput` alimente en props internes)
-// restent MUI : le kit n'a pas d'equivalent qui accepte ce contrat de rendu.
-import { TextField, Autocomplete } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {
@@ -65,6 +68,26 @@ const teamServiceCategories = [
   { value: 'MAINTENANCE', label: 'Maintenance', description: 'Réparations, maintenance préventive, travaux', roles: ['TECHNICIAN', 'EXTERIOR_TECH', 'SUPERVISOR'], color: '#D4A574' },
   { value: 'OTHER', label: 'Autre', description: 'Services divers, jardinage, remise en état', roles: ['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR', 'SUPER_MANAGER'], color: '#6B8A9A' },
 ];
+
+/**
+ * Option de Combobox. La forme `{ value, label }` est celle que Base UI sait
+ * exploiter seul : il en deduit le libelle affiche et la valeur soumise, sans
+ * qu'on ait a fournir `itemToStringLabel` / `itemToStringValue`.
+ */
+interface ComboOption {
+  value: string;
+  label: string;
+}
+
+const COUNTRY_OPTIONS: ComboOption[] = COVERAGE_COUNTRIES.map((c) => ({ value: c.code, label: c.name }));
+const DEPARTMENT_OPTIONS: ComboOption[] = FRENCH_DEPARTMENTS.map((d) => ({
+  value: d.code,
+  label: `${d.code} - ${d.name}`,
+}));
+
+// Les options sont reconstruites a chaque rendu pour les arrondissements : on
+// compare donc sur la valeur, jamais sur l'identite de l'objet.
+const sameOption = (a?: ComboOption | null, b?: ComboOption | null) => a?.value === b?.value;
 
 const getCategoryIcon = (value: string, size: number = 20) => {
   const iconProps = { size, strokeWidth: 1.75 };
@@ -479,6 +502,7 @@ const TeamForm: React.FC = () => {
                       const watchedDept = watch(`coverageZones.${index}.department`);
                       const showArrondissement = isFr && !!watchedDept && hasArrondissements(watchedDept);
                       const arrondissements = showArrondissement ? getArrondissementsForDepartment(watchedDept) : [];
+                      const arrondissementOptions: ComboOption[] = arrondissements.map((a) => ({ value: a.code, label: a.name }));
                       const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                       return (
@@ -491,24 +515,34 @@ const TeamForm: React.FC = () => {
                               name={`coverageZones.${index}.country`}
                               control={control}
                               render={({ field: countryField }) => (
-                                <Autocomplete
-                                  options={COVERAGE_COUNTRIES}
-                                  getOptionLabel={(opt) => opt.name}
-                                  value={COVERAGE_COUNTRIES.find(c => c.code === (countryField.value || 'FR')) ?? COVERAGE_COUNTRIES[0]}
-                                  onChange={(_, val) => {
-                                    const newCode = val?.code || 'FR';
-                                    countryField.onChange(newCode);
-                                    // Quand on change de pays, on remet a zero les champs incompatibles.
-                                    setValue(`coverageZones.${index}.department`, '');
-                                    setValue(`coverageZones.${index}.arrondissement`, null);
-                                    setValue(`coverageZones.${index}.city`, null);
-                                  }}
-                                  disableClearable
-                                  renderInput={(params) => (
-                                    <TextField {...params} label={`${t('teams.country')} *`} size="small" />
-                                  )}
-                                  size="small"
-                                />
+                                <Field>
+                                  <FieldLabel htmlFor={`zone-country-${index}`}>{`${t('teams.country')} *`}</FieldLabel>
+                                  <Combobox
+                                    items={COUNTRY_OPTIONS}
+                                    isItemEqualToValue={sameOption}
+                                    value={COUNTRY_OPTIONS.find((c) => c.value === (countryField.value || 'FR')) ?? COUNTRY_OPTIONS[0]}
+                                    onValueChange={(val: ComboOption | null | undefined) => {
+                                      const newCode = val?.value || 'FR';
+                                      countryField.onChange(newCode);
+                                      // Quand on change de pays, on remet a zero les champs incompatibles.
+                                      setValue(`coverageZones.${index}.department`, '');
+                                      setValue(`coverageZones.${index}.arrondissement`, null);
+                                      setValue(`coverageZones.${index}.city`, null);
+                                    }}
+                                  >
+                                    <ComboboxInput id={`zone-country-${index}`} className="w-full" />
+                                    <ComboboxContent>
+                                      <ComboboxEmpty>{t('teams.noCountryFound', { defaultValue: 'Aucun pays' })}</ComboboxEmpty>
+                                      <ComboboxList>
+                                        {(country: ComboOption) => (
+                                          <ComboboxItem key={country.value} value={country}>
+                                            {country.label}
+                                          </ComboboxItem>
+                                        )}
+                                      </ComboboxList>
+                                    </ComboboxContent>
+                                  </Combobox>
+                                </Field>
                               )}
                             />
                           </div>
@@ -520,25 +554,35 @@ const TeamForm: React.FC = () => {
                                   name={`coverageZones.${index}.department`}
                                   control={control}
                                   render={({ field: deptField, fieldState }) => (
-                                    <Autocomplete
-                                      options={FRENCH_DEPARTMENTS}
-                                      getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
-                                      value={FRENCH_DEPARTMENTS.find(d => d.code === deptField.value) || null}
-                                      onChange={(_, val) => {
-                                        deptField.onChange(val?.code || '');
-                                        setValue(`coverageZones.${index}.arrondissement`, null);
-                                      }}
-                                      renderInput={(params) => (
-                                        <TextField
-                                          {...params}
-                                          label={`${t('teams.department')} *`}
-                                          size="small"
-                                          error={!!fieldState.error}
-                                          helperText={fieldState.error?.message}
+                                    <Field>
+                                      <FieldLabel htmlFor={`zone-department-${index}`}>{`${t('teams.department')} *`}</FieldLabel>
+                                      <Combobox
+                                        items={DEPARTMENT_OPTIONS}
+                                        isItemEqualToValue={sameOption}
+                                        value={DEPARTMENT_OPTIONS.find((d) => d.value === deptField.value) ?? null}
+                                        onValueChange={(val: ComboOption | null | undefined) => {
+                                          deptField.onChange(val?.value || '');
+                                          setValue(`coverageZones.${index}.arrondissement`, null);
+                                        }}
+                                      >
+                                        <ComboboxInput
+                                          id={`zone-department-${index}`}
+                                          className="w-full"
+                                          aria-invalid={!!fieldState.error}
                                         />
-                                      )}
-                                      size="small"
-                                    />
+                                        <ComboboxContent>
+                                          <ComboboxEmpty>{t('teams.noDepartmentFound', { defaultValue: 'Aucun departement' })}</ComboboxEmpty>
+                                          <ComboboxList>
+                                            {(dept: ComboOption) => (
+                                              <ComboboxItem key={dept.value} value={dept}>
+                                                {dept.label}
+                                              </ComboboxItem>
+                                            )}
+                                          </ComboboxList>
+                                        </ComboboxContent>
+                                      </Combobox>
+                                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                                    </Field>
                                   )}
                                 />
                               </div>
@@ -549,21 +593,31 @@ const TeamForm: React.FC = () => {
                                     name={`coverageZones.${index}.arrondissement`}
                                     control={control}
                                     render={({ field: arrField }) => (
-                                      <Autocomplete
-                                        options={arrondissements}
-                                        getOptionLabel={(opt) => opt.name}
-                                        value={arrondissements.find(a => a.code === arrField.value) || null}
-                                        onChange={(_, val) => arrField.onChange(val?.code || null)}
-                                        renderInput={(params) => (
-                                          <TextField
-                                            {...params}
-                                            label={t('teams.arrondissement')}
-                                            size="small"
+                                      <Field>
+                                        <FieldLabel htmlFor={`zone-arrondissement-${index}`}>{t('teams.arrondissement')}</FieldLabel>
+                                        <Combobox
+                                          items={arrondissementOptions}
+                                          isItemEqualToValue={sameOption}
+                                          value={arrondissementOptions.find((a) => a.value === arrField.value) ?? null}
+                                          onValueChange={(val: ComboOption | null | undefined) => arrField.onChange(val?.value || null)}
+                                        >
+                                          <ComboboxInput
+                                            id={`zone-arrondissement-${index}`}
+                                            className="w-full"
                                             placeholder={t('teams.selectArrondissement')}
                                           />
-                                        )}
-                                        size="small"
-                                      />
+                                          <ComboboxContent>
+                                            <ComboboxEmpty>{t('teams.noArrondissementFound', { defaultValue: 'Aucun arrondissement' })}</ComboboxEmpty>
+                                            <ComboboxList>
+                                              {(arr: ComboOption) => (
+                                                <ComboboxItem key={arr.value} value={arr}>
+                                                  {arr.label}
+                                                </ComboboxItem>
+                                              )}
+                                            </ComboboxList>
+                                          </ComboboxContent>
+                                        </Combobox>
+                                      </Field>
                                     )}
                                   />
                                 </div>
@@ -574,25 +628,46 @@ const TeamForm: React.FC = () => {
                               <Controller
                                 name={`coverageZones.${index}.city`}
                                 control={control}
-                                render={({ field: cityField, fieldState }) => (
-                                  <Autocomplete
-                                    options={cityOptions}
-                                    freeSolo
-                                    value={cityField.value || ''}
-                                    onChange={(_, val) => cityField.onChange(typeof val === 'string' ? val : (val ?? null))}
-                                    onInputChange={(_, val) => cityField.onChange(val || null)}
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        label={`${t('teams.city')} *`}
-                                        size="small"
-                                        error={!!fieldState.error}
-                                        helperText={fieldState.error?.message}
-                                      />
-                                    )}
-                                    size="small"
-                                  />
-                                )}
+                                render={({ field: cityField, fieldState }) => {
+                                  // Saisie libre : la ville tapee est ajoutee aux propositions et
+                                  // devient la valeur selectionnee. Sans cela, la fermeture du
+                                  // popup remettrait le champ au libelle de la valeur courante et
+                                  // effacerait silencieusement une ville hors liste.
+                                  const rawCity = cityField.value ?? '';
+                                  const typedCity = rawCity.trim();
+                                  const cityItems = typedCity && !cityOptions.includes(typedCity)
+                                    ? [typedCity, ...cityOptions]
+                                    : cityOptions;
+                                  return (
+                                    <Field>
+                                      <FieldLabel htmlFor={`zone-city-${index}`}>{`${t('teams.city')} *`}</FieldLabel>
+                                      <Combobox
+                                        items={cityItems}
+                                        value={rawCity || null}
+                                        onValueChange={(val: string | null) => cityField.onChange(val || null)}
+                                        inputValue={rawCity}
+                                        onInputValueChange={(val: string) => cityField.onChange(val || null)}
+                                      >
+                                        <ComboboxInput
+                                          id={`zone-city-${index}`}
+                                          className="w-full"
+                                          aria-invalid={!!fieldState.error}
+                                        />
+                                        <ComboboxContent>
+                                          <ComboboxEmpty>{t('teams.noCityFound', { defaultValue: 'Aucune ville' })}</ComboboxEmpty>
+                                          <ComboboxList>
+                                            {(city: string) => (
+                                              <ComboboxItem key={city} value={city}>
+                                                {city}
+                                              </ComboboxItem>
+                                            )}
+                                          </ComboboxList>
+                                        </ComboboxContent>
+                                      </Combobox>
+                                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                                    </Field>
+                                  );
+                                }}
                               />
                             </div>
                           )}
@@ -688,36 +763,44 @@ const TeamForm: React.FC = () => {
                             name={`members.${index}.userId`}
                             control={control}
                             render={({ field: userIdField, fieldState }) => (
-                              <Autocomplete
-                                options={filteredUsers}
-                                getOptionLabel={(user) => `${user.firstName} ${user.lastName}`}
-                                value={filteredUsers.find(u => u.id === userIdField.value) || null}
-                                onChange={(_, user) => handleUserSelection(index, user)}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    label={`${t('teams.fields.selectUser')} *`}
-                                    size="small"
-                                    error={!!fieldState.error}
-                                    helperText={fieldState.error?.message}
+                              <Field>
+                                <FieldLabel htmlFor={`member-user-${index}`}>{`${t('teams.fields.selectUser')} *`}</FieldLabel>
+                                <Combobox
+                                  items={filteredUsers}
+                                  itemToStringLabel={(user: User) => `${user.firstName} ${user.lastName}`}
+                                  itemToStringValue={(user: User) => String(user.id)}
+                                  isItemEqualToValue={(a?: User | null, b?: User | null) => a?.id === b?.id}
+                                  value={filteredUsers.find((u) => u.id === userIdField.value) ?? null}
+                                  onValueChange={(user: User | null) => handleUserSelection(index, user)}
+                                >
+                                  <ComboboxInput
+                                    id={`member-user-${index}`}
+                                    className="w-full"
+                                    aria-invalid={!!fieldState.error}
                                   />
-                                )}
-                                renderOption={(props, user) => (
-                                  <li {...props}>
-                                    <div className="flex items-center gap-1">
-                                      <Avatar className="size-6 shrink-0 rounded-[8px] after:rounded-[8px]">
-                                        <AvatarFallback className="rounded-[8px] bg-[var(--accent)] font-[family-name:var(--font-display)] text-[0.6rem] font-semibold text-[var(--on-accent)]">
-                                          {user.firstName.charAt(0)}{user.lastName.charAt(0)}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div>
-                                        <p className="cn-text-body2 text-[0.8125rem]">{user.firstName} {user.lastName}</p>
-                                        <span className="cn-text-caption text-muted-foreground text-[0.65rem]">{user.email}</span>
-                                      </div>
-                                    </div>
-                                  </li>
-                                )}
-                              />
+                                  <ComboboxContent>
+                                    <ComboboxEmpty>{t('teams.fields.noUserAvailable')}</ComboboxEmpty>
+                                    <ComboboxList>
+                                      {(user: User) => (
+                                        <ComboboxItem key={user.id} value={user}>
+                                          <div className="flex items-center gap-1">
+                                            <Avatar className="size-6 shrink-0 rounded-[8px] after:rounded-[8px]">
+                                              <AvatarFallback className="rounded-[8px] bg-[var(--accent)] font-[family-name:var(--font-display)] text-[0.6rem] font-semibold text-[var(--on-accent)]">
+                                                {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                                              </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                              <p className="cn-text-body2 text-[0.8125rem]">{user.firstName} {user.lastName}</p>
+                                              <span className="cn-text-caption text-muted-foreground text-[0.65rem]">{user.email}</span>
+                                            </div>
+                                          </div>
+                                        </ComboboxItem>
+                                      )}
+                                    </ComboboxList>
+                                  </ComboboxContent>
+                                </Combobox>
+                                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                              </Field>
                             )}
                           />
                         </div>

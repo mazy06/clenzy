@@ -2,11 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Snackbar/Alert flottante conservés en MUI : ce fichier n'utilise pas encore
-// `sonner`, et changer de mécanisme de notification dépasse cette migration.
-import { Alert, Snackbar } from '@mui/material';
 import { Card, Switch } from '../../components/ui';
 import { Mail } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 import { usersApi } from '../../services/api/usersApi';
 
 /**
@@ -22,14 +20,10 @@ import { usersApi } from '../../services/api/usersApi';
  * persistee immediatement (optimistic update + rollback en cas d'erreur).</p>
  */
 export default function MarketingPreferencesCard() {
+  const { notify } = useNotification();
   const [newsletterOptIn, setNewsletterOptIn] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
-  }>({ open: false, message: '', severity: 'success' });
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -55,21 +49,15 @@ export default function MarketingPreferencesCard() {
     try {
       const result = await usersApi.updateMyMarketingPreferences(next);
       setNewsletterOptIn(result.newsletterOptIn);
-      setSnackbar({
-        open: true,
-        message: next
+      notify.success(
+        next
           ? 'Vous recevrez désormais notre newsletter.'
           : 'Vous ne recevrez plus notre newsletter.',
-        severity: 'success',
-      });
+      );
     } catch {
       // Rollback en cas d'erreur
       setNewsletterOptIn(previous);
-      setSnackbar({
-        open: true,
-        message: 'Erreur lors de la sauvegarde. Réessayez.',
-        severity: 'error',
-      });
+      notify.error('Erreur lors de la sauvegarde. Réessayez.');
     } finally {
       setSaving(false);
     }
@@ -104,7 +92,7 @@ export default function MarketingPreferencesCard() {
           <Spinner className="size-5" />
         </div>
       ) : (
-        <div className="flex items-center justify-between py-1.5 px-2 border border-[var(--line)] rounded-[1.5px]">
+        <div className="flex items-center justify-between py-1.5 px-2 border border-[var(--line)] rounded-[12px]">
           <div className="flex-1 min-w-0 pe-3">
             <p className="cn-text-body2 font-semibold text-[0.875rem]">
               Newsletter Baitly
@@ -122,20 +110,6 @@ export default function MarketingPreferencesCard() {
           />
         </div>
       )}
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Card>
   );
 }

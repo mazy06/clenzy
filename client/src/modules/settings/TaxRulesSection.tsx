@@ -3,9 +3,6 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Snackbar/Alert MUI conserves : le fichier n'utilise pas sonner, et changer
-// le mecanisme de notification depasse le perimetre de cette migration.
-import { Alert, Snackbar } from '@mui/material';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +32,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useTaxRules, useCreateTaxRule, useUpdateTaxRule, useDeleteTaxRule } from '../../hooks/useTaxRules';
 import { useFiscalProfile } from '../../hooks/useFiscalProfile';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { COUNTRY_OPTIONS } from '../../utils/currencyUtils';
 import { TAX_CATEGORIES } from '../../services/api/taxRulesApi';
@@ -84,6 +82,7 @@ function percentToRate(percent: string): number {
 
 const TaxRulesSection: React.FC = () => {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   // Libellé de catégorie traduit (le label FR statique sert de défaut/fallback).
   const categoryLabel = (cat: string) =>
     t(`fiscal.taxRules.categories.${cat}`, CATEGORY_LABELS[cat as TaxCategoryType] ?? cat);
@@ -108,11 +107,6 @@ const TaxRulesSection: React.FC = () => {
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<TaxRule | null>(null);
-
-  // Snackbar
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   // Sort rules by category
   const sortedRules = useMemo(() => {
@@ -173,14 +167,14 @@ const TaxRulesSection: React.FC = () => {
     try {
       if (editingRule) {
         await updateMutation.mutateAsync({ id: editingRule.id, data: form });
-        setSnackbar({ open: true, message: t('fiscal.taxRules.updated'), severity: 'success' });
+        notify.success(t('fiscal.taxRules.updated'));
       } else {
         await createMutation.mutateAsync(form);
-        setSnackbar({ open: true, message: t('fiscal.taxRules.created'), severity: 'success' });
+        notify.success(t('fiscal.taxRules.created'));
       }
       closeDialog();
     } catch {
-      setSnackbar({ open: true, message: t('fiscal.taxRules.error'), severity: 'error' });
+      notify.error(t('fiscal.taxRules.error'));
     }
   };
 
@@ -188,10 +182,10 @@ const TaxRulesSection: React.FC = () => {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
-      setSnackbar({ open: true, message: t('fiscal.taxRules.deleted'), severity: 'success' });
+      notify.success(t('fiscal.taxRules.deleted'));
       setDeleteTarget(null);
     } catch {
-      setSnackbar({ open: true, message: t('fiscal.taxRules.error'), severity: 'error' });
+      notify.error(t('fiscal.taxRules.error'));
     }
   };
 
@@ -494,21 +488,6 @@ const TaxRulesSection: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ── Snackbar ── */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

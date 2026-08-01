@@ -171,7 +171,7 @@ const PublicKeyVerification: React.FC = () => {
                   <AlertDescription>Code valide</AlertDescription>
                 </Alert>
 
-                <div className="p-3 border border-[var(--line)] rounded-[1.5px] mb-3">
+                <div className="p-3 border border-[var(--line)] rounded-[12px] mb-3">
                   {verifyResult.guestName && (
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="inline-flex text-muted-foreground"><PersonOutline size={18} strokeWidth={1.75} /></span>

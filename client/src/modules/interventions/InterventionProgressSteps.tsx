@@ -560,7 +560,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               return (
                 <div key={doc.id} className={docCardClass} onClick={() => hasFile && handleViewPdf(doc)}>
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-[40px] h-[40px] rounded-[1.5px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
+                    <div className="w-[40px] h-[40px] rounded-[12px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
                       <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
                     </div>
                     <div className="min-w-0">

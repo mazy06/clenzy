@@ -5,9 +5,6 @@ import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui'
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-// Snackbar + son Alert flottante restent MUI : changer le mecanisme de
-// notification de la page depasse la migration des primitives.
-import { Alert, Snackbar } from '@mui/material';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +23,7 @@ import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOff
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import {
   useBookingVouchersList,
   useDeleteBookingVoucher,
@@ -89,11 +87,11 @@ export default function VouchersPage({
   filtersContainer,
 }: VouchersPageProps = {}) {
   const { t, currentLanguage } = useTranslation();
+  const { notify } = useNotification();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [editing, setEditing] = useState<BookingVoucher | null>(null);
   const [creating, setCreating] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
-  // Confirmation de suppression via Dialog MUI (window.confirm est bloque
+  // Confirmation de suppression via Dialog (window.confirm est bloque
   // en iframe, non accessible, non i18n).
   const [pendingDelete, setPendingDelete] = useState<BookingVoucher | null>(null);
 
@@ -119,27 +117,24 @@ export default function VouchersPage({
   const handlePause = async (v: BookingVoucher) => {
     try {
       await pauseMutation.mutateAsync(v.id);
-      setSnackbar({ msg: t('vouchers.pauseSuccess'), severity: 'success' });
+      notify.success(t('vouchers.pauseSuccess'));
     } catch (e: any) {
-      setSnackbar({ msg: e?.message ?? t('vouchers.pauseError'), severity: 'error' });
+      notify.error(e?.message ?? t('vouchers.pauseError'));
     }
   };
 
   const handleResume = async (v: BookingVoucher) => {
     try {
       await resumeMutation.mutateAsync(v.id);
-      setSnackbar({ msg: t('vouchers.resumeSuccess'), severity: 'success' });
+      notify.success(t('vouchers.resumeSuccess'));
     } catch (e: any) {
-      setSnackbar({ msg: e?.message ?? t('vouchers.resumeError'), severity: 'error' });
+      notify.error(e?.message ?? t('vouchers.resumeError'));
     }
   };
 
   const handleDelete = (v: BookingVoucher) => {
     if (v.usageCount > 0) {
-      setSnackbar({
-        msg: t('vouchers.deleteRefusedUsed', { count: v.usageCount }),
-        severity: 'error',
-      });
+      notify.error(t('vouchers.deleteRefusedUsed', { count: v.usageCount }));
       return;
     }
     setPendingDelete(v);
@@ -151,9 +146,9 @@ export default function VouchersPage({
     setPendingDelete(null);
     try {
       await deleteMutation.mutateAsync(target.id);
-      setSnackbar({ msg: t('vouchers.deleteSuccess'), severity: 'success' });
+      notify.success(t('vouchers.deleteSuccess'));
     } catch (e: any) {
-      setSnackbar({ msg: e?.message ?? t('vouchers.deleteError'), severity: 'error' });
+      notify.error(e?.message ?? t('vouchers.deleteError'));
     }
   };
 
@@ -288,7 +283,7 @@ export default function VouchersPage({
           onSaved={() => {
             setCreating(false);
             setEditing(null);
-            setSnackbar({ msg: t('vouchers.saveSuccess'), severity: 'success' });
+            notify.success(t('vouchers.saveSuccess'));
           }}
         />
       )}
@@ -318,19 +313,6 @@ export default function VouchersPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={Boolean(snackbar)}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {snackbar ? (
-          <Alert severity={snackbar.severity} onClose={() => setSnackbar(null)}>
-            {snackbar.msg}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
     </div>
   );
 }

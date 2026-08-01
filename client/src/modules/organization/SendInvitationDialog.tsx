@@ -5,12 +5,18 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-// Autocomplete MUI conserve : son `renderInput` recoit des props internes que
-// seul un TextField MUI sait consommer. Le Dialog reste MUI pour la meme
-// raison : le popper de l'Autocomplete se monte hors du contenu de la modale,
-// et le piege de focus d'un Dialog Radix le rendrait inatteignable.
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material';
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldLabel,
   FieldDescription,
@@ -30,7 +36,6 @@ import {
   Send,
   ContentCopy,
   CheckCircle,
-  Close,
   PersonAdd,
 } from '../../icons';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
@@ -84,7 +89,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
   const [memberSuccess, setMemberSuccess] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
 
-  const handleUserSearch = useCallback(async (_: React.SyntheticEvent, value: string) => {
+  const handleUserSearch = useCallback(async (value: string) => {
     if (value.length < 2) {
       setUserOptions([]);
       return;
@@ -187,17 +192,16 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h6 className="cn-text-h6 font-semibold">
-          {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
-        </h6>
-        <BuiButton variant="ghost" size="icon-sm" aria-label="Fermer" onClick={handleClose}>
-          <Close />
-        </BuiButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>
+            {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* `dividers` du DialogContent MUI : filets haut/bas + corps defilant. */}
+        <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
         {!result && !memberSuccess ? (
           <div className="flex flex-col gap-3.5 pt-1.5">
             <ToggleGroup
@@ -251,56 +255,62 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
               </>
             ) : (
               <>
-                <Autocomplete
-                  options={userOptions}
-                  getOptionLabel={(option) =>
-                    `${option.firstName} ${option.lastName} (${option.email})`
-                  }
-                  filterOptions={(x) => x}
-                  value={selectedUser}
-                  onChange={(_, value) => setSelectedUser(value)}
-                  onInputChange={handleUserSearch}
-                  loading={userSearchLoading}
-                  noOptionsText="Aucun utilisateur trouve"
-                  loadingText="Recherche..."
-                  renderOption={(props, option) => {
-                    const { key, ...optionProps } = props;
-                    return (
-                      <li key={key} {...optionProps}>
-                        <div className="flex items-center gap-1.5 w-full">
-                          <div className="grow">
-                            <p className="cn-text-body2">
-                              {option.firstName} {option.lastName}
-                            </p>
-                            <span className="cn-text-caption text-muted-foreground">
-                              {option.email}
-                            </span>
-                          </div>
-                          {option.hasOrganization && (
-                            <Badge variant="warning">Deja dans une org</Badge>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Rechercher un utilisateur..."
+                <Field>
+                  <FieldLabel htmlFor="invitation-user-search">Rechercher un utilisateur...</FieldLabel>
+                  {/* `filter={null}` : la liste vient deja filtree du serveur, on
+                      ne veut pas d'un second filtrage local (equivalent du
+                      `filterOptions={(x) => x}` de l'Autocomplete). */}
+                  <Combobox
+                    items={userOptions}
+                    filter={null}
+                    itemToStringLabel={(u: UserSearchResult) =>
+                      `${u.firstName} ${u.lastName} (${u.email})`
+                    }
+                    itemToStringValue={(u: UserSearchResult) => u.email}
+                    isItemEqualToValue={(a: UserSearchResult, b: UserSearchResult) => a.id === b.id}
+                    value={selectedUser}
+                    onValueChange={(next: UserSearchResult | null) => setSelectedUser(next)}
+                    onInputValueChange={(inputValue: string) => { void handleUserSearch(inputValue); }}
+                  >
+                    <ComboboxInput
+                      id="invitation-user-search"
                       placeholder="Nom, prenom ou email (min. 2 caracteres)"
-                      fullWidth
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {userSearchLoading ? <Spinner className="size-[18px]" /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
+                    >
+                      {userSearchLoading ? (
+                        <InputGroupAddon align="inline-end">
+                          <Spinner className="size-[18px]" />
+                        </InputGroupAddon>
+                      ) : null}
+                    </ComboboxInput>
+                    {/* Le popup est porte hors du DialogContent, ou Radix coupe les
+                        pointer-events du reste du document : sans `pointer-events-auto`
+                        les options ne seraient pas cliquables. */}
+                    <ComboboxContent className="pointer-events-auto">
+                      <ComboboxEmpty>
+                        {userSearchLoading ? 'Recherche...' : 'Aucun utilisateur trouve'}
+                      </ComboboxEmpty>
+                      <ComboboxList>
+                        {(option: UserSearchResult) => (
+                          <ComboboxItem key={option.id} value={option}>
+                            <span className="flex items-center gap-1.5 w-full">
+                              <span className="grow">
+                                <span className="cn-text-body2 block">
+                                  {option.firstName} {option.lastName}
+                                </span>
+                                <span className="cn-text-caption text-muted-foreground">
+                                  {option.email}
+                                </span>
+                              </span>
+                              {option.hasOrganization && (
+                                <Badge variant="warning">Deja dans une org</Badge>
+                              )}
+                            </span>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </Field>
 
                 <Field>
                   <FieldLabel htmlFor="invitation-member-role">Role</FieldLabel>
@@ -393,9 +403,9 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
             </span>
           </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogFooter>
         {!result && !memberSuccess ? (
           <>
             <BuiButton variant="outline" onClick={handleClose} disabled={loading || addingMember}>
@@ -424,7 +434,8 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
             Fermer
           </BuiButton>
         )}
-      </DialogActions>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

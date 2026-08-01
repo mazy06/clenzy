@@ -1,10 +1,16 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { TextField, Autocomplete } from '@mui/material';
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   Field,
   FieldLabel,
   Input,
+  InputGroupAddon,
   Textarea,
   NativeSelect,
   NativeSelectOption,
@@ -14,8 +20,7 @@ import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-// COMPACT_FIELD_SX ne sert plus qu'a l'Autocomplete de recherche, seul TextField restant.
-import { COMPACT_FIELD_SX, AdornIcon } from './reservationDialogStyles';
+import type { GuestDto } from '../../services/api';
 
 // Transposition en classes de SEC_SX (.rm-sec) — meme motif que STEP_BTN_CLS :
 // la constante sx reste exportee dans reservationDialogStyles.
@@ -95,63 +100,58 @@ const GuestSection: React.FC<Props> = ({ form }) => {
     />
   );
 
+  // La recherche est faite par le SERVEUR (requete debouncee) : `filter={null}`
+  // coupe le filtrage client du primitif, qui re-filtrerait une liste deja
+  // filtree et masquerait des resultats. `value={null}` reprend la semantique de
+  // l'ancien Autocomplete : le champ ne garde pas la selection, il la remonte au
+  // formulaire (qui remplace alors ce champ par la puce du voyageur).
   const searchField = (
-    <Autocomplete
-      freeSolo={false}
-      options={form.searchResults}
-      getOptionLabel={(option) => option.fullName}
-      renderOption={(props, option) => {
-        const { key, ...optionProps } = props;
-        return (
-          <li key={key} {...optionProps}>
-            <div>
-              <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">{option.fullName}</p>
-              {option.email && <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{option.email}</p>}
-            </div>
-          </li>
-        );
-      }}
-      inputValue={form.guestSearchQuery}
-      onInputChange={(_, val) => form.setGuestSearchQuery(val)}
+    <Combobox<GuestDto>
+      items={form.searchResults}
+      itemToStringLabel={(guest) => guest.fullName}
+      itemToStringValue={(guest) => guest.fullName}
+      filter={null}
       value={null}
-      onChange={(_, val) => { if (val) form.setSelectedGuest(val); }}
-      loading={form.isSearching}
-      noOptionsText={form.debouncedSearch.length >= 2 ? t('reservations.dialog.noGuestFound') : t('reservations.dialog.typeToSearch')}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: '12px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-pop)',
-            backgroundColor: 'var(--card)',
-            backgroundImage: 'none',
-          },
-        },
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          placeholder={t('reservations.dialog.searchGuest')}
-          sx={[
-            COMPACT_FIELD_SX,
-            {
-              '& .MuiOutlinedInput-root': { padding: '0 39px 0 11px' },
-              '& .MuiOutlinedInput-root .MuiAutocomplete-input': { padding: '0 0 0 8px', height: 36, fontWeight: 500 },
-            },
-          ]}
-          InputProps={{
-            ...params.InputProps,
-            startAdornment: <AdornIcon><SearchIcon size={15} strokeWidth={1.75} /></AdornIcon>,
-            endAdornment: (
-              <>
-                {form.isSearching ? <Spinner className="size-4 text-[var(--accent)]" /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-    />
+      onValueChange={(val) => { if (val) form.setSelectedGuest(val); }}
+      inputValue={form.guestSearchQuery}
+      onInputValueChange={(val) => form.setGuestSearchQuery(val)}
+    >
+      <ComboboxInput
+        className="w-full"
+        showTrigger={false}
+        placeholder={t('reservations.dialog.searchGuest')}
+      >
+        <InputGroupAddon align="inline-start">
+          <span className="inline-flex text-[var(--faint)]">
+            <SearchIcon size={15} strokeWidth={1.75} />
+          </span>
+        </InputGroupAddon>
+        {form.isSearching ? (
+          <InputGroupAddon align="inline-end">
+            <Spinner className="size-4 text-[var(--accent)]" />
+          </InputGroupAddon>
+        ) : null}
+      </ComboboxInput>
+      <ComboboxContent>
+        <ComboboxEmpty>
+          {form.debouncedSearch.length >= 2
+            ? t('reservations.dialog.noGuestFound')
+            : t('reservations.dialog.typeToSearch')}
+        </ComboboxEmpty>
+        <ComboboxList>
+          {(guest: GuestDto) => (
+            <ComboboxItem key={guest.id} value={guest}>
+              <div>
+                <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">{guest.fullName}</p>
+                {guest.email && (
+                  <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{guest.email}</p>
+                )}
+              </div>
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 
   // Formulaire voyageur ÉDITABLE (création) — champs newGuest*, persistés au submit.

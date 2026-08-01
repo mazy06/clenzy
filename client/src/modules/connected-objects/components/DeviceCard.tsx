@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { Button as BuiButton } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import {
@@ -19,11 +18,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-// Snackbar reste MUI : basculer le mecanisme de notification (sonner) depasse
-// la migration des primitives et changerait le comportement de la carte.
-import { Snackbar } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { cn } from '../../../utils/cn';
+import { useNotification } from '../../../hooks/useNotification';
 import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
@@ -52,6 +49,7 @@ interface DeviceCardProps {
  * pas de carte-dans-carte.
  */
 export default function DeviceCard({ device, onAction, acting = false }: DeviceCardProps) {
+  const { notify } = useNotification();
   const { isDark } = useThemeMode();
   const iconSize = useIconSize('row');
   const meta = DEVICE_KINDS[device.kind];
@@ -62,8 +60,8 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
 
   // Suppression auto-portée par la carte : fonctionne partout où elle est rendue
   // (Hub, vue par logement…) sans câblage par l'hôte. Confirmation explicite
-  // (geste destructif) ; au succès la carte disparaît au refetch, l'erreur reste
-  // affichée en snackbar pour permettre un nouvel essai.
+  // (geste destructif) ; au succès la carte disparaît au refetch, l'erreur part
+  // en toast pour permettre un nouvel essai.
   // Sync ponctuelle du statut réel au montage (online réel via provider), qui
   // rafraîchit le read-model → carte + KPIs cohérents. No-op hors du type concerné.
   useLockLiveStatus(device.id, device.kind === 'lock');
@@ -77,7 +75,6 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
   const deletable = isDeviceDeletable(device.kind);
   const { remove, removing } = useDeleteDevice();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   // Le menu du kit se ferme de lui-meme a la selection : plus d'ancre a piloter.
   const handleDeleteClick = () => setConfirmOpen(true);
   const handleConfirmDelete = async () => {
@@ -85,7 +82,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
       await remove(device);
       setConfirmOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Échec de la suppression.');
+      notify.error(e instanceof Error ? e.message : 'Échec de la suppression.');
     }
   };
 
@@ -231,25 +228,6 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={Boolean(error)}
-        autoHideDuration={5000}
-        onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {error ? (
-          <BuiAlert variant="destructive" className="w-full">
-            <TriangleAlert />
-            <AlertDescription>{error}</AlertDescription>
-            <AlertAction>
-              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
-                <X />
-              </BuiButton>
-            </AlertAction>
-          </BuiAlert>
-        ) : undefined}
-      </Snackbar>
     </Card>
   );
 }

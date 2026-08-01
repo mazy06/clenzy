@@ -1,10 +1,7 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Spinner, Button } from '../../../components/ui';
-// Snackbar + son Alert flottante restent MUI : changer le mecanisme de
-// notification de ce formulaire depasse la migration des primitives.
-import { Alert, Snackbar } from '@mui/material';
 import { Field, FieldLabel, Input, Switch } from '../../../components/ui';
-import type { AlertColor } from '@mui/material';
+import { useNotification } from '../../../hooks/useNotification';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activitiesApi, type ActivityProvider } from '../../../services/api/activitiesApi';
 
@@ -15,6 +12,7 @@ import { activitiesApi, type ActivityProvider } from '../../../services/api/acti
  */
 export default function ActivityProviderConfigForm({ provider }: { provider: ActivityProvider }) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   // Un formulaire par fournisseur peut etre monte plusieurs fois dans la page :
   // les identifiants doivent rester uniques pour que les libelles designent
   // bien LEUR champ.
@@ -25,11 +23,6 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
   const [hasKey, setHasKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
 
   useEffect(() => {
     let active = true;
@@ -63,9 +56,9 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
       setHasKey(saved.hasKey);
       setEnabled(saved.enabled);
       setAffiliateId(saved.affiliateId ?? '');
-      setSnackbar({ open: true, message: t('welcomeGuide.messages.updated', 'Enregistré'), severity: 'success' });
+      notify.success(t('welcomeGuide.messages.updated', 'Enregistré'));
     } catch {
-      setSnackbar({ open: true, message: t('welcomeGuide.messages.error', 'Une erreur est survenue'), severity: 'error' });
+      notify.error(t('welcomeGuide.messages.error', 'Une erreur est survenue'));
     } finally {
       setSaving(false);
     }
@@ -80,7 +73,7 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
   }
 
   return (
-    <div className="border border-[var(--line)] rounded-[2px] p-2 mb-2">
+    <div className="border border-[var(--line)] rounded-[16px] p-2 mb-2">
       <Field orientation="horizontal" className="w-[fit-content] gap-2">
         <Switch
           id={`${fieldId}-enabled`}
@@ -124,16 +117,6 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
         {saving ? <Spinner className="size-3.5" /> : null}
         {t('welcomeGuide.actions.save', 'Enregistrer')}
       </Button>
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }

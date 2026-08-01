@@ -179,7 +179,7 @@ export default function ChannexFullDisconnectDialog({
         <>
           <DialogHeader>
             <div className="flex items-start gap-2">
-              <div className="w-[36px] h-[36px] rounded-[1px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
                 <ShieldAlert size={20} />
               </div>
               <div className="min-w-0 flex-1">

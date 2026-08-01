@@ -5,10 +5,6 @@ import { Alert as UiAlert, AlertDescription, Button } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Card, CardContent } from './ui';
-// Reste en MUI : le couple Snackbar + Alert flottante (changer le mecanisme de
-// notification depasse cette migration) et le Box de la ligne de permission,
-// dont le fond `success.light` n'a pas de jeton equivalent dans la palette.
-import { Box, Alert, Snackbar } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -43,6 +39,7 @@ import {
 import PageHeader from './PageHeader';
 import PageTabs from './PageTabs';
 import { useAuth } from '../hooks/useAuth';
+import { useNotification } from '../hooks/useNotification';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
@@ -144,6 +141,7 @@ const getModuleIcon = (moduleName: string) => {
 
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
+  const { notify } = useNotification();
   const {
     roles,
     selectedRole,
@@ -160,17 +158,6 @@ const PermissionConfig: React.FC = () => {
   } = useRolePermissions();
   
   const { triggerGlobalRefresh } = usePermissionRefresh();
-  
-  // État pour les notifications
-  const [saveNotification, setSaveNotification] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
 
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState(0);
@@ -331,17 +318,9 @@ const PermissionConfig: React.FC = () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
                     triggerGlobalRefresh();
-                    setSaveNotification({
-                      open: true,
-                      message: 'Permissions réinitialisées aux valeurs initiales.',
-                      severity: 'success'
-                    });
+                    notify.success('Permissions réinitialisées aux valeurs initiales.');
                   } catch (error) {
-                    setSaveNotification({
-                      open: true,
-                      message: 'Erreur lors de la réinitialisation aux valeurs initiales',
-                      severity: 'error'
-                    });
+                    notify.error('Erreur lors de la réinitialisation aux valeurs initiales');
                   }
                 }}
                 disabled={loading}
@@ -360,17 +339,9 @@ const PermissionConfig: React.FC = () => {
                     }
                     triggerGlobalRefresh();
                     window.dispatchEvent(new CustomEvent('force-user-reload'));
-                    setSaveNotification({
-                      open: true,
-                      message: 'Permissions sauvegardées.',
-                      severity: 'success'
-                    });
+                    notify.success('Permissions sauvegardées.');
                   } catch (error) {
-                    setSaveNotification({
-                      open: true,
-                      message: 'Erreur lors de la sauvegarde des permissions',
-                      severity: 'error'
-                    });
+                    notify.error('Erreur lors de la sauvegarde des permissions');
                   }
                 }}
                 disabled={loading || rolePermissions?.isDefault}
@@ -563,18 +534,17 @@ const PermissionConfig: React.FC = () => {
                               {permissions.map((permission) => {
                                 const isActive = rolePermissionSet.has(permission);
                                 return (
-                                  <Box
+                                  // `success.light` n'existe pas dans la palette : le fond
+                                  // teinte de succes du projet est --ok-soft (meme usage dans
+                                  // les chips de statut), et le liseré reprend --ok.
+                                  <div
                                     key={permission}
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 1.5,
-                                      p: 1.25,
-                                      borderRadius: 1,
-                                      bgcolor: isActive ? 'success.light' : 'grey.50',
-                                      border: '1px solid',
-                                      borderColor: isActive ? 'success.main' : 'grey.200',
-                                    }}
+                                    className={cn(
+                                      'flex items-center gap-[9px] p-[7.5px] rounded-[8px] border border-solid',
+                                      isActive
+                                        ? 'bg-[var(--ok-soft)] border-[var(--ok)]'
+                                        : 'bg-[var(--surface-2)] border-[var(--line)]',
+                                    )}
                                   >
                                     {/* Le survol jouait un `scale(1.05)` : la puce
                                         poussait ses voisines a chaque passage de
@@ -601,7 +571,7 @@ const PermissionConfig: React.FC = () => {
                                         {isActive ? 'Actif' : 'Inactif'}
                                       </span>
                                     </div>
-                                  </Box>
+                                  </div>
                                 );
                               })}
                             </div>
@@ -637,22 +607,6 @@ const PermissionConfig: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Notifications de sauvegarde */}
-      <Snackbar
-        open={saveNotification.open}
-        autoHideDuration={6000}
-        onClose={() => setSaveNotification(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSaveNotification(prev => ({ ...prev, open: false }))}
-          severity={saveNotification.severity}
-          sx={{ width: '100%' }}
-        >
-          {saveNotification.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

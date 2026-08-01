@@ -26,9 +26,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-// Snackbar (et l'Alert qu'il transporte) restent MUI : changer de mecanisme de
-// notification depasse cette migration — ce fichier n'utilise pas encore sonner.
-import { Alert, Snackbar } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -73,10 +70,11 @@ import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import type { ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
 import { useAuth } from '../../../hooks/useAuth';
+import { useNotification } from '../../../hooks/useNotification';
 import { useNavigate } from 'react-router-dom';
 import CreateServiceRequestDialog from './CreateServiceRequestDialog';
 import MessagingAutomationStatus from './MessagingAutomationStatus';
-import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
+import { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -93,30 +91,6 @@ const WARN_TOKENS: SoftTokens = STATUS_TONES.warn;
 const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
 const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
 const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
-
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
-
-/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
-const CLOSE_BTN_SX = {
-  width: 34,
-  height: 34,
-  borderRadius: '10px',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--muted)',
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
-
-/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 
 const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; tokens: SoftTokens }[] = [
   { value: 'normale', label: 'Normale', tokens: NEUTRAL_TOKENS },
@@ -340,15 +314,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   const [deleteSrTarget, setDeleteSrTarget] = useState<ServiceRequest | null>(null);
   const [deleteSrLoading, setDeleteSrLoading] = useState(false);
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const { notify } = useNotification();
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+  // Nom conserve : une quinzaine d'appels le referencent, et il porte toujours
+  // la meme intention (retour flottant apres une action).
   const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
-    setSnackbar({ open: true, message, severity });
+    notify[severity](message);
   };
 
   const canDeleteSr = (sr: ServiceRequest): boolean => {
@@ -1638,7 +1610,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       </AlertDescription>
                     </UiAlert>
                   )}
-                  <div className="border border-[var(--line)] rounded-[1.5px] overflow-hidden">
+                  <div className="border border-[var(--line)] rounded-[12px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
                       <div
                         key={member.userId}
@@ -1869,7 +1841,6 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Snackbar for feedback */}
       {/* Delete service request confirmation dialog */}
       <Dialog
         open={deleteSrDialogOpen}
@@ -1901,21 +1872,6 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          sx={{ fontSize: '0.8125rem' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

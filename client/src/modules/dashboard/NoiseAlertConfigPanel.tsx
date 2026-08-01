@@ -356,7 +356,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     </div>
 
                     {form.timeWindows.map((tw, idx) => (
-                      <div className="p-2 mb-1.5 rounded-[1px] bg-[var(--surface-2)] border border-[var(--line)]" key={idx}>
+                      <div className="p-2 mb-1.5 rounded-[8px] bg-[var(--surface-2)] border border-[var(--line)]" key={idx}>
                         {/* items-end : le libelle passe AU-DESSUS du champ, la corbeille
                             doit s'aligner sur la ligne de saisie et non sur l'ensemble. */}
                         <div className="flex items-end gap-1.5 mb-1.5">

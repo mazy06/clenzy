@@ -15,7 +15,6 @@ import { memo, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
-import { useTheme } from '@mui/material/styles';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Close } from '../../../icons';
@@ -1200,6 +1199,62 @@ const Root = styled.div<{ $flush?: boolean }>`
   }
 `;
 
+/* ── Bulle d'agent (portalisée dans <body>) ──────────────────────────────────
+   Les couleurs ne peuvent pas venir des jetons de surface en SOMBRE : la bulle
+   doit rester dans la gamme « nuit » du canvas (#141833), pas dans celle des
+   cartes de l'app. Le clair, lui, suit les jetons — d'où le même sélecteur
+   html:not([data-theme='dark']) que le reste du fichier (le clair est le
+   DÉFAUT, sans attribut ; [data-theme='light'] ne matcherait jamais). */
+const Tip = styled.div`
+  position: fixed;
+  transform: translate(-50%, -100%);
+  z-index: 4000;
+  min-width: 184px;
+  max-width: 234px;
+  background: #141833;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 11px;
+  padding: 11px 13px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: left;
+  pointer-events: none;
+  box-shadow: 0 16px 38px -12px rgba(15, 23, 42, 0.75);
+
+  b {
+    font-weight: 600;
+  }
+  .tip__task {
+    display: block;
+    color: #c8cdf0;
+    margin-top: 4px;
+  }
+  .tip__meta {
+    display: block;
+    color: #9aa1d6;
+    font-style: normal;
+    font-size: 10.5px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  html:not([data-theme='dark']) & {
+    background: var(--card);
+    color: var(--ink);
+    border-color: var(--line);
+    box-shadow: 0 16px 38px -12px rgba(15, 23, 42, 0.28);
+  }
+  html:not([data-theme='dark']) & .tip__task {
+    color: var(--muted);
+  }
+  html:not([data-theme='dark']) & .tip__meta {
+    color: var(--faint);
+    border-top-color: var(--line);
+  }
+`;
+
 function statusScale(status: AgentStatus, active: boolean): number {
   if (status === 'act') return 1.14;
   if (status === 'esc' || status === 'err') return 1.08; // attention
@@ -1234,7 +1289,6 @@ function FramerConstellationInner({
   flush,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const prefersReduced = useReducedMotion();
   const [ref, size] = useElementSize<HTMLDivElement>();
 
@@ -1603,58 +1657,15 @@ function FramerConstellationInner({
           const meta = AGENT_META[tip.id];
           const view = byId.get(tip.id);
           if (!view) return null;
-          // Couleurs pilotées par le thème (le tooltip doit suivre le PMS :
-          // clair sur thème clair, sombre sur thème sombre).
-          const dark = theme.palette.mode === 'dark';
-          const tipBg = dark ? '#141833' : theme.palette.background.paper;
-          const tipFg = dark ? '#fff' : theme.palette.text.primary;
-          const tipBorder = dark ? 'rgba(255,255,255,.1)' : theme.palette.divider;
-          const tipSub = dark ? '#c8cdf0' : theme.palette.text.secondary;
-          const tipMeta = dark ? '#9aa1d6' : theme.palette.text.disabled;
-          const shadowAlpha = dark ? 0.75 : 0.28;
+          // Seules les coordonnees sont dynamiques : le reste du gabarit (et son
+          // adaptation clair/sombre) vit dans le styled `Tip`.
           return createPortal(
-            <div
-              role="tooltip"
-              id={`sat-tip-${tip.id}`}
-              style={{
-                position: 'fixed',
-                left: tip.x,
-                top: tip.y - 12,
-                transform: 'translate(-50%, -100%)',
-                zIndex: 4000,
-                minWidth: 184,
-                maxWidth: 234,
-                background: tipBg,
-                color: tipFg,
-                border: `1px solid ${tipBorder}`,
-                borderRadius: 11,
-                padding: '11px 13px',
-                fontSize: 11.5,
-                lineHeight: 1.45,
-                textAlign: 'left',
-                pointerEvents: 'none',
-                boxShadow: `0 16px 38px -12px rgba(15,23,42,${shadowAlpha})`,
-              }}
-            >
-              <b style={{ fontWeight: 600 }}>{t(meta.nameKey)}</b>
+            <Tip role="tooltip" id={`sat-tip-${tip.id}`} style={{ left: tip.x, top: tip.y - 12 }}>
+              <b>{t(meta.nameKey)}</b>
               {` · ${t(STATUS[view.status].labelKey)}`}
-              {view.task ? (
-                <span style={{ display: 'block', color: tipSub, marginTop: 4 }}>{view.task}</span>
-              ) : null}
-              <em
-                style={{
-                  display: 'block',
-                  color: tipMeta,
-                  fontStyle: 'normal',
-                  fontSize: 10.5,
-                  marginTop: 6,
-                  paddingTop: 6,
-                  borderTop: `1px solid ${tipBorder}`,
-                }}
-              >
-                {t('supervision.autonomy.' + view.autonomy)}
-              </em>
-            </div>,
+              {view.task ? <span className="tip__task">{view.task}</span> : null}
+              <em className="tip__meta">{t('supervision.autonomy.' + view.autonomy)}</em>
+            </Tip>,
             document.body,
           );
         })()}

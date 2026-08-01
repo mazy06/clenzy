@@ -1,10 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
-// Restent MUI, faute d'equivalent dans le kit : Grow (transition d'entree),
-// ClickAwayListener (fermeture au clic exterieur), et le Box de la phrase, dont
-// le `sx` DECLARE les keyframes `dockPhraseIn` consommees par le <p> interne.
-// `useTheme`/`alpha` restent pour le meme motif (zIndex du theme, `error.dark`
-// qui n'a pas de jeton CSS equivalent).
-import { Box, Grow, ClickAwayListener, useTheme, alpha } from '@mui/material';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
@@ -55,9 +49,10 @@ const DOCK_PHRASES = [
  * </ul>
  */
 const AssistantDockTab: React.FC = () => {
-  const theme = useTheme();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  // Ancre du « clic exterieur » : remplace le ClickAwayListener de MUI.
+  const dockRef = useRef<HTMLDivElement>(null);
   // bulle compacte au-dessus de l'encoche, ou plein ecran (Dialog + historique)
   const [view, setView] = useState<'panel' | 'expanded'>('panel');
 
@@ -86,6 +81,20 @@ const AssistantDockTab: React.FC = () => {
 
   const isWorking = status === 'sending' || status === 'streaming';
 
+  // ─── Fermeture au clic exterieur ────────────────────────────────────────
+  // `pointerdown` plutot que `click` : le panneau contient des elements qui se
+  // demontent au clic, et `contains()` serait alors deja faux au moment ou le
+  // `click` remonte.
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event: PointerEvent) => {
+      const node = dockRef.current;
+      if (node && !node.contains(event.target as Node)) handleClose();
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [open, handleClose]);
+
   // ─── Rotation des phrases de l'encoche ──────────────────────────────────
   const [phraseIndex, setPhraseIndex] = useState(0);
   useEffect(() => {
@@ -102,21 +111,21 @@ const AssistantDockTab: React.FC = () => {
 
   return (
     <>
-      <ClickAwayListener
-        onClickAway={() => {
-          if (open) handleClose();
-        }}
+      {/* Conteneur fixe bas-droite : panneau (deploye) au-dessus, encoche
+          en dessous, tous deux alignes sur le meme bord DROIT de l'ecran
+          (l'encoche est un onglet qui depasse du bord, pas un flottant).
+          `pointer-events-none` : le conteneur ne doit pas bloquer les clics a
+          cote du panneau ; ses enfants les reprennent.
+          Les deux z-index sont les valeurs du theme MUI par defaut, que ce
+          projet ne surcharge pas : modal = 1300, drawer + 1 = 1201. Ecrits en
+          litteraux car une classe Tailwind ne peut pas naitre d'une variable. */}
+      <div
+        ref={dockRef}
+        className={cn(
+          'fixed bottom-0 right-0 flex flex-col items-end pointer-events-none [&>*]:pointer-events-auto',
+          open ? 'z-[1300]' : 'z-[1201]',
+        )}
       >
-        {/* Conteneur fixe bas-droite : panneau (deploye) au-dessus, encoche
-            en dessous, tous deux alignes sur le meme bord DROIT de l'ecran
-            (l'encoche est un onglet qui depasse du bord, pas un flottant).
-            `pointer-events-none` : le conteneur ne doit pas bloquer les clics a
-            cote du panneau ; ses enfants les reprennent.
-            Le z-index vient du theme (valeur runtime) : il reste en style. */}
-        <div
-          className="fixed bottom-0 right-0 flex flex-col items-end pointer-events-none [&>*]:pointer-events-auto"
-          style={{ zIndex: open ? theme.zIndex.modal : theme.zIndex.drawer + 1 }}
-        >
           {/* ── Panneau de discussion (deploye au-dessus de l'encoche) ────
               Colle DIRECTEMENT sur l'encoche (pas d'espace, pas de radius bas,
               pas de bordure basse) : panneau + encoche forment une seule carte
@@ -128,14 +137,12 @@ const AssistantDockTab: React.FC = () => {
               seul le coin haut-GAUCHE est arrondi. Ruptures ecrites en pixels :
               le `sm` MUI vaut 600px, pas les 640px de Tailwind.
               Largeur du panneau ecrite en dur (400px) : une classe Tailwind ne
-              peut pas naitre d'une constante JS. */}
-          <Grow
-            in={open && view === 'panel'}
-            mountOnEnter
-            unmountOnExit
-            timeout={220}
-            style={{ transformOrigin: 'bottom center' }}
-          >
+              peut pas naitre d'une constante JS.
+              Le Grow de MUI (mountOnEnter/unmountOnExit) devient un montage
+              conditionnel + l'animation d'entree de tw-animate-css : meme fondu,
+              meme mise a l'echelle depuis le bas, meme duree. Seule la
+              transition de SORTIE disparait, le panneau se demontant aussitot. */}
+          {open && view === 'panel' && (
             <div
               className={cn(
                 'w-screen max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-[var(--bg)]',
@@ -143,10 +150,11 @@ const AssistantDockTab: React.FC = () => {
                 'min-[600px]:w-[400px] min-[600px]:h-[min(70vh,600px)] min-[600px]:rounded-tl-[22px]',
                 'min-[600px]:border-[0.5px] min-[600px]:border-solid min-[600px]:border-r-0 min-[600px]:border-b-0',
                 'min-[600px]:border-[color-mix(in_srgb,var(--ink)_8%,transparent)]',
+                'origin-bottom animate-in fade-in-0 zoom-in-75 duration-[220ms] motion-reduce:animate-none',
               )}
             >
               {/* Header — L2 panel teinte, meme grammaire que la bulle du FAB */}
-              <div className="flex items-center gap-1.5 px-3 py-[7.5px] shrink-0" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.025) }}>
+              <div className="flex items-center gap-1.5 px-3 py-[7.5px] shrink-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]">
                 <div className="w-[28px] h-[28px] flex items-center justify-center">
                   <BaitlyMarkLogo variant="mark" size={18} idleAnimation={false} active={isWorking} />
                 </div>
@@ -188,7 +196,7 @@ const AssistantDockTab: React.FC = () => {
                 messages={messages}
                 emptyState={
                   <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 h-full text-center">
-                    <div className="w-[48px] h-[48px] rounded-[50%] flex items-center justify-center" style={{ backgroundColor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
+                    <div className="w-[48px] h-[48px] rounded-[50%] flex items-center justify-center bg-[color-mix(in_srgb,var(--mui-primary)_10%,transparent)] text-[var(--mui-primary)]">
                       <BaitlyMarkLogo variant="mark" size={26} />
                     </div>
                     <p className="cn-text-body2 font-semibold">
@@ -201,9 +209,12 @@ const AssistantDockTab: React.FC = () => {
                 }
               />
 
-              {/* Error banner */}
+              {/* Error banner — `error.dark` n'a pas de jeton dans la table de
+                  correspondance, mais c'est exactement le role de
+                  --bui-destructive-ink : la variante ASSOMBRIE de --err reservee
+                  au texte, deja utilisee ainsi ailleurs (--bui-warning-ink). */}
               {error && (
-                <div className="mx-[9px] mb-1.5 px-[9px] py-1.5 text-[0.8125rem] font-medium rounded-[16px]" style={{ backgroundColor: alpha(theme.palette.error.main, 0.10), color: theme.palette.error.dark }}>
+                <div className="mx-[9px] mb-1.5 px-[9px] py-1.5 text-[0.8125rem] font-medium rounded-[16px] bg-[color-mix(in_srgb,var(--err)_10%,transparent)] text-[var(--bui-destructive-ink)]">
                   {error}
                 </div>
               )}
@@ -217,7 +228,7 @@ const AssistantDockTab: React.FC = () => {
               />
 
               {messages.length > 0 && (
-                <div className="flex justify-center py-[3px] shrink-0" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.025) }}>
+                <div className="flex justify-center py-[3px] shrink-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]">
                   {/* color-mix(... 6%, transparent) est l'exact equivalent CSS de
                       alpha(primary.main, 0.06) : un survol ne peut pas vivre en
                       style inline. */}
@@ -230,7 +241,7 @@ const AssistantDockTab: React.FC = () => {
                 </div>
               )}
             </div>
-          </Grow>
+          )}
 
           {/* ── Encoche « classeur » collee au bord bas ───────────────────
               Fermee : onglet compact docke au bord droit, seul le coin haut-
@@ -276,30 +287,19 @@ const AssistantDockTab: React.FC = () => {
 
             {/* Phrase animee — flex:1 pour occuper la largeur disponible (fermee
                 comme ouverte). key force le remontage → l'animation d'entree
-                rejoue a chaque phrase. */}
-            <Box
-              sx={{
-                // Mobile : logo seul, pas de phrase
-                display: { xs: 'none', sm: 'block' },
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textAlign: 'left',
-                '@keyframes dockPhraseIn': {
-                  from: { opacity: 0, transform: 'translateY(6px)' },
-                  to: { opacity: 1, transform: 'translateY(0)' },
-                },
-              }}
-            >
-              {/* Les keyframes dockPhraseIn restent declarees par le sx du Box
-                  parent, qui n'est pas touche. */}
+                rejoue a chaque phrase. Mobile : logo seul, pas de phrase — le
+                `sm` MUI vaut 600px. */}
+            <div className="hidden min-[600px]:block flex-1 min-w-0 overflow-hidden text-left">
+              {/* Les keyframes maison dockPhraseIn etaient declarees par le `sx`
+                  du Box supprime : tw-animate-css rend exactement le meme
+                  mouvement (fondu + montee de 6px sur 420 ms). */}
               <p
                 key={open ? 'open' : phraseIndex}
-                className="cn-text-body1 truncate text-[0.8125rem] font-medium text-[var(--muted)] animate-[dockPhraseIn_420ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
+                className="cn-text-body1 truncate text-[0.8125rem] font-medium text-[var(--muted)] animate-in fade-in-0 slide-in-from-bottom-[6px] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
               >
                 {open ? 'Assistant Baitly' : DOCK_PHRASES[phraseIndex]}
               </p>
-            </Box>
+            </div>
 
             {/* Chevron : pointe vers le haut (deplier), pivote a l'ouverture.
                 Mobile : logo seul, pas de chevron. */}
@@ -314,8 +314,7 @@ const AssistantDockTab: React.FC = () => {
               <ChevronUp size={16} />
             </div>
           </button>
-        </div>
-      </ClickAwayListener>
+      </div>
 
       {/* ── Vue agrandie : plein ecran + historique des conversations ────── */}
       {open && view === 'expanded' && (

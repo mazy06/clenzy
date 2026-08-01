@@ -1,10 +1,10 @@
 import React from 'react';
-// Popover MUI conserve : son ancre est un `anchorEl` produit par la grille de
-// planning, HORS de cet arbre. Un Popover Radix exige que son declencheur vive
-// dans son propre arbre — le rebrancher deplacerait l'ouverture de la brique
-// vers ce composant, ce qui depasse la migration des primitives.
-import { Popover, useMediaQuery } from '@mui/material';
-import { Button } from '../../components/ui';
+import {
+  Button,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '../../components/ui';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -103,7 +103,6 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
   onDetail,
   onMessage,
 }) => {
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const reservation = event.reservation;
   if (!reservation) return null;
 
@@ -126,29 +125,21 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       : null;
 
   return (
-    <Popover
-      open
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-      transitionDuration={reduceMotion ? 0 : undefined}
-      slotProps={{
-        paper: {
-          sx: {
-            width: 290,
-            borderRadius: '14px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-pop)',
-            backgroundColor: 'var(--card)',
-            backgroundImage: 'none',
-            overflow: 'hidden',
-          },
-        },
-      }}
-    >
+    // L'ancre est une brique de la grille de planning, qui vit HORS de cet arbre :
+    // elle est fournie a Radix en `virtualRef`, ce qui evite d'avoir a deplacer le
+    // declencheur dans ce composant. `PopoverAnchor` ne rend alors aucun noeud.
+    <Popover open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <PopoverAnchor virtualRef={{ current: anchorEl }} />
+      <PopoverContent
+        side="bottom"
+        align="center"
+        aria-label="Récapitulatif de la réservation"
+        className="w-[290px] gap-0 p-0 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
+      >
       {/* Entête : avatar 40 + nom + canal (logo + label) */}
-      <div className="flex items-center gap-[7.5px] p-[12px 14px]">
+      {/* `p-[12px 14px]` (espace = classe invalide, silencieusement ignoree)
+          remplace par les deux axes. */}
+      <div className="flex items-center gap-[7.5px] px-3.5 py-3">
         <GuestAvatar
           name={event.label}
           photoUrl={reservation.guestAvatarUrl}
@@ -230,6 +221,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
           Détail
         </Button>
       </div>
+      </PopoverContent>
     </Popover>
   );
 };

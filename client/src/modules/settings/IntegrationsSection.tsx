@@ -15,10 +15,6 @@ import {
   Separator,
 } from '../../components/ui';
 import { cn } from '../../utils/cn';
-// `Box` reste MUI ici : les deux grilles desactivees appliquent DISABLED_CARDS_SX,
-// qui contient un `sx` a CALLBACK de theme (borderColor: (theme) => ...). Un tel
-// callback n'a pas d'equivalent en classes — le convertir serait deviner.
-import { Box } from '@mui/material';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -49,10 +45,7 @@ import { marketDataConnectionApi, type MarketDataProvider } from '../../services
 import MarketDataProviderCard from './components/MarketDataProviderCard';
 import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnectionApi';
 import KycProviderCard from './components/KycProviderCard';
-import {
-  DISABLED_CARDS_SX,
-  blockInteraction,
-} from './components/disabledIntegration';
+import { blockInteraction } from './components/disabledIntegration';
 import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
 import ChannexMappingDialog from './components/ChannexMappingDialog';
@@ -97,6 +90,21 @@ import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 const ACCENT = 'var(--ok)';
 const NEUTRAL = 'var(--muted)';
 const WARM = 'var(--warn)';
+
+// Grille des cards « Bientot disponible » — report de DISABLED_CARDS_SX (le jeton
+// MUI `divider` vaut var(--line)). Le `!important` d'origine n'est pas repris : les
+// selecteurs generes ici (classe + attribut + pseudo-classe) l'emportent deja sur
+// les utilitaires `hover:` portes par la card elle-meme. On evite toujours
+// `pointer-events: none`, qui tuerait aussi le hover et donc les tooltips.
+const DISABLED_GRID_CLASS = cn(
+  'grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5',
+  'opacity-[0.55] grayscale-[0.7] select-none',
+  '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed',
+  '[&_[role=radio]:hover]:border-[var(--line)] [&_[role=button]:hover]:border-[var(--line)]',
+  '[&_[role=radio]:hover]:bg-transparent [&_[role=button]:hover]:bg-transparent',
+  '[&_[role=radio]:hover]:shadow-none [&_[role=button]:hover]:shadow-none',
+  '[&_[role=radio]:focus-visible]:shadow-none [&_[role=button]:focus-visible]:shadow-none',
+);
 
 // Channex est la seule integration fonctionnelle pour l'instant ; toutes les
 // autres sections affichent l'etat "Bientot disponible" via les utilitaires
@@ -762,17 +770,11 @@ export default function IntegrationsSection({
             />
           </div>
         )}
-        <Box
+        <div
           aria-disabled="true"
           onClickCapture={blockInteraction}
           onKeyDownCapture={blockInteraction}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...DISABLED_CARDS_SX,
-          }}
+          className={DISABLED_GRID_CLASS}
         >
           {([
             { id: 'QUICKBOOKS', label: 'QuickBooks', desc: 'Intuit · OAuth2 · US/UK/CA' },
@@ -790,7 +792,7 @@ export default function IntegrationsSection({
               onClick={() => setOpenAccountingProvider(p)}
             />
           ))}
-        </Box>
+        </div>
       </Card>
       )}
       <IntegrationConfigDialog
@@ -854,17 +856,11 @@ export default function IntegrationsSection({
             />
           </div>
         )}
-        <Box
+        <div
           aria-disabled="true"
           onClickCapture={blockInteraction}
           onKeyDownCapture={blockInteraction}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...DISABLED_CARDS_SX,
-          }}
+          className={DISABLED_GRID_CLASS}
         >
           {([
             { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
@@ -883,7 +879,7 @@ export default function IntegrationsSection({
               titleAdornment={<span aria-hidden="true" style={{ fontSize: '0.85rem' }}>{flag}</span>}
             />
           ))}
-        </Box>
+        </div>
       </Card>
       )}
       <IntegrationConfigDialog

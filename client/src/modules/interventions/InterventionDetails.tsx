@@ -1,11 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Info, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Snackbar MUI conserve : le fichier n'utilise pas sonner, et changer le
-// mecanisme de notification depasse le perimetre de cette migration.
-import { Snackbar } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -38,6 +36,7 @@ export default function InterventionDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { notify } = useNotification();
 
   const {
     intervention, loading, error, starting, completing,
@@ -78,6 +77,14 @@ export default function InterventionDetailsPage() {
     calculateProgress, areAllStepsCompleted: areAllStepsCompleted(),
     canUpdateProgress, handleUpdateProgressValue,
   }), [calculateProgress, areAllStepsCompleted, canUpdateProgress, handleUpdateProgressValue]);
+
+  // Le message de succes reste porte par le hook (etat metier) ; on le consomme
+  // ici en toast puis on le vide, ce qui remplace l'ancienne banniere flottante.
+  useEffect(() => {
+    if (!startSuccessMessage) return;
+    notify.success(startSuccessMessage);
+    setStartSuccessMessage(null);
+  }, [startSuccessMessage, notify, setStartSuccessMessage]);
 
   if (!permissionsLoaded || loading) {
     return (
@@ -291,35 +298,9 @@ export default function InterventionDetailsPage() {
         onSubmit={handlePhotoUpload}
         uploading={uploadingPhotos}
       />
-
-      <Snackbar
-        open={!!startSuccessMessage}
-        autoHideDuration={6000}
-        onClose={() => setStartSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <BuiAlert variant="success" className="w-full">
-          <CircleCheck />
-          <AlertDescription>{startSuccessMessage}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setStartSuccessMessage(null)}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      </Snackbar>
     </div>
   );
 }
 
-const WORKFLOW_TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.05em',
-  color: 'var(--faint)',
-  mb: 1.5,
-} as const;
-
-/** Report en classes de `WORKFLOW_TITLE_SX`. */
+/** Surtitre de la section « suivi » : 10,5 px, capitales espacées, encre pâle. */
 const WORKFLOW_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-[9px]';

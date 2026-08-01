@@ -27,9 +27,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-// Tableau laisse en MUI : `stickyHeader` (en-tete fige sur un conteneur a hauteur
-// bornee) n'a pas d'equivalent dans les primitifs de tableau du kit.
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -509,31 +514,27 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </BuiAlert>
         )}
 
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            maxHeight: 320,
-            borderRadius: '10px',
-            '& .MuiTableCell-root': { fontSize: '0.8125rem', py: 1, px: 1.5 },
-            '& .MuiTableCell-head': { fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.03em' },
-          }}
-        >
-          <Table size="small" stickyHeader>
-            <TableHead>
+        {/* stickyHeader : c'est le conteneur INTERNE du primitif Table qui est le
+            bloc de defilement (il porte deja overflow-x). La hauteur bornee et le
+            defilement vertical doivent donc lui etre poses, sinon les en-tetes
+            `sticky` n'ont aucun ancetre scrollable et ne se figent jamais. */}
+        <div className="rounded-[10px] overflow-hidden border border-solid border-[var(--line)] bg-[var(--card)] [&_[data-slot=table-container]]:max-h-[320px] [&_[data-slot=table-container]]:overflow-y-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Arrivée</TableCell>
-                <TableCell>Départ</TableCell>
-                <TableCell align="center">Nuits</TableCell>
-                <TableCell>Guest / Détails</TableCell>
+                {/* Fond opaque obligatoire : sans lui les lignes defilent par transparence. */}
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Arrivée</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Départ</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)] text-center">Nuits</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Guest / Détails</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {allEvents.map((event: ICalEventPreview) => (
-                <TableRow key={`${event.uid}-${event.dtStart}`} hover sx={{ '&:last-child td': { border: 0 } }}>
+                <TableRow key={`${event.uid}-${event.dtStart}`}>
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <Badge variant="secondary" className="text-[0.6875rem] font-semibold h-[22px] min-w-[28px]">{event.nights || '-'}</Badge>
                   </TableCell>
                   <TableCell>
@@ -561,7 +562,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
 
         {autoCreateInterventions && totalCount > 0 && (
           <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">

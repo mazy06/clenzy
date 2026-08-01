@@ -100,7 +100,7 @@ function DriftRow({
   const TrendIcon = clenzyHigher ? TrendingUp : TrendingDown;
   const trendColor = clenzyHigher ? 'var(--ok)' : 'var(--err)';
   return (
-    <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
+    <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
       <div className="flex items-center gap-2 mb-1.5">
         <div className="shrink-0" style={{ color: trendColor }}>
           <TrendIcon size={18} strokeWidth={2.2} />
@@ -240,7 +240,7 @@ export default function ChannexPriceDriftsDialog({
       <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
         <DialogHeader className="flex-row items-start gap-1.5 pe-14">
-          <div className="w-[36px] h-[36px] rounded-[1px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
+          <div className="w-[36px] h-[36px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
             <AlertTriangle size={20} />
           </div>
           <div className="flex-1 min-w-0">

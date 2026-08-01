@@ -3,10 +3,13 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Autocomplete (et son renderInput, qui recoit des props internes MUI) n'a pas
-// d'equivalent dans le kit : laisse en MUI.
-import { TextField, Autocomplete } from '@mui/material';
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   Field,
   FieldDescription,
   FieldLabel,
@@ -526,53 +529,51 @@ const UserEdit: React.FC = () => {
             disableGrid
           >
             <div className="max-w-full min-[900px]:max-w-[50%]">
-              <Autocomplete
-                size="small"
-                options={organizations}
-                value={selectedOrg}
-                loading={orgsLoading}
-                onChange={(_event, newValue) => setSelectedOrg(newValue)}
-                getOptionLabel={(option) => option.name}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                renderOption={(props, option) => {
-                  const { key, ...optionProps } = props;
-                  return (
-                    <li key={key} {...optionProps}>
-                      <div className="flex items-center gap-1.5 w-full">
-                        <span className="inline-flex text-muted-foreground opacity-60">
-                          <Business size={16} strokeWidth={1.75} />
-                        </span>
-                        <p className="cn-text-body2 flex-1">
-                          {option.name}
-                        </p>
-                        <span className="cn-text-caption text-muted-foreground">
-                          {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    </li>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Organisation"
+              <Field>
+                <FieldLabel htmlFor="user-organization">Organisation</FieldLabel>
+                <Combobox
+                  items={organizations}
+                  itemToStringLabel={(o: OrganizationDto) => o.name}
+                  itemToStringValue={(o: OrganizationDto) => o.name}
+                  isItemEqualToValue={(a: OrganizationDto, b: OrganizationDto) => a.id === b.id}
+                  value={selectedOrg}
+                  onValueChange={(next: OrganizationDto | null) => setSelectedOrg(next)}
+                >
+                  <ComboboxInput
+                    id="user-organization"
                     placeholder="Sélectionner une organisation"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {orgsLoading ? <Spinner className="size-4" /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-                noOptionsText="Aucune organisation"
-              />
-              <FieldDescription className="text-[0.7rem] mt-[3px]">
-                Organisation à laquelle l'utilisateur est rattaché
-              </FieldDescription>
+                  >
+                    {/* Report de l'`endAdornment` : la roue tourne tant que la
+                        liste des organisations n'est pas chargée. */}
+                    {orgsLoading ? (
+                      <InputGroupAddon align="inline-end">
+                        <Spinner className="size-4" />
+                      </InputGroupAddon>
+                    ) : null}
+                  </ComboboxInput>
+                  <ComboboxContent>
+                    <ComboboxEmpty>Aucune organisation</ComboboxEmpty>
+                    <ComboboxList>
+                      {(option: OrganizationDto) => (
+                        <ComboboxItem key={option.id} value={option}>
+                          <span className="flex items-center gap-1.5 w-full">
+                            <span className="inline-flex text-muted-foreground opacity-60">
+                              <Business size={16} strokeWidth={1.75} />
+                            </span>
+                            <span className="cn-text-body2 flex-1">{option.name}</span>
+                            <span className="cn-text-caption text-muted-foreground">
+                              {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                            </span>
+                          </span>
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+                <FieldDescription className="text-[0.7rem] mt-[3px]">
+                  Organisation à laquelle l'utilisateur est rattaché
+                </FieldDescription>
+              </Field>
             </div>
           </DetailSection>
 

@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-// Menu laisse en MUI : son ancre (`anchorEl`) est produite par `useServiceRequestsList`
-// et par les vues enfant (grille / tableau / carte) — tous hors lot. Un DropdownMenu
-// Radix exige que le declencheur vive dans l'arbre du menu, ce qui n'est pas le cas ici.
-import { Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   Add,
   Edit,
@@ -74,6 +79,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     // Delete dialog
     deleteDialogOpen,
     setDeleteDialogOpen,
+    selectedRequestForDeletion,
 
     // Status change dialog
     statusChangeDialogOpen,
@@ -143,6 +149,19 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     navigate,
     t,
   } = useServiceRequestsList();
+
+  // ─── Ancre du menu contextuel ───────────────────────────────────────────
+  // Le declencheur du menu vit dans les vues enfant (grille / tableau / carte),
+  // hors de cet arbre : on cale donc un declencheur invisible sur le rectangle
+  // de l'element ancre, seule facon d'ancrer un DropdownMenu Radix sans que le
+  // bouton d'origine soit un descendant du menu.
+  const anchorRect = useMemo(() => anchorEl?.getBoundingClientRect() ?? null, [anchorEl]);
+  // Memorise la derniere ancre pour lui rendre le focus a la fermeture (le
+  // declencheur invisible ne doit jamais recevoir le focus).
+  const lastAnchorRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (anchorEl) lastAnchorRef.current = anchorEl;
+  }, [anchorEl]);
 
   const [page, setPage] = useState(0);
   // Auto default : map si au moins 1 demande a une propriete geocodee, sinon list.
@@ -400,86 +419,92 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       )}
 
       {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
+      <DropdownMenu
         open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
+        onOpenChange={(next) => { if (!next) handleMenuClose(); }}
       >
-        <MenuItem onClick={handleViewDetails}>
-          <ListItemIcon>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            className="fixed pointer-events-none opacity-0"
+            // Coordonnees issues du rectangle de l'ancre : valeurs d'execution,
+            // donc style inline (une classe Tailwind ne peut pas naitre d'une
+            // variable). `left` et non `inset-inline-start` : le rectangle est
+            // toujours mesure depuis le bord gauche du viewport, meme en RTL.
+            style={anchorRect
+              ? { left: anchorRect.left, top: anchorRect.top, width: anchorRect.width, height: anchorRect.height }
+              : { left: 0, top: 0, width: 0, height: 0 }}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-auto min-w-[220px]"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            lastAnchorRef.current?.focus();
+          }}
+        >
+          <DropdownMenuItem onSelect={handleViewDetails}>
             <Visibility size={20} strokeWidth={1.75} />
-          </ListItemIcon>
-          {t('serviceRequests.viewDetails')}
-        </MenuItem>
+            {t('serviceRequests.viewDetails')}
+          </DropdownMenuItem>
 
-        {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
-        {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
-          <MenuItem onClick={() => {
-            handleAssignServiceRequest(selectedServiceRequest);
-            handleMenuClose();
-          }}>
-            <ListItemIcon>
+          {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
+          {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
+            <DropdownMenuItem onSelect={() => handleAssignServiceRequest(selectedServiceRequest)}>
               {/* `fontSize`/`color="primary"` etaient des props d'icone MUI passees a
                   une icone lucide : sans effet. Aligne sur les entrees voisines. */}
               <Assignment size={20} strokeWidth={1.75} color="var(--mui-primary)" />
-            </ListItemIcon>
-            {t('serviceRequests.assign')}
-          </MenuItem>
-        )}
+              {t('serviceRequests.assign')}
+            </DropdownMenuItem>
+          )}
 
-        {/* Option de modification - toujours visible si permissions */}
-        {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
-          <MenuItem onClick={handleEdit}>
-            <ListItemIcon>
+          {/* Option de modification - toujours visible si permissions */}
+          {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
+            <DropdownMenuItem onSelect={handleEdit}>
               <Edit size={20} strokeWidth={1.75} />
-            </ListItemIcon>
-            {t('serviceRequests.modify')}
-          </MenuItem>
-        )}
+              {t('serviceRequests.modify')}
+            </DropdownMenuItem>
+          )}
 
-        {/* Option de suppression - seulement si pas approuvee */}
-        {selectedServiceRequest && canDeleteServiceRequest(selectedServiceRequest) && (
-          <MenuItem onClick={handleDelete}>
-            <ListItemIcon>
+          {/* Option de suppression - seulement si pas approuvee */}
+          {selectedServiceRequest && canDeleteServiceRequest(selectedServiceRequest) && (
+            <DropdownMenuItem onSelect={handleDelete}>
               <Delete size={20} strokeWidth={1.75} />
-            </ListItemIcon>
-            {t('serviceRequests.delete')}
-          </MenuItem>
-        )}
+              {t('serviceRequests.delete')}
+            </DropdownMenuItem>
+          )}
 
-        {/* Option d'annulation - seulement si approuvee */}
-        {selectedServiceRequest && canCancelServiceRequest(selectedServiceRequest) && (
-          <MenuItem onClick={() => {
-            setSelectedRequestForStatusChange(selectedServiceRequest);
-            setNewStatus('CANCELLED');
-            setStatusChangeDialogOpen(true);
-            handleMenuClose();
-          }}>
-            <ListItemIcon>
+          {/* Option d'annulation - seulement si approuvee */}
+          {selectedServiceRequest && canCancelServiceRequest(selectedServiceRequest) && (
+            <DropdownMenuItem
+              onSelect={() => {
+                setSelectedRequestForStatusChange(selectedServiceRequest);
+                setNewStatus('CANCELLED');
+                setStatusChangeDialogOpen(true);
+              }}
+            >
               <Cancel size={20} strokeWidth={1.75} color="var(--warn)" />
-            </ListItemIcon>
-            <ListItemText
-              primary={t('serviceRequests.cancel')}
-              secondary={`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
-            />
-          </MenuItem>
-        )}
-      </Menu>
+              {/* Deux lignes : reprend le couple primary / secondary du ListItemText. */}
+              <span className="flex flex-col">
+                <span>{t('serviceRequests.cancel')}</span>
+                <span className="cn-text-caption text-muted-foreground">
+                  {`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
+                </span>
+              </span>
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Dialogs */}
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={confirmDelete}
-        requestTitle={selectedServiceRequest?.title}
+        requestTitle={selectedRequestForDeletion?.title}
         t={t}
       />
 

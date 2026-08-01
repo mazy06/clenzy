@@ -20,14 +20,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-// Snackbar/Alert MUI conserves : le fichier n'utilise pas sonner, et changer
-// le mecanisme de notification depasse le perimetre de cette migration.
-import { Snackbar, Alert } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks/useNotification';
 import { formatDuration } from '../../utils/durationUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -121,6 +119,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   targetMinutes = 60,
 }) => {
   const { isSuperAdmin } = useAuth();
+  const { notify } = useNotification();
   const canDelete = isSuperAdmin();
 
   const [retestingId, setRetestingId] = useState<number | null>(null);
@@ -128,11 +127,6 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [confirmBulkOpen, setConfirmBulkOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'warning' | 'error';
-  }>({ open: false, message: '', severity: 'success' });
 
   // ─── Derived state : tri + stats KPI ───────────────────────────────────────
 
@@ -177,11 +171,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
     setDeletingId(incidentId);
     try {
       await incidentApi.deleteIncident(incidentId);
-      setSnackbar({
-        open: true,
-        message: `Incident #${incidentId} supprimé.`,
-        severity: 'success',
-      });
+      notify.success(`Incident #${incidentId} supprimé.`);
       onRefresh?.();
     } catch (err) {
       // Diagnostic precis : distinguer 403 (role manquant) / 404 (deja supprime) / autre.
@@ -196,7 +186,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         const backendMsg = apiErr?.message ?? 'erreur inconnue';
         message = `Erreur lors de la suppression (HTTP ${status ?? '?'} — ${backendMsg}).`;
       }
-      setSnackbar({ open: true, message, severity: 'error' });
+      notify.error(message);
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
@@ -225,23 +215,11 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
     setConfirmBulkOpen(false);
 
     if (failCount === 0) {
-      setSnackbar({
-        open: true,
-        message: `${okCount} incident${okCount > 1 ? 's' : ''} hors cible supprimé${okCount > 1 ? 's' : ''}.`,
-        severity: 'success',
-      });
+      notify.success(`${okCount} incident${okCount > 1 ? 's' : ''} hors cible supprimé${okCount > 1 ? 's' : ''}.`);
     } else if (okCount === 0) {
-      setSnackbar({
-        open: true,
-        message: `Echec de la suppression bulk (${failCount} erreurs).`,
-        severity: 'error',
-      });
+      notify.error(`Echec de la suppression bulk (${failCount} erreurs).`);
     } else {
-      setSnackbar({
-        open: true,
-        message: `${okCount} supprimé${okCount > 1 ? 's' : ''}, ${failCount} echec${failCount > 1 ? 's' : ''}.`,
-        severity: 'warning',
-      });
+      notify.warning(`${okCount} supprimé${okCount > 1 ? 's' : ''}, ${failCount} echec${failCount > 1 ? 's' : ''}.`);
     }
 
     onRefresh?.();
@@ -253,26 +231,14 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
       const result = await incidentApi.retestIncident(incidentId);
 
       if (result.status === 'UP' && result.resolved) {
-        setSnackbar({
-          open: true,
-          message: `Service ${result.service} est opérationnel — incident résolu`,
-          severity: 'success',
-        });
+        notify.success(`Service ${result.service} est opérationnel — incident résolu`);
       } else {
-        setSnackbar({
-          open: true,
-          message: `Service ${result.service} est toujours inaccessible : ${result.message}`,
-          severity: 'warning',
-        });
+        notify.warning(`Service ${result.service} est toujours inaccessible : ${result.message}`);
       }
 
       onRefresh?.();
     } catch {
-      setSnackbar({
-        open: true,
-        message: 'Erreur lors du retest',
-        severity: 'error',
-      });
+      notify.error('Erreur lors du retest');
     } finally {
       setRetestingId(null);
     }
@@ -575,22 +541,6 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%', fontSize: '0.8rem' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </>
   );
 };

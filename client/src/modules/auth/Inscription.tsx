@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
@@ -18,25 +18,22 @@ import type { TFunction } from 'i18next';
 import {
   Alert,
   AlertDescription,
+  Button,
   Card,
   CardContent,
   Checkbox,
   Separator,
+  Step,
+  StepLabel,
+  Stepper,
   ToggleGroup,
   ToggleGroupItem,
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-// Le fil d'etapes reste MUI : le kit Baitly n'a pas de primitif Stepper, et
-// `CustomStepIcon` recoit les props internes de `StepLabel`. Le bouton de
-// soumission garde lui aussi son gabarit MUI : sa teinte `secondary.dark` au
-// survol n'a pas de jeton equivalent cote tokens Signature.
-import { Box, Button, Stepper, Step, StepLabel, StepIconProps } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
   CheckCircle as CheckCircleIcon,
-  PersonOutline as PersonIcon,
-  Payment as PaymentIcon,
 } from '../../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
@@ -212,36 +209,9 @@ const getReferralSourceLabel = (t: TFunction, key: ReferralSource): string => {
   return t(`auth.inscription.referralSources.${key}`, fallbacks[key]);
 };
 
-const STEP_ICONS: Record<number, React.ReactElement> = {
-  1: <PersonIcon />,
-  2: <PaymentIcon />,
-};
-
-function CustomStepIcon(props: StepIconProps) {
-  const { active, completed, icon } = props;
-  return (
-    <Box
-      sx={{
-        width: 36,
-        height: 36,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: completed
-          ? 'primary.main'
-          : active
-            ? 'primary.dark'
-            : 'grey.300',
-        color: '#fff',
-        transition: 'all 0.3s ease',
-        '& .MuiSvgIcon-root': { fontSize: 18 },
-      }}
-    >
-      {completed ? <CheckCircleIcon size={20} strokeWidth={1.75} /> : STEP_ICONS[icon as number]}
-    </Box>
-  );
-}
+// La pastille d'etape n'est plus dessinee ici : le Stepper du kit rend son
+// propre numero, remplace par une coche a l'etape franchie. `StepIconComponent`
+// n'existe pas cote kit — c'etait la seule raison de `CustomStepIcon`.
 
 interface InscriptionResponse {
   clientSecret: string;
@@ -464,40 +434,26 @@ export default function Inscription() {
           </div>
         )}
 
-        {/* Stepper */}
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
-          {steps.map((label, index) => (
-            <Step
-              key={label}
-              completed={activeStep > index}
-              sx={{
-                cursor: activeStep > index && activeStep !== 1 ? 'pointer' : 'default',
-                '&:hover .MuiStepLabel-label': activeStep > index && activeStep !== 1
-                  ? { color: 'primary.dark' }
-                  : {},
-              }}
-              onClick={() => {
-                // Permettre de revenir aux etapes precedentes (sauf depuis le paiement Stripe)
-                if (index < activeStep && activeStep !== 1) {
-                  setError(null);
-                  setActiveStep(index);
-                }
-              }}
-            >
-              <StepLabel
-                StepIconComponent={CustomStepIcon}
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    fontSize: '0.78rem',
-                    fontWeight: activeStep === index ? 600 : 400,
-                    transition: 'all 0.2s ease',
-                  },
+        {/* Stepper — mb: 3 = 18 px (spacing MUI du projet = 6 px) */}
+        <Stepper activeStep={activeStep} className="mb-[18px]">
+          {steps.map((label, index) => {
+            const retourPossible = index < activeStep && activeStep !== 1;
+            return (
+              <Step
+                key={label}
+                className={retourPossible ? 'cursor-pointer' : 'cursor-default'}
+                onClick={() => {
+                  // Permettre de revenir aux etapes precedentes (sauf depuis le paiement Stripe)
+                  if (retourPossible) {
+                    setError(null);
+                    setActiveStep(index);
+                  }
                 }}
               >
-                {label}
-              </StepLabel>
-            </Step>
-          ))}
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            );
+          })}
         </Stepper>
 
         {/* Erreur */}
@@ -852,7 +808,7 @@ export default function Inscription() {
 
                     <Separator />
 
-                    <div className="p-2 rounded-[1.5px] bg-[rgba(166,192,206,0.08)] border border-solid border-[rgba(166,192,206,0.2)]">
+                    <div className="p-2 rounded-[12px] bg-[rgba(166,192,206,0.08)] border border-solid border-[rgba(166,192,206,0.2)]">
                       <div className="flex justify-between items-center">
                         <p className="cn-text-body2 font-semibold">
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
@@ -902,16 +858,15 @@ export default function Inscription() {
         {activeStep === 0 && (
           <div className="flex justify-center mt-4">
             <Button
-              variant="contained"
               onClick={handleNext}
               disabled={loading || !isStep1Valid()}
-              sx={{
-                px: 4,
-                fontWeight: 600,
-                backgroundColor: 'secondary.main',
-                '&:hover': { backgroundColor: 'secondary.dark' },
-                borderRadius: 1.5,
-              }}
+              // `secondary.main` a son jeton (--mui-secondary) ; `secondary.dark`
+              // n'en a pas. MUI derive `dark` en assombrissant `main` de 20 %,
+              // ce que color-mix avec du noir reproduit a l'identique — et qui
+              // reste sensible au mode, contrairement a un hex fige. L'encre est
+              // forcee en sombre : --mui-secondary reste un bleu-gris clair dans
+              // les deux modes, var(--ink) y virerait au blanc en dark.
+              className="px-6 bg-[var(--mui-secondary)] text-[#15242D] hover:bg-[color-mix(in_srgb,var(--mui-secondary)_85%,#000)]"
             >
               {loading ? <Spinner className="size-5" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
             </Button>

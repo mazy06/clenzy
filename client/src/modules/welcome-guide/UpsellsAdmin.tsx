@@ -5,13 +5,19 @@ import { Info } from 'lucide-react';
 import {
   Spinner,
   Button,
+  buttonVariants,
   Card,
   CardContent,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Field,
   FieldDescription,
   FieldLabel,
@@ -21,15 +27,12 @@ import {
   Textarea,
 } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-// Rescapes MUI. `Snackbar` + `Alert` flottante : changer le mecanisme de
-// notification depasse la migration. `Menu`/`MenuItem` : le menu d'actions par
-// ligne est declenche par un `anchorEl` fourni par <ServicesCatalog>, un
-// DropdownMenu exigerait de deplacer le declencheur dans ce composant tiers ;
-// les deux menus de filtre restent en MUI pour que les trois popups du meme
-// ecran gardent le meme rendu. `TextField select multiple` : cf. commentaire
-// au point d'usage.
-import { Alert, Menu, MenuItem, Snackbar, TextField } from '@mui/material';
-import type { AlertColor } from '@mui/material';
+// Seul rescape MUI : le menu d'actions par ligne. Son declencheur (le « … » de
+// chaque ligne) vit dans <ServicesCatalog>, qui nous passe un `anchorEl` ; un
+// DropdownMenu Radix a besoin que son declencheur soit rendu par lui-meme, ce
+// qui suppose de modifier ce composant tiers. Il migrera avec lui.
+import { Menu, MenuItem } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
   Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
@@ -42,6 +45,7 @@ import '../booking-engine/studio/studioHome.css';
 import ServicesCatalog from './marketplace/ServicesCatalog';
 import { type MarketplaceExperience } from './marketplace/marketplaceData';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
@@ -164,6 +168,7 @@ const onActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
 
 const UpsellsAdmin: React.FC = () => {
   const { t } = useTranslation();
+  const { showNotification } = useNotification();
   const { properties } = usePropertiesList();
   const { convert } = useCurrency();
 
@@ -185,8 +190,6 @@ const UpsellsAdmin: React.FC = () => {
   useScreenSearch(search, setSearch, t('upsells.search.placeholder', 'Rechercher un service…'));
   const [canalFilter, setCanalFilter] = useState<CanalFilter>('all');
   const [catFilter, setCatFilter] = useState<string | null>(null);
-  const [canalAnchor, setCanalAnchor] = useState<HTMLElement | null>(null);
-  const [catAnchor, setCatAnchor] = useState<HTMLElement | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [previewOffer, setPreviewOffer] = useState<PreviewData | null>(null);
 
@@ -198,13 +201,8 @@ const UpsellsAdmin: React.FC = () => {
   // Menu « … » d'actions par ligne (table « Mes services », parité Booking Engine / Welcome guide).
   const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; offer: UpsellOffer } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-  const notify = (message: string, severity: AlertColor = 'success') =>
-    setSnackbar({ open: true, message, severity });
+  const notify = (message: string, severity: NotificationSeverity = 'success') =>
+    showNotification(message, severity);
 
   const { data: commissionSummary } = useQuery({
     queryKey: ['activity-commission-summary'],
@@ -443,6 +441,8 @@ const UpsellsAdmin: React.FC = () => {
   const orderStatusLabel = (status: string) => t(`upsells.status.${status}`, status);
 
   const editingOffer = edit.id != null ? offers.find((o) => o.id === edit.id) ?? null : null;
+  // Offres eligibles au bundle : toutes sauf celle en cours d'edition.
+  const bundleCandidates = useMemo(() => offers.filter((o) => o.id !== edit.id), [offers, edit.id]);
 
   // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
   const headerActions = usePageHeaderActions(
@@ -464,15 +464,50 @@ const UpsellsAdmin: React.FC = () => {
 
   // Filtres portés dans le PageHeader (recherche + Canal + Catégorie). Uniquement
   // en vue catalogue (masqués sur l'écran détaillé d'un service).
+  // Les declencheurs portent eux-memes le gabarit de bouton : passer par
+  // `Button` en asChild casserait la ref dont Radix a besoin pour ancrer le menu.
   const headerFilters = usePageHeaderFilters(
     selected ? null : (
       <>
-        <Button variant="outline" className={canalFilter !== 'all' ? HEADER_FILTER_ACTIVE : undefined} onClick={(e) => setCanalAnchor(e.currentTarget)}>
-          <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
-        </Button>
-        <Button variant="outline" className={catFilter ? HEADER_FILTER_ACTIVE : undefined} onClick={(e) => setCatAnchor(e.currentTarget)}>
-          <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'cursor-pointer',
+              canalFilter !== 'all' ? HEADER_FILTER_ACTIVE : undefined,
+            )}
+          >
+            <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-auto min-w-[180px]">
+            {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
+              <DropdownMenuItem key={v} onSelect={() => setCanalFilter(v)}>
+                {v === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux') : v === 'livret' ? t('upsells.channel.guide', 'Livret') : t('upsells.channel.booking', 'Booking')}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'cursor-pointer',
+              catFilter ? HEADER_FILTER_ACTIVE : undefined,
+            )}
+          >
+            <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-auto min-w-[180px]">
+            <DropdownMenuItem onSelect={() => setCatFilter(null)}>
+              {t('upsells.filters.allCategories', 'Toutes les catégories')}
+            </DropdownMenuItem>
+            {presentTypes.map((tp) => (
+              <DropdownMenuItem key={tp} onSelect={() => setCatFilter(tp)}>
+                {typeLabel(tp)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </>
     ),
   );
@@ -502,23 +537,6 @@ const UpsellsAdmin: React.FC = () => {
         )}
       />
 
-      <Menu anchorEl={canalAnchor} open={!!canalAnchor} onClose={() => setCanalAnchor(null)}>
-        {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
-          <MenuItem key={v} selected={canalFilter === v} onClick={() => { setCanalFilter(v); setCanalAnchor(null); }}>
-            {v === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux') : v === 'livret' ? t('upsells.channel.guide', 'Livret') : t('upsells.channel.booking', 'Booking')}
-          </MenuItem>
-        ))}
-      </Menu>
-      <Menu anchorEl={catAnchor} open={!!catAnchor} onClose={() => setCatAnchor(null)}>
-        <MenuItem selected={!catFilter} onClick={() => { setCatFilter(null); setCatAnchor(null); }}>
-          {t('upsells.filters.allCategories', 'Toutes les catégories')}
-        </MenuItem>
-        {presentTypes.map((tp) => (
-          <MenuItem key={tp} selected={catFilter === tp} onClick={() => { setCatFilter(tp); setCatAnchor(null); }}>
-            {typeLabel(tp)}
-          </MenuItem>
-        ))}
-      </Menu>
       {/* Menu d'actions par ligne — toggle actif / modifier / supprimer (aucune action perdue). */}
       <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
         {rowMenu && ([
@@ -659,7 +677,7 @@ const UpsellsAdmin: React.FC = () => {
             <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
           </DialogHeader>
           {previewOffer && (
-            <div className="border border-solid border-[var(--line)] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
+            <div className="border border-solid border-[var(--line)] rounded-[16px] overflow-hidden max-w-[320px] mx-auto">
               <div
                 className="h-[150px] bg-[var(--hover)] bg-cover bg-center"
                 style={{ backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none' }}
@@ -857,33 +875,53 @@ const UpsellsAdmin: React.FC = () => {
                 </FieldDescription>
               </Field>
             </div>
-            {/* Bundle : reste un Select MUI multiple. Le <select multiple> natif du kit
-                se rend en liste deroulee a selection multiple (Ctrl/Cmd) et ne renvoie
-                qu'une valeur dans e.target.value — la saisie ne serait plus la meme. */}
-            <TextField
-              select
-              label={t('upsells.fields.bundle', 'Offres incluses (bundle)')}
-              helperText={t('upsells.fields.bundleHelp', 'Sélectionne des offres → celle-ci devient un bundle (prix combiné, défini ci-dessus).')}
-              value={edit.bundleOfferIds}
-              onChange={(e) => {
-                const v = e.target.value as unknown as string[];
-                setEdit((s) => ({ ...s, bundleOfferIds: typeof v === 'string' ? (v as string).split(',') : v }));
-              }}
-              size="small"
-              fullWidth
-              SelectProps={{ multiple: true }}
-            >
-              {offers.flatMap((o) =>
-                o.id !== edit.id ? [<MenuItem key={o.id} value={String(o.id)}>{o.title}</MenuItem>] : [],
-              )}
-            </TextField>
+            {/* Bundle : liste a cocher rendue en place, et non un menu deroulant.
+                Un menu portalise sur document.body serait inerte au pointeur a
+                l'interieur de ce Dialog Radix, et son clic serait compris comme
+                une interaction exterieure — le dialog se refermerait. */}
+            <Field>
+              <FieldLabel>{t('upsells.fields.bundle', 'Offres incluses (bundle)')}</FieldLabel>
+              <div className="flex flex-col gap-1.5 max-h-[132px] overflow-y-auto rounded-[6px] border border-solid border-[var(--line)] p-1.5">
+                {bundleCandidates.length === 0 ? (
+                  <span className="cn-text-caption text-muted-foreground">
+                    {t('upsells.fields.bundleEmpty', 'Aucune autre offre disponible.')}
+                  </span>
+                ) : (
+                  bundleCandidates.map((o) => {
+                    const optionId = String(o.id);
+                    return (
+                      <Field key={optionId} orientation="horizontal" className="gap-1.5">
+                        <Checkbox
+                          id={`upsell-bundle-${optionId}`}
+                          checked={edit.bundleOfferIds.includes(optionId)}
+                          onCheckedChange={(checked) =>
+                            setEdit((s) => ({
+                              ...s,
+                              bundleOfferIds: checked === true
+                                ? [...s.bundleOfferIds, optionId]
+                                : s.bundleOfferIds.filter((x) => x !== optionId),
+                            }))
+                          }
+                        />
+                        <FieldLabel htmlFor={`upsell-bundle-${optionId}`} className="font-normal">
+                          {o.title}
+                        </FieldLabel>
+                      </Field>
+                    );
+                  })
+                )}
+              </div>
+              <FieldDescription>
+                {t('upsells.fields.bundleHelp', 'Sélectionne des offres → celle-ci devient un bundle (prix combiné, défini ci-dessus).')}
+              </FieldDescription>
+            </Field>
             <div>
               <span className="cn-text-caption text-muted-foreground block mb-1">
                 {t('upsells.fields.image', 'Image (optionnel)')}
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 {edit.imageUrl ? (
-                  <img className="w-[72px] h-[72px] rounded-[1.5px] object-cover block border border-[var(--line)]" src={edit.imageUrl} alt="" />
+                  <img className="w-[72px] h-[72px] rounded-[12px] object-cover block border border-[var(--line)]" src={edit.imageUrl} alt="" />
                 ) : null}
                 {/* asChild : le declencheur reste un <label> pour ouvrir l'input fichier masque.
                     cursor-pointer explicite : la regle globale du kit ne vise que button/[role=button]. */}
@@ -998,17 +1036,6 @@ const UpsellsAdmin: React.FC = () => {
         severity="error"
         loading={deleting}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

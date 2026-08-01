@@ -1,11 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Button, Progress } from '../../components/ui';
-// Popover reste MUI : il est ancre par un `anchorEl` imperatif (noeud DOM fourni
-// par le parent), la ref PORTE le comportement — le Popover Radix du kit veut un
-// ancrage declaratif. `useMediaQuery` n'a pas d'equivalent dans le kit.
-import { Popover, useMediaQuery } from '@mui/material';
+import { Button, Popover, PopoverAnchor, PopoverContent, Progress } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -56,7 +52,12 @@ interface PropertyPopoverProps {
 const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, performance: perf, onClose }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  // L'ancre est un noeud DOM imperatif fourni par le parent. Radix couvre
+  // exactement ce cas avec `virtualRef` : un objet qui expose l'element a
+  // mesurer, sans exiger que l'ancre soit rendue ici. Le contrat du composant
+  // (prop `anchorEl`) reste donc inchange pour l'appelant.
+  const anchorRef = React.useMemo(() => ({ current: anchorEl }), [anchorEl]);
 
   const address = [property.address, property.city].filter(Boolean).join(', ');
   const currency = property.currency || 'EUR';
@@ -73,28 +74,17 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
   const hasTimes = Boolean(property.defaultCheckInTime || property.defaultCheckOutTime);
 
   return (
-    <Popover
-      open
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'center', horizontal: 'left' }}
-      transitionDuration={reduceMotion ? 0 : undefined}
-      slotProps={{
-        paper: {
-          sx: {
-            width: 270,
-            borderRadius: '14px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-pop)',
-            backgroundColor: 'var(--card)',
-            backgroundImage: 'none',
-            overflow: 'hidden',
-            ml: 1,
-          },
-        },
-      }}
-    >
+    <Popover open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <PopoverAnchor virtualRef={anchorRef} />
+      {/* `ml: 1` de la maquette MUI devient le decalage d'ancrage (8 px).
+          `motion-reduce:animate-none` remplace le transitionDuration 0 que le
+          composant calculait via useMediaQuery. */}
+      <PopoverContent
+        side="right"
+        align="center"
+        sideOffset={8}
+        className="w-[270px] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
+      >
       {/* Héro : fond accent-soft, icône bâtiment, nom en overlay */}
       <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
         <div className="inline-flex text-[var(--accent)] opacity-55 mb-3.5">
@@ -259,14 +249,16 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       {/* Pied : « Voir la fiche » est ce que le popover invite a faire, donc l'action
           principale (default) ; « Fermer » redescend en secondaire (outline). Les deux
           etaient outlined en MUI, ce qui mettait la sortie au meme poids que l'entree. */}
-      <div className="flex gap-1.5 p-[10px 14px]" style={{ borderTop: '1px solid var(--line)' }}>
-        <Button size="sm" variant="outline" className="flex-1" onClick={onClose}>
+      {/* `flex-1` sur deux boutons freres : le Button du kit porte shrink-0, on
+          remet `shrink` pour qu'ils se partagent la largeur au lieu de deborder. */}
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+        <Button size="sm" variant="outline" className="flex-1 shrink" onClick={onClose}>
           <Close size={ICON_SIZE} strokeWidth={1.75} />
           Fermer
         </Button>
         <Button
           size="sm"
-          className="flex-1"
+          className="flex-1 shrink"
           onClick={() => {
             onClose();
             navigate(`/properties/${property.id}`);
@@ -276,6 +268,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           Voir la fiche
         </Button>
       </div>
+      </PopoverContent>
     </Popover>
   );
 };

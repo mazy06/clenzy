@@ -1,16 +1,57 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { cn } from '../utils/cn';
-// Box + SxProps restent MUI : `sx`, `width` et `height` sont l'API PUBLIQUE de ce
-// composant (objets de breakpoints MUI + `borderRadius: 1.5` = jeton d'espacement),
-// consommee par PropertyDetails et PanelPropertyDetails. Les traduire ici sans
-// toucher aux appelants casserait leur mise en page en silence.
-import { Box } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material';
 import { Button, Dialog, DialogContent, DialogTitle } from './ui';
 import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '../icons';
 import { API_CONFIG } from '../config/api';
 
 type ResponsiveSize = number | string | { [key: string]: number | string };
+
+/**
+ * `width`, `height` et `sx` sont l'API PUBLIQUE de ce composant : PropertyDetails
+ * et PanelPropertyDetails passent encore des objets de breakpoints MUI et un
+ * `borderRadius` en jeton. Les deux helpers ci-dessous traduisent ce vocabulaire
+ * sans que les appelants aient a changer — c'est la seule facon de sortir ce
+ * fichier de MUI sans casser leur mise en page en silence.
+ */
+
+// Les seuils MUI (0 / 600 / 900 / 1200 px) sont ecrits en clair dans les classes
+// `min-[…]` du conteneur : Tailwind emet ses classes en scannant les sources, il
+// ne peut pas les lire depuis une constante.
+type BreakpointKey = 'xs' | 'sm' | 'md' | 'lg';
+const BREAKPOINT_ORDER: BreakpointKey[] = ['xs', 'sm', 'md', 'lg'];
+
+/** Une longueur nue est en px, comme dans le systeme MUI. */
+function toCssLength(value: number | string): string {
+  return typeof value === 'number' ? `${value}px` : value;
+}
+
+/**
+ * Etale une taille responsive sur les quatre paliers, chaque palier absent
+ * heritant du precedent — c'est le comportement mobile-first de MUI.
+ */
+function resolveResponsive(value: ResponsiveSize): Record<BreakpointKey, string> {
+  if (typeof value === 'number' || typeof value === 'string') {
+    const unique = toCssLength(value);
+    return { xs: unique, sm: unique, md: unique, lg: unique };
+  }
+  const out = {} as Record<BreakpointKey, string>;
+  let courant = 'auto';
+  BREAKPOINT_ORDER.forEach((bp) => {
+    if (value[bp] !== undefined) courant = toCssLength(value[bp]);
+    out[bp] = courant;
+  });
+  return out;
+}
+
+/**
+ * `sx` residuel des appelants : proprietes CSS ordinaires, a une exception pres
+ * — un `borderRadius` NUMERIQUE est un jeton de forme MUI, pas des pixels.
+ */
+function sxToStyle(sx?: React.CSSProperties): React.CSSProperties {
+  if (!sx) return {};
+  if (typeof sx.borderRadius !== 'number') return sx;
+  return { ...sx, borderRadius: `${sx.borderRadius * 8}px` };
+}
 
 interface PropertyImageCarouselProps {
   /** URLs des photos de la propriete (relatives ou absolues). */
@@ -20,7 +61,8 @@ interface PropertyImageCarouselProps {
   /** Hauteur fixe (px) ou responsive (objet de breakpoints MUI). */
   height?: ResponsiveSize;
   alt?: string;
-  sx?: SxProps<Theme>;
+  /** Styles additionnels du conteneur (un `borderRadius` numerique = jeton MUI). */
+  sx?: React.CSSProperties;
   /** Affiche les controles nav en permanence (sinon visibles uniquement au hover). */
   alwaysShowNav?: boolean;
   /** Active l'ouverture en plein ecran au clic sur l'image. */
@@ -83,23 +125,26 @@ export function PropertyImageCarousel({
   const navButtonSize = alwaysShowNav ? 36 : 20;
   const navIconSize = alwaysShowNav ? 22 : 14;
 
+  // Les tailles sont des valeurs d'execution : aucune classe Tailwind ne peut en
+  // naitre. Les classes restent litterales et lisent des custom properties, une
+  // par palier — ce que l'objet de breakpoints MUI faisait via des media queries.
+  const w = resolveResponsive(width);
+  const h = resolveResponsive(height);
+
   return (
     <>
-      <Box
-        sx={[
-          {
-            width,
-            height,
-            position: 'relative',
-            flexShrink: 0,
-            overflow: 'hidden',
-            bgcolor: 'action.hover',
-            cursor: canFullscreen ? 'zoom-in' : 'default',
-            '&:hover .carousel-nav': hasMultiple && !alwaysShowNav ? { opacity: 1 } : undefined,
-            '&:hover .carousel-fullscreen-hint': canFullscreen ? { opacity: 1 } : undefined,
-          },
-          ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
-        ]}
+      <div
+        className={cn(
+          'group relative shrink-0 overflow-hidden bg-[var(--hover)]',
+          'w-[var(--pic-w-xs)] min-[600px]:w-[var(--pic-w-sm)] min-[900px]:w-[var(--pic-w-md)] min-[1200px]:w-[var(--pic-w-lg)]',
+          'h-[var(--pic-h-xs)] min-[600px]:h-[var(--pic-h-sm)] min-[900px]:h-[var(--pic-h-md)] min-[1200px]:h-[var(--pic-h-lg)]',
+          canFullscreen ? 'cursor-zoom-in' : 'cursor-default',
+        )}
+        style={{
+          '--pic-w-xs': w.xs, '--pic-w-sm': w.sm, '--pic-w-md': w.md, '--pic-w-lg': w.lg,
+          '--pic-h-xs': h.xs, '--pic-h-sm': h.sm, '--pic-h-md': h.md, '--pic-h-lg': h.lg,
+          ...sxToStyle(sx),
+        } as React.CSSProperties}
         onClick={handleImageClick}
       >
         {showPlaceholder ? (
@@ -125,7 +170,7 @@ export function PropertyImageCarousel({
               aria-label="Photo précédente"
               className={cn(
                 'carousel-nav absolute top-1/2 p-0 rounded-full bg-[rgba(255,255,255,0.9)] text-[var(--ink)] hover:bg-[#fff]',
-                alwaysShowNav ? 'start-[8px] opacity-100' : 'start-[2px] opacity-0',
+                alwaysShowNav ? 'start-[8px] opacity-100' : 'start-[2px] opacity-0 group-hover:opacity-100',
               )}
               // navButtonSize est une valeur runtime : aucune classe Tailwind ne peut en naitre.
               style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
@@ -139,7 +184,7 @@ export function PropertyImageCarousel({
               aria-label="Photo suivante"
               className={cn(
                 'carousel-nav absolute top-1/2 p-0 rounded-full bg-[rgba(255,255,255,0.9)] text-[var(--ink)] hover:bg-[#fff]',
-                alwaysShowNav ? 'end-[8px] opacity-100' : 'end-[2px] opacity-0',
+                alwaysShowNav ? 'end-[8px] opacity-100' : 'end-[2px] opacity-0 group-hover:opacity-100',
               )}
               style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
               onClick={next}
@@ -155,17 +200,17 @@ export function PropertyImageCarousel({
         )}
 
         {showCounter && hasMultiple && (
-          <div className="absolute top-[8px] end-[8px] px-1.5 py-0.5 rounded-[1px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.7rem] font-semibold pointer-events-none">
+          <div className="absolute top-[8px] end-[8px] px-1.5 py-0.5 rounded-[8px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.7rem] font-semibold pointer-events-none">
             {index + 1} / {urls.length}
           </div>
         )}
 
         {canFullscreen && (
-          <div className={cn('carousel-fullscreen-hint absolute bottom-[8px] end-[8px] w-[32px] h-[32px] flex items-center justify-center rounded-[8px] bg-[rgba(0,0,0,0.55)] text-[#fff] pointer-events-none', alwaysShowNav ? 'opacity-85' : 'opacity-0')} style={{ transition: 'opacity 0.15s ease' }}>
+          <div className={cn('carousel-fullscreen-hint absolute bottom-[8px] end-[8px] w-[32px] h-[32px] flex items-center justify-center rounded-[8px] bg-[rgba(0,0,0,0.55)] text-[#fff] pointer-events-none group-hover:opacity-100', alwaysShowNav ? 'opacity-85' : 'opacity-0')} style={{ transition: 'opacity 0.15s ease' }}>
             <Fullscreen size={20} strokeWidth={1.75} />
           </div>
         )}
-      </Box>
+      </div>
 
       {canFullscreen && (
         <Dialog open={fullscreenOpen} onOpenChange={(next) => { if (!next) setFullscreenOpen(false); }}>

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Tooltip, ClickAwayListener } from '@mui/material';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Lock as LockIcon } from '../../icons';
 
 interface PlanningBlockedBandProps {
@@ -23,6 +23,7 @@ interface PlanningBlockedBandProps {
  */
 const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, height, notes, source }) => {
   const [open, setOpen] = useState(false);
+  const bandRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
   const toggle = useCallback((e: React.SyntheticEvent) => {
@@ -30,43 +31,33 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
     setOpen((o) => !o);
   }, []);
 
+  // Remplacement du ClickAwayListener MUI. On ne passe pas par
+  // `onPointerDownOutside` du contenu Radix : la bande elle-meme est « outside »
+  // du panneau, un clic dessus fermerait puis rouvrirait aussitot — le toggle
+  // ne refermerait donc jamais.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!bandRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
   const isExternal = !!source && source.toUpperCase().startsWith('ICAL');
-  const tooltip = (
-    <div className="py-0.5">
-      <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">
-        Période bloquée
-      </p>
-      <p className="cn-text-body1 text-[0.6875rem] leading-[1.35]">
-        Ces dates sont indisponibles à la réservation.
-        {isExternal && ' Synchronisée depuis un calendrier externe (OTA).'}
-      </p>
-      {notes && (
-        <p className="cn-text-body1 text-[0.6875rem] mt-0.5 opacity-85 italic">
-          {notes}
-        </p>
-      )}
-    </div>
-  );
 
   // Largeur minimale pour afficher l'icône / le label sans tronquer.
   const showIcon = width >= 22;
   const showLabel = width >= 68;
 
   return (
-    <ClickAwayListener onClickAway={close}>
-      <Tooltip
-        open={open}
-        onClose={close}
-        title={tooltip}
-        arrow
-        placement="top"
-        // Déclenchement au clic uniquement (pas au survol) — cf. demande produit.
-        disableHoverListener
-        disableFocusListener
-        disableTouchListener
-        slotProps={{ tooltip: { sx: { maxWidth: 240 } } }}
-      >
+    // `open` est pilote par le clic seul : `onOpenChange` n'est pas branche, donc
+    // le survol et le focus de Radix ne peuvent pas ouvrir l'infobulle — c'est
+    // ce que faisaient les `disableHoverListener` / `disableFocusListener` MUI.
+    <Tooltip open={open}>
+      <TooltipTrigger asChild>
         <div
+          ref={bandRef}
           data-blocked-range
           role="button"
           tabIndex={0}
@@ -103,8 +94,24 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
             </p>
           )}
         </div>
-      </Tooltip>
-    </ClickAwayListener>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[240px]" onEscapeKeyDown={close}>
+        <div className="py-0.5">
+          <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">
+            Période bloquée
+          </p>
+          <p className="cn-text-body1 text-[0.6875rem] leading-[1.35]">
+            Ces dates sont indisponibles à la réservation.
+            {isExternal && ' Synchronisée depuis un calendrier externe (OTA).'}
+          </p>
+          {notes && (
+            <p className="cn-text-body1 text-[0.6875rem] mt-0.5 opacity-85 italic">
+              {notes}
+            </p>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 

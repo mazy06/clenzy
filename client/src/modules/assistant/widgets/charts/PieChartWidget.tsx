@@ -106,7 +106,7 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
                 <p className="cn-text-body1 text-[11.5px] font-bold text-[var(--ink)] min-w-[20px] text-end tabular-nums">
                   {entry.value}
                 </p>
-                <div className="w-[40px] h-[4px] bg-[var(--hover)] rounded-[2px] overflow-hidden shrink-0">
+                <div className="w-[40px] h-[4px] bg-[var(--hover)] rounded-[16px] overflow-hidden shrink-0">
                   {/* Largeur et teinte sont calculees par entree : elles passent par `style`. */}
                   <div
                     className="h-full rounded-[16px] transition-[width] duration-[400ms] ease-[ease] motion-reduce:transition-none"

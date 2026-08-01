@@ -175,7 +175,7 @@ function ListingCard({
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <div className="border border-[var(--line)] rounded-[1px] p-2 flex items-center justify-between flex-wrap gap-1.5">
+    <div className="border border-[var(--line)] rounded-[8px] p-2 flex items-center justify-between flex-wrap gap-1.5">
       <div className="min-w-0 flex-1">
         <p className="cn-text-body1 text-[0.8125rem] font-semibold flex items-center gap-0.5">
           {listing.airbnbListingTitle || `Listing ${listing.airbnbListingId}`}

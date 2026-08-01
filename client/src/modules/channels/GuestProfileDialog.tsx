@@ -157,7 +157,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-0.5 uppercase text-muted-foreground">
                     {t('channels.guest.specialRequests')}
                   </p>
-                  <p className="cn-text-body1 text-[0.8125rem] bg-[var(--hover)] p-1.5 rounded-[1px]">
+                  <p className="cn-text-body1 text-[0.8125rem] bg-[var(--hover)] p-1.5 rounded-[8px]">
                     {guest.specialRequests}
                   </p>
                 </div>
@@ -243,7 +243,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
 
 function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="border border-[var(--line)] rounded-[1px] px-2 py-1 text-center">
+    <div className="border border-[var(--line)] rounded-[8px] px-2 py-1 text-center">
       <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground uppercase font-medium">{label}</p>
       <p className="cn-text-body1 text-[0.875rem] font-bold mt-0.5">{value}</p>
     </div>

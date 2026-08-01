@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Stepper, Step, StepLabel } from '@mui/material';
-import { Button } from '../../../components/ui';
+import { Button, Stepper, Step, StepLabel } from '../../../components/ui';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
 
 interface StepDef {
@@ -68,7 +67,7 @@ function dispatchQuickReply(text: string) {
  * d'un workflow guide multi-etapes :
  * <ul>
  *   <li>Header : titre + duree estimee + statut</li>
- *   <li>Stepper MUI horizontal avec etapes completees / courante / futures</li>
+ *   <li>Stepper Baitly UI horizontal avec etapes completees / courante / futures</li>
  *   <li>Prompt du step courant rendu en markdown (AssistantMarkdown)</li>
  *   <li>Quick replies (chips Oui/Non) si le step attend un booleen</li>
  *   <li>CTA "Continuer" qui poste le texte de l'input — pour les booleens
@@ -77,8 +76,7 @@ function dispatchQuickReply(text: string) {
  * </ul>
  *
  * <p>Pattern « Signature » : tokens var(--…), overlines 10.5px {@code --faint}.
- * Stepper MUI conservé tel quel (pattern Wizard/Stepper absent du baseline §7 —
- * tokenisé sans nouveau dessin). Pour les boolean quick replies, on emet un
+ * Pour les boolean quick replies, on emet un
  * {@link ASSISTANT_QUICK_REPLY_EVENT} sur la window que la page chat ecoute
  * pour rappeler {@code sendMessage}.</p>
  */
@@ -120,29 +118,12 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
 
       {/* Stepper visuel */}
       {stepsForStepper.length > 0 && (
-        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">
-          <Stepper
-            activeStep={isCompleted ? stepsForStepper.length : currentIdx}
-            alternativeLabel
-            sx={{
-              '& .MuiStepLabel-label': {
-                fontSize: '11.5px',
-                fontWeight: 500,
-                color: 'var(--muted)',
-                mt: 0.5,
-                '&.Mui-active': { color: 'var(--ink)', fontWeight: 600 },
-                '&.Mui-completed': { color: 'var(--muted)' },
-              },
-              '& .MuiStepIcon-root': {
-                fontSize: '1.1rem',
-                color: 'var(--line-2)',
-                '&.Mui-active': { color: 'var(--accent)' },
-                '&.Mui-completed': { color: 'var(--accent)' },
-              },
-            }}
-          >
-            {stepsForStepper.map((step, idx) => (
-              <Step key={step.label} completed={idx < currentIdx || isCompleted}>
+        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)] overflow-x-auto">
+          {/* Le primitif derive « franchie / courante / a venir » de activeStep :
+              la prop `completed` par etape n'a plus lieu d'etre. */}
+          <Stepper activeStep={isCompleted ? stepsForStepper.length : currentIdx}>
+            {stepsForStepper.map((step) => (
+              <Step key={step.label}>
                 <StepLabel>{step.label}</StepLabel>
               </Step>
             ))}

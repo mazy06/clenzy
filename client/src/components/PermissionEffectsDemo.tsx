@@ -145,7 +145,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 <CardContent className="p-[15px]">
                   {/* En-tête avec icône et statut */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-1.5 bg-[var(--hover)] rounded-[1px] flex items-center justify-center text-muted-foreground">
+                    <div className="p-1.5 bg-[var(--hover)] rounded-[8px] flex items-center justify-center text-muted-foreground">
                       {getModuleIcon(menu.name)}
                     </div>
                     <div className="flex-1">
@@ -164,7 +164,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                   </div>
                   
                   {/* Permissions requises */}
-                  <div className="p-2 bg-[var(--surface-2)] rounded-[1px] mb-3 border border-[var(--line)]">
+                  <div className="p-2 bg-[var(--surface-2)] rounded-[8px] mb-3 border border-[var(--line)]">
                     <span className="cn-text-caption text-muted-foreground font-medium block mb-0.5">
                       Permissions requises
                     </span>

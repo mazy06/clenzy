@@ -5,15 +5,18 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-// Dialog + TextField + Autocomplete restent MUI et ensemble : le renderInput de
-// l'Autocomplete recoit des props internes (impossible a porter sur le kit), et
-// sa liste, portalisee hors d'un Dialog Radix, serait traitee comme une
-// interaction exterieure (fermeture du dialog + piege de focus casse).
-import { TextField, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Button, Card } from '../../components/ui';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
+  FieldDescription,
+  FieldError,
   FieldLabel,
+  Input,
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
@@ -245,6 +248,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   const brand = provider ? PROVIDERS[provider] : null;
   const accent = brand ? (isDark ? brand.accentDark : brand.accent) : 'var(--mui-primary)';
   const Logo = provider === 'openai' ? OpenAILogo : ClaudeLogo;
+  const modelIds = useMemo(() => models.map((m) => m.id), [models]);
 
   const handleClose = () => {
     setApiKey('');
@@ -272,25 +276,20 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <div
-          className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px]"
-          style={{ backgroundColor: `color-mix(in srgb, ${accent} ${isDark ? 12 : 8}%, transparent)` }}
-        >
-          <Logo size={20} color={accent} />
-        </div>
-        <h6 className="cn-text-h6 font-bold text-[1.05rem]">
-          {t('bookingEngine.ai.settings.configureProvider', { provider: brand?.label ?? '' })}
-        </h6>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader className="flex-row items-center gap-1.5 pb-1">
+          <div
+            className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px] shrink-0"
+            style={{ backgroundColor: `color-mix(in srgb, ${accent} ${isDark ? 12 : 8}%, transparent)` }}
+          >
+            <Logo size={20} color={accent} />
+          </div>
+          <DialogTitle className="font-bold text-[1.05rem]">
+            {t('bookingEngine.ai.settings.configureProvider', { provider: brand?.label ?? '' })}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent>
         <div className="flex flex-col gap-3 mt-1.5">
           {/* La teinte de marque au focus disparait : le kit porte son propre
               anneau, un accent inline ne s'y greffe pas. */}
@@ -321,62 +320,60 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
             </InputGroup>
           </Field>
 
-          <Autocomplete
-            freeSolo
-            options={models.map((m) => m.id)}
-            value={modelOverride}
-            inputValue={modelOverride}
-            onInputChange={(_, v) => setModelOverride(v)}
-            loading={loadingModels}
-            fullWidth
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label={t('bookingEngine.ai.settings.modelOverrideLabel')}
+          {/* Equivalent du freeSolo : saisie libre + completions issues du
+              catalogue. Le <datalist> natif est rendu par le navigateur, sans
+              portail — le Combobox du kit, lui, portalise sa liste sur
+              document.body, que le Dialog Radix rend inerte au pointeur et
+              traite comme une interaction exterieure (le dialog se fermerait). */}
+          <Field>
+            <FieldLabel htmlFor="ai-model-override">
+              {t('bookingEngine.ai.settings.modelOverrideLabel')}
+            </FieldLabel>
+            <div className="flex items-center gap-1.5">
+              <Input
+                id="ai-model-override"
+                className="flex-1"
+                list="ai-model-catalog"
+                value={modelOverride}
+                onChange={(e) => setModelOverride(e.target.value)}
                 placeholder={brand?.modelPlaceholder}
-                error={Boolean(catalogError)}
-                helperText={
-                  catalogError ||
-                  (models.length > 0
-                    ? t('bookingEngine.ai.settings.modelCatalogLoaded', {
-                        count: models.length,
-                        defaultValue: '{{count}} modèles disponibles — choisis-en un.',
-                      })
-                    : t('bookingEngine.ai.settings.modelOverrideHelper'))
-                }
-                sx={{
-                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: accent,
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: accent },
-                }}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {/* `accent` est la couleur de marque du provider, calculee
-                          a l'execution : style inline, jamais une classe. */}
-                      <Button
-                        variant="ghost"
-                        onClick={loadModels}
-                        disabled={!apiKey.trim() || loadingModels}
-                        size="sm"
-                        className="min-w-0"
-                        style={{ color: accent }}
-                      >
-                        {loadingModels ? (
-                          <Spinner className="size-4" />
-                        ) : (
-                          t('bookingEngine.ai.settings.loadModels', 'Charger les modèles')
-                        )}
-                      </Button>
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
+                aria-invalid={catalogError ? true : undefined}
               />
+              <datalist id="ai-model-catalog">
+                {modelIds.map((id) => (
+                  <option key={id} value={id} />
+                ))}
+              </datalist>
+              {/* `accent` est la couleur de marque du provider, calculee
+                  a l'execution : style inline, jamais une classe. */}
+              <Button
+                variant="ghost"
+                onClick={loadModels}
+                disabled={!apiKey.trim() || loadingModels}
+                size="sm"
+                className="min-w-0"
+                style={{ color: accent }}
+              >
+                {loadingModels ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  t('bookingEngine.ai.settings.loadModels', 'Charger les modèles')
+                )}
+              </Button>
+            </div>
+            {catalogError ? (
+              <FieldError>{catalogError}</FieldError>
+            ) : (
+              <FieldDescription>
+                {models.length > 0
+                  ? t('bookingEngine.ai.settings.modelCatalogLoaded', {
+                      count: models.length,
+                      defaultValue: '{{count}} modèles disponibles — choisis-en un.',
+                    })
+                  : t('bookingEngine.ai.settings.modelOverrideHelper')}
+              </FieldDescription>
             )}
-          />
+          </Field>
 
           {testMutation.data && (
             <UiAlert
@@ -410,39 +407,39 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
             </AlertDescription>
           </UiAlert>
         </div>
-      </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="ghost" onClick={handleClose}>
-          {t('bookingEngine.ai.settings.cancel')}
-        </Button>
-        {/* « Tester » reste tertiaire : c'est « Enregistrer » qu'on veut voir
-            cliquer. Teinte de marque du provider -> style inline (valeur
-            calculee a l'execution). */}
-        <Button
-          variant="ghost"
-          onClick={handleTest}
-          disabled={!apiKey.trim() || testMutation.isPending}
-          style={{ color: accent }}
-        >
-          {testMutation.isPending ? <Spinner className="size-4" /> : <Science />}
-          {t('bookingEngine.ai.settings.test')}
-        </Button>
-        {/* Fond de marque + son survol : passes en variables CSS inline, les
-            deux valeurs n'existant qu'a l'execution. */}
-        <Button
-          onClick={handleSave}
-          disabled={!apiKey.trim() || saveMutation.isPending}
-          className="bg-[var(--provider-accent)] hover:bg-[var(--provider-accent-hover)]"
-          style={{
-            '--provider-accent': accent,
-            '--provider-accent-hover': `color-mix(in srgb, ${accent} 85%, transparent)`,
-          } as React.CSSProperties}
-        >
-          {saveMutation.isPending && <Spinner className="size-4" />}
-          {t('bookingEngine.ai.settings.save')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose}>
+            {t('bookingEngine.ai.settings.cancel')}
+          </Button>
+          {/* « Tester » reste tertiaire : c'est « Enregistrer » qu'on veut voir
+              cliquer. Teinte de marque du provider -> style inline (valeur
+              calculee a l'execution). */}
+          <Button
+            variant="ghost"
+            onClick={handleTest}
+            disabled={!apiKey.trim() || testMutation.isPending}
+            style={{ color: accent }}
+          >
+            {testMutation.isPending ? <Spinner className="size-4" /> : <Science />}
+            {t('bookingEngine.ai.settings.test')}
+          </Button>
+          {/* Fond de marque + son survol : passes en variables CSS inline, les
+              deux valeurs n'existant qu'a l'execution. */}
+          <Button
+            onClick={handleSave}
+            disabled={!apiKey.trim() || saveMutation.isPending}
+            className="bg-[var(--provider-accent)] hover:bg-[var(--provider-accent-hover)]"
+            style={{
+              '--provider-accent': accent,
+              '--provider-accent-hover': `color-mix(in srgb, ${accent} 85%, transparent)`,
+            } as React.CSSProperties}
+          >
+            {saveMutation.isPending && <Spinner className="size-4" />}
+            {t('bookingEngine.ai.settings.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

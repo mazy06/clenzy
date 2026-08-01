@@ -3,9 +3,6 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
-// Seuls rescapes MUI du fichier : le couple Snackbar + Alert flottante. Changer
-// le mecanisme de notification de l'ecran depasse la migration de vocabulaire.
-import { Alert, Snackbar } from '@mui/material';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, Textarea } from '../../components/ui';
@@ -15,6 +12,7 @@ import {
   Handshake, Home, Person, PictureAsPdf, Send,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import {
   managementContractsApi,
   type ManagementContract,
@@ -46,15 +44,13 @@ const FILTER_ALL_COLOR = 'var(--accent)';
 
 const ManagementContractsPage: React.FC = () => {
   const { t } = useTranslation();
+  const { notify } = useNotification();
 
   // State
   const [contracts, setContracts] = useState<ManagementContract[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ContractStatus | ''>('');
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   // Modal de création/édition. editingContract != null = mode édition.
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -73,11 +69,11 @@ const ManagementContractsPage: React.FC = () => {
       const data = await managementContractsApi.getAll(params);
       setContracts(data);
     } catch {
-      setSnackbar({ open: true, message: t('contracts.errorLoading'), severity: 'error' });
+      notify.error(t('contracts.errorLoading'));
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, t]);
+  }, [statusFilter, t, notify]);
 
   const loadProperties = useCallback(async () => {
     try {
@@ -102,8 +98,8 @@ const ManagementContractsPage: React.FC = () => {
     return prop?.ownerName ?? `Propriétaire #${ownerId}`;
   };
 
-  const showSuccess = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'success' });
-  const showError = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' });
+  const showSuccess = (msg: string) => notify.success(msg);
+  const showError = (msg: string) => notify.error(msg);
 
   // Split en deux groupes : actifs (ACTIVE+SUSPENDED+DRAFT) / inactifs (TERMINATED+EXPIRED).
   const { activeContracts, inactiveContracts } = useMemo(() => {
@@ -352,17 +348,6 @@ const ManagementContractsPage: React.FC = () => {
         onSaved={handleSaved}
         contract={editingContract}
       />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

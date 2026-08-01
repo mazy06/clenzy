@@ -732,7 +732,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     const brandFg = otaOption?.brandColorFg ?? '#FFFFFF';
                     const initials = otaOption?.initials ?? ota.otaName.slice(0, 2);
                     return (
-                      <div className="flex items-center gap-2 p-2 rounded-[1.5px] border border-[var(--line)]" key={ota.channelId}>
+                      <div className="flex items-center gap-2 p-2 rounded-[12px] border border-[var(--line)]" key={ota.channelId}>
                         <div className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.95rem]" style={{ backgroundColor: brand, color: brandFg }}>
                           {initials}
                         </div>
@@ -1296,7 +1296,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       >
         <DialogContent>
           <DialogHeader className="flex-row items-start gap-1.5 pe-10">
-            <div className="w-[32px] h-[32px] rounded-[1px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
+            <div className="w-[32px] h-[32px] rounded-[8px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
               <AlertCircle size={18} />
             </div>
             <div className="min-w-0">

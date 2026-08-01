@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { Info, CircleCheck, TriangleAlert, X } from 'lucide-react';
+import { Alert as BuiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Snackbar reste MUI : changer de mecanisme de notification depasse la migration.
-import { Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -55,6 +53,7 @@ import storageService, { STORAGE_KEYS } from '../../services/storageService';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNotification } from '../../hooks/useNotification';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { organizationsApi } from '../../services/api/organizationsApi';
@@ -138,6 +137,7 @@ function a11yProps(index: number) {
 export default function Settings() {
   const { user, hasPermissionAsync, hasAnyRole } = useAuth();
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const queryClient = useQueryClient();
   const { completeStep, steps } = useOnboarding();
   const isConfigureOrgDone = steps.find((s) => s.key === 'configure_org')?.completed ?? false;
@@ -212,15 +212,22 @@ export default function Settings() {
   // OAuth callback status handling
   const oauthStatus = searchParams.get('status');
   const isValidOauthStatus = oauthStatus === 'success' || oauthStatus === 'error';
-  const [oauthSnackbar, setOauthSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: isValidOauthStatus,
-    message: oauthStatus === 'success'
-      ? t('settings.integrations.pennylane.connectionSuccess')
-      : oauthStatus === 'error'
-        ? t('settings.integrations.pennylane.connectionError')
-        : '',
-    severity: oauthStatus === 'error' ? 'error' : 'success',
-  });
+  // L'ancien Snackbar naissait deja ouvert quand l'URL portait ?status=… : la
+  // notification est donc tiree UNE fois au montage (garde par un ref, pas par
+  // un etat : ce n'est pas une donnee de rendu), puis le parametre est purge —
+  // ce que faisait auparavant le onClose du Snackbar.
+  const oauthNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (!isValidOauthStatus || oauthNotifiedRef.current) return;
+    oauthNotifiedRef.current = true;
+    if (oauthStatus === 'success') {
+      notify.success(t('settings.integrations.pennylane.connectionSuccess'));
+    } else {
+      notify.error(t('settings.integrations.pennylane.connectionError'));
+    }
+    searchParams.delete('status');
+    setSearchParams(searchParams, { replace: true });
+  }, [isValidOauthStatus, oauthStatus, notify, t, searchParams, setSearchParams]);
 
   // Ref pour NotificationPreferencesCard
   const notifRef = useRef<NotificationPreferencesHandle>(null);
@@ -373,9 +380,6 @@ export default function Settings() {
     }
   };
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-
   // Vérifier les permissions au chargement
   useEffect(() => {
     const checkPermissions = async () => {
@@ -457,14 +461,12 @@ export default function Settings() {
       // 4. Invalidate onboarding auto-checks
       queryClient.invalidateQueries({ queryKey: ['onboarding', 'me'] });
 
-      setSnackbarMessage('Paramètres sauvegardés avec succès');
-      setSnackbarOpen(true);
+      notify.success('Paramètres sauvegardés avec succès');
       if (!isConfigureOrgDone) {
         completeStep('configure_org');
       }
     } catch {
-      setSnackbarMessage('Erreur lors de la sauvegarde des paramètres');
-      setSnackbarOpen(true);
+      notify.error('Erreur lors de la sauvegarde des paramètres');
     }
   };
 
@@ -487,8 +489,7 @@ export default function Settings() {
         notifySms: false,
       });
     } catch { /* ignore */ }
-    setSnackbarMessage('Paramètres réinitialisés');
-    setSnackbarOpen(true);
+    notify.success('Paramètres réinitialisés');
   };
 
   // useTabKeyParam ecrit la cle de l'onglet actif dans l'URL (?tab=<key>), robuste au role.
@@ -1068,53 +1069,6 @@ export default function Settings() {
         </TabPanel>
       )}
 
-      {/* Snackbar de confirmation */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-      >
-        <BuiAlert variant="success" className="w-full">
-          <CircleCheck />
-          <AlertDescription>{snackbarMessage}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSnackbarOpen(false)}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      </Snackbar>
-
-      {/* OAuth callback snackbar */}
-      <Snackbar
-        open={oauthSnackbar.open}
-        autoHideDuration={6000}
-        onClose={() => {
-          setOauthSnackbar(prev => ({ ...prev, open: false }));
-          // Clean URL params
-          searchParams.delete('status');
-          setSearchParams(searchParams, { replace: true });
-        }}
-      >
-        <BuiAlert variant={oauthSnackbar.severity === 'success' ? 'success' : 'destructive'} className="w-full">
-          {oauthSnackbar.severity === 'success' ? <CircleCheck /> : <TriangleAlert />}
-          <AlertDescription>{oauthSnackbar.message}</AlertDescription>
-          <AlertAction>
-            <BuiButton
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Fermer"
-              onClick={() => {
-                setOauthSnackbar(prev => ({ ...prev, open: false }));
-                searchParams.delete('status');
-                setSearchParams(searchParams, { replace: true });
-              }}
-            >
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      </Snackbar>
     </div>
     </SettingsHeaderProvider>
   );

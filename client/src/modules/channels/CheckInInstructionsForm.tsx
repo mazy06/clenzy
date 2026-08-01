@@ -740,7 +740,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             <div className="flex flex-wrap gap-2">
               {accessPhotos.map((p) => (
                 <div className="w-[140px]" key={p.key}>
-                  <div className="relative w-[140px] h-[100px] rounded-[1.5px] overflow-hidden border border-[var(--line)] bg-[var(--hover)]">
+                  <div className="relative w-[140px] h-[100px] rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--hover)]">
                     <img className="w-full h-full object-cover block" src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`} alt={p.caption || 'photo'} />
                     <BuiButton
                       variant="ghost"

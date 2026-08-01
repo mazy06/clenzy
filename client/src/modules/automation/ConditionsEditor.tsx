@@ -1,11 +1,22 @@
 import React from 'react';
-import TagChip from '../../components/TagChip';
-// Autocomplete + son renderInput restent MUI : le TextField y recoit des props
-// internes (ref, InputProps, inputProps) que le kit ne sait pas porter.
-import { Autocomplete, TextField } from '@mui/material';
-import { Field, FieldLabel, Input, NativeSelect } from '../../components/ui';
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  useComboboxAnchor,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
-import { usePropertiesList } from '../../hooks/usePropertiesList';
+import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {
   parseConditions,
   stringifyConditions,
@@ -18,6 +29,9 @@ const LANGUAGE_OPTIONS: { value: GuestLanguage; key: string; fallback: string }[
   { value: 'en', key: 'automation.form.langEn', fallback: 'Anglais' },
   { value: 'ar', key: 'automation.form.langAr', fallback: 'Arabe' },
 ];
+
+/** Libellé d'un logement dans les puces et la liste déroulante. */
+const propertyLabel = (p: PropertyListItem) => p.name || `#${p.id}`;
 
 interface ConditionsEditorProps {
   /** Valeur JSON brute (champ `conditions` de la règle). */
@@ -35,6 +49,9 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
   const { t } = useTranslation();
   const { properties } = usePropertiesList();
   const conditions = parseConditions(value);
+  // Les puces servent d'ancre au popup : sans elle il se positionnerait sur le
+  // champ de saisie interne, qui se déplace à chaque puce ajoutée.
+  const propertiesAnchor = useComboboxAnchor();
 
   const update = (patch: Partial<AutomationConditions>) => {
     const next = stringifyConditions({ ...conditions, ...patch });
@@ -54,31 +71,56 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
       </span>
 
       <div className="flex flex-col gap-[9px]">
-        <Autocomplete
-          multiple
-          size="small"
-          options={properties}
-          getOptionLabel={(p) => p.name || `#${p.id}`}
-          value={selectedProperties}
-          onChange={(_, sel) => update({ propertyIds: sel.map((p) => Number(p.id)) })}
-          renderTags={(val, getTagProps) =>
-            val.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
-              return (
-                <TagChip key={key} label={option.name} {...tagProps} />
-              );
-            })
-          }
-          renderInput={(params) => (
-            // Champ laisse en MUI : c'est le renderInput de l'Autocomplete, il recoit
-            // des props internes (ref, InputProps, inputProps) que le kit ne porte pas.
-            <TextField
-              {...params}
-              label={t('automation.form.properties', 'Logements concernés')}
-              placeholder={t('automation.form.propertiesPlaceholder', 'Tous les logements si vide')}
-            />
-          )}
-        />
+        <Field>
+          <FieldLabel htmlFor="automation-cond-properties">
+            {t('automation.form.properties', 'Logements concernés')}
+          </FieldLabel>
+          <Combobox
+            multiple
+            items={properties}
+            itemToStringLabel={propertyLabel}
+            itemToStringValue={propertyLabel}
+            isItemEqualToValue={(a: PropertyListItem, b: PropertyListItem) => a.id === b.id}
+            value={selectedProperties}
+            onValueChange={(sel: PropertyListItem[]) =>
+              update({ propertyIds: sel.map((p) => Number(p.id)) })
+            }
+          >
+            <ComboboxChips ref={propertiesAnchor} className="w-full">
+              <ComboboxValue>
+                {(values: PropertyListItem[]) => (
+                  <React.Fragment>
+                    {values.map((p) => (
+                      <ComboboxChip key={p.id}>{propertyLabel(p)}</ComboboxChip>
+                    ))}
+                    <ComboboxChipsInput
+                      id="automation-cond-properties"
+                      placeholder={t(
+                        'automation.form.propertiesPlaceholder',
+                        'Tous les logements si vide',
+                      )}
+                    />
+                  </React.Fragment>
+                )}
+              </ComboboxValue>
+            </ComboboxChips>
+            {/* Le popup est porté hors du DialogContent (Radix y coupe les
+                pointer-events du reste du document) : sans `pointer-events-auto`
+                les options ne seraient pas cliquables. */}
+            <ComboboxContent anchor={propertiesAnchor} className="pointer-events-auto">
+              <ComboboxEmpty>
+                {t('automation.form.propertiesEmpty', 'Aucun logement')}
+              </ComboboxEmpty>
+              <ComboboxList>
+                {(p: PropertyListItem) => (
+                  <ComboboxItem key={p.id} value={p}>
+                    {propertyLabel(p)}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </Field>
 
         <div className="flex flex-row gap-[9px]">
           <Field>

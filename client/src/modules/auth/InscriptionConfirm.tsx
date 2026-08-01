@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -6,10 +6,6 @@ import { Spinner, Button } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-// Restent en MUI : infrastructure de theme, pas du vocabulaire UI. Le
-// ThemeProvider local porte la langue GEO-detectee (pas les prefs user) et le
-// CssBaseline le reset global de cette page autonome.
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
@@ -17,7 +13,6 @@ import {
   LockOutlined as LockIcon,
   Login as LoginIcon,
 } from '../../icons';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -58,9 +53,11 @@ const FORFAIT_COLORS: Record<string, string> = {
 
 export default function InscriptionConfirm() {
   const { t } = useTranslation();
-  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
-  const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
+  // Le hook change la langue i18n ; le ThemeProvider + CssBaseline + DirectionProvider
+  // montes dans main.tsx suivent cette langue (direction RTL + Tajawal), le doublon
+  // local n'apportait donc rien de plus que la dependance MUI.
+  useGeoAuthLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') || '';
@@ -156,8 +153,6 @@ export default function InscriptionConfirm() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
       <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
         {/* Report de `elevation={8}` : l'ombre exacte de theme.shadows[8]. */}
         <div
@@ -189,7 +184,7 @@ export default function InscriptionConfirm() {
               </p>
 
               {/* Banner avec infos utilisateur */}
-              <div className="p-3 rounded-[2px] bg-[rgba(166,192,206,0.1)] border border-[rgba(166,192,206,0.3)] mb-4">
+              <div className="p-3 rounded-[16px] bg-[rgba(166,192,206,0.1)] border border-[rgba(166,192,206,0.3)] mb-4">
                 <p className="cn-text-body2 font-semibold">
                   {info.fullName}
                 </p>
@@ -334,6 +329,5 @@ export default function InscriptionConfirm() {
           )}
         </div>
       </div>
-    </ThemeProvider>
   );
 }

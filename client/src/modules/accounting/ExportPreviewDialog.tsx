@@ -2,9 +2,7 @@ import React, { useMemo } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '../../components/ui';
-// Le tableau reste MUI : `stickyHeader` n'a pas d'equivalent dans les primitifs
-// du kit, et l'entete fige est ce qui rend l'apercu d'export lisible.
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -59,30 +57,13 @@ function parseCsv(content: string, separator: string): { headers: string[]; rows
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 // Entêtes overline / lignes hairline — pattern Tableaux (baseline §2).
-const HEADER_CELL_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: 'var(--faint)',
-  whiteSpace: 'nowrap' as const,
-  py: 0.75,
-  px: 1,
-  borderBottom: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-} as const;
+// `sticky top-0` + fond OPAQUE : sans le fond, les lignes defileraient par
+// transparence sous l'entete fige.
+const HEADER_CELL_CLASS =
+  'sticky top-0 z-10 bg-[var(--card)] px-2 py-[6px] text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] whitespace-nowrap border-b border-solid border-[var(--line)]';
 
-const BODY_CELL_SX = {
-  fontSize: '12px',
-  fontVariantNumeric: 'tabular-nums',
-  py: 0.5,
-  px: 1,
-  whiteSpace: 'nowrap' as const,
-  maxWidth: 300,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-} as const;
+const BODY_CELL_CLASS =
+  'px-2 py-[4px] text-[12px] tabular-nums whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -144,26 +125,30 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
                 {parsed.rows.length} {t('common.lines')} · {parsed.headers.length} {t('common.columns')}
               </p>
             </div>
-            <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
+            {/* stickyHeader : c'est le conteneur INTERNE du primitif Table qui est
+                le bloc de defilement (il porte deja overflow-x). La hauteur et le
+                defilement vertical doivent donc lui etre poses, sinon les en-tetes
+                `sticky` n'ont aucun ancetre scrollable et ne se figent jamais. */}
+            <div className="flex-1 min-h-0 [&_[data-slot=table-container]]:h-full [&_[data-slot=table-container]]:overflow-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
                     {parsed.headers.map((h, i) => (
-                      <TableCell key={i} sx={HEADER_CELL_SX}>{h}</TableCell>
+                      <TableHead key={i} className={HEADER_CELL_CLASS}>{h}</TableHead>
                     ))}
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {parsed.rows.map((row, ri) => (
-                    <TableRow key={ri} hover sx={{ '&:nth-of-type(even)': { bgcolor: 'var(--hover)' } }}>
+                    <TableRow key={ri} className="even:bg-[var(--hover)]">
                       {row.map((cell, ci) => (
-                        <TableCell key={ci} sx={BODY_CELL_SX} title={cell}>{cell}</TableCell>
+                        <TableCell key={ci} className={BODY_CELL_CLASS} title={cell}>{cell}</TableCell>
                       ))}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           </>
         )}
 

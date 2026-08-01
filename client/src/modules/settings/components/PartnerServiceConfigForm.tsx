@@ -96,7 +96,7 @@ export default function PartnerServiceConfigForm({
   }
 
   return (
-    <div className="border border-[var(--line)] rounded-[2px] p-2 mb-2">
+    <div className="border border-[var(--line)] rounded-[16px] p-2 mb-2">
       <UiAlert variant="info" className="text-[0.74rem] mb-2">
         <Info />
         <AlertDescription>Vos accès {serviceName}sont chiffrés et enregistrés dès maintenant ; la

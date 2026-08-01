@@ -92,7 +92,7 @@ export default function SepaTransferProcedureTooltip({
             <span className="text-[0.78rem] font-bold text-[var(--ink)]">
               Virement SEPA — Procédure
             </span>
-            <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[3px] border border-[currentColor] opacity-70">
+            <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[24px] border border-[currentColor] opacity-70">
               MANUEL
             </span>
           </div>

@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import type { SxProps, Theme } from '@mui/material/styles';
 import {
   GridView,
   ViewList,
@@ -85,7 +84,12 @@ export interface FilterSearchBarProps {
   extraActions?: React.ReactNode;
   /** Rendu sans carte englobante (usage inline dans le PageHeader). */
   bare?: boolean;
-  sx?: SxProps<Theme>;
+  /**
+   * Vestige de l'ancienne barre MUI : la valeur n'est plus lue depuis que la
+   * barre est en Tailwind. Le prop reste declare — et volontairement non type —
+   * pour que les appelants qui le passent encore continuent de compiler.
+   */
+  sx?: unknown;
 }
 
 /**

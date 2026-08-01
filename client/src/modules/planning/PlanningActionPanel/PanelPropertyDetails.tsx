@@ -328,7 +328,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {/* ─── STAT TILES : grid uniforme ────────────────────────────── */}
       <div className="grid gap-[3px] mb-[9px]" style={{ gridTemplateColumns: `repeat(${metrics.length}, 1fr)` }}>
         {metrics.map((m) => (
-          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[1px] min-w-0 gap-0" key={m.label}>
+          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[8px] min-w-0 gap-0" key={m.label}>
             <span className="inline-flex text-muted-foreground">{m.icon}</span>
             <p className="cn-text-body1 font-bold leading-[1]" style={{ fontSize: BODY_FS }}>{m.value}</p>
             <p className="cn-text-body1 text-[var(--muted)] leading-[1.1]" style={{ fontSize: MICRO_FS }}>{m.label}</p>

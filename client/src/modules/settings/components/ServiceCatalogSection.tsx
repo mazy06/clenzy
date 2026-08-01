@@ -3,8 +3,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../../components/ui';
-import { Box } from '@mui/material';
 import { Button } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 import {
   OpenInNew as ExternalLinkIcon,
@@ -18,10 +18,7 @@ import {
   type ServiceCategory,
   getServicesByCategory,
 } from '../../../services/integrations/servicesCatalog';
-import {
-  DISABLED_CARDS_SX,
-  blockInteraction,
-} from './disabledIntegration';
+import { blockInteraction } from './disabledIntegration';
 
 /**
  * Section generique pour le catalogue de services dans l'onglet Integrations.
@@ -52,6 +49,18 @@ const COMING_SOON_TOKENS = {
   bg: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
 };
 const COMING_SOON_BORDER = `color-mix(in srgb, ${NEUTRAL} 20%, transparent)`;
+
+// Transcription du DISABLED_CARDS_SX : on ne touche pas au .ts, qui reste la
+// source des sections encore rendues en MUI. `pointer-events: none` est
+// volontairement absent — il tuerait le survol, donc les tooltips d'info.
+// theme.palette.divider -> var(--line).
+const DISABLED_GRID_CLASS =
+  'opacity-[0.55] grayscale-[0.7] select-none '
+  + '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed '
+  + '[&_[role=radio]:hover]:border-[var(--line)]! [&_[role=button]:hover]:border-[var(--line)]! '
+  + '[&_[role=radio]:hover]:bg-transparent! [&_[role=button]:hover]:bg-transparent! '
+  + '[&_[role=radio]:hover]:shadow-none! [&_[role=button]:hover]:shadow-none! '
+  + '[&_[role=radio]:focus-visible]:shadow-none! [&_[role=button]:focus-visible]:shadow-none!';
 
 interface ServiceCatalogSectionProps {
   category: ServiceCategory;
@@ -126,17 +135,14 @@ export default function ServiceCatalogSection({
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           {description}
         </p>
-        <Box
+        <div
           aria-disabled={disabled || undefined}
           onClickCapture={disabled ? blockInteraction : undefined}
           onKeyDownCapture={disabled ? blockInteraction : undefined}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...(disabled && DISABLED_CARDS_SX),
-          }}
+          className={cn(
+            'grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[9px] mt-1.5',
+            disabled && DISABLED_GRID_CLASS,
+          )}
         >
           {services.map((service) => (
             <ServiceCatalogCard
@@ -145,7 +151,7 @@ export default function ServiceCatalogSection({
               onClick={(s) => setOpenService(s)}
             />
           ))}
-        </Box>
+        </div>
       </Card>
 
       {/* Modal d'info — meme format visuel que les autres modales d'integration */}

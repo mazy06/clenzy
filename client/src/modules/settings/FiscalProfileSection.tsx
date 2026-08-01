@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-// Snackbar reste MUI : changer de mecanisme de notification depasse la migration.
-import { Alert, Snackbar } from '@mui/material';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import {
@@ -24,6 +22,7 @@ import {
 } from '../../icons';
 import { useFiscalProfile, useUpdateFiscalProfile } from '../../hooks/useFiscalProfile';
 import { CURRENCY_OPTIONS, COUNTRY_OPTIONS } from '../../utils/currencyUtils';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getCountryDefaults } from '../../utils/countryDefaults';
 import { STORAGE_KEYS, getItem } from '../../services/storageService';
@@ -67,6 +66,7 @@ interface FiscalProfileSectionProps {
 
 const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectionProps>(function FiscalProfileSection({ onChangeState }, ref) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const { data: profile, isLoading, error, refetch } = useFiscalProfile();
   const updateMutation = useUpdateFiscalProfile();
   const { completeStep, steps } = useOnboarding();
@@ -88,10 +88,6 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
     legalMentions: '',
     legalEntityName: '',
     legalAddress: '',
-  });
-
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
   });
 
   // Sync form with fetched data
@@ -136,12 +132,12 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
   const handleSave = async () => {
     try {
       await updateMutation.mutateAsync(form);
-      setSnackbar({ open: true, message: t('fiscal.profile.saved'), severity: 'success' });
+      notify.success(t('fiscal.profile.saved'));
       if (!isConfigureOrgDone) {
         completeStep('configure_org');
       }
     } catch {
-      setSnackbar({ open: true, message: t('fiscal.profile.error'), severity: 'error' });
+      notify.error(t('fiscal.profile.error'));
     }
   };
 
@@ -430,20 +426,6 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           </Card>
         </div>
       </div>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 });

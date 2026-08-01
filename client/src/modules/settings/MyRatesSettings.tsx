@@ -12,12 +12,9 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '../../components/ui';
-// Snackbar + son Alert restent en MUI : le kit n'a pas d'equivalent flottant et
-// ce fichier n'utilise pas encore sonner — changer le mecanisme de notification
-// depasserait la migration visuelle.
-import { Alert, Snackbar } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
 import type { HousekeeperRates, HousekeeperPropertyRate } from '../../services/api/housekeeperRatesApi';
@@ -66,6 +63,7 @@ function NudgeBadge({ amount, rate }: { amount: number | null; rate: Housekeeper
 
 export default function MyRatesSettings() {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const queryClient = useQueryClient();
 
   const ratesQuery = useQuery({
@@ -79,9 +77,6 @@ export default function MyRatesSettings() {
   const [flats, setFlats] = useState<Record<number, string>>({});
   // Gate d'hydratation one-shot (jamais lu au render) : ref, pas de re-render.
   const hydratedRef = useRef(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   useEffect(() => {
     const data = ratesQuery.data;
@@ -100,10 +95,10 @@ export default function MyRatesSettings() {
       housekeeperRatesApi.updateMy(payload),
     onSuccess: (updated: HousekeeperRates) => {
       queryClient.setQueryData(ratesKeys.my, updated);
-      setSnackbar({ open: true, message: t('settings.myRates.saveSuccess'), severity: 'success' });
+      notify.success(t('settings.myRates.saveSuccess'));
     },
     onError: () => {
-      setSnackbar({ open: true, message: t('settings.myRates.saveError'), severity: 'error' });
+      notify.error(t('settings.myRates.saveError'));
     },
   });
 
@@ -262,17 +257,6 @@ export default function MyRatesSettings() {
           {t('settings.myRates.save')}
         </Button>
       </div>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }

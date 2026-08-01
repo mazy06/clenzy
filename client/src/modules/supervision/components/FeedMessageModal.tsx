@@ -93,7 +93,7 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
                 <strong>{t('supervision.messageModal.subject', { defaultValue: 'Sujet' })} :</strong> {subject}
               </p>
             )}
-            <div className="rounded-[1px] border border-[var(--line)] overflow-hidden">
+            <div className="rounded-[8px] border border-[var(--line)] overflow-hidden">
               <iframe
                 sandbox=""
                 srcDoc={srcDoc}

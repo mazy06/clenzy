@@ -15,9 +15,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-// Snackbar (et l'Alert qu'il porte) laisses en MUI : changer le mecanisme de
-// notification depasse le perimetre de cette migration.
-import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
@@ -29,6 +26,7 @@ import {
   Settings as SettingsIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useAllOwnerPayoutConfigs,
@@ -84,6 +82,7 @@ const MIN_ROWS = 3;
 
 export default function OwnerPayoutSettings() {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const queryClient = useQueryClient();
   const { data: configs = [], isLoading } = useAllOwnerPayoutConfigs();
   const updateSepaMutation = useUpdateSepaDetails();
@@ -134,8 +133,6 @@ export default function OwnerPayoutSettings() {
     setMethodDialogOpen(true);
   };
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-
   const openSepaDialog = (config: OwnerPayoutConfig) => {
     setSepaTarget(config);
     // Pré-remplit avec le mask serveur (ex: FR76 **** **** **** **** *** 0189).
@@ -177,18 +174,18 @@ export default function OwnerPayoutSettings() {
         data: { iban: cleanIban, bic: sepaBic.trim(), bankAccountHolder: sepaHolder.trim() },
       });
       setSepaOpen(false);
-      setSnackbar({ open: true, message: t('settings.ownerPayout.sepaSaved', 'Coordonnées SEPA enregistrées'), severity: 'success' });
+      notify.success(t('settings.ownerPayout.sepaSaved', 'Coordonnées SEPA enregistrées'));
     } catch {
-      setSnackbar({ open: true, message: t('settings.ownerPayout.sepaError', "Erreur lors de l'enregistrement"), severity: 'error' });
+      notify.error(t('settings.ownerPayout.sepaError', "Erreur lors de l'enregistrement"));
     }
   };
 
   const handleVerify = async (ownerId: number) => {
     try {
       await verifyMutation.mutateAsync(ownerId);
-      setSnackbar({ open: true, message: t('settings.ownerPayout.verified', 'Configuration vérifiée'), severity: 'success' });
+      notify.success(t('settings.ownerPayout.verified', 'Configuration vérifiée'));
     } catch {
-      setSnackbar({ open: true, message: t('settings.ownerPayout.verifyError', 'Erreur lors de la vérification'), severity: 'error' });
+      notify.error(t('settings.ownerPayout.verifyError', 'Erreur lors de la vérification'));
     }
   };
 
@@ -493,28 +490,10 @@ export default function OwnerPayoutSettings() {
         ownerId={methodDialogTarget?.ownerId}
         onClose={() => setMethodDialogOpen(false)}
         onSaved={() => {
-          setSnackbar({
-            open: true,
-            message: t('settings.ownerPayout.methodSaved', 'Méthode de reversement mise à jour'),
-            severity: 'success',
-          });
+          notify.success(t('settings.ownerPayout.methodSaved', 'Méthode de reversement mise à jour'));
           queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.all });
         }}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <MuiAlert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ borderRadius: '8px' }}
-        >
-          {snackbar.message}
-        </MuiAlert>
-      </Snackbar>
     </div>
   );
 }

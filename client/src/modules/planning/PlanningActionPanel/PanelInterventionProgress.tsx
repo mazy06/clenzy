@@ -4,15 +4,11 @@ import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Button, Spinner } from '../../../components/ui';
 import { Checkbox, Field, FieldLabel, Progress } from '../../../components/ui';
-// Stepper / Step / StepLabel / StepContent restent MUI : le kit Baitly UI n'a
-// pas de primitif d'etapes verticales, aucune traduction fidele n'est possible.
-import { Stepper, Step, StepLabel, StepContent } from '@mui/material';
+import { Stepper, Step, StepLabel } from '../../../components/ui';
 import {
   PlayArrow,
   CheckCircle,
   CameraAlt,
-  MeetingRoom,
-  Search as InspectIcon,
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
 
@@ -39,6 +35,13 @@ const parseValidatedRooms = (rooms?: string): Set<number> => {
   if (!rooms) return new Set();
   return new Set(rooms.split(',').filter(Boolean).map(Number));
 };
+
+// Le <Step> du kit clone ses enfants pour leur injecter `index` : ce conteneur
+// l'absorbe, sinon l'attribut atterrirait tel quel sur le DOM. Il remplace le
+// StepContent de MUI, decale sous la pastille de l'etape.
+const StepBody: React.FC<{ index?: number; children: React.ReactNode }> = ({ children }) => (
+  <div className="ms-[30px] mb-1.5">{children}</div>
+);
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -158,16 +161,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
       </Alert>}
 
       {/* Vertical stepper */}
-      <Stepper activeStep={activeStep} orientation="vertical" sx={{ '& .MuiStepLabel-label': { fontSize: '0.75rem' } }}>
+      {/* Les icones metier des etapes disparaissent : la pastille du kit porte
+          deja le numero, et la coche quand l'etape est franchie. */}
+      <Stepper activeStep={activeStep} orientation="vertical">
         {/* Step 1: Inspection */}
-        <Step completed={inspectionDone}>
-          <StepLabel
-            StepIconProps={{ sx: { fontSize: 20 } }}
-            icon={inspectionDone ? <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span> : <InspectIcon size={20} strokeWidth={1.75} />}
-          >
-            Inspection
-          </StepLabel>
-          <StepContent>
+        <Step>
+          <StepLabel>Inspection</StepLabel>
+          <StepBody>
             <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
               Prenez les photos avant intervention et notez les observations.
             </p>
@@ -189,22 +189,20 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               <CameraAlt size={14} strokeWidth={1.75} />
               Photos avant
             </Button>
-          </StepContent>
+          </StepBody>
         </Step>
 
         {/* Step 2: Room validation */}
-        <Step completed={roomsDone}>
-          <StepLabel
-            icon={roomsDone ? <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span> : <MeetingRoom size={20} strokeWidth={1.75} />}
-          >
-            <div className="flex items-center gap-0.5">
+        <Step>
+          <StepLabel>
+            <span className="inline-flex items-center gap-0.5">
               Validation pièces
               {(() => { const c = validatedRooms.size === totalRooms ? '#4A9B8E' : '#757575'; return (
               <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${validatedRooms.size}/${totalRooms}`} className="text-[0.5625rem]" />
               ); })()}
-            </div>
+            </span>
           </StepLabel>
-          <StepContent>
+          <StepBody>
             <div className="flex flex-col gap-1">
               {roomNames.map((name, i) => (
                 <Field key={i} orientation="horizontal" className="w-auto gap-2">
@@ -219,17 +217,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 </Field>
               ))}
             </div>
-          </StepContent>
+          </StepBody>
         </Step>
 
         {/* Step 3: After photos */}
-        <Step completed={photosDone}>
-          <StepLabel
-            icon={photosDone ? <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span> : <CameraAlt size={20} strokeWidth={1.75} />}
-          >
-            Photos après & finalisation
-          </StepLabel>
-          <StepContent>
+        <Step>
+          <StepLabel>Photos après &amp; finalisation</StepLabel>
+          <StepBody>
             <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
               Prenez les photos après intervention, puis finalisez.
             </p>
@@ -264,7 +258,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 Terminer
               </Button>
             </div>
-          </StepContent>
+          </StepBody>
         </Step>
       </Stepper>
 

@@ -4,19 +4,38 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-// Restent en MUI, faute d'equivalent dans le kit :
-// - Stepper / Step / StepLabel : aucun primitif « etapes » cote Baitly UI ;
-// - Select : l'une des deux listes est un `multiple` avec `renderValue` et des
-//   options a cocher. Convertir l'autre seule aurait mis deux peaux de select
-//   differentes dans le meme assistant.
-import { Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { Avatar, AvatarFallback, Button, Checkbox, Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from '../../components/ui';
+import {
+  Avatar,
+  AvatarFallback,
+  Button,
+  Checkbox,
+  Field,
+  FieldLabel,
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Step,
+  StepLabel,
+  Stepper,
+} from '../../components/ui';
 import {
   People,
   Assignment,
   CheckCircle,
   ArrowForward,
   ArrowBack,
+  ExpandMore,
   Home,
   LocationOn,
 } from '../../icons';
@@ -78,31 +97,33 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
             </p>
-            <FormControl fullWidth size="small">
-              <InputLabel>{t('portfolios.fields.manager')}</InputLabel>
+            <Field>
+              <FieldLabel htmlFor="assign-manager">{t('portfolios.fields.manager')}</FieldLabel>
               <Select
-                value={selectedManager}
-                onChange={(e) => setSelectedManager(e.target.value as number)}
-                label={t('portfolios.fields.manager')}
-                displayEmpty
-                sx={{ borderRadius: 2, fontSize: '0.85rem' }}
+                value={selectedManager === '' ? '' : String(selectedManager)}
+                onValueChange={(value) => setSelectedManager(Number(value))}
               >
-                {managers.map((manager) => (
-                  <MenuItem key={manager.id} value={manager.id}>
-                    <div className="flex items-center gap-1.5">
-                      <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
-                        <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
-                          {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p className="cn-text-body1 text-[0.85rem]">
-                        {manager.firstName} {manager.lastName} - {manager.email}
-                      </p>
-                    </div>
-                  </MenuItem>
-                ))}
+                <SelectTrigger id="assign-manager" size="sm" className="w-full text-[0.85rem]">
+                  <SelectValue placeholder={t('portfolios.fields.manager')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {managers.map((manager) => (
+                    <SelectItem key={manager.id} value={String(manager.id)}>
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
+                          <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                            {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="cn-text-body1 text-[0.85rem]">
+                          {manager.firstName} {manager.lastName} - {manager.email}
+                        </p>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </Field>
           </div>
         );
 
@@ -116,51 +137,62 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               {t('portfolios.fields.selectClientsDescription')}
             </p>
 
-            <FormControl fullWidth size="small">
-              <InputLabel>Clients (HOST)</InputLabel>
-              <Select
-                multiple
-                value={selectedClients}
-                onChange={(e) => {
-                  const values = e.target.value as number[];
-                  const valuesSet = new Set(values);
-                  const lastAdded = values.find(v => !selectedClientsSet.has(v));
-                  const lastRemoved = selectedClients.find(v => !valuesSet.has(v));
-                  if (lastAdded) handleClientToggle(lastAdded);
-                  if (lastRemoved) handleClientToggle(lastRemoved);
-                }}
-                label="Clients (HOST)"
-                displayEmpty
-                sx={{ borderRadius: 2, fontSize: '0.85rem' }}
-                renderValue={(selected) => {
-                  if (selected.length === 0) {
-                    return <p className="cn-text-body2 text-muted-foreground">{t('portfolios.fields.selectClients')}</p>;
-                  }
-                  return selected.map(id => {
-                    const client = hostUsers.find(c => c.id === id);
-                    return client ? `${client.firstName} ${client.lastName}` : id;
-                  }).join(', ');
-                }}
-              >
-                {hostUsers.map((client) => (
-                  <MenuItem key={client.id} value={client.id}>
-                    <div className="flex items-center gap-1.5">
-                      {/* Purement indicatif : c'est le clic sur la ligne (MenuItem)
-                          qui pilote la selection, comme avec la case MUI. */}
+            {/* Le Select du kit ne connait pas le mode `multiple` : la liste a
+                cocher passe donc par un Popover, ce qui rend exactement ce que
+                faisait le Select MUI (resume dans le champ, cases dans le menu).
+                Le declencheur est un bouton NATIF et non le Button du kit :
+                Radix pose sa ref d'ancrage sur cet enfant, qu'un composant
+                fonction ne transmet pas. */}
+            <Field>
+              <FieldLabel htmlFor="assign-clients">Clients (HOST)</FieldLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    id="assign-clients"
+                    type="button"
+                    className="flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-solid border-[var(--line)] bg-transparent px-2.5 py-1 text-start text-[0.85rem] transition-colors hover:border-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className={cn('truncate', selectedClients.length === 0 && 'text-muted-foreground')}>
+                      {selectedClients.length === 0
+                        ? t('portfolios.fields.selectClients')
+                        : selectedClients
+                            .map((id) => {
+                              const client = hostUsers.find((c) => c.id === id);
+                              return client ? `${client.firstName} ${client.lastName}` : id;
+                            })
+                            .join(', ')}
+                    </span>
+                    <ExpandMore size={16} strokeWidth={1.75} className="shrink-0 text-muted-foreground" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-h-[320px] overflow-y-auto p-1">
+                  {hostUsers.map((client) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      // Bouton bascule : `aria-pressed` porte l'etat coche, la
+                      // case qui suit n'etant qu'un rendu (aucun role listbox
+                      // parent, donc pas de role="option" ici).
+                      aria-pressed={selectedClientsSet.has(client.id)}
+                      onClick={() => handleClientToggle(client.id)}
+                      className="flex w-full cursor-pointer items-center gap-1.5 rounded-[8px] px-1.5 py-1 text-start hover:bg-[var(--hover)]"
+                    >
+                      {/* Purement indicatif : c'est le clic sur la ligne qui
+                          pilote la selection, comme avec la case MUI. */}
                       <Checkbox checked={selectedClientsSet.has(client.id)} tabIndex={-1} className="pointer-events-none" />
                       <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
                         <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
                           {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="cn-text-body1 text-[0.85rem]">
+                      <p className="cn-text-body1 truncate text-[0.85rem]">
                         {client.firstName} {client.lastName} - {client.email}
                       </p>
-                    </div>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </Field>
 
             {selectedClients.length > 0 && (
               <div className="mt-3">
@@ -358,13 +390,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
       />
 
       <BuiCard className="gap-0 py-0 p-4 mt-3">
-        <Stepper
-          activeStep={activeStep}
-          sx={{
-            mb: 4,
-            '& .MuiStepLabel-label': { fontSize: '0.82rem' },
-          }}
-        >
+        {/* mb: 4 = 24 px (spacing MUI du projet = 6 px) */}
+        <Stepper activeStep={activeStep} className="mb-6">
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>

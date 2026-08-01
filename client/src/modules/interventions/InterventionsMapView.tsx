@@ -133,8 +133,8 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                           <Progress
                             value={progress}
                             className={cn(
-                              'flex-1 h-[5px] rounded-[3px] bg-[var(--hover)]',
-                              '[&_[data-slot=progress-indicator]]:rounded-[3px]',
+                              'flex-1 h-[5px] rounded-[24px] bg-[var(--hover)]',
+                              '[&_[data-slot=progress-indicator]]:rounded-[24px]',
                               progress === 100
                                 ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
                                 : progress >= 50

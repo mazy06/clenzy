@@ -6,33 +6,63 @@
    Clenzy via tokens CSS (var(--card), var(--ink), …) — dark/light OK.
    ============================================================ */
 import React from 'react';
-// Box + Typography restent MUI : `SurfaceCard` et `Overline` exposent un prop
-// `sx` que neuf renderers voisins alimentent avec des raccourcis d'espacement
-// MUI (mb: 1, mb: 0.75). Ces raccourcis n'ont pas d'equivalent en style inline :
-// les porter en <div>/<span> ferait disparaitre ces marges en silence.
-import { Box, Typography } from '@mui/material';
 
 /** Couleurs accent Clenzy validées (réutilisées par le bar chart & les chips). */
 export const CLENZY_SERIES_COLORS = ['#4A9B8E', '#D4A574', '#6B8A9A', '#C97A7A', '#7BA3C2'];
+
+/**
+ * Le prop `sx` de `SurfaceCard` / `Overline` est l'API que neuf renderers
+ * voisins alimentent — dont certains avec les raccourcis d'espacement MUI
+ * (`mb: 1`, `pr: 1.5`). En style inline ces raccourcis ne veulent rien dire :
+ * cette traduction les convertit (spacing du projet = 6 px), et laisse passer
+ * telle quelle toute propriete CSS deja valide (`borderColor`, `textAlign`…).
+ * Elle disparaitra le jour ou les neuf appelants passeront a des classes.
+ */
+const MUI_SPACING_PX = 6;
+
+const SPACING_SHORTHANDS: Record<string, readonly string[]> = {
+  m: ['margin'],
+  mt: ['marginTop'],
+  mb: ['marginBottom'],
+  ml: ['marginLeft'],
+  mr: ['marginRight'],
+  mx: ['marginLeft', 'marginRight'],
+  my: ['marginTop', 'marginBottom'],
+  p: ['padding'],
+  pt: ['paddingTop'],
+  pb: ['paddingBottom'],
+  pl: ['paddingLeft'],
+  pr: ['paddingRight'],
+  px: ['paddingLeft', 'paddingRight'],
+  py: ['paddingTop', 'paddingBottom'],
+};
+
+function sxToStyle(sx?: object): React.CSSProperties {
+  if (!sx) return {};
+  const style: Record<string, unknown> = {};
+  Object.entries(sx as Record<string, unknown>).forEach(([key, value]) => {
+    const cibles = SPACING_SHORTHANDS[key];
+    if (cibles) {
+      const valeur = typeof value === 'number' ? `${value * MUI_SPACING_PX}px` : value;
+      cibles.forEach((cible) => { style[cible] = valeur; });
+      return;
+    }
+    style[key] = value;
+  });
+  return style as React.CSSProperties;
+}
 
 /** Carte de surface standard (hairline, plate, pas d'ombre au repos). */
 export const SurfaceCard: React.FC<{ children: React.ReactNode; sx?: object }> = ({
   children,
   sx,
 }) => (
-  <Box
-    sx={{
-      mt: 1,
-      mb: 1.5,
-      p: 1.5,
-      borderRadius: '12px',
-      border: '1px solid var(--line)',
-      bgcolor: 'var(--card)',
-      ...sx,
-    }}
+  <div
+    className="mt-1.5 mb-[9px] p-[9px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]"
+    style={sxToStyle(sx)}
   >
     {children}
-  </Box>
+  </div>
 );
 
 /** Titre overline discret (10.5px, uppercase, --faint). */
@@ -40,19 +70,14 @@ export const Overline: React.FC<{ children: React.ReactNode; sx?: object }> = ({
   children,
   sx,
 }) => (
-  <Typography
-    sx={{
-      display: 'block',
-      fontSize: '10.5px',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '.05em',
-      color: 'var(--faint)',
-      ...sx,
-    }}
+  // <span> et non <p> : sans preflight Tailwind, un paragraphe porterait la
+  // marge par defaut du navigateur, que le Typography MUI annulait.
+  <span
+    className="block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]"
+    style={sxToStyle(sx)}
   >
     {children}
-  </Typography>
+  </span>
 );
 
 /** Carte d'erreur discrète (le LLM explique dans son texte). */

@@ -11,10 +11,12 @@ import {
   Separator,
 } from '../../components/ui';
 import { createPortal } from 'react-dom';
-// Menu laisse en MUI : son ancre (`anchorEl`) est produite par `useTeamsList`
-// et par `TeamCard` — deux fichiers hors lot. Un DropdownMenu Radix exige que
-// le declencheur vive dans l'arbre du menu, ce qui n'est pas le cas ici.
-import { Menu, MenuItem, ListItemIcon } from '@mui/material';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui';
 import {
   Add,
   Edit,
@@ -87,6 +89,25 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
   // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
   useScreenSearch(searchTerm, setSearchTerm, t('teams.searchPlaceholder') || 'Rechercher une équipe…');
+
+  // Radix ferme le menu de lui-meme apres chaque selection. Sans ce drapeau, la
+  // fermeture rappellerait handleMenuClose, qui remet selectedTeam a null — or
+  // la modale de suppression en a besoin juste apres le clic sur « Supprimer ».
+  const selectionEnCours = React.useRef(false);
+  const surSelection = (action: () => void) => {
+    selectionEnCours.current = true;
+    action();
+  };
+
+  // Le declencheur reel du menu vit dans TeamCard, hors de cet arbre : on
+  // reporte sa position d'ecran sur une ancre invisible pour que Radix ait un
+  // point d'ancrage. Le menu etant modal, la page ne defile pas tant qu'il est
+  // ouvert, donc la position mesuree reste valide.
+  const anchorRect = anchorEl?.getBoundingClientRect();
+  // Memorise pour rendre le focus au bouton d'options a la fermeture : Radix le
+  // rendrait a l'ancre invisible, qui n'est pas focalisable.
+  const dernierDeclencheur = React.useRef<HTMLElement | null>(null);
+  if (anchorEl) dernierDeclencheur.current = anchorEl;
 
   if (loading) {
     return (
@@ -215,36 +236,54 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
       )}
 
       {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
+      <DropdownMenu
         open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onOpenChange={(next) => {
+          if (next) return;
+          if (selectionEnCours.current) {
+            selectionEnCours.current = false;
+            return;
+          }
+          handleMenuClose();
+        }}
       >
-        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <ListItemIcon>
-            <Visibility fontSize="small" size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          {t('teams.viewDetails')}
-        </MenuItem>
-        {canEditTeams && (
-          <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <ListItemIcon>
-              <Edit fontSize="small" size={18} strokeWidth={1.75} />
-            </ListItemIcon>
-            {t('teams.modify')}
-          </MenuItem>
-        )}
-        {canDeleteTeams && (
-          <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)', fontSize: '0.85rem', py: 0.75 }}>
-            <ListItemIcon>
-              <span className="inline-flex text-[var(--err)]"><Delete fontSize="small" size={18} strokeWidth={1.75} /></span>
-            </ListItemIcon>
-            Supprimer
-          </MenuItem>
-        )}
-      </Menu>
+        <DropdownMenuTrigger asChild>
+          <span
+            aria-hidden
+            className="fixed pointer-events-none"
+            style={anchorRect
+              ? { top: anchorRect.top, left: anchorRect.left, width: anchorRect.width, height: anchorRect.height }
+              : { top: 0, left: 0, width: 0, height: 0 }}
+          />
+        </DropdownMenuTrigger>
+        {/* Le contenu du kit calque sa largeur sur celle du declencheur : notre
+            ancre etant reduite au bouton d'options, on la relache ici. */}
+        <DropdownMenuContent
+          align="end"
+          className="w-auto min-w-[11rem] text-[0.85rem]"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            dernierDeclencheur.current?.focus();
+          }}
+        >
+          <DropdownMenuItem onSelect={() => surSelection(handleViewDetails)}>
+            <Visibility size={18} strokeWidth={1.75} />
+            {t('teams.viewDetails')}
+          </DropdownMenuItem>
+          {canEditTeams && (
+            <DropdownMenuItem onSelect={() => surSelection(handleEdit)}>
+              <Edit size={18} strokeWidth={1.75} />
+              {t('teams.modify')}
+            </DropdownMenuItem>
+          )}
+          {canDeleteTeams && (
+            <DropdownMenuItem variant="destructive" onSelect={() => surSelection(handleDelete)}>
+              <Delete size={18} strokeWidth={1.75} />
+              Supprimer
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) handleCloseDeleteDialog(); }}>

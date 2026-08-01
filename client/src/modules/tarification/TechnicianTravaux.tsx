@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import { InputGroup, InputGroupAddon, InputGroupInput, Switch } from '../../components/ui';
-// Snackbar + Alert flottante restent MUI : le fichier n'a pas de mecanisme de
-// notification (sonner) a reprendre, et en changer depasse cette migration.
-import { Snackbar, Alert } from '@mui/material';
 import { Save, Build } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { CurrencySymbol } from '../../components/Money';
@@ -28,13 +26,11 @@ interface Row {
 export default function TechnicianTravaux() {
   const { t } = useTranslation();
   const { currency } = useCurrency();
+  const { notify } = useNotification();
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   const otherDomain = t('tarification.travaux.otherDomain', 'Autre');
 
@@ -99,9 +95,9 @@ export default function TechnicianTravaux() {
       // Re-merge avec le catalogue courant pour rester pré-listé.
       const catalogue = await technicianPrestationsApi.catalogue().catch(() => [] as ServicePriceConfig[]);
       setRows(merge(catalogue, saved));
-      setSnackbar({ open: true, message: t('tarification.saveSuccess', 'Enregistré'), severity: 'success' });
+      notify.success(t('tarification.saveSuccess', 'Enregistré'));
     } catch {
-      setSnackbar({ open: true, message: t('tarification.saveError', "Erreur lors de l'enregistrement"), severity: 'error' });
+      notify.error(t('tarification.saveError', "Erreur lors de l'enregistrement"));
     } finally {
       setSaving(false);
     }
@@ -190,17 +186,6 @@ export default function TechnicianTravaux() {
           </TableBody>
         </Table>
       </div>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbar((s) => ({ ...s, open: false }))} severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }

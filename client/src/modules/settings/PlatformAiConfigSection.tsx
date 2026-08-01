@@ -5,6 +5,12 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   Field,
   FieldLabel,
   Input,
@@ -16,9 +22,6 @@ import {
   NativeSelectOption,
   NativeSelectOptGroup,
 } from '../../components/ui';
-// Autocomplete MUI conserve : son `renderInput` injecte des props internes dans
-// un TextField, qu'aucun primitif du kit ne sait recevoir.
-import { Autocomplete, TextField } from '@mui/material';
 import {
   Dialog,
   DialogContent,
@@ -312,6 +315,14 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   const models = MODELS_BY_PROVIDER[provider] || [];
   const accent = PROVIDER_COLORS[provider] || '#9A7FA3';
 
+  // Le modele courant peut ne pas figurer dans le catalogue rapatrie (saisie
+  // manuelle, modele retire du provider) : on l'injecte pour que la valeur du
+  // selecteur reste affichable au lieu de retomber a vide.
+  const catalogOptions: AiCatalogModel[] =
+    modelId && !catalog.some((m) => m.id === modelId)
+      ? [{ id: modelId, category: 'other' }, ...catalog]
+      : catalog;
+
   // Clé réutilisable pour ce provider : connexion org BYOK (onglet Connection)
   // ou modèle plateforme déjà configuré. Si dispo, on ne redemande pas la clé —
   // le serveur la réutilise (le secret ne transite jamais vers le client, on
@@ -407,42 +418,45 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
               que pour les providers qui l'exposent (NVIDIA aujourd'hui). */}
           <div className="flex flex-col gap-1">
             {catalog.length > 0 ? (
-              <Autocomplete
-                options={
-                  modelId && !catalog.some((m) => m.id === modelId)
-                    ? [{ id: modelId, category: 'other' }, ...catalog]
-                    : catalog
-                }
-                value={catalog.find((m) => m.id === modelId) ?? (modelId ? { id: modelId, category: 'other' } : null)}
-                onChange={(_, v) => applyModelSelection(v?.id ?? '')}
-                getOptionLabel={(o) => o.id}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                size="small"
-                fullWidth
-                renderOption={(props, option) => {
-                  const { key, ...rest } = props as { key?: React.Key } & React.HTMLAttributes<HTMLLIElement>;
-                  const color = CATALOG_CATEGORY_COLORS[option.category] || '#9AA1B0';
-                  return (
-                    <li key={key} {...rest} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {option.id}
-                      </span>
-                      <StatusChip
-                        size="sm"
-                        tokens={{ color, bg: softBg(color, 0.14) }}
-                        label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
-                        className="text-[0.6rem] shrink-0"
-                      />
-                    </li>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={`${t('settings.ai.platform.model')} (${catalog.length})`}
-                  />
-                )}
-              />
+              <Field>
+                <FieldLabel htmlFor="platform-ai-model-catalog">
+                  {`${t('settings.ai.platform.model')} (${catalog.length})`}
+                </FieldLabel>
+                <Combobox<AiCatalogModel>
+                  items={catalogOptions}
+                  itemToStringLabel={(o) => o.id}
+                  isItemEqualToValue={(a, b) => a.id === b.id}
+                  value={catalogOptions.find((m) => m.id === modelId) ?? null}
+                  onValueChange={(next) => applyModelSelection(next?.id ?? '')}
+                >
+                  <ComboboxInput id="platform-ai-model-catalog" className="w-full" />
+                  <ComboboxContent>
+                    <ComboboxEmpty>
+                      {t('settings.ai.platform.noCatalogMatch', 'Aucun modèle')}
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                      {(option: AiCatalogModel) => {
+                        // La teinte de categorie n'est connue qu'a l'execution :
+                        // elle part en style inline, jamais en classe Tailwind.
+                        const color = CATALOG_CATEGORY_COLORS[option.category] || '#9AA1B0';
+                        return (
+                          <ComboboxItem key={option.id} value={option} className="justify-between gap-2">
+                            <span className="font-mono text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                              {option.id}
+                            </span>
+                            <StatusChip
+                              size="sm"
+                              tokens={{ color, bg: softBg(color, 0.14) }}
+                              label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
+                              className="text-[0.6rem] shrink-0"
+                            />
+                          </ComboboxItem>
+                        );
+                      }}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </Field>
             ) : (
               <Field>
                 <FieldLabel htmlFor="platform-ai-model-id">{t('settings.ai.platform.model')}</FieldLabel>
@@ -965,7 +979,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
             <div className={cn('relative w-[170px] shrink-0', usageBreakdown.length > 0 ? 'cursor-help' : 'cursor-default')}>
               {/* Progress bar background */}
-              <div className="absolute inset-[0px] rounded-[1px] overflow-hidden border border-[var(--line)]">
+              <div className="absolute inset-[0px] rounded-[8px] overflow-hidden border border-[var(--line)]">
                 <div className="absolute start-0 top-0 bottom-0" style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${barColor} 15%, transparent)`, transition: 'width 0.3s ease, background-color 0.3s ease' }} />
               </div>
               {/* Input on top — le champ du kit porte desormais une bordure

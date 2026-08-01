@@ -50,7 +50,7 @@ export default function ServiceTooltip({ providerId, data, name, children }: Ser
               {displayName}
             </span>
             {tooltipData.region && (
-              <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[3px] border border-solid border-[currentColor] opacity-70">
+              <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[24px] border border-solid border-[currentColor] opacity-70">
                 {tooltipData.region}
               </span>
             )}

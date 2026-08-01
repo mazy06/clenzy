@@ -147,7 +147,7 @@ export default function ChannexSyncLogsList({
   const hiddenCount = logs.length - visibleLogs.length;
 
   return (
-    <div className="border border-[var(--line)] rounded-[1px] overflow-hidden">
+    <div className="border border-[var(--line)] rounded-[8px] overflow-hidden">
       {/* Header cliquable pour collapse */}
       <div className="flex items-center gap-1.5 px-[7.5px] py-1.5 cursor-pointer select-none hover:bg-[var(--hover)]" onClick={() => setCollapsed((c) => !c)}>
         <History size={14} color="var(--accent)" strokeWidth={2.2} />

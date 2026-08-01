@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import { useMediaQuery } from '@mui/material';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { ChevronLeft, ChevronRight, NightsStay } from '../../icons';
 
 // ─── Calendrier range « Signature » (.rm-cal) ───────────────────────────────

@@ -8,17 +8,26 @@
  *   - Cochee par defaut : "Appliquer aux X propriete(s)"
  */
 import React, { useEffect, useMemo, useState } from 'react';
-// Le Dialog reste MUI : il heberge un Autocomplete MUI (son renderInput recoit
-// des props internes). Sous un Dialog Radix, la liste de l'Autocomplete est
-// portalisee HORS du contenu modal -> clic traite comme « interaction exterieure »
-// (fermeture) et piege de focus casse. On garde donc les deux du meme cote.
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material';
 import { X, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import {
   Alert,
   AlertDescription,
   Checkbox,
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxLabel,
+  ComboboxList,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
@@ -117,6 +126,18 @@ export default function CreateCustomAmenityModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Le Combobox groupe attend des paquets { value, items } ; le catalogue
+  // Channex arrive a plat, on le regroupe par categorie (ex-`groupBy` MUI).
+  const groupedCatalog = useMemo(() => {
+    const byCategory = new Map<string, ChannexFacilityOption[]>();
+    for (const option of channexCatalog) {
+      const bucket = byCategory.get(option.category);
+      if (bucket) bucket.push(option);
+      else byCategory.set(option.category, [option]);
+    }
+    return Array.from(byCategory, ([value, items]) => ({ value, items }));
+  }, [channexCatalog]);
+
   // Code preview : auto-slug si user n'a pas saisi manuellement
   const previewCode = useMemo(
     () => code.trim() !== '' ? slugifyCode(code) : slugifyCode(labelFr),
@@ -156,24 +177,39 @@ export default function CreateCustomAmenityModal({
   // Composant icone preview pour le bouton "Choisir une icône"
   const PreviewIcon = ICON_REGISTRY[selectedIconName] ?? Sparkles;
 
+  // Le Combobox du kit est bati sur Base UI : sa liste est portalisee dans le
+  // body, donc HORS de la coque Radix de ce Dialog. Deux consequences a
+  // neutraliser, sans quoi le champ « Label anglais » serait mort en silence :
+  // (1) Radix pose `pointer-events: none` sur le body tant que la modale est
+  // ouverte — la liste le recupere via `pointer-events-auto` ;
+  // (2) un clic dans la liste compte comme « interaction exterieure » et
+  // fermerait le Dialog — onInteractOutside l'ignore.
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: '1px solid', borderColor: 'divider', py: 1.5,
-      }}>
-        <div>
-          <h6 className="cn-text-subtitle1 font-semibold">Nouvelle commodité</h6>
-          <span className="cn-text-caption text-muted-foreground">
-            Étend le référentiel Baitly pour votre organisation
-          </span>
-        </div>
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
-          <X size={18} />
-        </Button>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="sm:max-w-[600px]"
+        onInteractOutside={(event) => {
+          const target = event.target as Element | null;
+          if (target?.closest('[data-slot="combobox-content"]')) event.preventDefault();
+        }}
+      >
+        {/* Les marges negatives annulent le padding de la coque pour un en-tete
+            pleine largeur, comme le pied du kit le fait deja. */}
+        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-[var(--line)] px-4 py-2">
+          <div>
+            <DialogTitle className="cn-text-subtitle1 font-semibold">Nouvelle commodité</DialogTitle>
+            <span className="cn-text-caption text-muted-foreground">
+              Étend le référentiel Baitly pour votre organisation
+            </span>
+          </div>
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
+            <X size={18} />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 2.5 }}>
+        <div className="max-h-[65vh] overflow-y-auto">
         {prefillRawName && (
           <Alert variant="info" className="mb-3 text-[0.8rem]">
             <AlertDescription>
@@ -194,50 +230,60 @@ export default function CreateCustomAmenityModal({
               placeholder="ex : Détecteur de fumée"
             />
           </Field>
-          <Autocomplete
-            freeSolo
-            size="small"
-            fullWidth
-            options={channexCatalog}
-            getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.title}
-            value={labelEn}
-            onInputChange={(_e, v) => setLabelEn(v)}
-            onChange={(_e, v) => {
-              if (typeof v === 'string') {
-                setLabelEn(v);
-              } else if (v) {
-                setLabelEn(v.title);
+          <Field>
+            <FieldLabel htmlFor="custom-amenity-label-en">Label anglais</FieldLabel>
+            {/* Champ libre avec suggestions (ex-`freeSolo`) : la saisie est
+                controlee, la selection d'une suggestion est consommee dans
+                onValueChange. */}
+            <Combobox<ChannexFacilityOption>
+              items={groupedCatalog}
+              itemToStringLabel={(option) => option.title}
+              isItemEqualToValue={(option, other) => option.id === other.id}
+              inputValue={labelEn}
+              onInputValueChange={(next) => setLabelEn(next)}
+              onValueChange={(next) => {
+                if (!next) return;
+                setLabelEn(next.title);
                 // Si labelFr vide ou egal au prefill brut, suggere aussi le title
-                if (!labelFr || labelFr === prefillRawName) setLabelFr(v.title);
-              }
-            }}
-            groupBy={(opt) => opt.category}
-            renderOption={(props, opt) => (
-              <li {...props}>
-                <Sparkles size={12} style={{ marginRight: 8, color: '#8B5CF6' }} />
-                <div>
-                  <p className="cn-text-body1 text-[0.85rem]">{opt.title}</p>
-                  <span className="cn-text-caption text-muted-foreground opacity-60 block">
-                    {opt.category}
-                  </span>
-                </div>
-              </li>
-            )}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Label anglais"
+                if (!labelFr || labelFr === prefillRawName) setLabelFr(next.title);
+              }}
+            >
+              <ComboboxInput
+                id="custom-amenity-label-en"
                 placeholder="ex : Smoke alarm — tape pour suggestions Channex"
-                helperText={
-                  loadingCatalog
-                    ? 'Chargement du catalogue Channex…'
-                    : channexCatalog.length > 0
-                      ? `Autocomplete depuis ${channexCatalog.length} libellés Channex standardisés`
-                      : 'Utilisé par la booking engine multilingue.'
-                }
               />
-            )}
-          />
+              <ComboboxContent className="pointer-events-auto">
+                <ComboboxEmpty>Aucune suggestion Channex.</ComboboxEmpty>
+                <ComboboxList>
+                  {(group: { value: string; items: ChannexFacilityOption[] }) => (
+                    <ComboboxGroup key={group.value} items={group.items}>
+                      <ComboboxLabel>{group.value}</ComboboxLabel>
+                      <ComboboxCollection>
+                        {(option: ChannexFacilityOption) => (
+                          <ComboboxItem key={option.id} value={option}>
+                            <Sparkles size={12} className="me-2 text-[#8B5CF6]" />
+                            <div>
+                              <p className="cn-text-body1 text-[0.85rem]">{option.title}</p>
+                              <span className="cn-text-caption text-muted-foreground opacity-60 block">
+                                {option.category}
+                              </span>
+                            </div>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxCollection>
+                    </ComboboxGroup>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+            <FieldDescription>
+              {loadingCatalog
+                ? 'Chargement du catalogue Channex…'
+                : channexCatalog.length > 0
+                  ? `Autocomplete depuis ${channexCatalog.length} libellés Channex standardisés`
+                  : 'Utilisé par la booking engine multilingue.'}
+            </FieldDescription>
+          </Field>
           <Field>
             <FieldLabel htmlFor="custom-amenity-category">Catégorie *</FieldLabel>
             <NativeSelect
@@ -329,23 +375,26 @@ export default function CreateCustomAmenityModal({
             </Alert>
           )}
         </div>
+        </div>
+
+        <DialogFooter className="border-t border-solid border-[var(--line)] pt-[9px]">
+          <Button onClick={onClose} variant="outline" size="sm">
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!canSubmit || submitting}
+          >
+            {submitting ? 'Création…' : 'Créer la commodité'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-        <Button onClick={onClose} variant="outline" size="sm">
-          Annuler
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleSubmit}
-          disabled={!canSubmit || submitting}
-        >
-          {submitting ? 'Création…' : 'Créer la commodité'}
-        </Button>
-      </DialogActions>
-
       {/* Picker d'icone — meme composant que sur le tab Reference. Le choix est
-          persiste localement apres creation reussie via setIconOverride. */}
+          persiste localement apres creation reussie via setIconOverride.
+          Il vit HORS du DialogContent : deux Dialog Radix imbriques s'empilent
+          proprement (le plus recent reprend la main sur Echap et le clic). */}
       <AmenityIconPicker
         open={iconPickerOpen}
         amenityLabel={labelFr || t('settings.amenities.iconPicker.title', 'Choisir une icône')}

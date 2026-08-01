@@ -3,11 +3,9 @@ import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// Reste en MUI : le Snackbar de confirmation — changer le mecanisme de
-// notification de l'ecran depasse le cadre de cette migration.
-import { Snackbar } from '@mui/material';
 import { Input, NativeSelect, Separator, Switch } from '../../components/ui';
 import AiSettingsCard from './AiSettingsCard';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -41,13 +39,13 @@ function ModuleDot({ moduleKey }: { moduleKey: string }) {
  */
 export default function AgentSupervisionSection() {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   // Écriture réservée aux admins d'org (aligné sur le PUT backend).
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST']);
 
   const { data: config, isLoading, error } = useSupervisionConfig();
   const updateMutation = useUpdateSupervisionConfig();
-  const [savedOpen, setSavedOpen] = React.useState(false);
   // Champ budget : édité localement, persisté au blur (évite un PUT par frappe).
   const [budgetInput, setBudgetInput] = React.useState('');
   React.useEffect(() => {
@@ -55,7 +53,9 @@ export default function AgentSupervisionSection() {
   }, [config]);
 
   const persist = (next: SupervisionConfig) => {
-    updateMutation.mutate(next, { onSuccess: () => setSavedOpen(true) });
+    updateMutation.mutate(next, {
+      onSuccess: () => notify.success(t('settings.ai.supervision.saved', 'Configuration enregistrée')),
+    });
   };
 
   const handleBudgetCommit = () => {
@@ -245,14 +245,6 @@ export default function AgentSupervisionSection() {
           )}
         </div>
       ) : null}
-
-      <Snackbar
-        open={savedOpen}
-        autoHideDuration={2200}
-        onClose={() => setSavedOpen(false)}
-        message={t('settings.ai.supervision.saved', 'Configuration enregistrée')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </AiSettingsCard>
   );
 }

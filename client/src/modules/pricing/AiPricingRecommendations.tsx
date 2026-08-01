@@ -141,7 +141,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
 
         <div className="flex flex-col gap-1.5">
           {data.map((rec) => (
-            <div className="flex items-center gap-2 p-1.5 rounded-[1px] bg-[var(--hover)]" key={rec.date}>
+            <div className="flex items-center gap-2 p-1.5 rounded-[8px] bg-[var(--hover)]" key={rec.date}>
               {/* Date */}
               <div className="min-w-[60px]">
                 <span className="cn-text-caption font-semibold text-[0.7rem]">

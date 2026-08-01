@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Button, Spinner } from '../../components/ui';
-import { Alert, Snackbar } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Save,
   Refresh,
@@ -66,6 +66,16 @@ export default function Tarification() {
     snackbar,
     closeSnackbar,
   } = useTarification();
+
+  // L'etat du snackbar vit dans useTarification (fichier .ts, hors perimetre de
+  // cette migration) : on le draine vers le toast sonner puis on le referme,
+  // ce qui evite d'avoir deux mecanismes de notification en parallele.
+  const { notify } = useNotification();
+  useEffect(() => {
+    if (!snackbar.open) return;
+    notify[snackbar.severity](snackbar.message);
+    closeSnackbar();
+  }, [snackbar, notify, closeSnackbar]);
 
   // TAB_DEFS porte deja les `key` stables : on le passe directement au hook (URL ?tab=<key>).
   const [activeTab, setActiveTab] = useTabKeyParam(TAB_DEFS);
@@ -209,18 +219,6 @@ export default function Tarification() {
             <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
         </div>
-
-        {/* ─── Snackbar ────────────────────────────────────────────────── */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={closeSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled">
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </div>
     </PageHeaderActionsProvider>
   );

@@ -1,6 +1,5 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { alpha, useTheme } from '@mui/material';
 import { Business, AdminPanelSettings } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
@@ -39,7 +38,6 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
  * (no two consecutive sections share an accent).
  */
 const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, statuses }) => {
-  const theme = useTheme();
   const roleInfo = getRoleInfo(user.role, roles);
   const statusInfo = getStatusInfo(user.status, statuses);
   const roleHex = semanticToHex(roleInfo.color);

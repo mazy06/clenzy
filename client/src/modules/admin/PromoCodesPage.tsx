@@ -18,10 +18,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-// Reste en MUI : le couple Snackbar + Alert flottante. Remplacer le mecanisme de
-// notification de la page depasse le cadre de cette migration (le fichier
-// n'utilise pas encore sonner).
-import { Alert, Snackbar } from '@mui/material';
 import {
   Field,
   FieldLabel,
@@ -38,6 +34,7 @@ import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import { useNotification } from '../../hooks/useNotification';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
 import {
@@ -291,11 +288,7 @@ export default function PromoCodesPage() {
   const queryClient = useQueryClient();
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [createOpen, setCreateOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
-  }>({ open: false, message: '', severity: 'success' });
+  const { notify } = useNotification();
 
   const {
     data: promoCodes,
@@ -311,18 +304,10 @@ export default function PromoCodesPage() {
       activate ? promoCodesApi.activate(id) : promoCodesApi.deactivate(id),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['promoCodes', 'list'] });
-      setSnackbar({
-        open: true,
-        message: variables.activate ? 'Code activé.' : 'Code désactivé.',
-        severity: 'success',
-      });
+      notify.success(variables.activate ? 'Code activé.' : 'Code désactivé.');
     },
     onError: () => {
-      setSnackbar({
-        open: true,
-        message: 'Erreur lors de la modification du code.',
-        severity: 'error',
-      });
+      notify.error('Erreur lors de la modification du code.');
     },
   });
 
@@ -539,23 +524,9 @@ export default function PromoCodesPage() {
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           queryClient.invalidateQueries({ queryKey: ['promoCodes', 'list'] });
-          setSnackbar({ open: true, message: 'Code promo créé.', severity: 'success' });
+          notify.success('Code promo créé.');
         }}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }

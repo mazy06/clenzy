@@ -1,5 +1,4 @@
 import React from 'react';
-import { alpha } from '@mui/material';
 import {
   RoleSuperAdmin,
   RoleSuperManager,
@@ -90,7 +89,18 @@ export const RoleIconBadge: React.FC<{
   const entry = getRoleEntry(role);
   if (!entry) return null;
   return (
-    <div className="rounded-[6px] inline-flex items-center justify-center shrink-0" style={{ width: size, height: size, backgroundColor: alpha(entry.hex, 0.14), color: entry.hex }} aria-hidden>
+    <div
+      className="rounded-[6px] inline-flex items-center justify-center shrink-0"
+      style={{
+        width: size,
+        height: size,
+        // La teinte du role vient du catalogue (valeur d'execution) : elle passe
+        // par `style`, et l'alpha par color-mix plutot que par le helper MUI.
+        backgroundColor: `color-mix(in srgb, ${entry.hex} 14%, transparent)`,
+        color: entry.hex,
+      }}
+      aria-hidden
+    >
       {entry.icon}
     </div>
   );

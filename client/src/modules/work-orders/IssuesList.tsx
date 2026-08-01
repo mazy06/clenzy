@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { CircleCheck, X } from 'lucide-react';
+import { Button as BuiButton } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -14,9 +13,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-// Snackbar laisse en MUI : changer le mecanisme de notification depasse le
-// perimetre de cette migration.
-import { Snackbar } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Field,
@@ -29,6 +25,7 @@ import {
 } from '../../components/ui';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { MANAGER_ROLES } from '../../constants/roles';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -71,6 +68,7 @@ interface IssuesListProps {
 
 export default function IssuesList({ embedded = false, actionsContainer, filtersContainer }: IssuesListProps) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,7 +88,6 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
   const [createSeverity, setCreateSeverity] = useState<IssueSeverity>('MEDIUM');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [createdToast, setCreatedToast] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
 
   // Panneau détail / qualification
@@ -172,7 +169,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
         severity: createSeverity,
       });
       setCreateOpen(false);
-      setCreatedToast(true);
+      notify.success(t('issues.create.success', 'Anomalie signalée'));
       await load();
     } catch {
       setCreateError(t('issues.create.error', 'Création impossible — vérifiez les champs.'));
@@ -440,23 +437,6 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={createdToast}
-        autoHideDuration={4000}
-        onClose={() => setCreatedToast(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <BuiAlert variant="success">
-          <CircleCheck />
-          <AlertDescription>{t('issues.create.success', 'Anomalie signalée')}</AlertDescription>
-          <AlertAction>
-            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setCreatedToast(false)}>
-              <X />
-            </BuiButton>
-          </AlertAction>
-        </BuiAlert>
-      </Snackbar>
 
       {/* ── Panneau détail / qualification ── */}
       <Dialog open={selected != null} onOpenChange={(next) => { if (!next) setSelected(null); }}>

@@ -293,7 +293,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             </div>
 
             {/* Total */}
-            <div className="flex items-center justify-between p-2 rounded-[1.5px] bg-[success.50] border border-[success.200] mb-2">
+            <div className="flex items-center justify-between p-2 rounded-[12px] bg-[success.50] border border-[success.200] mb-2">
               <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
                 {t('tarification.monitoring.clenzy.total')}
               </h6>

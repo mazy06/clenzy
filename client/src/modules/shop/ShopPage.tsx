@@ -1,11 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
-import { CircleCheck, X } from 'lucide-react';
-// Snackbar reste MUI : changer le MECANISME de notification (vers sonner, non
-// utilise dans ce fichier) depasse la migration de vocabulaire visuel.
-import { Snackbar } from '@mui/material';
+import { Button } from '../../components/ui';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
 import { SHOP_PRODUCTS, CATEGORIES } from './shopProducts';
@@ -26,11 +23,11 @@ const categoryTranslationKeys: Record<string, string> = {
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
+  const { notify } = useNotification();
 
   const [selectedCategory, setSelectedCategory] = useState<'all' | ProductCategory>('all');
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const cartCount = useMemo(
     () => Array.from(cart.values()).reduce((sum, qty) => sum + qty, 0),
@@ -103,9 +100,9 @@ const ShopPage: React.FC = () => {
       // backend not ready yet
     }
 
-    setSnackbarOpen(true);
+    notify.success(t('common.processing'));
     setDrawerOpen(false);
-  }, [cart]);
+  }, [cart, notify, t]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -223,27 +220,6 @@ const ShopPage: React.FC = () => {
         onRemoveItem={handleRemoveItem}
         onCheckout={handleCheckout}
       />
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {/* `div` intercalaire : le Snackbar MUI clone son enfant avec une ref pour
-            l'animer, et la primitive Alert (simple fonction) ne la recoit pas. */}
-        <div className="w-full">
-          <Alert variant="success" className="w-full">
-            <CircleCheck />
-            <AlertDescription>{t('common.processing')}</AlertDescription>
-            <AlertAction>
-              <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSnackbarOpen(false)}>
-                <X />
-              </Button>
-            </AlertAction>
-          </Alert>
-        </div>
-      </Snackbar>
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Spinner } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { useTheme } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   CalendarMonth as CalendarIcon,
@@ -51,8 +50,6 @@ interface UpgradeBannerProps {
 }
 
 const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,10 +72,9 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
   }
 
   return (
-    <div
-      className="bg-[var(--card)] rounded-[12px] border-l-4 border-solid border-l-[var(--mui-primary)] p-[15px] mb-3 flex flex-col gap-3"
-      style={{ boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(107,138,154,0.12)' }}
-    >
+    // L'ombre bascule desormais par la variante `dark:` (pilotee par
+    // [data-theme="dark"]) : plus besoin de lire le mode a l'execution.
+    <div className="bg-[var(--card)] rounded-[12px] border-l-4 border-solid border-l-[var(--mui-primary)] p-[15px] mb-3 flex flex-col gap-3 shadow-[0_2px_8px_rgba(107,138,154,0.12)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
       {/* ── Ligne 1 : Description (gauche) + Forfaits (droite) ──────── */}
       <div className="flex flex-col min-[900px]:flex-row gap-[15px] min-[900px]:items-start">
         {/* Colonne gauche : icone + texte descriptif */}
@@ -112,18 +108,13 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 key={key}
                 className={cn(
                   'flex-[1_1_0] min-w-0 rounded-[8px] p-[9px] relative border-solid',
-                  highlight ? 'border-[1.5px] border-[var(--mui-primary)]' : 'border border-[var(--line)]',
+                  'transition-shadow duration-200 ease-[ease] motion-reduce:transition-none',
+                  // Branches LITTERALES : fond et ombre basculent par la variante
+                  // `dark:`, la ou l'ancien style inline lisait le mode MUI.
+                  highlight
+                    ? 'border-[1.5px] border-[var(--mui-primary)] bg-[rgba(107,138,154,0.05)] dark:bg-[rgba(107,138,154,0.12)] shadow-[0_1px_4px_rgba(107,138,154,0.10)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]'
+                    : 'border border-[var(--line)] bg-[#F8FAFC] dark:bg-[rgba(255,255,255,0.04)]',
                 )}
-                style={{
-                  // Fonds dependants du mode MUI (runtime) : pas de classe possible.
-                  backgroundColor: highlight
-                    ? (isDark ? 'rgba(107,138,154,0.12)' : 'rgba(107,138,154,0.05)')
-                    : (isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC'),
-                  transition: 'box-shadow 0.2s ease',
-                  ...(highlight && {
-                    boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.2)' : '0 1px 4px rgba(107,138,154,0.10)',
-                  }),
-                }}
               >
                 {/* Puce a cheval sur la bordure de la carte : fond OPAQUE
                     (--card) et bordure d'accent, sinon le trait de la carte

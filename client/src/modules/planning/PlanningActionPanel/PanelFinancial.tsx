@@ -31,9 +31,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-// Snackbar laisse en MUI : remplacer le mecanisme de notification (et l'Alert
-// qu'il porte) depasse le perimetre de cette migration.
-import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import {
   Payment,
   Add,
@@ -58,6 +55,7 @@ import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useNotification } from '../../../hooks/useNotification';
 import { Money } from '../../../components/Money';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
 
@@ -252,7 +250,7 @@ const fmtDate = (iso: string) => {
 };
 
 // Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
-// convertAndFormat directement (cf. snackbars).
+// convertAndFormat directement (cf. notifier).
 const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
 
 const PanelFinancial: React.FC<PanelFinancialProps> = ({
@@ -267,6 +265,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const reservation = event.reservation;
   const intervention = event.intervention;
   const { convertAndFormat } = useCurrency();
+  const { notify } = useNotification();
 
   // Latest-ref : le polling de paiement lit toujours le callback frais sans
   // re-declencher l'effet (deps fines anti-spam API).
@@ -414,14 +413,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   } | null>(null);
 
   // Errors & feedback
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
-    setSnackbar({ open: true, message, severity });
+  const notifier = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
+    notify[severity](message);
   };
 
   // Sync payment link state with reservation changes
@@ -534,10 +527,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       setLinkSent(true);
       setShowEmailInput(false);
       setLinkEmail('');
-      showSnackbar('Lien de paiement envoye avec succes');
+      notifier('Lien de paiement envoye avec succes');
       setTimeout(() => setLinkSent(false), 4000);
     } catch {
-      showSnackbar("Erreur lors de l'envoi du lien", 'error');
+      notifier("Erreur lors de l'envoi du lien", 'error');
     } finally {
       setSendingLink(false);
     }
@@ -563,7 +556,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPaymentMethod('card');
     setPaymentDate(today);
     setPaymentReference('');
-    showSnackbar(`Paiement de ${convertAndFormat(amount, 'EUR')} enregistre`);
+    notifier(`Paiement de ${convertAndFormat(amount, 'EUR')} enregistre`);
   }, [paymentAmount, paymentMethod, paymentDate, paymentReference, today, convertAndFormat]);
 
   const handleGenerateInvoice = useCallback(async (refType: string, refId: number) => {
@@ -584,9 +577,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         createdAt: new Date().toISOString().split('T')[0],
       };
       setInvoices((prev) => [...prev, newInvoice]);
-      showSnackbar(`Facture ${result.legalNumber || result.fileName} generee`);
+      notifier(`Facture ${result.legalNumber || result.fileName} generee`);
     } catch (err) {
-      showSnackbar(`Erreur generation facture: ${err instanceof Error ? err.message : 'Erreur'}`);
+      notifier(`Erreur generation facture: ${err instanceof Error ? err.message : 'Erreur'}`);
     } finally {
       setInvoiceLoading(false);
     }
@@ -608,7 +601,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setAddFeeOpen(false);
     setFeeDescription('');
     setFeeAmount('');
-    showSnackbar(`Frais "${newFee.description}" (+${convertAndFormat(amount, 'EUR')}) ajoute`);
+    notifier(`Frais "${newFee.description}" (+${convertAndFormat(amount, 'EUR')}) ajoute`);
   }, [feeDescription, feeAmount, today, convertAndFormat]);
 
   const handleRefund = useCallback(async () => {
@@ -626,7 +619,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPayments((prev) => [...prev, newPayment]);
     setRefundLoading(false);
     setRefundDialogOpen(false);
-    showSnackbar(`Remboursement de ${convertAndFormat(totalPaid, 'EUR')} effectue`, 'info');
+    notifier(`Remboursement de ${convertAndFormat(totalPaid, 'EUR')} effectue`, 'info');
   }, [totalPaid, today, reservation?.id, convertAndFormat]);
 
   // ── Handler — Intervention payment (embedded) ──────────────────────────
@@ -1535,13 +1528,6 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           interventionTitle={paymentModalTarget.title}
         />
       )}
-
-      {/* Snackbar */}
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <MuiAlert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ fontSize: '0.8125rem' }}>
-          {snackbar.message}
-        </MuiAlert>
-      </Snackbar>
     </div>
   );
 };

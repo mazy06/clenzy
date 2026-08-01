@@ -14,9 +14,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from './ui';
-// CircularProgress reste MUI : le kit Baitly UI n'a pas de jauge circulaire
-// determinee (Spinner est indetermine), aucune traduction fidele n'est possible.
-import { CircularProgress } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -47,6 +44,14 @@ import { userAvatarSrc } from '../services/api/usersApi';
 import { parseApiDate } from '../utils/formatUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Anneau de decompte. Le kit n'a pas de jauge circulaire DETERMINEE (Spinner est
+// indetermine), et deux cercles SVG suffisent : le trace est plus court que le
+// `CircularProgress` MUI qu'il remplace, sans en dependre.
+const RING_SIZE = 96;
+const RING_THICKNESS = 3;
+const RING_RADIUS = (RING_SIZE - RING_THICKNESS) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function formatDuration(seconds: number): string {
   if (seconds <= 0) return 'Expiré';
@@ -231,26 +236,36 @@ const TokenMonitoring: React.FC = () => {
           <div className="flex items-center gap-4 flex-wrap">
             {/* Countdown ring + avatar */}
             <div className="relative w-[96px] h-[96px] shrink-0">
-              <CircularProgress
-                variant="determinate"
-                value={100}
-                size={96}
-                thickness={3}
-                sx={{ color: 'var(--hover)', position: 'absolute', top: 0, left: 0 }}
-              />
-              <CircularProgress
-                variant="determinate"
-                value={remainingPct}
-                size={96}
-                thickness={3}
-                sx={{
-                  color: tokenStatus.fg,
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  transition: 'color 300ms',
-                }}
-              />
+              {/* `-rotate-90` + `origin-center` : le remplissage demarre a midi et
+                  tourne dans le sens horaire, comme le faisait MUI. */}
+              <svg
+                className="absolute top-0 left-0 -rotate-90 origin-center"
+                width={RING_SIZE}
+                height={RING_SIZE}
+                viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+                aria-hidden
+              >
+                <circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  fill="none"
+                  stroke="var(--hover)"
+                  strokeWidth={RING_THICKNESS}
+                />
+                <circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  fill="none"
+                  stroke={tokenStatus.fg}
+                  strokeWidth={RING_THICKNESS}
+                  strokeLinecap="round"
+                  strokeDasharray={RING_CIRCUMFERENCE}
+                  strokeDashoffset={RING_CIRCUMFERENCE * (1 - Math.min(100, Math.max(0, remainingPct)) / 100)}
+                  className="transition-[stroke,stroke-dashoffset] duration-300 motion-reduce:transition-none"
+                />
+              </svg>
               <Avatar className="absolute inset-2 size-auto">
                 <AvatarImage
                   src={userAvatarSrc(user)}

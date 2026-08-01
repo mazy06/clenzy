@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Snackbar } from '@mui/material';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import type { RoleInfo, StatusInfo } from './components/userDetailsTypes';
 import { useUserDetails } from './components/useUserDetails';
@@ -54,6 +54,16 @@ const UserDetails: React.FC = () => {
     handleSendPaymentLink,
     handleUnlockUser,
   } = useUserDetails(id);
+
+  const { notify } = useNotification();
+  // Le message vit encore dans useUserDetails (hook .ts, hors perimetre de la
+  // migration) : on le deverse dans le toast puis on vide l'etat, ce qui remplace
+  // exactement l'ancien Snackbar neutre (auto-hide 4 s, bas centre).
+  useEffect(() => {
+    if (!snackMessage) return;
+    notify.info(snackMessage);
+    setSnackMessage('');
+  }, [snackMessage, setSnackMessage, notify]);
 
   if (!canManageUsers) {
     return (
@@ -158,14 +168,6 @@ const UserDetails: React.FC = () => {
           />
         </div>
       </div>
-
-      <Snackbar
-        open={!!snackMessage}
-        autoHideDuration={4000}
-        onClose={() => setSnackMessage('')}
-        message={snackMessage}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </div>
   );
 };

@@ -1,9 +1,18 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
-import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
-// Le tableau reste MUI : `stickyHeader` (+ la premiere colonne collante) n'a pas
-// d'equivalent dans le kit, et le remplacer casserait le defilement horizontal.
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import {
+  Button,
+  Spinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -17,6 +26,18 @@ import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
 
 // Surface « carte » : le Paper MUI ne portait que ces declarations.
 const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px]';
+
+// Le primitif Table pose lui-meme son conteneur `cn-table-container`
+// (overflow-x-auto) : c'est LUI qui doit porter la hauteur max, sinon l'en-tete
+// `sticky top-0` se collerait a un scrollport qui ne defile pas verticalement.
+const TABLE_SCROLL_CLASS =
+  '[&_[data-slot=table-container]]:max-h-[calc(100vh-280px)] '
+  + '[&_[data-slot=table-container]]:overflow-y-auto';
+
+// Premiere colonne figee. Le fond doit etre opaque, sinon les colonnes de
+// droite defilent par transparence dessous.
+const STICKY_COL_CLASS =
+  'sticky left-0 min-w-[150px] bg-[var(--card)] [border-right:1px_solid_var(--line)]';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -85,18 +106,8 @@ const PropertyRow: React.FC<{
   }, [pricing]);
 
   return (
-    <TableRow hover>
-      <TableCell
-        sx={{
-          position: 'sticky',
-          left: 0,
-          zIndex: 1,
-          bgcolor: 'var(--card)',
-          borderRight: '1px solid',
-          borderColor: 'var(--line)',
-          minWidth: 150,
-        }}
-      >
+    <TableRow>
+      <TableCell className={cn(STICKY_COL_CLASS, 'z-[5]')}>
         <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
           {property.name}
         </p>
@@ -108,7 +119,7 @@ const PropertyRow: React.FC<{
 
         if (isLoading) {
           return (
-            <TableCell key={day} sx={{ textAlign: 'center', px: 0.5 }}>
+            <TableCell key={day} className="text-center px-[3px]">
               <Spinner className="size-3" />
             </TableCell>
           );
@@ -117,14 +128,10 @@ const PropertyRow: React.FC<{
         return (
           <TableCell
             key={day}
-            sx={{
-              textAlign: 'center',
-              px: 0.5,
-              py: 0.5,
-              minWidth: 44,
-              borderBottom: '3px solid',
-              borderBottomColor: sourceColor,
-            }}
+            className="text-center px-[3px] py-[3px] min-w-[44px]"
+            // Couleur calculee au runtime : une classe Tailwind ne peut pas
+            // naitre d'une variable.
+            style={{ borderBottom: `3px solid ${sourceColor}` }}
           >
             {entry && entry.nightlyPrice !== null ? (
               <Tooltip>
@@ -199,34 +206,24 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
 
       {/* Overview table */}
       {!propertiesLoading && properties.length > 0 && (
-        <TableContainer className={cn(CARD_CLASS, 'max-h-[calc(100vh-280px)]')}>
-          <Table stickyHeader size="small">
-            <TableHead>
+        <div className={cn(CARD_CLASS, TABLE_SCROLL_CLASS, 'overflow-hidden')}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  sx={{
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 3,
-                    bgcolor: 'var(--card)',
-                    borderRight: '1px solid',
-                    borderColor: 'var(--line)',
-                    minWidth: 150,
-                  }}
-                >
+                <TableHead className={cn(STICKY_COL_CLASS, 'top-0 z-20')}>
                   <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
                     {t('common.name')}
                   </span>
-                </TableCell>
+                </TableHead>
                 {days.map((day) => (
-                  <TableCell key={day} sx={{ textAlign: 'center', px: 0.5, minWidth: 40 }}>
+                  <TableHead key={day} className="sticky top-0 z-10 bg-[var(--card)] text-center px-[3px] min-w-[40px]">
                     <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--faint)] tabular-nums">
                       {day}
                     </span>
-                  </TableCell>
+                  </TableHead>
                 ))}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {properties.map((property) => (
                 <PropertyRow
@@ -241,7 +238,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Legend */}

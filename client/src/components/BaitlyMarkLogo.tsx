@@ -1,5 +1,4 @@
 import React, { useId } from 'react';
-import { useTheme } from '@mui/material';
 
 /**
  * Logo Baitly SaaS — nouveau mark « maison + flux » + wordmark Space Grotesk.
@@ -54,7 +53,7 @@ export interface BaitlyMarkLogoProps {
   size?: number;
   /** {@code "full"} (defaut) / {@code "mark"} (icone) / {@code "wordmark"} (typo). */
   variant?: 'full' | 'mark' | 'wordmark';
-  /** {@code "auto"} suit le theme MUI. {@code "light"} / {@code "dark"} force. */
+  /** {@code "auto"} suit le theme de l'app. {@code "light"} / {@code "dark"} force. */
   tone?: 'auto' | 'light' | 'dark';
   /**
    * Compat API (ancien logo) : signalait « l'IA travaille » en déclenchant
@@ -132,12 +131,12 @@ export default function BaitlyMarkLogo({
   disableAnimation = false,
   colorMode = 'accent',
 }: BaitlyMarkLogoProps) {
-  const theme = useTheme();
   const uid = useId().replace(/:/g, '-');
 
-  const resolvedTone =
-    tone === 'auto' ? (theme.palette.mode === 'dark' ? 'dark' : 'light') : tone;
-
+  // Le mode clair/sombre n'est plus lu en JS : il est porte par les jetons CSS
+  // (`[data-theme]`), si bien que le logo se reteinte au basculement sans que le
+  // composant se re-rende — et sans dependre d'un provider de theme.
+  //
   // Couleur du trait de la maison — même logique que l'ancien logo pour garder
   // la compat des props tone/colorMode :
   //  - colorMode 'inherit' → currentColor (suit le parent : fond accent → blanc).
@@ -145,13 +144,15 @@ export default function BaitlyMarkLogo({
   //  - tone FORCÉ (login photo-hero sombre) → palette fixe à fort contraste.
   const inherit = colorMode === 'inherit';
   const followAccent = tone === 'auto';
-  const fixedDark = resolvedTone === 'dark';
+  const fixedDark = tone === 'dark';
   const markColor = inherit
     ? 'currentColor'
     : followAccent ? 'var(--accent)' : (fixedDark ? '#89B1C2' : '#6B8A9A');
+  // En mode 'auto', `var(--ink)` vaut l'encre du theme courant : blanc casse en
+  // sombre, bleu nuit en clair — exactement les deux valeurs d'avant.
   const wordmarkColor = inherit
     ? 'currentColor'
-    : (fixedDark ? '#FFFFFF' : theme.palette.text.primary);
+    : (fixedDark ? '#FFFFFF' : 'var(--ink)');
 
   // size override scale s'il est defini (API icone-style / injection Sidebar).
   const iconSize = size ?? (56 * scale);
@@ -167,11 +168,13 @@ export default function BaitlyMarkLogo({
   //    PAR teinte dans tokens.css (accent indigo → request cyan, etc.), avec la
   //    paire statique du tone résolu en repli.
   //  - inherit (fond accent) ou tone forcé → paire statique PACKET_COLORS.
-  const staticColors = PACKET_COLORS[inherit ? 'inherit' : resolvedTone];
+  //    Le repli lui-meme passe par une variable posee plus bas en CSS, pour
+  //    rester correct dans les deux themes sans lire le mode en JS.
+  const staticColors = PACKET_COLORS[inherit ? 'inherit' : (fixedDark ? 'dark' : 'light')];
   const packetColors = !inherit && followAccent
     ? {
-        request: `var(--accent-flow-request, ${staticColors.request})`,
-        response: `var(--accent-flow-response, ${staticColors.response})`,
+        request: 'var(--accent-flow-request, var(--bl-packet-request))',
+        response: 'var(--accent-flow-response, var(--bl-packet-response))',
       }
     : staticColors;
 
@@ -203,6 +206,14 @@ export default function BaitlyMarkLogo({
     >
       {animated && (
         <style>{`
+          .${cls.root} {
+            --bl-packet-request:  ${PACKET_COLORS.light.request};
+            --bl-packet-response: ${PACKET_COLORS.light.response};
+          }
+          [data-theme="dark"] .${cls.root} {
+            --bl-packet-request:  ${PACKET_COLORS.dark.request};
+            --bl-packet-response: ${PACKET_COLORS.dark.response};
+          }
           .${cls.packet} {
             fill: none;
             /* Legerement plus epais que le trait maison : le packet "chevauche"

@@ -13,9 +13,6 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
-// Rating reste en MUI : aucun equivalent dans le kit, et reconstruire les demi-etoiles
-// (precision 0.5) serait deviner le rendu plutot que le porter.
-import { Rating } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
@@ -49,6 +46,38 @@ function getRatingCategory(rating: number): string {
   if (rating >= 3.5) return 'good';
   if (rating >= 2.5) return 'average';
   return 'poor';
+}
+
+const RATING_STARS = [0, 1, 2, 3, 4];
+
+/**
+ * Notation en LECTURE SEULE, 5 etoiles au pas de 0,5 (le `precision={0.5}`
+ * d'origine arrondissait pareil). Deux calques superposes : le calque plein est
+ * rogne a la largeur correspondant a la note — seule facon d'obtenir une demi
+ * etoile sans disposer d'un glyphe « demi-etoile » dedie.
+ */
+function ReadOnlyRating({ value, size = 14 }: { value: number; size?: number }) {
+  const rounded = Math.round(value * 2) / 2;
+  return (
+    <span role="img" aria-label={`${rounded}/5`} className="relative inline-flex leading-none">
+      <span aria-hidden className="inline-flex text-[var(--line-2)]">
+        {RATING_STARS.map((i) => (
+          <StarIcon key={i} size={size} strokeWidth={1.5} className="shrink-0" />
+        ))}
+      </span>
+      <span
+        aria-hidden
+        className="absolute inset-y-0 start-0 inline-flex overflow-hidden text-[var(--warn)]"
+        // Largeur calculee a l'execution : une classe Tailwind ne peut pas
+        // naitre d'une variable, d'ou le style inline.
+        style={{ width: `${(rounded / 5) * 100}%` }}
+      >
+        {RATING_STARS.map((i) => (
+          <StarIcon key={i} size={size} strokeWidth={1.5} fill="currentColor" className="shrink-0" />
+        ))}
+      </span>
+    </span>
+  );
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -243,7 +272,7 @@ function ReviewCard({
         <div>
           <div className="flex items-center gap-1 mb-0.5">
             <p className="cn-text-body1 text-[0.8125rem] font-bold">{review.guestName}</p>
-            <Rating value={review.rating} readOnly size="small" precision={0.5} sx={{ fontSize: '0.875rem' }} />
+            <ReadOnlyRating value={review.rating} />
             <StatusChip
               label={review.source}
               size="sm"

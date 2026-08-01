@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { Box } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowRightIcon } from '../../../icons';
 import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaChannels';
@@ -11,10 +11,7 @@ import { useAirbnbConnectionStatus } from '../../../hooks/useAirbnb';
 import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/channelConnectionApi';
 import OtaInfoDialog from './OtaInfoDialog';
 import ServiceGridCard from './ServiceGridCard';
-import {
-  DISABLED_CARDS_SX,
-  blockInteraction,
-} from './disabledIntegration';
+import { blockInteraction } from './disabledIntegration';
 
 /**
  * Vitrine visuelle des OTAs dans l'onglet Integrations.
@@ -36,6 +33,18 @@ const COMING_SOON_TOKENS = {
   bg: 'color-mix(in srgb, var(--muted) 8%, transparent)',
 };
 const COMING_SOON_BORDER = 'color-mix(in srgb, var(--muted) 20%, transparent)';
+
+// Transcription du DISABLED_CARDS_SX (meme copie que ServiceCatalogSection) :
+// on ne touche pas au .ts, qui reste la source des sections encore en MUI.
+// `pointer-events: none` est volontairement absent — il tuerait le survol,
+// donc les tooltips d'info. theme.palette.divider -> var(--line).
+const DISABLED_GRID_CLASS =
+  'opacity-[0.55] grayscale-[0.7] select-none '
+  + '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed '
+  + '[&_[role=radio]:hover]:border-[var(--line)]! [&_[role=button]:hover]:border-[var(--line)]! '
+  + '[&_[role=radio]:hover]:bg-transparent! [&_[role=button]:hover]:bg-transparent! '
+  + '[&_[role=radio]:hover]:shadow-none! [&_[role=button]:hover]:shadow-none! '
+  + '[&_[role=radio]:focus-visible]:shadow-none! [&_[role=button]:focus-visible]:shadow-none!';
 
 interface OtaShowcaseSectionProps {
   /**
@@ -106,17 +115,15 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
           </Button>
         </div>
 
-        <Box
+        <div
           aria-disabled={disabled || undefined}
           onClickCapture={disabled ? blockInteraction : undefined}
           onKeyDownCapture={disabled ? blockInteraction : undefined}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...(disabled && DISABLED_CARDS_SX),
-          }}
+          // gap: 1.5 et mt: 1 = 9 px et 6 px (spacing MUI du projet = 6 px).
+          className={cn(
+            'grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[9px] mt-1.5',
+            disabled && DISABLED_GRID_CLASS,
+          )}
         >
           {visibleChannels.map((ota) => {
             const connected = isOtaConnected(ota);
@@ -143,7 +150,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
               />
             );
           })}
-        </Box>
+        </div>
       </Card>
 
       {/* Modal unifie — gere les 4 cas (coming-soon, connecte, Airbnb OAuth,

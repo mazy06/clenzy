@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert as BuiAlert,
   AlertDescription,
@@ -17,9 +17,6 @@ import {
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-// ThemeProvider + CssBaseline restent MUI : la page publique s'appuie sur le
-// reset global de CssBaseline, qui n'a pas d'equivalent dans le kit.
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
@@ -35,7 +32,6 @@ import {
 import keycloak, { decodeJwt } from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient, { ApiError } from '../../services/apiClient';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import { setSessionCookie } from '../../services/storageService';
 
@@ -116,9 +112,10 @@ const getRoleTone = (role: string): StatusTone => {
 };
 
 export default function AcceptInvitationPage() {
-  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
-  const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
+  // Le hook est appele pour son EFFET (changeLanguage) : la direction RTL est
+  // ensuite portee par le DirectionProvider racine, plus par un theme local.
+  useGeoAuthLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -322,9 +319,7 @@ export default function AcceptInvitationPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: '#f8fafc' }}>
+    <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: '#f8fafc' }}>
         {/* borderRadius: 2 = 22 px (shape.borderRadius vaut 11 dans ce theme) ;
             p 3 / 4.5 = 18 / 27 px (spacing 6), rupture sm MUI = 600 px. */}
         <div className="w-full max-w-[480px] rounded-[22px] border border-solid border-[#e2e8f0] bg-[#ffffff] p-[18px] min-[600px]:p-[27px] text-left shadow-none">
@@ -726,7 +721,6 @@ export default function AcceptInvitationPage() {
             </div>
           )}
         </div>
-      </div>
-    </ThemeProvider>
+    </div>
   );
 }

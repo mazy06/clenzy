@@ -3,11 +3,16 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-// Menu MUI conserve : son ancre est l'`anchorEl` memorise par le hook
-// `useInterventionsList` (hors de ce composant). Un DropdownMenu Radix exige
-// que son declencheur vive dans son propre arbre.
-import { MenuItem, Menu } from '@mui/material';
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -162,6 +167,24 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     if (viewMode !== 'map') setMapBounds(null);
   }, [viewMode]);
 
+  // Un DropdownMenuItem Radix referme le menu de lui-meme apres selection, la
+  // ou le MenuItem MUI ne le faisait pas. Sans ce garde, `onOpenChange(false)`
+  // appellerait handleMenuClose(), qui EFFACE selectedIntervention — or
+  // handleOpenAssignDialog doit le conserver pour la modale d'assignation.
+  const menuItemSelectedRef = useRef(false);
+  const onMenuItem = (action: () => void) => () => {
+    menuItemSelectedRef.current = true;
+    action();
+  };
+  const handleMenuOpenChange = (open: boolean) => {
+    if (open) return;
+    if (menuItemSelectedRef.current) {
+      menuItemSelectedRef.current = false;
+      return;
+    }
+    handleMenuClose();
+  };
+
   const mapMarkers: PropertyMarker[] = useMemo(
     () =>
       filteredInterventions
@@ -283,6 +306,13 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       label: option.label,
     })),
   ];
+
+  // Le bouton « … » qui ouvre le menu vit dans les vues enfant (grille / table),
+  // qui remontent seulement son noeud DOM via l'`anchorEl` du hook : impossible
+  // d'envelopper ce bouton dans un DropdownMenuTrigger d'ici. On accroche donc
+  // Radix a une ancre invisible calee sur le rectangle du bouton, ce qui rend
+  // le meme point d'ancrage que l'ancien Menu MUI.
+  const anchorRect = anchorEl?.getBoundingClientRect();
 
   const actionButtons = (
     <div className="flex gap-1 items-center">
@@ -448,30 +478,44 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
         </div>
 
       {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <span className="inline-flex me-1.5"><VisibilityIcon size={18} strokeWidth={1.75} /></span>
-          {t('interventions.viewDetails')}
-        </MenuItem>
-        {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
-          <MenuItem onClick={handleOpenAssignDialog} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <span className="inline-flex me-1.5 text-[var(--info)]"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
-            Assigner
-          </MenuItem>
-        )}
-        {selectedIntervention && canModifyIntervention(selectedIntervention) && (
-          <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <span className="inline-flex me-1.5"><EditIcon size={18} strokeWidth={1.75} /></span>
-            Modifier
-          </MenuItem>
-        )}
-        {canDeleteInterventions && (
-          <MenuItem onClick={handleDelete} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <span className="inline-flex me-1.5"><DeleteIcon size={18} strokeWidth={1.75} /></span>
-            {t('interventions.delete')}
-          </MenuItem>
-        )}
-      </Menu>
+      <DropdownMenu open={Boolean(anchorEl)} onOpenChange={handleMenuOpenChange}>
+        <DropdownMenuTrigger asChild>
+          <span
+            aria-hidden="true"
+            className="fixed pointer-events-none"
+            style={{
+              left: anchorRect?.left ?? 0,
+              top: anchorRect?.top ?? 0,
+              width: anchorRect?.width ?? 0,
+              height: anchorRect?.height ?? 0,
+            }}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-auto min-w-[11rem]">
+          <DropdownMenuItem onClick={onMenuItem(handleViewDetails)}>
+            <span className="inline-flex"><VisibilityIcon size={18} strokeWidth={1.75} /></span>
+            {t('interventions.viewDetails')}
+          </DropdownMenuItem>
+          {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
+            <DropdownMenuItem onClick={onMenuItem(handleOpenAssignDialog)}>
+              <span className="inline-flex text-[var(--info)]"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
+              Assigner
+            </DropdownMenuItem>
+          )}
+          {selectedIntervention && canModifyIntervention(selectedIntervention) && (
+            <DropdownMenuItem onClick={onMenuItem(handleEdit)}>
+              <span className="inline-flex"><EditIcon size={18} strokeWidth={1.75} /></span>
+              Modifier
+            </DropdownMenuItem>
+          )}
+          {canDeleteInterventions && (
+            <DropdownMenuItem onClick={onMenuItem(handleDelete)}>
+              <span className="inline-flex"><DeleteIcon size={18} strokeWidth={1.75} /></span>
+              {t('interventions.delete')}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Dialog d'assignation rapide */}
       <InterventionAssignDialog

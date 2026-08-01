@@ -11,10 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  Stepper,
+  Step,
+  StepLabel,
 } from '../../../components/ui';
-// Stepper : aucun equivalent dans le kit Baitly UI — laisse en MUI plutot que
-// d'inventer un composant de navigation par etapes.
-import { Stepper, Step, StepLabel } from '@mui/material';
 import {
   Close,
   Send,
@@ -820,19 +820,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
             {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
           </DialogTitle>
         </div>
-        {/* Stepper à droite, sur la même ligne que le titre */}
-        <Stepper
-          activeStep={activeStep}
-          sx={{
-            ml: 'auto',
-            flex: '0 1 480px',
-            minWidth: 0,
-            '& .MuiStepLabel-label': { fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' },
-            '& .MuiStep-root': { px: 0.5 },
-          }}
-        >
+        {/* Stepper à droite, sur la même ligne que le titre. Le gabarit du
+            libelle (0.72rem / 600 / nowrap) est deja celui du primitif : seul
+            le placement a droite reste a exprimer. */}
+        <Stepper activeStep={activeStep} className="ms-auto min-w-0 grow-0 shrink basis-[480px]">
           {STEPS.map((label) => (
-            <Step key={label}>
+            <Step key={label} className="px-[3px]">
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}

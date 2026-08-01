@@ -1,5 +1,4 @@
 import React, { useId } from 'react';
-import { useTheme } from '@mui/material';
 
 /**
  * ⚠️ ANCIEN LOGO — CONSERVÉ POUR RÉFÉRENCE, NE PLUS UTILISER.
@@ -132,6 +131,9 @@ const SCAN_NODE_SLICE_PCT = 100 / OCTAGON_NODES.length;
 
 const RADIAL_DELTA_SCAN_IDLE = 2.5;
 
+/** Opacite des traits en mode `tone: 'auto'` — bascule seule avec `data-theme`. */
+const LINES_OPACITY_VAR = '--baitly-legacy-lines-opacity';
+
 function radialTranslate(node: { x: number; y: number }, delta: number): { tx: string; ty: string } {
   const dx = node.x - CENTER.x;
   const dy = node.y - CENTER.y;
@@ -152,11 +154,7 @@ export default function BaitlyMarkLogoLegacy({
   disableAnimation = false,
   colorMode = 'accent',
 }: BaitlyMarkLogoLegacyProps) {
-  const theme = useTheme();
   const uid = useId().replace(/:/g, '-');
-
-  const resolvedTone =
-    tone === 'auto' ? (theme.palette.mode === 'dark' ? 'dark' : 'light') : tone;
 
   // Couleur du mark :
   //  - colorMode 'inherit' → currentColor (suit la couleur du parent : utile sur
@@ -166,9 +164,13 @@ export default function BaitlyMarkLogoLegacy({
   //  - tone FORCÉ (login photo-hero sombre) → palette fixe à fort contraste.
   // NB : les var()/currentColor passent par `style` inline (cf. SVG plus bas) ;
   // elles ne résolvent pas de façon fiable dans les attributs fill/stroke.
+  // NB : `tone: 'auto'` ne lit plus le mode d'un theme JS. Les deux seules
+  // valeurs qui en dependaient — l'encre du wordmark et l'opacite des traits —
+  // passent par des variables CSS qui basculent deja avec `data-theme`, si bien
+  // qu'aucun re-rendu n'est necessaire au changement de theme.
   const inherit = colorMode === 'inherit';
   const followAccent = tone === 'auto';
-  const fixedDark = resolvedTone === 'dark';
+  const fixedDark = tone === 'dark';
   const markColor = inherit
     ? 'currentColor'
     : followAccent ? 'var(--accent)' : (fixedDark ? '#89B1C2' : '#6B8A9A');
@@ -179,8 +181,8 @@ export default function BaitlyMarkLogoLegacy({
     nodes: markColor,
     lines: markColor,
     center: centerColor,
-    wordmark: inherit ? 'currentColor' : (fixedDark ? '#FFFFFF' : theme.palette.text.primary),
-    linesOpacity: fixedDark ? 0.4 : 0.35,
+    wordmark: inherit ? 'currentColor' : (fixedDark ? '#FFFFFF' : 'var(--ink)'),
+    linesOpacity: followAccent ? `var(${LINES_OPACITY_VAR})` : (fixedDark ? '0.4' : '0.35'),
   };
 
   // size override scale s'il est defini (pour matcher l'API icone-style ou
@@ -274,6 +276,10 @@ export default function BaitlyMarkLogoLegacy({
   };
 
   const animationCss = !disableAnimation ? `
+    /* ─── Opacite des traits en tone auto : suit data-theme ──────────── */
+    .${cls.root} { ${LINES_OPACITY_VAR}: 0.35; }
+    [data-theme="dark"] .${cls.root} { ${LINES_OPACITY_VAR}: 0.4; }
+
     /* ─── Boot : centre + groupe lines + nodes ──────────────────────── */
     .${cls.center} {
       transform-origin: ${CENTER.x}px ${CENTER.y}px;

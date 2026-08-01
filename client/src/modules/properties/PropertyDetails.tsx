@@ -18,9 +18,7 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-// Snackbar + Alert flottante : mecanisme de notification laisse en MUI — le fichier
-// n'utilise pas sonner, et changer de mecanisme depasse cette migration.
-import { Alert, Snackbar } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import {  Edit,
   Home,
   LocationOn,
@@ -286,17 +284,17 @@ const PropertyDetails: React.FC = () => {
   // Devis ménage (Moteur Ménage 3A) : confirmation + envoi au propriétaire.
   const [cleaningQuoteDialogOpen, setCleaningQuoteDialogOpen] = useState(false);
   const [cleaningQuoteSending, setCleaningQuoteSending] = useState(false);
-  const [cleaningQuoteSnackbar, setCleaningQuoteSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const { notify } = useNotification();
 
   const handleSendCleaningQuote = async () => {
     setCleaningQuoteSending(true);
     try {
       await documentsApi.sendCleaningQuote(Number(id));
-      setCleaningQuoteSnackbar({ open: true, message: t('properties.cleaningQuote.sent'), severity: 'success' });
+      notify.success(t('properties.cleaningQuote.sent'));
       setCleaningQuoteDialogOpen(false);
     } catch (err: unknown) {
       const message = err instanceof Error && err.message ? err.message : t('properties.cleaningQuote.error');
-      setCleaningQuoteSnackbar({ open: true, message, severity: 'error' });
+      notify.error(message);
     } finally {
       setCleaningQuoteSending(false);
     }
@@ -968,17 +966,6 @@ const PropertyDetails: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Snackbar
-        open={cleaningQuoteSnackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setCleaningQuoteSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={cleaningQuoteSnackbar.severity} variant="filled" onClose={() => setCleaningQuoteSnackbar((prev) => ({ ...prev, open: false }))}>
-          {cleaningQuoteSnackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };

@@ -497,7 +497,7 @@ export default function ChannexImportDiscoveryDialog({
                       disabled && 'opacity-45',
                     )}
                   >
-                    <img className="w-[40px] h-[40px] rounded-[1px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                    <img className="w-[40px] h-[40px] rounded-[8px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px]">
                         <p className="cn-text-body2 font-semibold leading-[1.3]">
@@ -612,7 +612,7 @@ export default function ChannexImportDiscoveryDialog({
                               && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
                           )}
                         >
-                          <img className="w-[36px] h-[36px] rounded-[1px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                          <img className="w-[36px] h-[36px] rounded-[8px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
                           <div className="flex-1 min-w-0">
                             <p className="cn-text-body2 font-semibold leading-[1.3]">
                               Re-detecter mes listings {option.name}
@@ -641,7 +641,7 @@ export default function ChannexImportDiscoveryDialog({
         {!loading && discovered.length > 0 && (
           <>
             {/* Header avec resume du diff (au lieu de select-all classique) */}
-            <div className="flex items-center gap-2 p-1.5 px-2 rounded-[1px] bg-[var(--bg)] mb-1.5 flex-wrap">
+            <div className="flex items-center gap-2 p-1.5 px-2 rounded-[8px] bg-[var(--bg)] mb-1.5 flex-wrap">
               <span className="cn-text-caption text-muted-foreground flex-1">
                 {discovered.length} propriete{discovered.length > 1 ? 's' : ''} dans le hub
                 {diff.toImport.length > 0 && (

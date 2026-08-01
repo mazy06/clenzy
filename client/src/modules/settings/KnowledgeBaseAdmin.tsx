@@ -8,10 +8,6 @@ import { Button } from '../../components/ui';
 import { Separator, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-// `useTheme`/`alpha` restent : les pastilles lisent `info.dark` / `success.dark` /
-// `warning.dark`, teintes qui n'ont aucune variable CSS equivalente et qui
-// different entre le theme clair et le theme sombre.
-import { useTheme, alpha } from '@mui/material/styles';
 
 /** Surface « tuile » : report en classes des `alpha(text.primary, .03/.08)`. */
 const TILE_CLASS =
@@ -90,7 +86,6 @@ interface KbSearchTestResponse {
  * backend (PreAuthorize hasAnyRole...).
  */
 export const KnowledgeBaseAdmin: React.FC = () => {
-  const theme = useTheme();
   const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -358,11 +353,14 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     {doc.sourcePath}
                   </TableCell>
                   <TableCell>
-                    <StatusChip tokens={{ color: doc.scope === 'global'
-                          ? theme.palette.info.dark
-                          : theme.palette.success.dark, bg: doc.scope === 'global'
-                          ? alpha(theme.palette.info.main, 0.14)
-                          : alpha(theme.palette.success.main, 0.14) }} label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'} className="h-[20px] text-[0.7rem]" />
+                    {/* `tone` plutot que des tokens calcules : la paire
+                        encre/fond doux de la primitive est l'equivalent
+                        semantique des anciennes teintes `info`/`success`. */}
+                    <StatusChip
+                      tone={doc.scope === 'global' ? 'info' : 'ok'}
+                      label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'}
+                      className="h-[20px] text-[0.7rem]"
+                    />
                   </TableCell>
                   <TableCell className="text-[0.75rem] text-[var(--muted)]">
                     {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
@@ -540,11 +538,11 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                       <p className="cn-text-body2 font-semibold">
                         {hit.title || hit.sourcePath}
                       </p>
-                      <StatusChip tokens={{ color: aboveThreshold
-                            ? theme.palette.success.dark
-                            : theme.palette.warning.dark, bg: aboveThreshold
-                            ? alpha(theme.palette.success.main, 0.14)
-                            : alpha(theme.palette.warning.main, 0.14) }} label={`${Math.round(hit.relevance * 100)} %`} className="h-[20px] text-[0.7rem] tabular-nums" />
+                      <StatusChip
+                        tone={aboveThreshold ? 'ok' : 'warn'}
+                        label={`${Math.round(hit.relevance * 100)} %`}
+                        className="h-[20px] text-[0.7rem] tabular-nums"
+                      />
                       {!aboveThreshold && (
                         <span className="cn-text-caption text-muted-foreground">
                           sous le seuil d'injection automatique

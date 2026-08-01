@@ -13,9 +13,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// Snackbar/Alert MUI conserves : ce fichier n'utilise pas sonner, et changer de
-// mecanisme de notification depasse le perimetre de la migration.
-import { Snackbar, Alert } from '@mui/material';
+import { useNotification } from '../../../hooks/useNotification';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -52,9 +50,9 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
  */
 export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
   const qc = useQueryClient();
+  const { notify } = useNotification();
   const [subTab, setSubTab] = useState(0);
   const [guestName, setGuestName] = useState('');
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
 
   const pointsQuery = useQuery({ queryKey: ['key-exchange-points'], queryFn: () => keyExchangeApi.getPoints(), staleTime: 60_000 });
   const point = pointsQuery.data?.find((p) => p.id === device.id);
@@ -76,21 +74,21 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
     mutationFn: () => keyExchangeApi.generateCode({ pointId: device.id, guestName: guestName.trim() || undefined }),
     onSuccess: () => {
       setGuestName('');
-      setSnack({ msg: 'Code généré', severity: 'success' });
+      notify.success('Code généré');
       void qc.invalidateQueries({ queryKey: ['key-exchange-codes', device.id] });
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => setSnack({ msg: e instanceof Error ? e.message : 'Échec de la génération', severity: 'error' }),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : 'Échec de la génération'),
   });
 
   const cancel = useMutation({
     mutationFn: (id: number) => keyExchangeApi.cancelCode(id),
     onSuccess: () => {
-      setSnack({ msg: 'Code annulé', severity: 'success' });
+      notify.success('Code annulé');
       void qc.invalidateQueries({ queryKey: ['key-exchange-codes', device.id] });
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => setSnack({ msg: e instanceof Error ? e.message : "Échec de l'annulation", severity: 'error' }),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : "Échec de l'annulation"),
   });
 
   const codes: KeyExchangeCodeDto[] = codesQuery.data ?? [];
@@ -244,10 +242,6 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
           )}
         </div>
       </div>
-
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {snack ? <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>{snack.msg}</Alert> : undefined}
-      </Snackbar>
     </div>
   );
 }

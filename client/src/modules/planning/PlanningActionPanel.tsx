@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-// Le Drawer `variant="persistent"` reste MUI : les tiroirs du kit (Sheet, Drawer)
-// sont modaux — voile, piege de focus, page derriere inerte — alors que le
-// planning doit rester manipulable pendant que le panneau est ouvert.
-import { Drawer, useTheme } from '@mui/material';
+import { createPortal } from 'react-dom';
+import { cn } from '../../utils/cn';
 import { Button } from '../../components/ui';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -184,7 +182,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   autoOpenGuestCardForReservationId,
   onGuestCardAutoOpenHandled,
 }) => {
-  const theme = useTheme();
   const { currentView, isSubView, pushView, popView } = usePanelNavigation(event?.id ?? null);
 
   // Auto-reset to valid tab when event type changes
@@ -339,29 +336,25 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
     ? `Réservation · ${formatGuestShort(event.label)}`
     : `${EVENT_TYPE_LABELS[event.type]} · ${event.label}`;
 
-  return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      variant="persistent"
-      sx={{
-        // Keep drawer overlay (not push content) in all modes
-        position: 'relative',
-        zIndex: theme.zIndex.drawer + 1,
-        '& .MuiDrawer-paper': {
-          // Maquette Signature : drawer droite ~480px, full-screen sur mobile.
-          width: { xs: '100vw', sm: 480 },
-          maxWidth: '100vw',
-          position: 'fixed',
-          borderLeft: '1px solid var(--line)',
-          // Filet accent en haut du drawer (2px).
-          borderTop: '2px solid var(--accent)',
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'none',
-          boxShadow: 'var(--shadow-drawer)',
-        },
-      }}
+  // Panneau non modal : il recouvre le planning sans voile ni piege de focus,
+  // le calendrier derriere reste manipulable pendant qu'il est ouvert. Porte
+  // dans <body> comme le faisait le Drawer MUI : un ancetre transforme
+  // redefinirait le bloc conteneur d'un `position: fixed` et decalerait tout.
+  return createPortal(
+    <aside
+      aria-hidden={!open}
+      className={cn(
+        'fixed top-0 bottom-0 end-0 z-[1201] flex flex-col',
+        // Maquette Signature : drawer droite ~480px (palier `sm` MUI = 600),
+        // plein ecran en dessous. Filet accent 2px en haut.
+        'w-screen max-w-[100vw] min-[600px]:w-[480px]',
+        'border-s border-t-2 border-solid border-s-[color:var(--line)] border-t-[color:var(--accent)]',
+        'bg-[var(--card)] shadow-[var(--shadow-drawer)]',
+        'transition-transform duration-200 ease-[var(--ease-out)] motion-reduce:transition-none',
+        open
+          ? 'translate-x-0'
+          : 'translate-x-full rtl:-translate-x-full invisible pointer-events-none',
+      )}
     >
       {/* ─── Entête : titre display + sous-titre séjour + ✕ pastille ──── */}
       <div className="flex items-center justify-between gap-1.5 px-3 py-2 border-b border-[var(--line)]">
@@ -419,7 +412,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           onGuestCardAutoOpenHandled={onGuestCardAutoOpenHandled}
         />
       )}
-    </Drawer>
+    </aside>,
+    document.body,
   );
 };
 

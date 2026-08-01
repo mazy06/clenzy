@@ -1,8 +1,21 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import TagChip from '../../components/TagChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Button } from '../../components/ui';
 import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
@@ -13,16 +26,11 @@ import {
   NativeSelect,
   Switch,
   Textarea,
+  useComboboxAnchor,
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-// Reste en MUI : l'Autocomplete multi-select des proprietes (son renderInput
-// recoit des props internes que le TextField seul sait consommer) et, par
-// ricochet, le Dialog qui l'entoure — une modale Radix pose `pointer-events:
-// none` sur le body et traite la liste deroulante portalisee de l'Autocomplete
-// comme un clic exterieur, ce qui la rendrait inutilisable en silence.
-import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Autocomplete } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
-import { usePropertiesList } from '../../hooks/usePropertiesList';
+import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {
   useCreateBookingVoucher,
   useUpdateBookingVoucher,
@@ -64,6 +72,9 @@ interface FormState {
   applyToAllProperties: boolean;
 }
 
+/** Libelle affiche d'un logement dans le multi-select (repli sur l'id si sans nom). */
+const propertyLabel = (p: PropertyListItem) => p.name ?? `Property #${p.id}`;
+
 function initFromVoucher(v: BookingVoucher | null): FormState {
   return {
     name: v?.name ?? '',
@@ -95,11 +106,14 @@ function initFromVoucher(v: BookingVoucher | null): FormState {
  *
  * <p>`applyToAllProperties` est un toggle UX qui se mappe sur le scope :
  * true → propertyIds vide (= toutes les properties de l'org), false →
- * Autocomplete multi-select obligatoire.</p>
+ * multi-select de logements obligatoire.</p>
  */
 export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }: Props) {
   const { t } = useTranslation();
   const isEdit = voucher !== null;
+  // Appele inconditionnellement : le multi-select n'est rendu que si le toggle
+  // « toutes les proprietes » est off, mais un hook ne peut pas etre conditionnel.
+  const propertiesAnchor = useComboboxAnchor();
   const [form, setForm] = useState<FormState>(() => initFromVoucher(voucher));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Guard synchrone contre le double-submit (clic rapide avant que React
@@ -190,14 +204,21 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
   };
 
   const selectedPropertyIdSet = new Set(form.propertyIds);
+  const selectedProperties = properties.filter((p) => selectedPropertyIdSet.has(Number(p.id)));
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {isEdit ? t('vouchers.editor.editTitle') : t('vouchers.editor.createTitle')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* `maxWidth="md"` MUI = 900 px (breakpoints non configures). */}
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? t('vouchers.editor.editTitle') : t('vouchers.editor.createTitle')}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Le defilement porte sur le corps du formulaire, pas sur DialogContent :
+            titre et pied restent visibles, comme le `dividers` du Dialog MUI. */}
+        <div className="max-h-[65vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
         {errorMsg && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
           <AlertDescription>{errorMsg}</AlertDescription>
@@ -443,40 +464,63 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               </FieldLabel>
             </div>
             {!form.applyToAllProperties && (
-              <Autocomplete
-                multiple
-                options={properties}
-                getOptionLabel={(p) => p.name ?? `Property #${p.id}`}
-                value={properties.filter((p) => selectedPropertyIdSet.has(Number(p.id)))}
-                onChange={(_, sel) => update('propertyIds', sel.map((p) => Number(p.id)))}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => {
-                    const { key, ...tagProps } = getTagProps({ index });
-                    return (
-                      <TagChip key={key} label={option.name} {...tagProps} />
-                    );
-                  })
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('vouchers.editor.targetProperties')}
-                    placeholder={t('vouchers.editor.targetPropertiesPlaceholder')}
-                  />
-                )}
-                sx={{ mt: 1 }}
-              />
+              <Field className="mt-1.5">
+                <FieldLabel htmlFor="voucher-target-properties">
+                  {t('vouchers.editor.targetProperties')}
+                </FieldLabel>
+                <Combobox
+                  multiple
+                  items={properties}
+                  itemToStringLabel={propertyLabel}
+                  itemToStringValue={propertyLabel}
+                  isItemEqualToValue={(a: PropertyListItem, b: PropertyListItem) => a.id === b.id}
+                  value={selectedProperties}
+                  onValueChange={(sel: PropertyListItem[]) =>
+                    update('propertyIds', sel.map((p) => Number(p.id)))
+                  }
+                >
+                  <ComboboxChips ref={propertiesAnchor} className="w-full">
+                    <ComboboxValue>
+                      {(values: PropertyListItem[]) => (
+                        <React.Fragment>
+                          {values.map((p) => (
+                            <ComboboxChip key={p.id}>{propertyLabel(p)}</ComboboxChip>
+                          ))}
+                          <ComboboxChipsInput
+                            id="voucher-target-properties"
+                            placeholder={t('vouchers.editor.targetPropertiesPlaceholder')}
+                          />
+                        </React.Fragment>
+                      )}
+                    </ComboboxValue>
+                  </ComboboxChips>
+                  {/* Le popup est porte hors du DialogContent, ou Radix coupe les
+                      pointer-events du reste du document : sans `pointer-events-auto`
+                      les options ne seraient pas cliquables. */}
+                  <ComboboxContent anchor={propertiesAnchor} className="pointer-events-auto">
+                    <ComboboxEmpty>{t('vouchers.editor.targetPropertiesPlaceholder')}</ComboboxEmpty>
+                    <ComboboxList>
+                      {(p: PropertyListItem) => (
+                        <ComboboxItem key={p.id} value={p}>
+                          {propertyLabel(p)}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </Field>
             )}
           </div>
         </div>
-      </DialogContent>
+        </div>
 
-      <DialogActions>
-        <Button variant="ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</Button>
-        <Button variant="default" onClick={handleSubmit} disabled={saving}>
-          {saving ? t('common.saving') : isEdit ? t('common.save') : t('common.create')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</Button>
+          <Button variant="default" onClick={handleSubmit} disabled={saving}>
+            {saving ? t('common.saving') : isEdit ? t('common.save') : t('common.create')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

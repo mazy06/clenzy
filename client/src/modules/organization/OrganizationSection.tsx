@@ -3,9 +3,17 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-// Autocomplete + son renderInput restent MUI : le TextField y recoit des props
-// internes (ref, InputProps, inputProps) que le kit ne sait pas porter.
-import { Autocomplete, TextField } from '@mui/material';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from '../../components/ui';
 import {
   Business,
   PersonAdd,
@@ -149,54 +157,54 @@ export default function OrganizationSection({ organizationId }: Props) {
               </Alert>
             )}
 
-            <Autocomplete
-              size="small"
-              options={organizations}
-              value={selectedOrg}
-              loading={orgsLoading}
-              onChange={(_event, newValue) => {
-                setSelectedOrg(newValue);
-                setRefreshTrigger(0);
-              }}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              renderOption={(props, option) => {
-                const { key, ...optionProps } = props;
-                const c = getOrgTypeColor(option.type);
-                return (
-                  <li key={key} {...optionProps}>
-                    <div className="flex items-center gap-1.5 w-full">
-                      <p className="cn-text-body1 font-medium flex-1 text-[0.85rem]">
-                        {option.name}
-                      </p>
-                      <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getOrgTypeLabel(option.type)} className="h-[20px] text-[0.65rem]" />
-                      <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
-                        {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </li>
-                );
-              }}
-              renderInput={(params) => (
-                // Champ laisse en MUI : c'est le renderInput de l'Autocomplete, il recoit
-                // des props internes (ref, InputProps, inputProps) que le kit ne porte pas.
-                <TextField
-                  {...params}
-                  label="Sélectionner une organisation"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {orgsLoading ? <Spinner className="size-4" /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
+            <Field className="mb-3">
+              <FieldLabel htmlFor="organization-picker">Sélectionner une organisation</FieldLabel>
+              <Combobox
+                items={organizations}
+                value={selectedOrg}
+                onValueChange={(next) => {
+                  setSelectedOrg(next);
+                  setRefreshTrigger(0);
+                }}
+                itemToStringLabel={(option: OrganizationDto) => option.name}
+                isItemEqualToValue={(option: OrganizationDto, value: OrganizationDto) => option.id === value.id}
+              >
+                <ComboboxInput
+                  id="organization-picker"
+                  placeholder="Sélectionner une organisation"
+                  disabled={orgsLoading}
                 />
+                <ComboboxContent>
+                  <ComboboxEmpty>Aucune organisation</ComboboxEmpty>
+                  <ComboboxList>
+                    {(option: OrganizationDto) => {
+                      const c = getOrgTypeColor(option.type);
+                      return (
+                        <ComboboxItem key={option.id} value={option}>
+                          <div className="flex items-center gap-1.5 w-full">
+                            <p className="cn-text-body1 font-medium flex-1 text-[0.85rem]">
+                              {option.name}
+                            </p>
+                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getOrgTypeLabel(option.type)} className="h-[20px] text-[0.65rem]" />
+                            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
+                              {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </ComboboxItem>
+                      );
+                    }}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+              {/* L'attente ne tient plus dans un adornment du champ (le kit n'en
+                  expose pas) : elle se dit sous le champ, en texte d'aide. */}
+              {orgsLoading && (
+                <FieldDescription className="flex items-center gap-1.5">
+                  <Spinner className="size-3.5" />
+                  Chargement des organisations…
+                </FieldDescription>
               )}
-              sx={{ mb: 2 }}
-              noOptionsText="Aucune organisation"
-            />
+            </Field>
 
             {effectiveOrgId ? (
               <>

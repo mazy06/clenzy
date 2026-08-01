@@ -78,7 +78,7 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
 
         <div className="pt-3 pb-2">
           {client && (
-            <div className="flex items-center gap-2 mb-3.5 p-2 bg-[var(--field)] rounded-[2px]">
+            <div className="flex items-center gap-2 mb-3.5 p-2 bg-[var(--field)] rounded-[16px]">
               <Avatar className="size-8 rounded-[10px]">
                 <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[0.78rem]">
                   {client.firstName?.[0]}{client.lastName?.[0]}
