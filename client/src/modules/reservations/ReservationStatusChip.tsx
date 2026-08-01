@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import { Box } from '@mui/material';
 import type { ReservationStatus, ReservationSource } from '../../services/api/reservationsApi';
 import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import {

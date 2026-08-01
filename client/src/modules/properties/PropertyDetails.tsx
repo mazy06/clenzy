@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import { Box, Typography, Alert, Button, Card, CardContent, Grid, Chip, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
+import { Box, Typography, Alert, Button, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -935,7 +935,6 @@ const PropertyDetails: React.FC = () => {
           <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
         </div>
       )}
-
 
       {/* Devis ménage : confirmation avant envoi au propriétaire */}
       <Dialog open={cleaningQuoteDialogOpen} onClose={() => setCleaningQuoteDialogOpen(false)}>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../../../components/ui';
-import { Button, IconButton, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip } from '@mui/material';
+import { Button, IconButton, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 

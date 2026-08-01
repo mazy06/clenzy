@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Checkbox, Button, Divider, Chip, Alert } from '@mui/material';
+import { Box, Checkbox, Button, Divider, Alert } from '@mui/material';
 import {
   ShoppingCart,
   Payment,

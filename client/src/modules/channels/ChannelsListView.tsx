@@ -1,7 +1,7 @@
 import React from 'react';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, Button, Chip } from '@mui/material';
+import { Box, Paper, Typography, Button } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,

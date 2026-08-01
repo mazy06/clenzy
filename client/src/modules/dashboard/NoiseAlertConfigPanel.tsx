@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Switch, FormControlLabel, Button, TextField, Slider, IconButton, Chip, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
+import { Card, CardContent, Switch, FormControlLabel, Button, TextField, Slider, IconButton, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
 import {
   Settings,
   Add,

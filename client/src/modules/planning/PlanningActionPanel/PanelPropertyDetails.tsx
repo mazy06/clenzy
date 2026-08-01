@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Chip, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
+import { Box, Typography, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
 import {
   Apartment,
   Bed,

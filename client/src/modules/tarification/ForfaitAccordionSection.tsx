@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
-import { Typography, TextField, Grid, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Typography, TextField, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AutoAwesome,
   Group,
@@ -27,7 +27,6 @@ const ALL_CLEANING_SERVICE_TYPE_KEYS = [
   'KITCHEN_CLEANING',
   'BATHROOM_CLEANING',
 ] as const;
-
 
 const SECTION_TITLE_SX = {
   fontSize: '0.625rem',
