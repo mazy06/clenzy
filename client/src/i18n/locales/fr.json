@@ -5008,6 +5008,16 @@
       "NOISE_ALERT_RESOLVED": "Alerte bruit résolue",
       "CONTACT_MESSAGE_RECEIVED": "Message reçu",
       "CONTACT_FORM_RECEIVED": "Formulaire de contact reçu"
+    },
+    "groups": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier"
+    },
+    "preferences": "Préférences de notifications",
+    "showcase": {
+      "title": "Soyez prévenu de ce qui compte, pas du reste",
+      "description": "Nouvelle réservation, annulation, incident de paiement, alerte de bruit : vous choisissez le canal et la fréquence.",
+      "action": "Régler mes notifications"
     }
   },
   "fiscal": {

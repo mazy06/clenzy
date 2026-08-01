@@ -4969,6 +4969,16 @@
       "NOISE_ALERT_RESOLVED": "تم حل تنبيه الضوضاء",
       "CONTACT_MESSAGE_RECEIVED": "تم استلام رسالة",
       "CONTACT_FORM_RECEIVED": "تم استلام نموذج اتصال"
+    },
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس"
+    },
+    "preferences": "تفضيلات الإشعارات",
+    "showcase": {
+      "title": "كن على علم بما يهم، لا بغيره",
+      "description": "حجز جديد، إلغاء، مشكلة دفع، تنبيه ضوضاء: أنت تختار القناة والوتيرة.",
+      "action": "ضبط إشعاراتي"
     }
   },
   "fiscal": {

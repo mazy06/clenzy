@@ -4986,6 +4986,16 @@
       "NOISE_ALERT_RESOLVED": "Noise alert resolved",
       "CONTACT_MESSAGE_RECEIVED": "Message received",
       "CONTACT_FORM_RECEIVED": "Contact form received"
+    },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "preferences": "Notification preferences",
+    "showcase": {
+      "title": "Be told about what matters, not the rest",
+      "description": "New booking, cancellation, payment incident, noise alert: you choose the channel and the frequency.",
+      "action": "Set up my notifications"
     }
   },
   "fiscal": {
