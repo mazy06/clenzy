@@ -3,7 +3,8 @@ import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
@@ -402,25 +403,24 @@ export default function PromoCodesPage() {
           }
         />
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
-          <Table size="small">
-            {/* Entêtes overline via le thème global MuiTableCell */}
-            <TableHead>
+        <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Réduction</TableCell>
-                <TableCell>Utilisations</TableCell>
-                <TableCell>Validité</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Créé le</TableCell>
-                <TableCell align="center">Actif</TableCell>
+                <TableHead>Code</TableHead>
+                <TableHead>Réduction</TableHead>
+                <TableHead>Utilisations</TableHead>
+                <TableHead>Validité</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead className="text-center">Actif</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {filtered.map((promo) => {
                 const expired = isExpired(promo);
                 return (
-                  <TableRow key={promo.id} hover>
+                  <TableRow key={promo.id}>
                     <TableCell>
                       <p className="cn-text-body2 font-mono font-semibold">
                         {promo.code}
@@ -452,7 +452,7 @@ export default function PromoCodesPage() {
                         {expired && ' (expiré)'}
                       </span>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 200 }}>
+                    <TableCell className="max-w-[200px]">
                       {/* line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc */}
                       <span className="cn-text-caption text-[var(--muted)] line-clamp-2">
                         {promo.description || '—'}
@@ -463,7 +463,7 @@ export default function PromoCodesPage() {
                         {formatDate(promo.createdAt)}
                       </span>
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
                       <Tooltip
                         title={
                           expired
@@ -490,7 +490,7 @@ export default function PromoCodesPage() {
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       <CreateCodeDialog

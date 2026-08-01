@@ -8,16 +8,18 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui';
 import { Save, Upload } from "../../../icons";
 import SplitBarEditor from "./SplitBarEditor";
 import AffiliateImportDialog from "./AffiliateImportDialog";
@@ -71,15 +73,6 @@ const STATUS_META: Record<
     color: "var(--muted)",
     soft: "color-mix(in srgb, var(--muted) 8%, transparent)",
   },
-};
-
-const headCellSx = {
-  fontWeight: 700,
-  fontSize: "0.62rem",
-  letterSpacing: "0.06em",
-  textTransform: "uppercase" as const,
-  color: "text.secondary",
-  whiteSpace: "nowrap" as const,
 };
 
 export interface ServicesActivitiesPanelProps {
@@ -271,25 +264,25 @@ export default function ServicesActivitiesPanel({
           )}
         </p>
 
-        <TableContainer sx={{ overflowX: "auto" }}>
-          <Table size="small" sx={{ minWidth: 460 }}>
-            <TableHead>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[460px]">
+            <TableHeader>
               <TableRow>
-                <TableCell sx={headCellSx}>
+                <TableHead className="whitespace-nowrap">
                   {t("settings.services.source", "Source")}
-                </TableCell>
-                <TableCell sx={headCellSx}>
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
                   {t("settings.services.status", "Statut")}
-                </TableCell>
-                <TableCell align="center" sx={headCellSx}>
+                </TableHead>
+                <TableHead className="text-center whitespace-nowrap">
                   {t("settings.services.baitlyRate", "Part Baitly")}
-                </TableCell>
-                <TableCell align="right" sx={headCellSx}>
+                </TableHead>
+                <TableHead className="text-end whitespace-nowrap">
                   {t("settings.split.ownerShare")}
-                </TableCell>
-                <TableCell align="right" sx={{ ...headCellSx, width: 60 }} />
+                </TableHead>
+                <TableHead className="text-end whitespace-nowrap w-[60px]" />
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {PROVIDERS.map((provider) => {
                 const config = byProvider.get(provider);
@@ -300,7 +293,7 @@ export default function ServicesActivitiesPanel({
                     : "INACTIVE";
                 const meta = STATUS_META[status];
                 return (
-                  <TableRow key={provider} hover>
+                  <TableRow key={provider}>
                     <TableCell>
                       <p className="cn-text-body1 text-[0.8125rem] font-semibold whitespace-nowrap">
                         {PROVIDER_LABELS[provider]}
@@ -316,7 +309,7 @@ export default function ServicesActivitiesPanel({
                         }}
                       />
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
                       <TextField
                         type="number"
                         size="small"
@@ -343,12 +336,12 @@ export default function ServicesActivitiesPanel({
                         sx={{ width: 108 }}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       <p className="cn-text-body1 text-[0.78rem] font-bold tabular-nums text-foreground">
                         {formatMoney(100 - platformRate(provider))}
                       </p>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       <div className="inline-flex gap-0.5">
                       <Tooltip
                         title={t(
@@ -423,7 +416,7 @@ export default function ServicesActivitiesPanel({
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
 
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-1.5 leading-[1.5]">
           {t(

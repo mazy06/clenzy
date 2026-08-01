@@ -2,7 +2,8 @@ import React, { useCallback, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
-import { TextField, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, Grid, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AutoAwesome,
   Group,
@@ -333,15 +334,15 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
         {/* ─── Tarification par surface ─────────────────────────────────── */}
         <div>
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surfacePricing')}</p>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell sx={{ fontSize: '0.6875rem' }}>{t('tarification.forfaitSection.maxThreshold')}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.6875rem' }}>{t('tarification.forfaitSection.basePrice')}</TableCell>
-                  {canEdit && <TableCell align="center" sx={{ width: 48 }} />}
+                  <TableHead className="text-[0.6875rem]">{t('tarification.forfaitSection.maxThreshold')}</TableHead>
+                  <TableHead className="text-end text-[0.6875rem]">{t('tarification.forfaitSection.basePrice')}</TableHead>
+                  {canEdit && <TableHead className="w-[48px] text-center" />}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {(forfait.surfaceBasePrices || []).map((tier, index) => (
                   <TableRow key={index}>
@@ -361,7 +362,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                         <Badge variant="secondary" className="h-[24px]">{t('tarification.forfaitSection.unlimited')}</Badge>
                       )}
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       <TextField
                         type="number"
                         size="small"
@@ -374,7 +375,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                       />
                     </TableCell>
                     {canEdit && (
-                      <TableCell align="center">
+                      <TableCell className="text-center">
                         <IconButton size="small" onClick={() => removeSurfaceTier(index)} color="error">
                           <Delete size={16} strokeWidth={1.75} />
                         </IconButton>
@@ -384,7 +385,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           {canEdit && (
             <div className="mt-0.5">
               <StatusChip

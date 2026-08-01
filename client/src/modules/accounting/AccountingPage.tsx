@@ -3,8 +3,8 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Paper, Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Paper, Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -82,9 +82,14 @@ const CARD_SX = {
   bgcolor: 'var(--card)',
 } as const;
 
-// Tableaux : entêtes overline / lignes hairline via le thème global Signature.
-const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
-const HEAD_CELL_SX = { py: 1 } as const;
+// Tableaux : la typo / le padding / le filet viennent des primitifs du kit ;
+// il ne reste ici que ce que les cellules ajoutent EN PLUS.
+const CELL_CLASS = 'tabular-nums';
+// Tableau de detail (modale SEPA) : mise en page cle/valeur, donc plus serree et sans filet.
+const DETAIL_CELL_CLASS = 'py-[4.5px] border-b-0 tabular-nums';
+const DETAIL_LABEL_CLASS = `${DETAIL_CELL_CLASS} font-semibold text-[var(--muted)]`;
+// Report en classes de `CARD_SX` pour les conteneurs de tableau (r-lg, hairline, fond carte).
+const CARD_CLASS = 'overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]';
 
 const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
 
@@ -414,44 +419,44 @@ export const PayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className={CARD_CLASS}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.col.owner', 'Proprietaire')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.col.period', 'Periode')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.gross', 'Revenu brut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.commission', 'Commission')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.expenses', 'Depenses')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.net', 'Net')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.col.status', 'Status')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('accounting.col.owner', 'Proprietaire')}</TableHead>
+                <TableHead>{t('accounting.col.period', 'Periode')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.gross', 'Revenu brut')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.commission', 'Commission')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.expenses', 'Depenses')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.net', 'Net')}</TableHead>
+                <TableHead className="text-center">{t('accounting.col.status', 'Status')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {payouts.map((payout) => (
-                <TableRow key={payout.id} data-highlight-id={String(payout.id)} hover>
-                  <TableCell sx={CELL_SX}>
+                <TableRow key={payout.id} data-highlight-id={String(payout.id)}>
+                  <TableCell className={CELL_CLASS}>
                     {payout.ownerName ?? `${t('accounting.owner', 'Proprietaire')} #${payout.ownerId}`}
                   </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
+                  <TableCell className={`${CELL_CLASS} text-xs`}>
                     {fmtDate(payout.periodStart)} → {fmtDate(payout.periodEnd)}
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="right">{fmtCurrency(payout.grossRevenue)}</TableCell>
-                  <TableCell sx={CELL_SX} align="right">
+                  <TableCell className={`${CELL_CLASS} text-end`}>{fmtCurrency(payout.grossRevenue)}</TableCell>
+                  <TableCell className={`${CELL_CLASS} text-end`}>
                     {fmtCurrency(payout.commissionAmount)}{' '}
                     <span className="text-[0.6875rem] text-muted-foreground">
                       ({fmtPercent(payout.commissionRate)})
                     </span>
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="right">{fmtCurrency(payout.expenses)}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">
+                  <TableCell className={`${CELL_CLASS} text-end`}>{fmtCurrency(payout.expenses)}</TableCell>
+                  <TableCell className={`${CELL_CLASS} text-end font-bold`}>
                     {fmtCurrency(payout.netAmount)}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)'} label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)} />
                   </TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-end whitespace-nowrap">
                     <div className="flex items-center justify-end gap-0.5">
                     {payout.status === 'PENDING' && (
                       <Tooltip title={t('accounting.approve', 'Approuver')}>
@@ -558,7 +563,7 @@ export const PayoutsTab: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -624,59 +629,59 @@ export const PayoutsTab: React.FC = () => {
           const config = configByOwnerId.get(detailPayout.ownerId);
           return (
             <DialogContent sx={{ pt: '8px !important' }}>
-              <Table size="small" sx={{ '& td, & th': { fontSize: '12.5px', py: 0.75, border: 'none', fontVariantNumeric: 'tabular-nums' } }}>
+              <Table>
                 <TableBody>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', width: 160 }}>Bénéficiaire</TableCell>
-                    <TableCell>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
+                    <TableCell className={`${DETAIL_LABEL_CLASS} w-[160px]`}>Bénéficiaire</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>IBAN</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace', letterSpacing: 1 }}>{config?.maskedIban || '—'}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>IBAN</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-mono tracking-[1px]`}>{config?.maskedIban || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>BIC</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace' }}>{config?.bic || '—'}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>BIC</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{config?.bic || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Méthode</TableCell>
-                    <TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Méthode</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>
                       <StatusChip color={'var(--info)'} label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2} sx={{ pt: '12px !important' }}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className={`${DETAIL_CELL_CLASS} pt-[12px]`}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Période</TableCell>
-                    <TableCell>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Période</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Revenu brut</TableCell>
-                    <TableCell>{fmtCurrency(detailPayout.grossRevenue)}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Revenu brut</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>{fmtCurrency(detailPayout.grossRevenue)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
-                    <TableCell sx={{ color: 'var(--err)' }}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} text-[var(--err)]`}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Dépenses</TableCell>
-                    <TableCell sx={{ color: detailPayout.expenses > 0 ? 'var(--err)' : 'var(--muted)' }}>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Dépenses</TableCell>
+                    <TableCell className={detailPayout.expenses > 0 ? `${DETAIL_CELL_CLASS} text-[var(--err)]` : `${DETAIL_CELL_CLASS} text-[var(--muted)]`}>
                       {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className={DETAIL_CELL_CLASS}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Net à virer</TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', fontFamily: 'var(--font-display)', color: 'var(--ok)' }}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-bold text-sm`}>Net à virer</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-[family-name:var(--font-display)] font-semibold text-sm text-[var(--ok)]`}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
                   </TableRow>
                   {detailPayout.paymentReference && (
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Réf. paiement</TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace' }}>{detailPayout.paymentReference}</TableCell>
+                      <TableCell className={DETAIL_LABEL_CLASS}>Réf. paiement</TableCell>
+                      <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{detailPayout.paymentReference}</TableCell>
                     </TableRow>
                   )}
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Statut</TableCell>
-                    <TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Statut</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>
                       <StatusChip color={PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)'} label={detailPayout.status} />
                     </TableCell>
                   </TableRow>
@@ -1024,41 +1029,41 @@ export const ExpensesTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className={CARD_CLASS}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.date', 'Date')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.provider', 'Prestataire')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.property', 'Logement')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.description', 'Description')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.expenses.category', 'Categorie')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.expenses.amountTtc', 'Montant TTC')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.expenses.status', 'Statut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('accounting.expenses.date', 'Date')}</TableHead>
+                <TableHead>{t('accounting.expenses.provider', 'Prestataire')}</TableHead>
+                <TableHead>{t('accounting.expenses.property', 'Logement')}</TableHead>
+                <TableHead>{t('accounting.expenses.description', 'Description')}</TableHead>
+                <TableHead className="text-center">{t('accounting.expenses.category', 'Categorie')}</TableHead>
+                <TableHead className="text-end">{t('accounting.expenses.amountTtc', 'Montant TTC')}</TableHead>
+                <TableHead className="text-center">{t('accounting.expenses.status', 'Statut')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {expenses.map((expense) => (
-                <TableRow key={expense.id} hover>
-                  <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
+                <TableRow key={expense.id}>
+                  <TableCell className={`${CELL_CLASS} text-xs`}>
                     {fmtDate(expense.expenseDate)}
                   </TableCell>
-                  <TableCell sx={CELL_SX}>{expense.providerName ?? '—'}</TableCell>
-                  <TableCell sx={CELL_SX}>{expense.propertyName ?? '—'}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <TableCell className={CELL_CLASS}>{expense.providerName ?? '—'}</TableCell>
+                  <TableCell className={CELL_CLASS}>{expense.propertyName ?? '—'}</TableCell>
+                  <TableCell className={`${CELL_CLASS} max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap`}>
                     {expense.description}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
                   </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">
+                  <TableCell className={`${CELL_CLASS} text-end font-bold`}>
                     {fmtCurrency(expense.amountTtc, expense.currency)}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
                   </TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-end whitespace-nowrap">
                     {expense.status === 'DRAFT' && (
                       <>
                         <Tooltip title={t('accounting.expenses.approve', 'Approuver')}>
@@ -1145,7 +1150,7 @@ export const ExpensesTab: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════

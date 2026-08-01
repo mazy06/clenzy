@@ -3,7 +3,9 @@ import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -64,8 +66,6 @@ const CHANNEL_OPTIONS: { value: MessageChannelType; label: string; icon: React.R
   { value: 'SMS', label: 'SMS', icon: <SmsIcon size={'0.875rem'} strokeWidth={1.75} /> },
   { value: 'WHATSAPP', label: 'WhatsApp', icon: <WhatsAppIcon size={'0.875rem'} strokeWidth={1.75} /> },
 ];
-
-const CELL_SX = { py: 1.25 } as const;
 
 // ─── Chips soft (pilule fond -soft + texte couleur — pattern baseline §2) ────
 // La géométrie est portée par StatusChip (`pill`) ; il ne reste ici que le
@@ -739,38 +739,37 @@ const ExecutionsDialog: React.FC<{
           </p>
         ) : (
           <>
-            <TableContainer>
-              {/* Entêtes overline + hairlines : portées par le thème global */}
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('automation.exec.date', 'Date')}</TableCell>
-                    <TableCell>{t('automation.exec.guest', 'Client')}</TableCell>
-                    <TableCell>{t('automation.exec.reservation', 'Reservation')}</TableCell>
-                    <TableCell align="center">{t('automation.exec.status', 'Status')}</TableCell>
-                    <TableCell>{t('automation.exec.error', 'Erreur')}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {executions.map((exec) => {
-                    const tokens = EXEC_STATUS_TOKENS[exec.status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
-                    return (
-                      <TableRow key={exec.id} hover>
-                        <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(exec.createdAt)}</TableCell>
-                        <TableCell sx={CELL_SX}>{exec.guestName}</TableCell>
-                        <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>#{exec.reservationId}</TableCell>
-                        <TableCell align="center">
-                          <StatusChip pill tokens={{ color: tokens.color, bg: tokens.soft }} label={exec.status} />
-                        </TableCell>
-                        <TableCell sx={{ ...CELL_SX, color: exec.errorMessage ? 'var(--err)' : 'var(--faint)' }}>
-                          {exec.errorMessage ?? '—'}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            {/* Entêtes overline + hairlines : portées par le primitif ;
+                le conteneur overflow-x-auto est déjà rendu par <Table>. */}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('automation.exec.date', 'Date')}</TableHead>
+                  <TableHead>{t('automation.exec.guest', 'Client')}</TableHead>
+                  <TableHead>{t('automation.exec.reservation', 'Reservation')}</TableHead>
+                  <TableHead className="text-center">{t('automation.exec.status', 'Status')}</TableHead>
+                  <TableHead>{t('automation.exec.error', 'Erreur')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {executions.map((exec) => {
+                  const tokens = EXEC_STATUS_TOKENS[exec.status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
+                  return (
+                    <TableRow key={exec.id}>
+                      <TableCell className="py-[7.5px] tabular-nums">{fmtDate(exec.createdAt)}</TableCell>
+                      <TableCell className="py-[7.5px]">{exec.guestName}</TableCell>
+                      <TableCell className="py-[7.5px] tabular-nums">#{exec.reservationId}</TableCell>
+                      <TableCell className="text-center">
+                        <StatusChip pill tokens={{ color: tokens.color, bg: tokens.soft }} label={exec.status} />
+                      </TableCell>
+                      <TableCell className={cn('py-[7.5px]', exec.errorMessage ? 'text-[var(--err)]' : 'text-[var(--faint)]')}>
+                        {exec.errorMessage ?? '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
             <PagePagination
               count={totalElements}
               page={page}

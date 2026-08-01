@@ -4,7 +4,8 @@ import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import { Card, CardContent, Alert, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Lock,
@@ -399,22 +400,23 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             </Alert>
           )}
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
+          {/* Report du Paper variant="outlined" : rayon theme.shape 8px, filet --line, fond --card. */}
+          <div className="overflow-x-auto rounded-lg border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Template</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>{t('documents.compliance.activeLabel')}</TableCell>
-                  <TableCell>{t('documents.compliance.complianceLabel')}</TableCell>
-                  <TableCell>Score</TableCell>
-                  <TableCell align="right">{t('common.actions')}</TableCell>
+                  <TableHead>Template</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>{t('documents.compliance.activeLabel')}</TableHead>
+                  <TableHead>{t('documents.compliance.complianceLabel')}</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead className="text-end">{t('common.actions')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {templates.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={6} className="text-center py-[18px]">
                       <p className="cn-text-body1 text-muted-foreground">{t('documents.compliance.noTemplates')}</p>
                     </TableCell>
                   </TableRow>
@@ -425,13 +427,11 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                     return (
                       <TableRow
                         key={tpl.id}
-                        hover
-                        sx={{
-                          transition: 'background-color 0.4s ease',
+                        className={cn(
+                          'transition-colors duration-[.4s] motion-reduce:transition-none',
                           // Pas de side-stripe (interdit absolu) : surlignage -soft seul.
-                          ...(isChecking && { backgroundColor: 'var(--accent-soft)' }),
-                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        }}
+                          isChecking && 'bg-[var(--accent-soft)]',
+                        )}
                       >
                         <TableCell>
                           <p className="cn-text-body2 font-medium">{tpl.name}</p>
@@ -494,7 +494,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                             </p>
                           ) : '\u2014'}
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell className="text-end">
                           {report ? (
                             <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'} arrow>
                               {report.compliant ? (
@@ -519,7 +519,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </CardContent>
       </Card>
     </div>

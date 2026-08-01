@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, Button, TextField, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Skeleton, Snackbar, Alert } from '@mui/material';
+import { Button, TextField, IconButton, Tooltip, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -140,16 +141,16 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
               ) : codes.length === 0 ? (
                 <EmptyState icon={<VpnKey />} title="Aucun code actif" description="Générez un code de remise pour un voyageur." />
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)' }}>
-                  <Table size="small">
-                    <TableHead>
+                <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell>Code</TableCell>
-                        <TableCell>Voyageur</TableCell>
-                        <TableCell>Statut</TableCell>
-                        <TableCell align="right">Action</TableCell>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Voyageur</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-end">Action</TableHead>
                       </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                       {codes.map((c) => (
                         <TableRow key={c.id}>
@@ -163,7 +164,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                           <TableCell>
                             <StatusChip tokens={codeStatusTokens(c.status)} label={c.status} pill />
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell className="text-end">
                             {c.status === 'ACTIVE' && (
                               <Tooltip title="Annuler ce code" arrow>
                                 <IconButton size="small" onClick={() => cancel.mutate(c.id)} disabled={cancel.isPending} sx={{ color: 'error.main' }}>
@@ -176,7 +177,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                       ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </div>
               )}
             </div>
           )}
@@ -187,30 +188,30 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
             ) : (eventsQuery.data?.content.length ?? 0) === 0 ? (
               <EmptyState icon={<History />} title="Aucun mouvement" description="Les remises et collectes de clés de ce logement apparaîtront ici." />
             ) : (
-              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)' }}>
-                <Table size="small">
-                  <TableHead>
+              <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Acteur</TableCell>
-                      <TableCell>Notes</TableCell>
-                      <TableCell align="right">Date</TableCell>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Acteur</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead className="text-end">Date</TableHead>
                     </TableRow>
-                  </TableHead>
+                  </TableHeader>
                   <TableBody>
                     {eventsQuery.data!.content.map((ev) => (
                       <TableRow key={ev.id}>
                         <TableCell>{ev.eventType}</TableCell>
                         <TableCell>{ev.actorName || '—'}</TableCell>
-                        <TableCell sx={{ color: 'text.secondary' }}>{ev.notes || '—'}</TableCell>
-                        <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'text.disabled' }}>
+                        <TableCell className="text-[var(--muted)]">{ev.notes || '—'}</TableCell>
+                        <TableCell className="text-end whitespace-nowrap text-[var(--faint)]">
                           {new Date(ev.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </div>
             )
           )}
         </div>

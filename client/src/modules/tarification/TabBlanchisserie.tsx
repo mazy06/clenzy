@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { TextField, InputAdornment, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, InputAdornment, Switch, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -75,23 +76,23 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
         {t('tarification.blanchisserie.subtitle')}
       </p>
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('tarification.blanchisserie.article')}</TableCell>
-              <TableCell align="center">{t('tarification.blanchisserie.enabled')}</TableCell>
-              <TableCell align="right">{t('tarification.blanchisserie.price')}</TableCell>
-              {canEdit && <TableCell align="center" sx={{ width: 48 }} />}
+              <TableHead>{t('tarification.blanchisserie.article')}</TableHead>
+              <TableHead className="text-center">{t('tarification.blanchisserie.enabled')}</TableHead>
+              <TableHead className="text-end">{t('tarification.blanchisserie.price')}</TableHead>
+              {canEdit && <TableHead className="text-center w-12" />}
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {items.map((item, index) => (
               <TableRow key={item.key}>
                 <TableCell>
                   {t(`tarification.blanchisserie.items.${item.key}`, item.label)}
                 </TableCell>
-                <TableCell align="center">
+                <TableCell className="text-center">
                   <Switch
                     checked={item.enabled}
                     onChange={(e) => updateItem(index, { enabled: e.target.checked })}
@@ -99,7 +100,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                     size="small"
                   />
                 </TableCell>
-                <TableCell align="right" sx={{ width: 140 }}>
+                <TableCell className="text-end w-[140px]">
                   <TextField
                     type="number"
                     size="small"
@@ -115,7 +116,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                   />
                 </TableCell>
                 {canEdit && (
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <IconButton size="small" onClick={() => removeItem(index)} color="error">
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
@@ -125,7 +126,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (

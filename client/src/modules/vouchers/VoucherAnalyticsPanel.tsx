@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Grid, Stack } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -123,21 +124,21 @@ export default function VoucherAnalyticsPanel() {
           <span className="cn-text-overline text-[10.5px] tracking-[0.06em] font-bold text-[var(--faint)]">
             {t('vouchers.analytics.topVouchersTitle')}
           </span>
-          <Table size="small" sx={{ mt: 0.5 }}>
-            <TableHead>
+          <Table className="mt-[3px]">
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('vouchers.analytics.colName')}</TableCell>
-                <TableCell>{t('vouchers.analytics.colCode')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colUsages')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colGross')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colDiscount')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colNet')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colAvgPct')}</TableCell>
+                <TableHead>{t('vouchers.analytics.colName')}</TableHead>
+                <TableHead>{t('vouchers.analytics.colCode')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colUsages')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colGross')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colDiscount')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colNet')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colAvgPct')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {data.topVouchers.map((v: VoucherStats) => (
-                <TableRow key={v.voucherId} hover>
+                <TableRow key={v.voucherId}>
                   <TableCell>
                     <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                       {v.voucherName}
@@ -154,19 +155,21 @@ export default function VoucherAnalyticsPanel() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end tabular-nums">
                     {v.usageCount}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end tabular-nums">
                     {fmt(v.totalGross)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: TOKEN_WARN }}>
+                  {/* Couleur portee par une constante : une classe Tailwind ne peut
+                      pas naitre d'une variable, elle passe donc par style. */}
+                  <TableCell className="text-end tabular-nums" style={{ color: TOKEN_WARN }}>
                     −{fmt(v.totalDiscount)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+                  <TableCell className="text-end tabular-nums font-medium">
                     {fmt(v.totalNet)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: TOKEN_MUTED }}>
+                  <TableCell className="text-end tabular-nums" style={{ color: TOKEN_MUTED }}>
                     {v.avgDiscountPct}%
                   </TableCell>
                 </TableRow>

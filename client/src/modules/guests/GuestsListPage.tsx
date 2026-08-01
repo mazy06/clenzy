@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Skeleton } from '@mui/material';
+import { Paper, TextField, MenuItem, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -23,19 +24,6 @@ const CARD_SX = {
   bgcolor: 'var(--card)',
   boxShadow: 'none',
   borderRadius: '14px',
-} as const;
-
-// Entêtes de table : overline 10.5 --faint uppercase (pattern baseline tableaux).
-const TABLE_HEAD_SX = {
-  '& th': {
-    fontWeight: 700,
-    fontSize: '10.5px',
-    letterSpacing: '.05em',
-    textTransform: 'uppercase',
-    color: 'var(--faint)',
-    borderBottom: '1px solid var(--line)',
-    whiteSpace: 'nowrap',
-  },
 } as const;
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
@@ -224,29 +212,25 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       {/* Table */}
       {!isLoading && !isError && guests.length > 0 && (
         <Paper sx={CARD_SX}>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={TABLE_HEAD_SX}>
-                  <TableCell>Nom</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Telephone</TableCell>
-                  <TableCell>Canal</TableCell>
-                  <TableCell align="center">Sejours</TableCell>
-                  <TableCell align="right">Depense</TableCell>
-                  <TableCell>Cree le</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Telephone</TableHead>
+                  <TableHead>Canal</TableHead>
+                  <TableHead className="text-center">Sejours</TableHead>
+                  <TableHead className="text-end">Depense</TableHead>
+                  <TableHead>Cree le</TableHead>
                   {isSuperAdmin && (
-                    <TableCell>Organisation</TableCell>
+                    <TableHead>Organisation</TableHead>
                   )}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {guests.map((guest) => (
-                  <TableRow
-                    key={guest.id}
-                    hover
-                    sx={{ '&:last-child td': { borderBottom: 0 } }}
-                  >
+                  <TableRow key={guest.id}>
                     <TableCell>
                       {/* Avatar initiales display r13 (densité table → 34) + nom */}
                       <div className="flex items-center gap-2">
@@ -282,14 +266,14 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                         </p>
                       )}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
                       <StatusChip
                         tone="accent"
                         label={guest.totalStays ?? 0}
                         className="min-w-[28px] justify-center font-[family-name:var(--font-display)] tabular-nums"
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
                         {guest.totalSpent ? <Money value={guest.totalSpent} from="EUR" /> : '-'}
                       </p>
@@ -310,7 +294,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}

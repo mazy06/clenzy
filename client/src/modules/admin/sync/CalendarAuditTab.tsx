@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton, TextField } from '@mui/material';
+import { Skeleton, TextField } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
@@ -98,30 +99,28 @@ const CalendarAuditTab: React.FC = () => {
           <TriangleAlert />
           <AlertDescription><h6 className="cn-text-subtitle2 mb-[0.35em]">
             {conflicts.length} conflit(s) calendrier detecte(s)
-          </h6><TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Property ID</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Organization</TableCell>
+          </h6><Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Property ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Organization</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {conflicts.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>{c.id}</TableCell>
+                  <TableCell>{c.propertyId ?? '—'}</TableCell>
+                  <TableCell>{c.date ? new Date(c.date).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell>{c.status ?? '—'}</TableCell>
+                  <TableCell>{c.organizationId}</TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {conflicts.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{c.id}</TableCell>
-                    <TableCell>{c.propertyId ?? '—'}</TableCell>
-                    <TableCell>{c.date ? new Date(c.date).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell>{c.status ?? '—'}</TableCell>
-                    <TableCell>{c.organizationId}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer></AlertDescription>
+              ))}
+            </TableBody>
+          </Table></AlertDescription>
         </Alert>
       )}
 
@@ -138,37 +137,33 @@ const CalendarAuditTab: React.FC = () => {
         </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Property ID</TableCell>
-                  <TableCell>Command Type</TableCell>
-                  <TableCell>From</TableCell>
-                  <TableCell>To</TableCell>
-                  <TableCell>Source</TableCell>
-                  <TableCell>Reservation ID</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Executed At</TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Property ID</TableHead>
+                  <TableHead>Command Type</TableHead>
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Reservation ID</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Executed At</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {commands.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                    <TableCell colSpan={9} className="text-center text-[var(--muted)] py-[18px]">
                       Aucune commande
                     </TableCell>
                   </TableRow>
                 ) : (
                   commands.map((cmd) => (
                     <TableRow key={cmd.id}>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.id}</TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.propertyId}</TableCell>
+                      <TableCell className="tabular-nums">{cmd.id}</TableCell>
+                      <TableCell className="tabular-nums">{cmd.propertyId}</TableCell>
                       <TableCell>
                         <StatusChip
                           label={cmd.commandType}
@@ -192,7 +187,7 @@ const CalendarAuditTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}

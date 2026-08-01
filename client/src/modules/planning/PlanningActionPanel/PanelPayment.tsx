@@ -3,7 +3,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Payment,
   CheckCircle,
@@ -199,25 +200,27 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           Aucun paiement enregistré
         </p>
       ) : (
-        <TableContainer sx={{ mb: 1 }}>
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto mb-1.5">
+          {/* p-[3px] : le panneau lateral est etroit, l'ancien sx compressait
+              deja les cellules bien en deca du gabarit du primitif. */}
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={{ p: 0.5 }}>Date</TableCell>
-                <TableCell sx={{ p: 0.5 }}>Montant</TableCell>
-                <TableCell sx={{ p: 0.5 }}>Statut</TableCell>
+                <TableHead className="p-[3px]">Date</TableHead>
+                <TableHead className="p-[3px]">Montant</TableHead>
+                <TableHead className="p-[3px]">Statut</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {payment.paymentHistory.map((record) => (
                 <TableRow key={record.id}>
-                  <TableCell sx={{ p: 0.5, fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="p-[3px] tabular-nums">
                     {new Date(record.transactionDate).toLocaleDateString('fr-FR')}
                   </TableCell>
-                  <TableCell sx={{ p: 0.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="p-[3px] font-semibold tabular-nums">
                     <Money value={record.amount} from="EUR" />
                   </TableCell>
-                  <TableCell sx={{ p: 0.5 }}>
+                  <TableCell className="p-[3px]">
                     {(() => { const t = STATUS_TOKENS[record.status] || NEUTRAL_TOKENS; return (
                     <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={record.status} className="h-[18px] text-[0.625rem]" />
                     ); })()}
@@ -226,7 +229,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Validate dialog */}

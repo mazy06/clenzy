@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import { Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
   Replay,
@@ -347,79 +348,77 @@ const OutboxTab: React.FC = () => {
         </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell padding="checkbox">
+                  {/* Gabarit MuiTableCell padding="checkbox" : 48px de large, 0 0 0 4px. */}
+                  <TableHead className="w-12 p-0 ps-1">
                     <Tooltip arrow title="Une case n'apparaît que sur les lignes FAILED. Cochez puis cliquez 'Retry Selected'.">
                       <span className="inline-flex cursor-help">
                         <InfoOutlined size={14} strokeWidth={1.75} />
                       </span>
                     </Tooltip>
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint label="ID" hint="Identifiant interne de l'event dans la table outbox." />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Aggregate"
                       hint="Entité métier source. Format type#id. Ex: USER#42 = changement de profil utilisateur 42."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Event Type"
                       hint="Nature de la mutation. Ex: USER_PROFILE_UPDATED, RESERVATION_CREATED, CALENDAR_BOOKED."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Topic"
                       hint="Topic Kafka cible. Si un topic n'existe pas côté broker, les envois finissent en FAILED."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Status"
                       hint="PENDING = en file, SENT = publié OK, FAILED = échec. Survolez le chip pour le détail + action recommandée."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Retry"
                       hint="Nombre de tentatives déjà effectuées. Incrémenté à chaque échec du relais."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Error"
                       hint="Message d'erreur de la dernière tentative. Survolez la ligne pour voir le message complet."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint label="Created At" hint="Moment où l'event a été persisté dans l'outbox (= moment de la mutation métier)." />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint label="Sent At" hint="Moment où l'event a été publié avec succès dans Kafka. Vide tant qu'il n'est pas SENT." />
-                  </TableCell>
+                  </TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                    <TableCell colSpan={10} className="text-center text-[var(--muted)] py-[18px]">
                       Aucun event
                     </TableCell>
                   </TableRow>
                 ) : (
                   events.map((evt) => (
-                    <TableRow key={evt.id} selected={selectedIds.has(evt.id)}>
-                      <TableCell padding="checkbox">
+                    // data-state=selected est le pendant kit de la prop `selected` de MuiTableRow.
+                    <TableRow key={evt.id} data-state={selectedIds.has(evt.id) ? 'selected' : undefined}>
+                      <TableCell className="w-12 p-0 ps-1">
                         {evt.status === 'FAILED' && (
                           <Checkbox
                             checked={selectedIds.has(evt.id)}
@@ -472,7 +471,7 @@ const OutboxTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}

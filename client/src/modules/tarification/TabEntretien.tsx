@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
   Euro,
@@ -177,26 +178,26 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.type')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+          {/* Le primitif Table pose deja son propre conteneur overflow-x-auto :
+              un TableContainer supplementaire n'ajouterait qu'un div en double. */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.type')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.propertyTypeCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.propertyType.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.propertyTypeCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.propertyType.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
         </AccordionDetails>
       </Accordion>
 
@@ -212,26 +213,24 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.count')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.count')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.propertyCountCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.propertyCount.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.propertyCountCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.propertyCount.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
         </AccordionDetails>
       </Accordion>
 
@@ -247,26 +246,24 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.capacity')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.capacity')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.guestCapacityCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.guestCapacity.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.guestCapacityCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.guestCapacity.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
         </AccordionDetails>
       </Accordion>
 
@@ -282,26 +279,24 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.frequency')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.frequency')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.frequencyCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.frequency.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.frequencyCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.frequency.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
         </AccordionDetails>
       </Accordion>
 
@@ -317,30 +312,28 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.tier')}</TableCell>
-                  <TableCell align="center">{t('tarification.tableHeaders.maxThreshold')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.tier')}</TableHead>
+                <TableHead className="text-center">{t('tarification.tableHeaders.maxThreshold')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {config.surfaceTiers.map((tier, index) => (
+                <TableRow key={tier.label}>
+                  <TableCell>
+                    <StatusChip label={tier.label} tone={index === config.surfaceTiers.length - 1 ? 'err' : 'neutral'} />
+                  </TableCell>
+                  <TableCell className="text-center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <TextField type="number" size="small" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {config.surfaceTiers.map((tier, index) => (
-                  <TableRow key={tier.label}>
-                    <TableCell>
-                      <StatusChip label={tier.label} tone={index === config.surfaceTiers.length - 1 ? 'err' : 'neutral'} />
-                    </TableCell>
-                    <TableCell align="center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table>
         </AccordionDetails>
       </Accordion>
 

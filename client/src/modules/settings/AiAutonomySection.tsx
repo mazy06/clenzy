@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card } from '../../components/ui';
-import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, TextField } from '@mui/material';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
@@ -263,19 +263,19 @@ export default function AiAutonomySection() {
             {t('aiAutonomy.noRules', 'Aucune règle pour le moment — elles apparaissent après plusieurs confirmations de la même action.')}
           </span>
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('aiAutonomy.rule.tool', 'Action')}</TableCell>
-                <TableCell>{t('aiAutonomy.rule.status', 'Statut')}</TableCell>
-                <TableCell align="right">{t('aiAutonomy.rule.confirmations', 'Confirmations')}</TableCell>
-                <TableCell align="right">{t('aiAutonomy.rule.actions', '')}</TableCell>
+                <TableHead>{t('aiAutonomy.rule.tool', 'Action')}</TableHead>
+                <TableHead>{t('aiAutonomy.rule.status', 'Statut')}</TableHead>
+                <TableHead className="text-end">{t('aiAutonomy.rule.confirmations', 'Confirmations')}</TableHead>
+                <TableHead className="text-end">{t('aiAutonomy.rule.actions', '')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {rules.map((rule) => (
-                <TableRow key={rule.id} hover>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                <TableRow key={rule.id}>
+                  <TableCell className="font-mono text-[0.8125rem]">
                     {rule.toolName}
                   </TableCell>
                   <TableCell>
@@ -284,10 +284,10 @@ export default function AiAutonomySection() {
                       label={t(`aiAutonomy.status.${rule.status}`, rule.status)}
                     />
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end tabular-nums">
                     {rule.confirmationsSeen}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     {rule.status === 'SUGGESTED' && (
                       <>
                         <Button

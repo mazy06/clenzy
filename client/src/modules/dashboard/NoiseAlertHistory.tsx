@@ -2,7 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge as BuiBadge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Card, CardContent, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
   History,
@@ -127,35 +128,35 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
           </p>
         ) : (
           <>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={headerCellSx}>Date</TableCell>
-                    <TableCell sx={headerCellSx}>Propriete</TableCell>
-                    <TableCell sx={headerCellSx}>Severite</TableCell>
-                    <TableCell sx={headerCellSx} align="right">Mesure</TableCell>
-                    <TableCell sx={headerCellSx} align="right">Seuil</TableCell>
-                    <TableCell sx={headerCellSx}>Creneau</TableCell>
-                    <TableCell sx={headerCellSx}>Source</TableCell>
-                    <TableCell sx={headerCellSx} align="center">Statut</TableCell>
+                    <TableHead className={HEADER_CELL_CLASS}>Date</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Propriete</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Severite</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>Mesure</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>Seuil</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Creneau</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Source</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-center`}>Statut</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {alerts.map((alert: NoiseAlertDto) => (
-                    <TableRow key={alert.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
-                      <TableCell sx={cellSx}>{formatDate(alert.createdAt)}</TableCell>
-                      <TableCell sx={cellSx}>{alert.propertyName || `#${alert.propertyId}`}</TableCell>
-                      <TableCell sx={cellSx}><SeverityChip severity={alert.severity} /></TableCell>
-                      <TableCell sx={cellSx} align="right">
+                    <TableRow key={alert.id}>
+                      <TableCell className={CELL_CLASS}>{formatDate(alert.createdAt)}</TableCell>
+                      <TableCell className={CELL_CLASS}>{alert.propertyName || `#${alert.propertyId}`}</TableCell>
+                      <TableCell className={CELL_CLASS}><SeverityChip severity={alert.severity} /></TableCell>
+                      <TableCell className={`${CELL_CLASS} text-end`}>
                         <p className={cn('cn-text-body1 font-semibold text-[0.75rem]', alert.severity === 'CRITICAL' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
                           {alert.measuredDb.toFixed(0)} dB
                         </p>
                       </TableCell>
-                      <TableCell sx={cellSx} align="right">{alert.thresholdDb} dB</TableCell>
-                      <TableCell sx={cellSx}>{alert.timeWindowLabel || '—'}</TableCell>
-                      <TableCell sx={cellSx}><SourceChip source={alert.source} /></TableCell>
-                      <TableCell sx={cellSx} align="center">
+                      <TableCell className={`${CELL_CLASS} text-end`}>{alert.thresholdDb} dB</TableCell>
+                      <TableCell className={CELL_CLASS}>{alert.timeWindowLabel || '—'}</TableCell>
+                      <TableCell className={CELL_CLASS}><SourceChip source={alert.source} /></TableCell>
+                      <TableCell className={`${CELL_CLASS} text-center`}>
                         {alert.acknowledged ? (
                           <Tooltip title={`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}>
                             <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
@@ -176,7 +177,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
 
             <PagePagination
               count={totalElements}
@@ -229,18 +230,10 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
 
 // ─── Style helpers ───────────────────────────────────────────────────────────
 
-const headerCellSx = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  color: 'text.secondary',
-  textTransform: 'uppercase' as const,
-  py: 0.75,
-  letterSpacing: '0.04em',
-};
+// Ecarts assumes vs le gabarit du kit (qui porte deja 700 / majuscules / filet) :
+// cette table est plus dense et son en-tete un cran plus lisible que le defaut.
+const HEADER_CELL_CLASS = 'py-[4.5px] text-[0.6875rem] tracking-[0.04em] text-[var(--muted)]';
 
-const cellSx = {
-  fontSize: '0.75rem',
-  py: 0.5,
-};
+const CELL_CLASS = 'py-[3px] text-[0.75rem]';
 
 export default NoiseAlertHistory;

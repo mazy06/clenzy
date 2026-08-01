@@ -5,7 +5,8 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Snackbar, Stack, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -220,20 +221,20 @@ export default function VouchersPage({
             )}
           />
         ) : (
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[11px] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>{t('vouchers.table.name')}</TableCell>
-                  <TableCell>{t('vouchers.table.code')}</TableCell>
-                  <TableCell>{t('vouchers.table.type')}</TableCell>
-                  <TableCell>{t('vouchers.table.discount')}</TableCell>
-                  <TableCell>{t('vouchers.table.validity')}</TableCell>
-                  <TableCell align="center">{t('vouchers.table.usage')}</TableCell>
-                  <TableCell align="center">{t('vouchers.table.status')}</TableCell>
-                  <TableCell align="right">{t('common.actions')}</TableCell>
+                  <TableHead>{t('vouchers.table.name')}</TableHead>
+                  <TableHead>{t('vouchers.table.code')}</TableHead>
+                  <TableHead>{t('vouchers.table.type')}</TableHead>
+                  <TableHead>{t('vouchers.table.discount')}</TableHead>
+                  <TableHead>{t('vouchers.table.validity')}</TableHead>
+                  <TableHead className="text-center">{t('vouchers.table.usage')}</TableHead>
+                  <TableHead className="text-center">{t('vouchers.table.status')}</TableHead>
+                  <TableHead className="text-end">{t('common.actions')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {sortedVouchers.map((v) => (
                   <VoucherRow
@@ -248,7 +249,7 @@ export default function VouchersPage({
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
       </div>
 
@@ -331,7 +332,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
   const canDelete = v.usageCount === 0;
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
         <Stack spacing={0.25}>
           <p className="cn-text-body2 font-semibold">{v.name}</p>
@@ -368,7 +369,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
           {formatValidity(v.validFrom, v.validUntil, locale)}
         </span>
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         <p className="cn-text-body2 tabular-nums">
           {v.usageCount}
           {v.maxUsesTotal !== null && (
@@ -376,14 +377,14 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
           )}
         </p>
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         <StatusChip
           label={t(`vouchers.status.${v.status}`)}
           tokens={STATUS_TOKENS[v.status]}
           className="text-[10.5px] font-bold"
         />
       </TableCell>
-      <TableCell align="right">
+      <TableCell className="text-end">
         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
           {canPause && (
             <Tooltip title={t('vouchers.pause')} arrow>

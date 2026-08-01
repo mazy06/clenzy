@@ -10,7 +10,8 @@ import { useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { MenuItem, Select, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, type AiDailyUsage } from '../../services/api/aiApi';
@@ -192,15 +193,15 @@ export default function AiUsageTrendSection() {
 
       {/* ── Détail par (provider, modèle) ── */}
       {!empty && (
-        <Table size="small">
-          <TableHead>
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('settings.ai.usage.model', 'Modèle')}</TableCell>
-              <TableCell align="right">{t('settings.ai.usage.tokens', 'Tokens')}</TableCell>
-              <TableCell align="right">{t('settings.ai.usage.calls', 'Appels')}</TableCell>
-              <TableCell align="right">{t('settings.ai.usage.cost', 'Coût')}</TableCell>
+              <TableHead>{t('settings.ai.usage.model', 'Modèle')}</TableHead>
+              <TableHead className="text-end">{t('settings.ai.usage.tokens', 'Tokens')}</TableHead>
+              <TableHead className="text-end">{t('settings.ai.usage.calls', 'Appels')}</TableHead>
+              <TableHead className="text-end">{t('settings.ai.usage.cost', 'Coût')}</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {byModel.map((m) => (
               <TableRow key={`${m.provider}|${m.model}`}>
@@ -211,9 +212,9 @@ export default function AiUsageTrendSection() {
                     <span className="cn-text-caption text-muted-foreground">{m.provider}</span>
                   </div>
                 </TableCell>
-                <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtTokens(m.tokens)}</TableCell>
-                <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.calls}</TableCell>
-                <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCost(m.cost)}</TableCell>
+                <TableCell className="text-end tabular-nums">{fmtTokens(m.tokens)}</TableCell>
+                <TableCell className="text-end tabular-nums">{m.calls}</TableCell>
+                <TableCell className="text-end tabular-nums">{fmtCost(m.cost)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

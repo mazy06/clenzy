@@ -1,7 +1,7 @@
 import React from 'react';
-import { Badge } from './ui';
+import { Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertTitle, Button, Card, CardContent, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Grid, Tooltip } from '@mui/material';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
@@ -207,25 +207,25 @@ const RlsAudit: React.FC = () => {
               }
             />
           ) : (
-            <TableContainer sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>Origine</TableCell>
-                    <TableCell>Table</TableCell>
-                    <TableCell align="right">Occurrences</TableCell>
-                    <TableCell>Premier constat</TableCell>
-                    <TableCell>Dernier constat</TableCell>
-                    <TableCell align="right">Action</TableCell>
+                    <TableHead>Origine</TableHead>
+                    <TableHead>Table</TableHead>
+                    <TableHead className="text-end">Occurrences</TableHead>
+                    <TableHead>Premier constat</TableHead>
+                    <TableHead>Dernier constat</TableHead>
+                    <TableHead className="text-end">Action</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {[...ouverts, ...traites].map((chemin: RlsAuditFinding) => {
                     const reapparu =
                       chemin.resolvedAt !== null && chemin.lastSeenAt > chemin.resolvedAt;
                     return (
-                      <TableRow key={chemin.id} hover>
-                        <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                      <TableRow key={chemin.id}>
+                        <TableCell className="font-mono text-[0.8125rem]">
                           <Tooltip title={chemin.sqlExcerpt ?? ''} placement="top-start">
                             <span>{chemin.origin}</span>
                           </Tooltip>
@@ -236,16 +236,16 @@ const RlsAudit: React.FC = () => {
                         <TableCell>
                           <Badge variant="outline">{chemin.tableName}</Badge>
                         </TableCell>
-                        <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <TableCell className="text-end tabular-nums">
                           {chemin.occurrences.toLocaleString('fr-FR')}
                         </TableCell>
-                        <TableCell sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <TableCell className="tabular-nums whitespace-nowrap">
                           {dateCourte(chemin.firstSeenAt)}
                         </TableCell>
-                        <TableCell sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <TableCell className="tabular-nums whitespace-nowrap">
                           {dateCourte(chemin.lastSeenAt)}
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell className="text-end">
                           {chemin.resolvedAt && !reapparu ? (
                             <Badge variant="secondary" className="bg-[var(--ok-soft)] text-[var(--ok)]">traite</Badge>
                           ) : (
@@ -265,7 +265,7 @@ const RlsAudit: React.FC = () => {
                   })}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </CardContent>
       </Card>

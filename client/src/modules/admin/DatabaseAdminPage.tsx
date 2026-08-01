@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, Skeleton, Tooltip } from '@mui/material';
+import { IconButton, Button, Snackbar, Alert, Skeleton, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Download,
   Delete,
@@ -152,19 +153,19 @@ const DatabaseAdminPage: React.FC = () => {
             variant="transparent"
           />
         ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Fichier</TableCell>
-                  <TableCell>Taille</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableHead>Fichier</TableHead>
+                  <TableHead>Taille</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {backups.map((backup) => (
-                  <TableRow key={backup.filename} hover>
+                  <TableRow key={backup.filename}>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         <Storage fontSize="small" color="action" />
@@ -182,7 +183,7 @@ const DatabaseAdminPage: React.FC = () => {
                     <TableCell>
                       <p className="cn-text-body2">{formatDate(backup.createdAt)}</p>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       <Tooltip title="Telecharger">
                         <IconButton size="small" onClick={() => handleDownload(backup.filename)} color="primary">
                           <Download fontSize="small" />
@@ -207,7 +208,7 @@ const DatabaseAdminPage: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
       </Card>
 

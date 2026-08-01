@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Tooltip, IconButton, LinearProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Tooltip, IconButton, LinearProgress, Paper } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility as VisibilityIcon, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -33,44 +34,30 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
 
   return (
     <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow
-              sx={{
-                '& th': {
-                  fontWeight: 700,
-                  fontSize: '0.65625rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--faint)',
-                  borderBottom: '1px solid var(--line)',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <TableCell>Titre</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Propriété</TableCell>
-              <TableCell>Assigné à</TableCell>
-              <TableCell align="center">Statut</TableCell>
-              <TableCell align="center">Priorité</TableCell>
-              <TableCell align="center">Progression</TableCell>
-              <TableCell>Planifié le</TableCell>
-              <TableCell align="center">Actions</TableCell>
+      <div className="flex-1 overflow-hidden">
+        <Table>
+          <TableHeader>
+            {/* Le gabarit du kit porte deja poids/taille/casse/filet : seuls
+                l'interlettrage 0.06em et le nowrap etaient un ajout du sx. */}
+            <TableRow className="[&>th]:tracking-[0.06em] [&>th]:whitespace-nowrap">
+              <TableHead>Titre</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Propriété</TableHead>
+              <TableHead>Assigné à</TableHead>
+              <TableHead className="text-center">Statut</TableHead>
+              <TableHead className="text-center">Priorité</TableHead>
+              <TableHead className="text-center">Progression</TableHead>
+              <TableHead>Planifié le</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {interventions.map((intervention) => {
               if (!intervention?.id) return null;
               return (
                 <TableRow
                   key={intervention.id}
-                  hover
-                  sx={{
-                    cursor: 'pointer',
-                    '&:last-child td': { borderBottom: 0 },
-                  }}
+                  className="cursor-pointer"
                   onClick={() => navigate(`/interventions/${intervention.id}`)}
                 >
                   <TableCell>
@@ -104,17 +91,17 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     {(() => { const tk = getStatusTokens(intervention.status); return (
                       <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.75rem] h-[24px]" />
                     ); })()}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     {(() => { const tk = getPriorityTokens(intervention.priority); return (
                       <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.75rem] h-[24px]" />
                     ); })()}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <div className="flex items-center gap-1 min-w-[80px]">
                       <LinearProgress
                         variant="determinate"
@@ -146,7 +133,7 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-center whitespace-nowrap">
                     <Tooltip title="Détails">
                       <IconButton
                         size="small"
@@ -169,7 +156,7 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalCount}
         page={page}

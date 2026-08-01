@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton, Grid, Card, CardContent, TextField } from '@mui/material';
+import { Skeleton, Grid, Card, CardContent, TextField } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
@@ -200,28 +201,24 @@ const EventsTab: React.FC = () => {
         </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Channel</TableCell>
-                  <TableCell>Direction</TableCell>
-                  <TableCell>Event Type</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Error</TableCell>
-                  <TableCell>Duration (ms)</TableCell>
-                  <TableCell>Created At</TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>Direction</TableHead>
+                  <TableHead>Event Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Error</TableHead>
+                  <TableHead>Duration (ms)</TableHead>
+                  <TableHead>Created At</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">Aucun event</TableCell>
+                    <TableCell colSpan={8} className="text-center">Aucun event</TableCell>
                   </TableRow>
                 ) : (
                   events.map((evt) => (
@@ -259,7 +256,7 @@ const EventsTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Skeleton } from '@mui/material';
+import { Button, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -82,35 +83,31 @@ const ConnectionsTab: React.FC = () => {
         Connexions Channel
       </h6>
 
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-      >
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Channel</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Last Sync</TableCell>
-              <TableCell>Last Error</TableCell>
-              <TableCell>Mappings</TableCell>
-              <TableCell>Health</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableHead>ID</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Sync</TableHead>
+              <TableHead>Last Error</TableHead>
+              <TableHead>Mappings</TableHead>
+              <TableHead>Health</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {connections.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                <TableCell colSpan={8} className="text-center text-[var(--muted)] py-[18px]">
                   Aucune connexion
                 </TableCell>
               </TableRow>
             ) : (
               connections.map((conn) => (
                 <TableRow key={conn.id}>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.id}</TableCell>
+                  <TableCell className="tabular-nums">{conn.id}</TableCell>
                   <TableCell>{conn.channel}</TableCell>
                   <TableCell>
                     <StatusChip label={conn.status} tokens={statusToken(conn.status)} />
@@ -123,7 +120,7 @@ const ConnectionsTab: React.FC = () => {
                       {conn.lastError || '—'}
                     </p>
                   </TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.mappingCount}</TableCell>
+                  <TableCell className="tabular-nums">{conn.mappingCount}</TableCell>
                   <TableCell>
                     <StatusChip
                       label={conn.healthStatus}
@@ -146,7 +143,7 @@ const ConnectionsTab: React.FC = () => {
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
     </div>
   );
 };

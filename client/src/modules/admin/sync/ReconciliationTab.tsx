@@ -4,7 +4,8 @@ import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Skeleton, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Skeleton, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   PlayArrow,
   CompareArrows,
@@ -217,51 +218,47 @@ const ReconciliationTab: React.FC = () => {
         </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Channel</TableCell>
-                  <TableCell>Property</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>PMS Days</TableCell>
-                  <TableCell>Channel Days</TableCell>
-                  <TableCell>Discrepancies</TableCell>
-                  <TableCell>Fixed</TableCell>
-                  <TableCell>Divergence</TableCell>
-                  <TableCell>Duration</TableCell>
-                  <TableCell>Started At</TableCell>
-                  <TableCell>Error</TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>PMS Days</TableHead>
+                  <TableHead>Channel Days</TableHead>
+                  <TableHead>Discrepancies</TableHead>
+                  <TableHead>Fixed</TableHead>
+                  <TableHead>Divergence</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Started At</TableHead>
+                  <TableHead>Error</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {runs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                    <TableCell colSpan={12} className="text-center text-[var(--muted)] py-[18px]">
                       Aucune reconciliation
                     </TableCell>
                   </TableRow>
                 ) : (
                   runs.map((run) => (
                     <TableRow key={run.id}>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.id}</TableCell>
+                      <TableCell className="tabular-nums">{run.id}</TableCell>
                       <TableCell>
                         <StatusChip tokens={NEUTRAL_TOKEN} label={run.channel} />
                       </TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.propertyId}</TableCell>
+                      <TableCell className="tabular-nums">{run.propertyId}</TableCell>
                       <TableCell>
                         <StatusChip
                           tokens={STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN}
                           label={run.status}
                         />
                       </TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.pmsDaysChecked}</TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.channelDaysChecked}</TableCell>
+                      <TableCell className="tabular-nums">{run.pmsDaysChecked}</TableCell>
+                      <TableCell className="tabular-nums">{run.channelDaysChecked}</TableCell>
                       <TableCell>
                         <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFound > 0 ? 'text-[var(--warn)]' : 'text-[var(--body)]', run.discrepanciesFound > 0 ? 'font-semibold' : 'font-normal')}>
                           {run.discrepanciesFound}
@@ -289,7 +286,7 @@ const ReconciliationTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}

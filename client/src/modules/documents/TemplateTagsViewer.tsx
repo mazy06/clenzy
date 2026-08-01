@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Card } from '../../components/ui';
-import { Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableRow } from '@mui/material';
+import { Card, Table, TableBody, TableRow, TableCell } from '../../components/ui';
+import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
@@ -107,11 +107,18 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
               </div>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
-              <Table size="small">
+              <Table>
                 <TableBody>
                   {groupedTags[cat].map((tag) => (
                     <TableRow key={tag.id ?? `${cat}-${tag.tagName}`}>
-                      <TableCell sx={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace', fontSize: '0.85rem', color: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color }}>
+                      {/* couleur resolue a l'execution depuis le ton de categorie : passe par style, pas par une classe */}
+                      <TableCell
+                        className="text-[0.85rem]"
+                        style={{
+                          fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                          color: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color,
+                        }}
+                      >
                         {'${' + tag.tagName + '}'}
                       </TableCell>
                       <TableCell>

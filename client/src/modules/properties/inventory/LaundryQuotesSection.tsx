@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Card } from '../../../components/ui';
-import { Button, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
+import { Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Button, IconButton, Collapse, Tooltip } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
 } from '../../../icons';
@@ -85,18 +86,18 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
           <p className="cn-text-body1 text-muted-foreground">Aucun devis genere pour cette propriete</p>
         </Card>
       ) : (
-        <TableContainer component="div" className="overflow-x-auto rounded-xl border border-border bg-card">
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={{ width: 40 }} />
-                <TableCell>N°</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell align="right">Total HT</TableCell>
-                {canEdit && <TableCell align="right" sx={{ width: 80 }} />}
+                <TableHead className="w-10" />
+                <TableHead>N°</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-end">Total HT</TableHead>
+                {canEdit && <TableHead className="text-end w-20" />}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {quotes.map((quote) => {
                 const statusConf = STATUS_CONFIG[quote.status] ?? STATUS_CONFIG.DRAFT;
@@ -104,22 +105,22 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
                 return (
                   <React.Fragment key={quote.id}>
-                    <TableRow hover sx={{ cursor: 'pointer' }} onClick={() => toggleExpand(quote.id)}>
+                    <TableRow className="cursor-pointer" onClick={() => toggleExpand(quote.id)}>
                       <TableCell>
                         <IconButton size="small">
                           {isExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
                         </IconButton>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>#{quote.id}</TableCell>
+                      <TableCell className="font-medium">#{quote.id}</TableCell>
                       <TableCell>{formatDate(quote.generatedAt)}</TableCell>
                       <TableCell>
                         <StatusChip tone={statusConf.tone} label={statusConf.label} />
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      <TableCell className="text-end font-semibold">
                         <Money value={Number(quote.totalHt)} from={quote.currency ?? 'EUR'} />
                       </TableCell>
                       {canEdit && (
-                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                           {quote.status === 'DRAFT' && (
                             <Tooltip title="Confirmer le devis">
                               <Button
@@ -140,25 +141,25 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
                     {/* Expanded detail */}
                     <TableRow>
-                      <TableCell colSpan={canEdit ? 6 : 5} sx={{ p: 0, border: isExpanded ? undefined : 'none' }}>
+                      <TableCell colSpan={canEdit ? 6 : 5} className={cn('p-0', !isExpanded && 'border-b-0')}>
                         <Collapse in={isExpanded}>
                           <div className="p-3 bg-[var(--hover)]">
-                            <Table size="small">
-                              <TableHead>
+                            <Table>
+                              <TableHeader>
                                 <TableRow>
-                                  <TableCell>Article</TableCell>
-                                  <TableCell align="center">Qte</TableCell>
-                                  <TableCell align="right">Prix unitaire</TableCell>
-                                  <TableCell align="right">Sous-total</TableCell>
+                                  <TableHead>Article</TableHead>
+                                  <TableHead className="text-center">Qte</TableHead>
+                                  <TableHead className="text-end">Prix unitaire</TableHead>
+                                  <TableHead className="text-end">Sous-total</TableHead>
                                 </TableRow>
-                              </TableHead>
+                              </TableHeader>
                               <TableBody>
                                 {quote.lines.map((line) => (
                                   <TableRow key={line.key}>
                                     <TableCell>{line.label}</TableCell>
-                                    <TableCell align="center">{line.quantity}</TableCell>
-                                    <TableCell align="right"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 500 }}>
+                                    <TableCell className="text-center">{line.quantity}</TableCell>
+                                    <TableCell className="text-end"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>
+                                    <TableCell className="text-end font-medium">
                                       <Money value={Number(line.lineTotal)} from="EUR" />
                                     </TableCell>
                                   </TableRow>
@@ -184,7 +185,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
     </div>
   );

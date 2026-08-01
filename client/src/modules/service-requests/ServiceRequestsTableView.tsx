@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Paper, Tooltip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Paper, Tooltip, IconButton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -34,43 +35,27 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
 
   return (
     <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow
-              sx={{
-                '& th': {
-                  fontWeight: 700,
-                  fontSize: '10.5px',
-                  letterSpacing: '.05em',
-                  textTransform: 'uppercase',
-                  color: 'var(--faint)',
-                  borderBottom: '1px solid var(--line)',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <TableCell>Titre</TableCell>
-              <TableCell>Propriété</TableCell>
-              <TableCell>Demandeur</TableCell>
-              <TableCell>Assigné à</TableCell>
-              <TableCell align="center">Statut</TableCell>
-              <TableCell align="center">Priorité</TableCell>
-              <TableCell align="right">Coût</TableCell>
-              <TableCell>Échéance</TableCell>
-              <TableCell align="center">Actions</TableCell>
+      <div className="flex-1 overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Titre</TableHead>
+              <TableHead>Propriété</TableHead>
+              <TableHead>Demandeur</TableHead>
+              <TableHead>Assigné à</TableHead>
+              <TableHead className="text-center">Statut</TableHead>
+              <TableHead className="text-center">Priorité</TableHead>
+              <TableHead className="text-end">Coût</TableHead>
+              <TableHead>Échéance</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {serviceRequests.map((request) => (
               <TableRow
                 key={request.id}
                 data-highlight-id={String(request.id)}
-                hover
-                sx={{
-                  cursor: 'pointer',
-                  '&:last-child td': { borderBottom: 0 },
-                }}
+                className="cursor-pointer"
                 onClick={() => navigate(`/service-requests/${request.id}`)}
               >
                 <TableCell>
@@ -96,13 +81,13 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                     {request.assignedToName || '—'}
                   </p>
                 </TableCell>
-                <TableCell align="center">
+                <TableCell className="text-center">
                   <StatusChip pill tokens={srStatusTokens(request.status)} label={getServiceRequestStatusLabel(request.status, t)} />
                 </TableCell>
-                <TableCell align="center">
+                <TableCell className="text-center">
                   <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                 </TableCell>
-                <TableCell align="right">
+                <TableCell className="text-end">
                   <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
                     {request.estimatedCost != null ? <Money value={request.estimatedCost} from="EUR" /> : '—'}
                   </p>
@@ -117,7 +102,7 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                     {formatDateShort(request.dueDate)}
                   </p>
                 </TableCell>
-                <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                <TableCell className="text-center">
                   <Tooltip title="Détails">
                     <IconButton
                       size="small"
@@ -139,7 +124,7 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalCount}
         page={page}

@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Avatar } from '@mui/material';
+import { IconButton, Tooltip, Avatar } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -37,12 +38,16 @@ const getMemberName = (member: OrganizationMemberDto): string => {
   return `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email;
 };
 
-const CELL_NOWRAP_SX = { whiteSpace: 'nowrap' as const, py: 0.75, px: 1 };
+const CELL_NOWRAP_CLASS = 'whitespace-nowrap py-[4.5px] px-1.5';
+// Cellule Actions : `pe` (padding-inline-end) et non `pr`, pour suivre les proprietes
+// logiques du kit et rester correct en RTL. `ps`/`pe` explicites plutot que `px` + `pe` :
+// deux utilitaires du meme groupe se departageraient sur l'ordre de la feuille generee.
+const CELL_ACTIONS_CLASS = 'whitespace-nowrap py-[4.5px] ps-1.5 pe-[7.5px] text-end';
 // Membre cell : shrinkable + ellipsis. `maxWidth: 0` + `width: '100%'` est le trick CSS pour
 // qu'une cellule <td> accepte text-overflow:ellipsis sur ses enfants tout en remplissant
 // l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
 // clipper par le `overflow: hidden` du SettingsSection.
-const CELL_MEMBER_SX = { py: 0.75, px: 1, maxWidth: 0, width: '100%' };
+const CELL_MEMBER_CLASS = 'py-[4.5px] px-1.5 max-w-0 w-full';
 
 export default function MembersList({ organizationId, refreshTrigger, onMemberChanged }: Props) {
   const { hasAnyRole, user } = useAuth();
@@ -129,16 +134,16 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   return (
     <>
-      <TableContainer sx={{ overflowX: 'hidden' }}>
-        <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
-          <TableHead>
+      <div className="overflow-x-hidden">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell sx={CELL_NOWRAP_SX}>Membre</TableCell>
-              <TableCell sx={CELL_NOWRAP_SX}>Role</TableCell>
-              <TableCell sx={CELL_NOWRAP_SX}>Depuis</TableCell>
-              {canManage && <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>Actions</TableCell>}
+              <TableHead className={CELL_NOWRAP_CLASS}>Membre</TableHead>
+              <TableHead className={CELL_NOWRAP_CLASS}>Role</TableHead>
+              <TableHead className={CELL_NOWRAP_CLASS}>Depuis</TableHead>
+              {canManage && <TableHead className={CELL_ACTIONS_CLASS}>Actions</TableHead>}
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {paginatedMembers.map((member) => {
               const isOwner = member.roleInOrg === 'OWNER';
@@ -146,9 +151,9 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
               const RoleIcon = getOrgRoleIcon(member.roleInOrg);
 
               return (
-                <TableRow key={member.id} hover>
+                <TableRow key={member.id}>
                   {/* Membre (avatar + nom + email) */}
-                  <TableCell sx={CELL_MEMBER_SX}>
+                  <TableCell className={CELL_MEMBER_CLASS}>
                     <div className="flex items-center gap-2 min-w-0">
                       <Avatar
                         src={usersApi.profilePictureUrl(member.userId)}
@@ -180,7 +185,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   </TableCell>
 
                   {/* Role : org + plateforme (les deux, parite avec l'Annuaire) */}
-                  <TableCell sx={CELL_NOWRAP_SX}>
+                  <TableCell className={CELL_NOWRAP_CLASS}>
                     <div className="flex gap-0.5 flex-wrap">
                       <Tooltip title="Rôle dans l'organisation">
                         {/* Le `span` porte la ref que Tooltip pose sur son enfant :
@@ -208,7 +213,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   </TableCell>
 
                   {/* Depuis */}
-                  <TableCell sx={CELL_NOWRAP_SX}>
+                  <TableCell className={CELL_NOWRAP_CLASS}>
                     <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
@@ -218,7 +223,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
                   {/* Actions — visible uniquement pour staff plateforme ou admin org */}
                   {canManage && (
-                    <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>
+                    <TableCell className={CELL_ACTIONS_CLASS}>
                       {!isOwner && (
                         <div className="inline-flex items-center gap-0.5">
                           <Tooltip title="Changer le rôle">
@@ -288,7 +293,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {members.length > ROWS_PER_PAGE && (
         <PagePagination

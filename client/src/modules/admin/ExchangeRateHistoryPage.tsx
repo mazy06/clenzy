@@ -4,7 +4,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -277,7 +278,7 @@ export default function ExchangeRateHistoryPage() {
       )}
 
       {/* Table */}
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
+      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
         {isLoading ? (
           <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -286,20 +287,20 @@ export default function ExchangeRateHistoryPage() {
           </div>
         ) : (
           <>
-            <Table size="small">
-              <TableHead>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Base</TableCell>
-                  <TableCell>Cible</TableCell>
-                  <TableCell align="right">Taux</TableCell>
-                  <TableCell>Source</TableCell>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Base</TableHead>
+                  <TableHead>Cible</TableHead>
+                  <TableHead className="text-end">Taux</TableHead>
+                  <TableHead>Source</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={5} className="text-center py-6">
                       <p className="cn-text-body1 text-muted-foreground">
                         Aucun taux de change sur cette periode.
                       </p>
@@ -307,7 +308,7 @@ export default function ExchangeRateHistoryPage() {
                   </TableRow>
                 )}
                 {rows.map((rate) => (
-                  <TableRow key={rate.id} hover>
+                  <TableRow key={rate.id}>
                     <TableCell>{formatDate(rate.rateDate)}</TableCell>
                     <TableCell>
                       <StatusChip color={currencyHex(rate.baseCurrency)} label={rate.baseCurrency} />
@@ -315,7 +316,7 @@ export default function ExchangeRateHistoryPage() {
                     <TableCell>
                       <StatusChip color={currencyHex(rate.targetCurrency)} label={rate.targetCurrency} />
                     </TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+                    <TableCell className="text-end font-mono tabular-nums font-medium">
                       {formatRate(rate.rate)}
                     </TableCell>
                     <TableCell>
@@ -335,7 +336,7 @@ export default function ExchangeRateHistoryPage() {
             />
           </>
         )}
-      </TableContainer>
+      </div>
     </div>
   );
 }

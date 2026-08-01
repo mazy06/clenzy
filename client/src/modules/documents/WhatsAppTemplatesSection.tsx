@@ -3,7 +3,8 @@ import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/Stat
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Edit } from '../../icons';
 import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -118,20 +119,22 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
           <AlertDescription>{t('whatsappTemplates.empty')}</AlertDescription>
         </Alert>
       ) : (
-        <TableContainer component={Paper}>
+        // Rayon 11px + fond --card : report du Paper par defaut du theme
+        // (shape.borderRadius = 11, elevation 0, background.paper).
+        <div className="overflow-x-auto rounded-[11px] bg-[var(--card)]">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('messaging.templates.name')}</TableCell>
-                <TableCell>{t('messaging.templates.origin')}</TableCell>
-                <TableCell>{t('whatsappTemplates.table.preview')}</TableCell>
-                <TableCell>{t('messaging.templates.language')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.status')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.version')}</TableCell>
-                <TableCell>{t('messaging.templates.createdBy')}</TableCell>
-                <TableCell align="right">{t('common.actions')}</TableCell>
+                <TableHead>{t('messaging.templates.name')}</TableHead>
+                <TableHead>{t('messaging.templates.origin')}</TableHead>
+                <TableHead>{t('whatsappTemplates.table.preview')}</TableHead>
+                <TableHead>{t('messaging.templates.language')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.status')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.version')}</TableHead>
+                <TableHead>{t('messaging.templates.createdBy')}</TableHead>
+                <TableHead className="text-end">{t('common.actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {sortedGroups.map((group) => (
                 <WhatsAppRow
@@ -142,7 +145,7 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {editingKey && (
@@ -185,7 +188,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
   const langChipLabel = previewLangCode.split('_')[0].toUpperCase();
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
         <div className="inline-flex items-center gap-1.5">
           <p className="cn-text-body2 font-semibold text-[var(--ink)]">
@@ -219,14 +222,14 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
       <TableCell>
         <StatusChip tokens={TONE.muted} label={langChipLabel} />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         {/* Templates WhatsApp toujours actifs cote serveur (pas de notion
             d'activation/desactivation pour les templates WhatsApp en BDD).
             La valeur reelle d'activation cote Meta est dans metaApprovalStatus
             (PENDING/APPROVED/REJECTED) — non expose ici en colonne. */}
         <StatusChip tokens={TONE.ok} label={t('messaging.templates.active')} />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
@@ -234,7 +237,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
           {group.isCustomized ? '—' : t('messaging.templates.systemAuthor')}
         </p>
       </TableCell>
-      <TableCell align="right">
+      <TableCell className="text-end">
         <Tooltip title={t('common.edit')} arrow>
           <IconButton
             size="small"

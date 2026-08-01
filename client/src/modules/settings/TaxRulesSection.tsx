@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Card } from '../../components/ui';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
@@ -250,44 +251,44 @@ const TaxRulesSection: React.FC = () => {
             <AlertDescription>{t('fiscal.taxRules.noRules')}</AlertDescription>
           </UiAlert>
         ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>{t('fiscal.taxRules.category')}</TableCell>
-                  <TableCell>{t('fiscal.taxRules.taxName')}</TableCell>
-                  <TableCell align="right">{t('fiscal.taxRules.rate')}</TableCell>
-                  <TableCell>{t('fiscal.taxRules.from')}</TableCell>
-                  <TableCell>{t('fiscal.taxRules.to')}</TableCell>
-                  <TableCell>{t('fiscal.taxRules.description')}</TableCell>
-                  {isSuperAdmin && <TableCell align="center">{t('fiscal.taxRules.actions')}</TableCell>}
+                  <TableHead>{t('fiscal.taxRules.category')}</TableHead>
+                  <TableHead>{t('fiscal.taxRules.taxName')}</TableHead>
+                  <TableHead className="text-end">{t('fiscal.taxRules.rate')}</TableHead>
+                  <TableHead>{t('fiscal.taxRules.from')}</TableHead>
+                  <TableHead>{t('fiscal.taxRules.to')}</TableHead>
+                  <TableHead>{t('fiscal.taxRules.description')}</TableHead>
+                  {isSuperAdmin && <TableHead className="text-center">{t('fiscal.taxRules.actions')}</TableHead>}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {sortedRules.map(rule => {
                   const catKey = rule.taxCategory as TaxCategoryType;
                   const { Icon: CategoryIcon, color: categoryColor } =
                     CATEGORY_STYLE[catKey] ?? DEFAULT_CATEGORY_STYLE;
                   return (
-                  <TableRow key={rule.id} hover>
+                  <TableRow key={rule.id}>
                     <TableCell>
                       <StatusChip tokens={{ color: categoryColor, bg: `color-mix(in srgb, ${categoryColor} 8%, transparent)` }} label={categoryLabel(catKey)} icon={<CategoryIcon size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                     </TableCell>
                     <TableCell>{rule.taxName}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    <TableCell className="text-end font-semibold tabular-nums">
                       {rateToPercent(rule.taxRate)} %
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem', fontVariantNumeric: 'tabular-nums' }}>
+                    <TableCell className="text-[0.8rem] tabular-nums">
                       {rule.effectiveFrom}
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                    <TableCell className="text-[0.8rem] text-[var(--muted)] tabular-nums">
                       {rule.effectiveTo ?? '—'}
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', maxWidth: 200 }}>
+                    <TableCell className="text-[0.8rem] text-[var(--muted)] max-w-[200px]">
                       {rule.description ?? '—'}
                     </TableCell>
                     {isSuperAdmin && (
-                      <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                      <TableCell className="text-center">
                         <div className="inline-flex items-center gap-0.5">
                           <Tooltip title={t('fiscal.taxRules.edit')}>
                             <IconButton
@@ -343,7 +344,7 @@ const TaxRulesSection: React.FC = () => {
                 })}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
       </Card>
 

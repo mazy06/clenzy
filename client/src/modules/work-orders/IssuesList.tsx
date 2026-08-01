@@ -4,7 +4,8 @@ import { CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Stack, TextField, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -255,27 +256,26 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
       variant="transparent"
     />
   ) : (
-    <TableContainer sx={{ overflowX: 'auto' }}>
-      <Table size="small">
-        <TableHead>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell>{t('issues.columns.date', 'Date')}</TableCell>
-            <TableCell>{t('issues.columns.property', 'Logement')}</TableCell>
-            <TableCell>{t('issues.columns.title', 'Anomalie')}</TableCell>
-            <TableCell>{t('issues.columns.severity', 'Sévérité')}</TableCell>
-            <TableCell align="right">{t('issues.columns.suggestedCost', 'Coût suggéré')}</TableCell>
-            <TableCell>{t('issues.columns.status', 'Statut')}</TableCell>
+            <TableHead>{t('issues.columns.date', 'Date')}</TableHead>
+            <TableHead>{t('issues.columns.property', 'Logement')}</TableHead>
+            <TableHead>{t('issues.columns.title', 'Anomalie')}</TableHead>
+            <TableHead>{t('issues.columns.severity', 'Sévérité')}</TableHead>
+            <TableHead className="text-end">{t('issues.columns.suggestedCost', 'Coût suggéré')}</TableHead>
+            <TableHead>{t('issues.columns.status', 'Statut')}</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {issues.map((issue) => (
             <TableRow
               key={issue.id}
-              hover
               onClick={() => openDetail(issue)}
-              sx={{ cursor: 'pointer' }}
+              className="cursor-pointer"
             >
-              <TableCell sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              <TableCell className="whitespace-nowrap tabular-nums">
                 {issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '—'}
               </TableCell>
               <TableCell>{issue.propertyName ?? '—'}</TableCell>
@@ -290,7 +290,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               <TableCell>
                 <StatusChip tone={SEVERITY_TONES[issue.severity]} label={severityLabel(issue.severity)} dot />
               </TableCell>
-              <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+              <TableCell className="text-end tabular-nums">
                 {issue.suggestedCost != null ? formatCurrency(issue.suggestedCost) : '—'}
               </TableCell>
               <TableCell>
@@ -300,7 +300,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           ))}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   );
 
   return (

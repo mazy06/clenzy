@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../../../components/ui';
-import { Button, IconButton, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Button, IconButton, TextField, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -98,25 +99,25 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
         </Card>
       ) : (
         <>
-          <TableContainer component="div" className="overflow-x-auto rounded-xl border border-border bg-card">
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Article</TableCell>
-                  <TableCell align="center">Qte / sejour</TableCell>
-                  <TableCell align="right">Prix unitaire</TableCell>
-                  <TableCell align="right">Sous-total</TableCell>
-                  {canEdit && <TableCell align="right" sx={{ width: 50 }} />}
+                  <TableHead>Article</TableHead>
+                  <TableHead className="text-center">Qte / sejour</TableHead>
+                  <TableHead className="text-end">Prix unitaire</TableHead>
+                  <TableHead className="text-end">Sous-total</TableHead>
+                  {canEdit && <TableHead className="text-end w-[50px]" />}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {items.map((item) => {
                   const unitPrice = priceByKey[item.itemKey] ?? 0;
                   const subtotal = unitPrice * item.quantityPerStay;
                   return (
-                    <TableRow key={item.id} hover>
+                    <TableRow key={item.id}>
                       <TableCell>{item.label}</TableCell>
-                      <TableCell align="center">
+                      <TableCell className="text-center">
                         {canEdit ? (
                           <TextField
                             type="number"
@@ -130,14 +131,14 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                           item.quantityPerStay
                         )}
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell className="text-end">
                         {unitPrice > 0 ? `${unitPrice.toFixed(2)} \u20AC` : '—'}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 500 }}>
+                      <TableCell className="text-end font-medium">
                         {subtotal > 0 ? `${subtotal.toFixed(2)} \u20AC` : '—'}
                       </TableCell>
                       {canEdit && (
-                        <TableCell align="right">
+                        <TableCell className="text-end">
                           <Tooltip title="Supprimer">
                             <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
                               <DeleteOutline size={16} strokeWidth={1.75} />
@@ -150,17 +151,17 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                 })}
                 {/* Total row */}
                 <TableRow>
-                  <TableCell colSpan={3} align="right" sx={{ fontWeight: 700 }}>
+                  <TableCell colSpan={3} className="text-end font-bold">
                     Total par sejour
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                  <TableCell className="text-end font-bold text-[0.95rem]">
                     {totalPerStay.toFixed(2)} {'\u20AC'}
                   </TableCell>
                   {canEdit && <TableCell />}
                 </TableRow>
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </>
       )}
 

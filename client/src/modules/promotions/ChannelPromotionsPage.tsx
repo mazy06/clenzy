@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Paper, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -60,9 +61,6 @@ const CARD_SX = {
   boxShadow: 'none',
   borderRadius: 1.5,
 } as const;
-
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
 
 const channelColor = (name: string) =>
   CHANNEL_OPTIONS.find((c) => c.value === name)?.color ?? '#666';
@@ -271,44 +269,45 @@ const ChannelPromotionsPage: React.FC = () => {
           </Button>
         </Paper>
       ) : (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('promotions.col.channel', 'Channel')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('promotions.col.property', 'Propriete')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('promotions.col.type', 'Type')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('promotions.col.discount', 'Reduction')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('promotions.col.dates', 'Dates')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('promotions.col.status', 'Status')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('promotions.col.enabled', 'Active')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('promotions.col.channel', 'Channel')}</TableHead>
+                <TableHead>{t('promotions.col.property', 'Propriete')}</TableHead>
+                <TableHead>{t('promotions.col.type', 'Type')}</TableHead>
+                <TableHead className="text-center">{t('promotions.col.discount', 'Reduction')}</TableHead>
+                <TableHead>{t('promotions.col.dates', 'Dates')}</TableHead>
+                <TableHead className="text-center">{t('promotions.col.status', 'Status')}</TableHead>
+                <TableHead className="text-center">{t('promotions.col.enabled', 'Active')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {promotions.map((promo) => (
-                <TableRow key={promo.id} hover>
-                  <TableCell sx={CELL_SX}>
+                <TableRow key={promo.id}>
+                  <TableCell>
                     <StatusChip tokens={{ color: '#fff', bg: channelColor(promo.channelName) }} label={promo.channelName} />
                   </TableCell>
-                  <TableCell sx={CELL_SX}>
+                  <TableCell>
                     {propertyMap[promo.propertyId] ?? `#${promo.propertyId}`}
                   </TableCell>
-                  <TableCell sx={CELL_SX}>
+                  <TableCell>
                     {PROMOTION_TYPE_LABELS[promo.promotionType] ?? promo.promotionType}
                   </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="center">
+                  <TableCell className="text-center font-semibold">
                     {promo.discountPercentage != null ? `${promo.discountPercentage}%` : '—'}
                   </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
+                  {/* Colonne dates volontairement plus petite que le gabarit du corps. */}
+                  <TableCell className="text-[12px]">
                     {promo.startDate && promo.endDate
                       ? `${new Date(promo.startDate).toLocaleDateString('fr-FR')} → ${new Date(promo.endDate).toLocaleDateString('fr-FR')}`
                       : '—'}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <StatusChip size="sm" tokens={{ color: '#fff', bg: PROMOTION_STATUS_COLORS[promo.status] ?? '#9e9e9e' }} label={promo.status} className="h-[20px]" />
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <Switch
                       size="small"
                       checked={promo.enabled}
@@ -316,7 +315,7 @@ const ChannelPromotionsPage: React.FC = () => {
                       disabled={toggleMutation.isPending}
                     />
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     <Tooltip title={t('common.edit', 'Modifier')}>
                       <IconButton size="small" onClick={() => handleOpenEdit(promo)}>
                         <EditIcon size={'1rem'} strokeWidth={1.75} />
@@ -332,7 +331,7 @@ const ChannelPromotionsPage: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════

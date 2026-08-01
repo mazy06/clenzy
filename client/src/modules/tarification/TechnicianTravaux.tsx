@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Spinner } from '../../components/ui';
-import { Button, Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Switch, TextField, InputAdornment } from '@mui/material';
+import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, Snackbar, Alert, Switch, TextField, InputAdornment } from '@mui/material';
 import { Save, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -132,20 +132,20 @@ export default function TechnicianTravaux() {
         }
       />
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('tarification.travaux.prestation', 'Prestation')}</TableCell>
-              <TableCell align="center">{t('technicianPrestations.offered', 'Je propose')}</TableCell>
-              <TableCell align="right">{t('technicianPrestations.myPrice', 'Mon prix')}</TableCell>
+              <TableHead>{t('tarification.travaux.prestation', 'Prestation')}</TableHead>
+              <TableHead className="text-center">{t('technicianPrestations.offered', 'Je propose')}</TableHead>
+              <TableHead className="text-end">{t('technicianPrestations.myPrice', 'Mon prix')}</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {grouped.map(([domain, entries]) => (
               <React.Fragment key={domain}>
                 <TableRow>
-                  <TableCell colSpan={3} sx={{ py: 0.75, borderBottom: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
+                  <TableCell colSpan={3} className="py-[4.5px] bg-[var(--field)]">
                     <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {domain}
                     </p>
@@ -154,14 +154,14 @@ export default function TechnicianTravaux() {
                 {entries.map(({ row, index }) => (
                   <TableRow key={row.interventionType}>
                     <TableCell>{row.label}</TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
                       <Switch
                         checked={row.offered}
                         onChange={(e) => updateRow(index, { offered: e.target.checked })}
                         size="small"
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ width: 140 }}>
+                    <TableCell className="text-end w-[140px]">
                       <TextField
                         type="number"
                         size="small"
@@ -182,7 +182,7 @@ export default function TechnicianTravaux() {
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       <Snackbar
         open={snackbar.open}

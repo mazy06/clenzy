@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, Paper, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -265,28 +266,25 @@ const ReservationsList: React.FC = () => {
       ) : (
         /* Data table */
         <Paper ref={tableContainerRef} sx={{ ...CARD_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-            <Table size="small">
-              <TableHead>
-                {/* Entêtes overline portées par le thème global (10.5px faint uppercase) */}
-                <TableRow sx={{ '& th': { whiteSpace: 'nowrap' } }}>
-                  <TableCell>{t('reservations.fields.property')}</TableCell>
-                  <TableCell>{t('reservations.fields.guestName')}</TableCell>
-                  <TableCell>{t('reservations.fields.checkIn')}</TableCell>
-                  <TableCell>{t('reservations.fields.checkOut')}</TableCell>
-                  <TableCell>{t('reservations.fields.status')}</TableCell>
-                  <TableCell>{t('reservations.fields.source')}</TableCell>
-                  <TableCell align="right">{t('reservations.fields.totalPrice')}</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+          <div className="flex-1 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="[&_th]:whitespace-nowrap">
+                  <TableHead>{t('reservations.fields.property')}</TableHead>
+                  <TableHead>{t('reservations.fields.guestName')}</TableHead>
+                  <TableHead>{t('reservations.fields.checkIn')}</TableHead>
+                  <TableHead>{t('reservations.fields.checkOut')}</TableHead>
+                  <TableHead>{t('reservations.fields.status')}</TableHead>
+                  <TableHead>{t('reservations.fields.source')}</TableHead>
+                  <TableHead className="text-end">{t('reservations.fields.totalPrice')}</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {reservations.map((r) => (
                   <TableRow
                     key={r.id}
                     data-highlight-id={String(r.id)}
-                    hover
-                    sx={{ '&:last-child td': { borderBottom: 0 } }}
                   >
                     <TableCell>
                       <p className="cn-text-body2 font-medium text-[0.82rem]">
@@ -330,13 +328,13 @@ const ReservationsList: React.FC = () => {
                     <TableCell>
                       <ReservationSourceBadge source={r.source} />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
                       <p className="cn-text-body2 text-[0.82rem] font-semibold font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
                         {formatPrice(r.totalPrice)}
                       </p>
                     </TableCell>
-                    <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell className="text-center whitespace-nowrap">
                       <Tooltip title={t('reservations.edit')}>
                         <IconButton size="small" onClick={() => handleEdit(r)}>
                           <EditIcon size={18} strokeWidth={1.75} />
@@ -358,7 +356,7 @@ const ReservationsList: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
 
           <PagePagination
             count={totalElements}

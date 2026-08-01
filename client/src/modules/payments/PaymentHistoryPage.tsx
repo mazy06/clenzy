@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -65,12 +66,6 @@ const chipSx = (fg: string, bg: string) => ({
   backgroundColor: bg,
   color: fg,
   '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-});
-
-/** Row styling — status passe par le chip dans la colonne dédiée, pas un side-stripe.
- *  Le hover --hover vient du thème global MuiTableRow. */
-const getRowSx = (_status: PaymentRecord['status']) => ({
-  cursor: 'pointer',
 });
 
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = false }) => {
@@ -480,30 +475,23 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           />
         }
       >
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            borderRadius: 'var(--radius-lg)',
-            borderColor: 'var(--line)',
-            boxShadow: 'none',
-            '& .MuiTableCell-head': { py: 1.25, whiteSpace: 'nowrap' },
-            '& .MuiTableCell-body': { py: 1.25 },
-          }}
-        >
+        {/* Le `sx` d'origine posait le padding vertical par selecteur descendant sur
+            toutes les cellules : garde tel quel en variantes arbitraires, plutot que
+            de repeter la classe sur chacune des seize cellules. */}
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] [&_th]:py-[7.5px] [&_th]:whitespace-nowrap [&_td]:py-[7.5px]">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('payments.history.date')}</TableCell>
-                <TableCell>Nom Prenom</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>{t('payments.history.property')}</TableCell>
-                <TableCell align="right">{t('payments.history.amount')}</TableCell>
-                <TableCell>{t('payments.history.status')}</TableCell>
-                <TableCell align="center">{t('payments.history.actions')}</TableCell>
+                <TableHead>{t('payments.history.date')}</TableHead>
+                <TableHead>Nom Prenom</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>{t('payments.history.property')}</TableHead>
+                <TableHead className="text-end">{t('payments.history.amount')}</TableHead>
+                <TableHead>{t('payments.history.status')}</TableHead>
+                <TableHead className="text-center">{t('payments.history.actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {payments.map((payment) => {
                 const detailPath = payment.type === 'RESERVATION'
@@ -514,7 +502,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                 return (
                 <TableRow
                   key={`${payment.type}-${payment.id}`}
-                  sx={getRowSx(payment.status)}
+                  className="cursor-pointer"
                   onClick={() => navigate(detailPath)}
                 >
                   <TableCell>
@@ -545,14 +533,14 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                       {payment.propertyName}
                     </p>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     {/* Montant : display tabular-nums, encre \u2014 jamais proportional */}
                     <p className="cn-text-body2 font-[family-name:var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-[var(--ink)]">
                       <Money value={payment.amount} from={payment.currency ?? 'EUR'} />
                     </p>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-0.5">
                       <Tooltip title={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}>
                         <IconButton
@@ -655,7 +643,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             rowsPerPageOptions={[5, 10, 25, 50]}
             onRowsPerPageChange={handleChangeRowsPerPage}
           />
-        </TableContainer>
+        </div>
       </DataFetchWrapper>
 
       {/* Modal de paiement Stripe Embedded */}

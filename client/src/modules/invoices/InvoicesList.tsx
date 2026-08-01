@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Paper, Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -82,12 +83,6 @@ const STATUS_TOKEN: Record<InvoiceStatus, { fg: string; bg: string }> = {
 };
 
 /** Montants : display tabular-nums (jamais proportional) */
-const moneySx = {
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-};
-
-/** Equivalent Tailwind de `moneySx`, pour les elements passes en HTML natif. */
 const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const fmtDate = (d: string | null) =>
@@ -364,31 +359,23 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           variant="plain"
         />
       ) : (
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            borderRadius: 'var(--radius-lg)',
-            borderColor: 'var(--line)',
-            boxShadow: 'none',
-            '& .MuiTableCell-head': { py: 1.25, whiteSpace: 'nowrap' },
-            '& .MuiTableCell-body': { py: 1.25 },
-          }}
-        >
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+          {/* py-[7.5px] : le `sx` d'origine resserrait les cellules (py: 1.25) par
+              rapport au gabarit du kit (6px en-tete / 8px corps). */}
+          <Table className="[&_th]:py-[7.5px] [&_td]:py-[7.5px]">
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('invoices.columns.number', 'N\u00B0')}</TableCell>
-                <TableCell>{t('invoices.columns.date', 'Date')}</TableCell>
-                <TableCell>{t('invoices.columns.type', 'Type')}</TableCell>
-                <TableCell>{t('invoices.columns.buyer', 'Client')}</TableCell>
-                <TableCell align="right">{t('invoices.columns.ht', 'HT')}</TableCell>
-                <TableCell align="right">{t('invoices.columns.tax', 'TVA')}</TableCell>
-                <TableCell align="right">{t('invoices.columns.ttc', 'TTC')}</TableCell>
-                <TableCell>{t('common.status', 'Statut')}</TableCell>
-                <TableCell align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('invoices.columns.number', 'N\u00B0')}</TableHead>
+                <TableHead>{t('invoices.columns.date', 'Date')}</TableHead>
+                <TableHead>{t('invoices.columns.type', 'Type')}</TableHead>
+                <TableHead>{t('invoices.columns.buyer', 'Client')}</TableHead>
+                <TableHead className="text-end">{t('invoices.columns.ht', 'HT')}</TableHead>
+                <TableHead className="text-end">{t('invoices.columns.tax', 'TVA')}</TableHead>
+                <TableHead className="text-end">{t('invoices.columns.ttc', 'TTC')}</TableHead>
+                <TableHead>{t('common.status', 'Statut')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {displayedInvoices.map((inv: Invoice) => {
                 const source = getSourceType(inv);
@@ -410,7 +397,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     </TableCell>
 
                     {/* ─── Date ─── */}
-                    <TableCell sx={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDate(inv.invoiceDate)}</TableCell>
+                    <TableCell className="text-[var(--muted)] tabular-nums">{fmtDate(inv.invoiceDate)}</TableCell>
 
                     {/* ─── Type (Commission / Reservation / Intervention) ─── */}
                     <TableCell>
@@ -426,12 +413,12 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     </TableCell>
 
                     {/* ─── Client ─── */}
-                    <TableCell sx={{ fontWeight: 600, color: 'var(--ink)' }}>{inv.buyerName}</TableCell>
+                    <TableCell className="font-semibold text-[var(--ink)]">{inv.buyerName}</TableCell>
 
                     {/* ─── Montants (display tabular-nums) ─── */}
-                    <TableCell align="right" sx={moneySx}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
-                    <TableCell align="right" sx={moneySx}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
-                    <TableCell align="right" sx={{ ...moneySx, fontWeight: 600, color: 'var(--ink)' }}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS} font-semibold text-[var(--ink)]`}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
 
                     {/* ─── Statut (chip -soft sémantique) ─── */}
                     <TableCell>
@@ -439,7 +426,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     </TableCell>
 
                     {/* ─── Actions ─── */}
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       <div className="flex gap-0.5 justify-end">
                         {/* Voir PDF (document genere) */}
                         {inv.documentGenerationId && (
@@ -526,7 +513,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ─── PDF Preview Dialog ──────────────────────────────────────────── */}

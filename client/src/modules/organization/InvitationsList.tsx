@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
@@ -80,16 +81,12 @@ const formatShortDate = (iso: string) => {
   return `${dd}/${mm}/${yy}`;
 };
 
-const CELL_SX = {
-  fontSize: '0.75rem',
-  whiteSpace: 'nowrap',
-  py: 0.75,
-  px: 1,
-} as const;
+// py 0.75 / px 1 en spacing MUI (6px) = 4.5px / 6px. Le nowrap vient deja du primitif.
+const CELL_CLS = 'text-[0.75rem] py-[4.5px] px-1.5';
 // Email cell : shrinkable + ellipsis pour eviter de pousser la table et clipper les actions
-const CELL_EMAIL_SX = { fontSize: '0.75rem', py: 0.75, px: 1, maxWidth: 0, width: '100%' } as const;
-// Entete : l'overline vient du theme global (MuiTableCell head) — on ne garde que l'espacement
-const HEAD_CELL_SX = { whiteSpace: 'nowrap', py: 0.75, px: 1 } as const;
+const CELL_EMAIL_CLS = 'text-[0.75rem] py-[4.5px] px-1.5 max-w-0 w-full';
+// Entete : l'overline vient du primitif (cn-table-head) — on ne garde que l'espacement
+const HEAD_CELL_CLS = 'py-[4.5px] px-1.5';
 
 export default function InvitationsList({ organizationId, refreshTrigger }: Props) {
   const [invitations, setInvitations] = useState<InvitationDto[]>([]);
@@ -201,27 +198,27 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   return (
     <>
-    <TableContainer sx={{ overflowX: 'hidden' }}>
-      <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
-        <TableHead>
+    <div className="overflow-x-hidden">
+      <Table className="table-auto">
+        <TableHeader>
           <TableRow>
-            <TableCell sx={HEAD_CELL_SX}>Email</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Role</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Statut</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Envoyee</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Expire</TableCell>
-            <TableCell align="right" sx={{ ...HEAD_CELL_SX, pr: 1.25 }}>Actions</TableCell>
+            <TableHead className={HEAD_CELL_CLS}>Email</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Role</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Statut</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Envoyee</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Expire</TableHead>
+            <TableHead className="py-[4.5px] ps-1.5 pe-[7.5px] text-end">Actions</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {invitations.map((inv) => (
-            <TableRow key={inv.id} hover>
-              <TableCell sx={CELL_EMAIL_SX}>
+            <TableRow key={inv.id}>
+              <TableCell className={CELL_EMAIL_CLS}>
                 <p className="cn-text-body2 font-medium text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap" title={inv.invitedEmail}>
                   {inv.invitedEmail}
                 </p>
               </TableCell>
-              <TableCell sx={CELL_SX}>
+              <TableCell className={CELL_CLS}>
                 {(() => {
                   const roleColor = getOrgRoleHex(inv.roleInvited);
                   const RoleIcon = getOrgRoleIcon(inv.roleInvited);
@@ -230,20 +227,20 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                   );
                 })()}
               </TableCell>
-              <TableCell sx={CELL_SX}>
+              <TableCell className={CELL_CLS}>
                 {getStatusChip(inv.status)}
               </TableCell>
-              <TableCell sx={CELL_SX}>
+              <TableCell className={CELL_CLS}>
                 <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
                   {formatShortDate(inv.createdAt)}
                 </p>
               </TableCell>
-              <TableCell sx={CELL_SX}>
+              <TableCell className={CELL_CLS}>
                 <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
                   {formatShortDate(inv.expiresAt)}
                 </p>
               </TableCell>
-              <TableCell align="right" sx={{ ...CELL_SX, pr: 1.25 }}>
+              <TableCell className="text-[0.75rem] py-[4.5px] ps-1.5 pe-[7.5px] text-end">
                 {inv.status === 'PENDING' && (
                   <div className="inline-flex items-center gap-0.5">
                     <Tooltip title="Renvoyer l'invitation">
@@ -298,7 +295,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
           ))}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
 
     <ConfirmationModal
       open={pendingDeleteId !== null}

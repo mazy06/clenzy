@@ -5,7 +5,8 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -37,8 +38,6 @@ const CARD_SX = {
 
 const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
 const KPI_CARD_SX = {
   ...CARD_SX,
   textAlign: 'center',
@@ -359,32 +358,32 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
       {/* ── Properties Table ── */}
       {dashboard.properties && dashboard.properties.length > 0 && (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.property', 'Propriete')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.revenue', 'Revenu')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('ownerPortal.col.occupancy', 'Occupation')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('ownerPortal.col.reservations', 'Reservations')}</TableCell>
+                <TableHead>{t('ownerPortal.col.property', 'Propriete')}</TableHead>
+                <TableHead className="text-end">{t('ownerPortal.col.revenue', 'Revenu')}</TableHead>
+                <TableHead className="text-center">{t('ownerPortal.col.occupancy', 'Occupation')}</TableHead>
+                <TableHead className="text-center">{t('ownerPortal.col.reservations', 'Reservations')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {dashboard.properties.map((prop) => (
-                <TableRow key={prop.propertyId} hover>
-                  <TableCell sx={CELL_SX}>{prop.propertyName}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right">
+                <TableRow key={prop.propertyId}>
+                  <TableCell>{prop.propertyName}</TableCell>
+                  <TableCell className="text-end font-semibold">
                     {fmtCurrency(prop.revenue)}
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="center">
+                  <TableCell className="text-center">
                     <StatusChip size="sm" tokens={{ color: '#fff', bg: prop.occupancyRate > 0.7 ? '#4A9B8E' : prop.occupancyRate > 0.4 ? '#D4A574' : '#ef5350' }} label={fmtPercent(prop.occupancyRate)} className="h-[20px]" />
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="center">{prop.reservationCount}</TableCell>
+                  <TableCell className="text-center">{prop.reservationCount}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
     </>
   );
@@ -522,42 +521,42 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
           {/* ── Statement lines ── */}
           {statement.lines && statement.lines.length > 0 && (
-            <TableContainer component={Paper} sx={CARD_SX}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.date', 'Date')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.description', 'Description')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.property', 'Propriete')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.type', 'Type')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.amount', 'Montant')}</TableCell>
+                    <TableHead>{t('ownerPortal.col.date', 'Date')}</TableHead>
+                    <TableHead>{t('ownerPortal.col.description', 'Description')}</TableHead>
+                    <TableHead>{t('ownerPortal.col.property', 'Propriete')}</TableHead>
+                    <TableHead>{t('ownerPortal.col.type', 'Type')}</TableHead>
+                    <TableHead className="text-end">{t('ownerPortal.col.amount', 'Montant')}</TableHead>
                     {statement.totalOtaFees > 0 && (
-                      <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.otaFee', 'Frais OTA')}</TableCell>
+                      <TableHead className="text-end">{t('ownerPortal.col.otaFee', 'Frais OTA')}</TableHead>
                     )}
-                    <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.commission', 'Commission')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.net', 'Net')}</TableCell>
+                    <TableHead className="text-end">{t('ownerPortal.col.commission', 'Commission')}</TableHead>
+                    <TableHead className="text-end">{t('ownerPortal.col.net', 'Net')}</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {statement.lines.map((line, idx) => (
-                    <TableRow key={idx} hover>
-                      <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>{fmtDate(line.date)}</TableCell>
-                      <TableCell sx={CELL_SX}>{line.description}</TableCell>
-                      <TableCell sx={CELL_SX}>{line.propertyName}</TableCell>
-                      <TableCell sx={CELL_SX}>
+                    <TableRow key={idx}>
+                      <TableCell className="text-xs">{fmtDate(line.date)}</TableCell>
+                      <TableCell>{line.description}</TableCell>
+                      <TableCell>{line.propertyName}</TableCell>
+                      <TableCell>
                         <Badge variant="secondary" className="text-[0.625rem] h-[20px] font-semibold">{line.type}</Badge>
                       </TableCell>
-                      <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.amount)}</TableCell>
+                      <TableCell className="text-end">{fmtCurrency(line.amount)}</TableCell>
                       {statement.totalOtaFees > 0 && (
-                        <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.otaFee)}</TableCell>
+                        <TableCell className="text-end">{fmtCurrency(line.otaFee)}</TableCell>
                       )}
-                      <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.commission)}</TableCell>
-                      <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">{fmtCurrency(line.net)}</TableCell>
+                      <TableCell className="text-end">{fmtCurrency(line.commission)}</TableCell>
+                      <TableCell className="text-end font-bold">{fmtCurrency(line.net)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </>
       )}

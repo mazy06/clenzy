@@ -1,5 +1,5 @@
-import { Skeleton, Paper, TableRow, TableCell } from '@mui/material';
-import { Card } from '../components/ui';
+import { Skeleton, Paper } from '@mui/material';
+import { Card, TableRow, TableCell } from '../components/ui';
 
 interface ListSkeletonProps {
   /** Nombre de lignes/cards à simuler. Default : 6. */

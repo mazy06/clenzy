@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Tooltip } from '@mui/material';
+import { Card, CardContent, Button, IconButton, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -221,58 +222,23 @@ const InterventionsPendingPayment: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <TableContainer
-          component={Paper}
-          sx={{
-            borderRadius: '14px',
-            boxShadow: 'none',
-            border: '1px solid var(--line)',
-            '& .MuiTableHead-root': {
-              bgcolor: 'var(--surface-2)',
-            },
-            '& .MuiTableCell-head': {
-              fontWeight: 700,
-              fontSize: '0.65625rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--faint)',
-              borderBottom: '1px solid var(--line)',
-              py: 1.25,
-              whiteSpace: 'nowrap',
-            },
-            '& .MuiTableCell-body': {
-              fontSize: '0.8125rem',
-              color: 'var(--ink)',
-              py: 1.25,
-              borderBottom: '1px solid var(--line)',
-            },
-          }}
-        >
+        <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
           <Table>
-            <TableHead>
+            {/* Fond --surface-2 : seul ecart de l'ancien sx vis-a-vis du primitif. */}
+            <TableHeader className="bg-[var(--surface-2)]">
               <TableRow>
-                <TableCell>Intervention</TableCell>
-                <TableCell>Demandeur</TableCell>
-                <TableCell>Logement</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Date prevue</TableCell>
-                <TableCell align="right">Montant</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableHead>Intervention</TableHead>
+                <TableHead>Demandeur</TableHead>
+                <TableHead>Logement</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date prevue</TableHead>
+                <TableHead className="text-end">Montant</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {interventions.map((intervention) => (
-                <TableRow
-                  key={intervention.id}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s ease',
-                    '&:hover': {
-                      bgcolor: 'var(--hover)',
-                    },
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
-                >
+                <TableRow key={intervention.id} className="cursor-pointer">
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     <p className="cn-text-body2 font-semibold text-[0.8125rem] text-[var(--ink)]">
                       {intervention.title}
@@ -301,12 +267,12 @@ const InterventionsPendingPayment: React.FC = () => {
                       {formatDate(intervention.scheduledDate)}
                     </p>
                   </TableCell>
-                  <TableCell align="right" onClick={() => navigate(`/interventions/${intervention.id}`)}>
+                  <TableCell className="text-end" onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     <p className="cn-text-body2 font-semibold text-[0.875rem] text-[var(--warn)] font-[family-name:var(--font-display)] tabular-nums">
                       <Money value={intervention.estimatedCost} from="EUR" />
                     </p>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-0.5">
                       <Tooltip title="Voir les details">
                         <IconButton
@@ -339,7 +305,7 @@ const InterventionsPendingPayment: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Modal de paiement Stripe Embedded */}

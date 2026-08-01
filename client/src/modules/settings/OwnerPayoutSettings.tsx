@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { TextField, Button, Alert, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, Button, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
   Save,
@@ -43,19 +44,14 @@ const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
   OPEN_BANKING: 'var(--accent)', // accent Baitly (Open Banking = approche maison)
 };
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = {
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  py: 1,
-  color: 'text.secondary',
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase' as const,
-} as const;
+// Ecarts assumes vs le gabarit du kit (12.5px / 8px pour le corps, 10.5px
+// --faint .05em pour l'en-tete) : cet ecran etait deja regle plus dense.
+const CELL_CLASS = 'text-[0.8125rem] py-[7.5px]';
+const HEAD_CELL_CLASS = 'text-[0.7rem] tracking-[0.06em] text-[var(--muted)]';
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
-/** Estimated row height in px (py: 1.25 = 10px * 2 + ~21px content) */
+/** Estimated row height in px (py-[7.5px] * 2 + ~26px content) */
 const ROW_HEIGHT = 41;
 /** Table header + pagination footer overhead */
 const TABLE_OVERHEAD = 100;
@@ -252,31 +248,31 @@ export default function OwnerPayoutSettings() {
             </p>
           </div>
         ) : (
-          <TableContainer sx={{ overflowX: 'hidden' }}>
-            <Table size="small" sx={{ width: '100%' }}>
-              <TableHead>
+          <div className="overflow-x-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.owner', 'Propriétaire')}</TableCell>
-                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.method', 'Méthode')}</TableCell>
-                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.details', 'Détails')}</TableCell>
-                  <TableCell sx={HEAD_CELL_SX} align="center">{t('settings.ownerPayout.col.status', 'Statut')}</TableCell>
-                  <TableCell sx={{ ...HEAD_CELL_SX, pr: 1.25 }} align="right">{t('common.actions', 'Actions')}</TableCell>
+                  <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.owner', 'Propriétaire')}</TableHead>
+                  <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.method', 'Méthode')}</TableHead>
+                  <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.details', 'Détails')}</TableHead>
+                  <TableHead className={`${HEAD_CELL_CLASS} text-center`}>{t('settings.ownerPayout.col.status', 'Statut')}</TableHead>
+                  <TableHead className={`${HEAD_CELL_CLASS} text-end pe-[7.5px]`}>{t('common.actions', 'Actions')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {paginatedConfigs.map((config) => {
                   const methodColor = PAYOUT_METHOD_COLORS[config.payoutMethod];
                   return (
-                    <TableRow key={config.id} hover>
-                      <TableCell sx={CELL_SX}>
+                    <TableRow key={config.id}>
+                      <TableCell className={CELL_CLASS}>
                         <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground">
                           {t('settings.ownerPayout.ownerLabel', 'Propriétaire')} #{config.ownerId}
                         </p>
                       </TableCell>
-                      <TableCell sx={CELL_SX}>
+                      <TableCell className={CELL_CLASS}>
                         <StatusChip tokens={{ color: methodColor, bg: `color-mix(in srgb, ${methodColor} 8%, transparent)` }} label={PAYOUT_METHOD_LABELS[config.payoutMethod]} className="tracking-[0.01em]" />
                       </TableCell>
-                      <TableCell sx={CELL_SX}>
+                      <TableCell className={CELL_CLASS}>
                         {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
                           <span className="font-mono text-[0.75rem] tabular-nums text-foreground">
                             {config.maskedIban}
@@ -296,14 +292,14 @@ export default function OwnerPayoutSettings() {
                           </p>
                         )}
                       </TableCell>
-                      <TableCell sx={CELL_SX} align="center">
+                      <TableCell className={`${CELL_CLASS} text-center`}>
                         {config.verified ? (
                           <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         ) : (
                           <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={t('settings.ownerPayout.pendingLabel', 'En attente')} icon={<Warning size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         )}
                       </TableCell>
-                      <TableCell sx={{ ...CELL_SX, pr: 1.25 }} align="right">
+                      <TableCell className={`${CELL_CLASS} text-end pe-[7.5px]`}>
                         <div className="inline-flex items-center gap-0.5 justify-end">
                           <Tooltip title={t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}>
                             <IconButton
@@ -398,7 +394,7 @@ export default function OwnerPayoutSettings() {
               onPageChange={(newPage) => setPage(newPage)}
               rowsPerPage={rowsPerPage}
             />
-          </TableContainer>
+          </div>
         )}
       </SettingsSection>
 

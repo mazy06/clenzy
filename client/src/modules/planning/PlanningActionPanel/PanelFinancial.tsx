@@ -7,7 +7,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
-import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Collapse, Tooltip } from '@mui/material';
 import {
   Payment,
   Add,
@@ -1244,32 +1245,30 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <AlertDescription>Aucun paiement enregistre.</AlertDescription>
             </UiAlert>
           ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Methode</TableCell>
-                    <TableCell>Reference</TableCell>
-                    <TableCell align="right">Montant</TableCell>
-                    <TableCell>Statut</TableCell>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Methode</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead className="text-end">Montant</TableHead>
+                  <TableHead>Statut</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="tabular-nums">{p.date}</TableCell>
+                    <TableCell>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
+                    <TableCell className="text-[var(--muted)]">{p.reference || '-'}</TableCell>
+                    <TableCell className="text-end font-semibold tabular-nums">
+                      {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
+                    </TableCell>
+                    <TableCell><DomainStatusChip status={p.status} /></TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {payments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{p.date}</TableCell>
-                      <TableCell>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary' }}>{p.reference || '-'}</TableCell>
-                      <TableCell sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} align="right">
-                        {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
-                      </TableCell>
-                      <TableCell><DomainStatusChip status={p.status} /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
           )}
           {payments.length > 0 && (
             <div className="mt-2 pt-1.5 border-t border-[var(--line)]">

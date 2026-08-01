@@ -11,12 +11,6 @@ import {
   Button,
   InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   IconButton,
   Tooltip,
   Tabs,
@@ -38,6 +32,14 @@ import { Info, TriangleAlert } from "lucide-react";
 import {
   Alert as UiAlert,
   AlertDescription as UiAlertDescription,
+} from "../../components/ui";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
 } from "../../components/ui";
 import { useQuery } from "@tanstack/react-query";
 import { channelLogo } from "../../components/channelLogos";
@@ -938,14 +940,10 @@ function ChannelProjectionTable({
 }: ChannelProjectionTableProps) {
   const { t } = useTranslation();
 
-  const headCellSx = {
-    fontWeight: 700,
-    fontSize: "0.62rem",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase" as const,
-    color: "text.secondary",
-    whiteSpace: "nowrap" as const,
-  };
+  // Seuls les ecarts au gabarit du kit sont poses ici : la graisse 700 et la
+  // capitale sont deja portees par `.cn-table-head`.
+  const headCellClass =
+    "text-[0.62rem] tracking-[0.06em] text-[var(--muted)] whitespace-nowrap";
 
   if (rows.length === 0) {
     return (
@@ -962,109 +960,103 @@ function ChannelProjectionTable({
   }
 
   return (
-    <TableContainer sx={{ overflowX: "auto" }}>
-      <Table size="small" sx={{ minWidth: 560 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={headCellSx}>
-              {t("settings.commissions.channel", "Canal")}
-            </TableCell>
-            <TableCell align="right" sx={headCellSx}>
-              {t("settings.commissions.fee", "Commission")}
-            </TableCell>
-            <TableCell align="right" sx={headCellSx}>
-              {t("settings.commissions.net", "Net")}
-            </TableCell>
-            {shares.map((share) => (
-              <TableCell key={share.key} align="right" sx={headCellSx}>
-                {share.label}
+    <Table className="min-w-[560px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead className={headCellClass}>
+            {t("settings.commissions.channel", "Canal")}
+          </TableHead>
+          <TableHead className={cn(headCellClass, "text-end")}>
+            {t("settings.commissions.fee", "Commission")}
+          </TableHead>
+          <TableHead className={cn(headCellClass, "text-end")}>
+            {t("settings.commissions.net", "Net")}
+          </TableHead>
+          {shares.map((share) => (
+            <TableHead key={share.key} className={cn(headCellClass, "text-end")}>
+              {share.label}
+            </TableHead>
+          ))}
+          <TableHead className={headCellClass}>
+            {t("settings.commissions.source", "Source")}
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => {
+          const rate = effectiveRate(row);
+          const fee = (PROJECTION_BASE * rate) / 100;
+          const net = PROJECTION_BASE - fee;
+          const drifts =
+            row.observedRate !== null &&
+            Math.abs(row.observedRate - row.referenceRate) >=
+              RATE_DRIFT_THRESHOLD;
+          return (
+            <TableRow
+              key={row.channel}
+              className={
+                row.channel === activeChannel
+                  ? "bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]"
+                  : undefined
+              }
+            >
+              <TableCell>
+                <ChannelCell row={row} />
               </TableCell>
-            ))}
-            <TableCell sx={headCellSx}>
-              {t("settings.commissions.source", "Source")}
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((row) => {
-            const rate = effectiveRate(row);
-            const fee = (PROJECTION_BASE * rate) / 100;
-            const net = PROJECTION_BASE - fee;
-            const drifts =
-              row.observedRate !== null &&
-              Math.abs(row.observedRate - row.referenceRate) >=
-                RATE_DRIFT_THRESHOLD;
-            return (
-              <TableRow
-                key={row.channel}
-                hover
-                sx={
-                  row.channel === activeChannel
-                    ? {
-                        bgcolor:
-                          "color-mix(in srgb, var(--accent) 6%, transparent)",
-                      }
-                    : undefined
-                }
-              >
-                <TableCell>
-                  <ChannelCell row={row} />
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip
-                    title={
+              <TableCell className="text-end">
+                <Tooltip
+                  title={
+                    drifts
+                      ? t(
+                          "settings.commissions.driftHint",
+                          "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant."
+                        )
+                      : ""
+                  }
+                >
+                  <span
+                    className={cn(
+                      PROJECTION_NUMBER_CLASS,
+                      fee > 0 ? "text-[var(--err)]" : "text-[var(--faint)]",
+                      // Propriete arbitraire plutot que border-b + border-dotted :
+                      // sans preflight, border-dotted poserait un style pointille
+                      // sur les quatre cotes, a la largeur `medium` par defaut.
                       drifts
-                        ? t(
-                            "settings.commissions.driftHint",
-                            "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant."
-                          )
-                        : ""
-                    }
+                        ? "[border-bottom:1px_dotted_var(--warn)] cursor-help"
+                        : "cursor-default",
+                    )}
                   >
-                    <span
-                      className={cn(
-                        PROJECTION_NUMBER_CLASS,
-                        fee > 0 ? "text-[var(--err)]" : "text-[var(--faint)]",
-                        // Propriete arbitraire plutot que border-b + border-dotted :
-                        // sans preflight, border-dotted poserait un style pointille
-                        // sur les quatre cotes, a la largeur `medium` par defaut.
-                        drifts
-                          ? "[border-bottom:1px_dotted_var(--warn)] cursor-help"
-                          : "cursor-default",
-                      )}
-                    >
-                      {fee > 0 ? `−${formatMoney(fee)}` : formatMoney(0)}
-                    </span>
-                  </Tooltip>
-                </TableCell>
-                <TableCell align="right">
-                  <p className={cn(PROJECTION_NUMBER_CLASS, "text-[var(--muted)]")}>
-                    {formatMoney(net)}
+                    {fee > 0 ? `−${formatMoney(fee)}` : formatMoney(0)}
+                  </span>
+                </Tooltip>
+              </TableCell>
+              <TableCell className="text-end">
+                <p className={cn(PROJECTION_NUMBER_CLASS, "text-[var(--muted)]")}>
+                  {formatMoney(net)}
+                </p>
+              </TableCell>
+              {shares.map((share) => (
+                <TableCell key={share.key} className="text-end">
+                  <p
+                    className={cn(
+                      PROJECTION_NUMBER_CLASS,
+                      share.primary
+                        ? "font-bold text-[var(--ink)]"
+                        : "font-normal text-[var(--muted)]",
+                    )}
+                  >
+                    {formatMoney((net * share.pct) / 100)}
                   </p>
                 </TableCell>
-                {shares.map((share) => (
-                  <TableCell key={share.key} align="right">
-                    <p
-                      className={cn(
-                        PROJECTION_NUMBER_CLASS,
-                        share.primary
-                          ? "font-bold text-[var(--ink)]"
-                          : "font-normal text-[var(--muted)]",
-                      )}
-                    >
-                      {formatMoney((net * share.pct) / 100)}
-                    </p>
-                  </TableCell>
-                ))}
-                <TableCell>
-                  <ProvenanceChip row={row} />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+              ))}
+              <TableCell>
+                <ProvenanceChip row={row} />
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 

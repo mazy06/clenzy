@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
+import { Button, Divider, IconButton, TextField, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
@@ -330,23 +331,23 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Titre</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Portee</TableCell>
-                <TableCell>Maj</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableHead>Titre</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Portee</TableHead>
+                <TableHead>Maj</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {docs.map((doc) => (
                 <TableRow key={doc.id}>
-                  <TableCell sx={{ fontWeight: 500 }}>
+                  <TableCell className="font-medium">
                     {doc.title || '(sans titre)'}
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem', color: theme.palette.text.secondary }}>
+                  <TableCell className="text-[0.75rem] text-[var(--muted)]">
                     {doc.sourcePath}
                   </TableCell>
                   <TableCell>
@@ -356,10 +357,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                           ? alpha(theme.palette.info.main, 0.14)
                           : alpha(theme.palette.success.main, 0.14) }} label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'} className="h-[20px] text-[0.7rem]" />
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem', color: theme.palette.text.secondary }}>
+                  <TableCell className="text-[0.75rem] text-[var(--muted)]">
                     {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     {canEdit && (
                       <Tooltip title="Supprimer">
                         <IconButton

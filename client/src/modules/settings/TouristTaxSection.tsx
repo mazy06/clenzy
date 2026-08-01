@@ -3,8 +3,9 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TextField, Tooltip } from '@mui/material';
+import { Button, IconButton, TextField, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel, Add, Edit, Delete, Download, Receipt } from '../../icons';
@@ -206,21 +207,21 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         </BuiAlert>
       ) : (
         <Card className="gap-0 py-0 mb-4 overflow-x-auto">
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('touristTax.baremes.property', 'Logement')}</TableCell>
-                <TableCell>{t('touristTax.baremes.commune', 'Commune')}</TableCell>
-                <TableCell>{t('touristTax.baremes.mode', 'Mode')}</TableCell>
-                <TableCell>{t('touristTax.baremes.rate', 'Tarif')}</TableCell>
-                <TableCell>{t('touristTax.baremes.surcharges', 'Surtaxes')}</TableCell>
-                <TableCell>{t('touristTax.baremes.status', 'Statut')}</TableCell>
-                {canEdit && <TableCell align="right" />}
+                <TableHead>{t('touristTax.baremes.property', 'Logement')}</TableHead>
+                <TableHead>{t('touristTax.baremes.commune', 'Commune')}</TableHead>
+                <TableHead>{t('touristTax.baremes.mode', 'Mode')}</TableHead>
+                <TableHead>{t('touristTax.baremes.rate', 'Tarif')}</TableHead>
+                <TableHead>{t('touristTax.baremes.surcharges', 'Surtaxes')}</TableHead>
+                <TableHead>{t('touristTax.baremes.status', 'Statut')}</TableHead>
+                {canEdit && <TableHead className="text-end" />}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {(configsQuery.data ?? []).map((config) => (
-                <TableRow key={config.id} hover>
+                <TableRow key={config.id}>
                   <TableCell>
                     {config.propertyId == null ? (
                       <Badge variant="default">{t('touristTax.baremes.orgDefault', 'Défaut organisation')}</Badge>
@@ -230,8 +231,8 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                   </TableCell>
                   <TableCell>{config.communeName}</TableCell>
                   <TableCell>{modeLabel(config)}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{rateSummary(config)}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{surchargeSummary(config)}</TableCell>
+                  <TableCell className="tabular-nums">{rateSummary(config)}</TableCell>
+                  <TableCell className="tabular-nums">{surchargeSummary(config)}</TableCell>
                   <TableCell>
                     <StatusChip
                       tone={config.enabled ? 'ok' : 'neutral'}
@@ -243,7 +244,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                     />
                   </TableCell>
                   {canEdit && (
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell className="text-end whitespace-nowrap">
                       <Tooltip title={t('common.edit', 'Modifier')}>
                         <IconButton
                           size="small"
@@ -338,32 +339,32 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
             </BuiAlert>
           ) : (
             <Card className="gap-0 py-0 overflow-x-auto">
-              <Table size="small">
-                <TableHead>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>{t('touristTax.report.property', 'Logement')}</TableCell>
-                    <TableCell>{t('touristTax.report.guest', 'Voyageur')}</TableCell>
-                    <TableCell>{t('touristTax.report.checkOut', 'Départ')}</TableCell>
-                    <TableCell align="right">{t('touristTax.report.nights', 'Nuits')}</TableCell>
-                    <TableCell align="right">{t('touristTax.report.persons', 'Pers.')}</TableCell>
-                    <TableCell>{t('touristTax.report.commune', 'Commune')}</TableCell>
-                    <TableCell align="right">{t('touristTax.report.tax', 'Taxe')}</TableCell>
+                    <TableHead>{t('touristTax.report.property', 'Logement')}</TableHead>
+                    <TableHead>{t('touristTax.report.guest', 'Voyageur')}</TableHead>
+                    <TableHead>{t('touristTax.report.checkOut', 'Départ')}</TableHead>
+                    <TableHead className="text-end">{t('touristTax.report.nights', 'Nuits')}</TableHead>
+                    <TableHead className="text-end">{t('touristTax.report.persons', 'Pers.')}</TableHead>
+                    <TableHead>{t('touristTax.report.commune', 'Commune')}</TableHead>
+                    <TableHead className="text-end">{t('touristTax.report.tax', 'Taxe')}</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {report.lines.map((line) => (
-                    <TableRow key={line.reservationId} hover>
+                    <TableRow key={line.reservationId}>
                       <TableCell>{line.propertyName ?? `#${line.propertyId ?? '—'}`}</TableCell>
                       <TableCell>{line.guestName ?? '—'}</TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{line.checkOut}</TableCell>
-                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <TableCell className="tabular-nums">{line.checkOut}</TableCell>
+                      <TableCell className="text-end tabular-nums">
                         {line.nights}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <TableCell className="text-end tabular-nums">
                         {line.taxablePersons}
                       </TableCell>
                       <TableCell>{line.communeName}</TableCell>
-                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <TableCell className="text-end tabular-nums">
                         {num(line.taxAmount)} {line.currency}
                       </TableCell>
                     </TableRow>
@@ -374,7 +375,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                         {t('touristTax.report.total', 'Total collecté')}
                       </p>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <TableCell className="text-end tabular-nums">
                       <p className="cn-text-body2 font-semibold">
                         {num(report.totalTax)} EUR
                       </p>

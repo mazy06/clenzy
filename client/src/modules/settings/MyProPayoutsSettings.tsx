@@ -6,7 +6,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Button, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Button, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -184,32 +185,33 @@ export default function MyProPayoutsSettings() {
             {t('settings.myProPayouts.noPayouts')}
           </p>
         ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>{t('settings.myProPayouts.colDate')}</TableCell>
-                  <TableCell>{t('settings.myProPayouts.colMission')}</TableCell>
-                  <TableCell align="right">{t('settings.myProPayouts.colAmount')}</TableCell>
-                  <TableCell align="right">{t('settings.myProPayouts.colCommission')}</TableCell>
-                  <TableCell>{t('settings.myProPayouts.colStatus')}</TableCell>
+                  <TableHead>{t('settings.myProPayouts.colDate')}</TableHead>
+                  <TableHead>{t('settings.myProPayouts.colMission')}</TableHead>
+                  <TableHead className="text-end">{t('settings.myProPayouts.colAmount')}</TableHead>
+                  <TableHead className="text-end">{t('settings.myProPayouts.colCommission')}</TableHead>
+                  <TableHead>{t('settings.myProPayouts.colStatus')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
+                {/* Le filet de la derniere ligne est deja retire par le primitif. */}
                 {records.map((record) => (
-                  <TableRow key={record.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
-                    <TableCell sx={{ fontVariantNumeric: 'tabular-nums', fontSize: '12.5px' }}>
+                  <TableRow key={record.id}>
+                    <TableCell className="tabular-nums">
                       {new Date(record.createdAt).toLocaleDateString('fr-FR')}
                     </TableCell>
-                    <TableCell sx={{ fontSize: '12.5px' }}>
+                    <TableCell>
                       <a href={`/interventions/${record.interventionId}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
                         #{record.interventionId}
                       </a>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: '12.5px' }}>
+                    <TableCell className="text-end tabular-nums font-semibold">
                       {record.amount} €
                     </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontSize: '12.5px', color: 'var(--muted)' }}>
+                    <TableCell className="text-end tabular-nums text-[var(--muted)]">
                       {record.commissionAmount > 0 ? `−${record.commissionAmount} €` : '—'}
                     </TableCell>
                     <TableCell>
@@ -248,7 +250,7 @@ export default function MyProPayoutsSettings() {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
       </Card>
     </div>

@@ -2,7 +2,8 @@ import React from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Grid, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Grid, Switch, FormControlLabel, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
 import {
   Star,
   Payment,
@@ -270,57 +271,57 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
             {!balanceLoading && balance && balance.properties.length > 0 && (
               <>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Propriete</TableCell>
-                        <TableCell align="center">Interventions</TableCell>
-                        <TableCell align="right">Montant</TableCell>
-                        <TableCell align="center">Details</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {balance.properties.map((prop) => (
-                        <React.Fragment key={prop.propertyId}>
-                          <TableRow>
-                            <TableCell sx={{ fontSize: '0.8rem' }}>{prop.propertyName}</TableCell>
-                            <TableCell align="center" sx={{ fontSize: '0.8rem' }}>{prop.interventionCount}</TableCell>
-                            <TableCell align="right" sx={{ fontSize: '0.8rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                              {prop.unpaidAmount.toFixed(2)} EUR
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Propriete</TableHead>
+                      <TableHead className="text-center">Interventions</TableHead>
+                      <TableHead className="text-end">Montant</TableHead>
+                      <TableHead className="text-center">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {balance.properties.map((prop) => (
+                      <React.Fragment key={prop.propertyId}>
+                        <TableRow>
+                          <TableCell className="text-[0.8rem]">{prop.propertyName}</TableCell>
+                          <TableCell className="text-center text-[0.8rem]">{prop.interventionCount}</TableCell>
+                          <TableCell className="text-end text-[0.8rem] font-semibold tabular-nums">
+                            {prop.unpaidAmount.toFixed(2)} EUR
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <IconButton
+                              size="small"
+                              onClick={() => onExpandProperty(
+                                expandedProperty === prop.propertyId ? null : prop.propertyId
+                              )}
+                            >
+                              {expandedProperty === prop.propertyId
+                                ? <ExpandLess size={18} strokeWidth={1.75} />
+                                : <ExpandMore size={18} strokeWidth={1.75} />}
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                        {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
+                          // `ps` (padding-inline-start) plutot que `pl` : le kit raisonne en
+                          // proprietes logiques, l'indentation doit suivre le sens de lecture.
+                          <TableRow key={iv.id} className="bg-[var(--hover)]">
+                            <TableCell className="text-[0.75rem] ps-6">{iv.title}</TableCell>
+                            <TableCell className="text-center text-[0.75rem]">
+                              {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
                             </TableCell>
-                            <TableCell align="center">
-                              <IconButton
-                                size="small"
-                                onClick={() => onExpandProperty(
-                                  expandedProperty === prop.propertyId ? null : prop.propertyId
-                                )}
-                              >
-                                {expandedProperty === prop.propertyId
-                                  ? <ExpandLess size={18} strokeWidth={1.75} />
-                                  : <ExpandMore size={18} strokeWidth={1.75} />}
-                              </IconButton>
+                            <TableCell className="text-end text-[0.75rem]">
+                              {iv.estimatedCost.toFixed(2)} EUR
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <StatusChip tokens={{ color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)', bg: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)' }} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
                             </TableCell>
                           </TableRow>
-                          {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
-                            <TableRow key={iv.id} sx={{ bgcolor: 'var(--hover)' }}>
-                              <TableCell sx={{ fontSize: '0.75rem', pl: 4 }}>{iv.title}</TableCell>
-                              <TableCell align="center" sx={{ fontSize: '0.75rem' }}>
-                                {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
-                              </TableCell>
-                              <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
-                                {iv.estimatedCost.toFixed(2)} EUR
-                              </TableCell>
-                              <TableCell align="center">
-                                <StatusChip tokens={{ color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)', bg: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)' }} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
 
                 <div className="flex justify-end mt-2">
                   <Tooltip title="Cree un lien Stripe et le copie dans le presse-papier">

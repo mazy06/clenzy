@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card, MenuItem, Select, Skeleton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Card, MenuItem, Select, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
 import {
   CartesianGrid,
@@ -26,7 +28,6 @@ import {
 } from './chartTheme';
 
 const MONTHS_AHEAD = 6;
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 /**
  * Onglet « Pace » du module Reports (fondations RMS R1) — données 100 % backend
@@ -125,37 +126,36 @@ const PaceReport: React.FC = () => {
             variant="plain"
           />
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('reports.pace.month', 'Mois')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colOtb', 'Nuits OTB')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colStly', 'N-1 (même recul)')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colPace', 'Pace')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colPickup7', 'Pickup 7 j')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colPickup28', 'Pickup 28 j')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colOccupancy', 'Occupation OTB')}</TableCell>
+                <TableHead>{t('reports.pace.month', 'Mois')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colOtb', 'Nuits OTB')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colStly', 'N-1 (même recul)')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colPace', 'Pace')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colPickup7', 'Pickup 7 j')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colPickup28', 'Pickup 28 j')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colOccupancy', 'Occupation OTB')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {months.map((m) => (
-                <TableRow key={m.month} hover>
-                  <TableCell sx={NUM_SX}>{m.month}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{m.otbNights}</TableCell>
-                  <TableCell align="right" sx={{ ...NUM_SX, color: 'var(--muted)' }}>{m.stlyNights}</TableCell>
+                <TableRow key={m.month}>
+                  <TableCell className="tabular-nums">{m.month}</TableCell>
+                  <TableCell className="text-end tabular-nums">{m.otbNights}</TableCell>
+                  <TableCell className="text-end tabular-nums text-[var(--muted)]">{m.stlyNights}</TableCell>
                   <TableCell
-                    align="right"
-                    sx={{
-                      ...NUM_SX,
-                      color: m.paceVsStlyPct == null ? 'var(--muted)'
-                        : m.paceVsStlyPct < 0 ? 'var(--warn)' : 'var(--ok)',
-                    }}
+                    className={cn(
+                      'text-end tabular-nums',
+                      m.paceVsStlyPct == null ? 'text-[var(--muted)]'
+                        : m.paceVsStlyPct < 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]',
+                    )}
                   >
                     {m.paceVsStlyPct == null ? '—' : `${m.paceVsStlyPct > 0 ? '+' : ''}${m.paceVsStlyPct} %`}
                   </TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{m.pickup7Nights}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{m.pickup28Nights}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>
+                  <TableCell className="text-end tabular-nums">{m.pickup7Nights}</TableCell>
+                  <TableCell className="text-end tabular-nums">{m.pickup28Nights}</TableCell>
+                  <TableCell className="text-end tabular-nums">
                     {m.occupancyOtbPct == null ? '—' : `${m.occupancyOtbPct} %`}
                   </TableCell>
                 </TableRow>

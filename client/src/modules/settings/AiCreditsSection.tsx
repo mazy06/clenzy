@@ -4,7 +4,8 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Button, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, useTheme } from '@mui/material';
+import { Button, Skeleton, useTheme } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -164,27 +165,26 @@ export default function AiCreditsSection() {
           <h6 className="cn-text-subtitle2 mb-1.5">
             {t('aiCredits.ledgerTitle', 'Derniers mouvements')}
           </h6>
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('aiCredits.ledger.date', 'Date')}</TableCell>
-                <TableCell>{t('aiCredits.ledger.type', 'Type')}</TableCell>
-                <TableCell>{t('aiCredits.ledger.agent', 'Agent')}</TableCell>
-                <TableCell align="right">{t('aiCredits.ledger.amount', 'Crédits')}</TableCell>
+                <TableHead>{t('aiCredits.ledger.date', 'Date')}</TableHead>
+                <TableHead>{t('aiCredits.ledger.type', 'Type')}</TableHead>
+                <TableHead>{t('aiCredits.ledger.agent', 'Agent')}</TableHead>
+                <TableHead className="text-end">{t('aiCredits.ledger.amount', 'Crédits')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {ledger.slice(0, 10).map((line, idx) => {
                 const replayable = Boolean(line.runId);
                 return (
                   <TableRow
                     key={idx}
-                    hover
                     onClick={replayable ? () => setReplayRunId(line.runId) : undefined}
-                    sx={{ cursor: replayable ? 'pointer' : 'default' }}
+                    className={replayable ? 'cursor-pointer' : 'cursor-default'}
                     title={replayable ? t('aiCredits.ledger.replayHint', 'Voir le replay du run') : undefined}
                   >
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell className="whitespace-nowrap">
                       {new Date(line.createdAt).toLocaleString()}
                     </TableCell>
                     <TableCell>{t(`aiCredits.entry.${line.entryType}`, line.entryType)}</TableCell>
@@ -195,11 +195,11 @@ export default function AiCreditsSection() {
                       )}
                     </TableCell>
                     <TableCell
-                      align="right"
-                      sx={{
-                        fontVariantNumeric: 'tabular-nums',
-                        color: line.millicredits >= 0 ? '#4A9B8E' : 'text.primary',
-                      }}
+                      className={
+                        line.millicredits >= 0
+                          ? 'text-end tabular-nums text-[#4A9B8E]'
+                          : 'text-end tabular-nums text-[var(--ink)]'
+                      }
                     >
                       {line.millicredits >= 0 ? '+' : ''}{toCredits(line.millicredits)}
                     </TableCell>

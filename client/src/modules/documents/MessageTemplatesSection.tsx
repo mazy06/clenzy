@@ -3,7 +3,8 @@ import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/Stat
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Button } from '@mui/material';
+import { IconButton, Tooltip, Button } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Add,
   Edit,
@@ -196,20 +197,22 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           )}
         />
       ) : (
-        <TableContainer component={Paper}>
+        // Rayon 10px + fond --card : report de la surface MUI par defaut
+        // (elevation 0, sans bordure) que portait l'ancien conteneur.
+        <div className="overflow-x-auto rounded-[10px] bg-[var(--card)]">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('messaging.templates.name')}</TableCell>
-                <TableCell>{t('messaging.templates.origin')}</TableCell>
-                <TableCell>{t('messaging.templates.subject')}</TableCell>
-                <TableCell>{t('messaging.templates.language')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.status')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.version')}</TableCell>
-                <TableCell>{t('messaging.templates.createdBy')}</TableCell>
-                <TableCell align="right">{t('common.actions')}</TableCell>
+                <TableHead>{t('messaging.templates.name')}</TableHead>
+                <TableHead>{t('messaging.templates.origin')}</TableHead>
+                <TableHead>{t('messaging.templates.subject')}</TableHead>
+                <TableHead>{t('messaging.templates.language')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.status')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.version')}</TableHead>
+                <TableHead>{t('messaging.templates.createdBy')}</TableHead>
+                <TableHead className="text-end">{t('common.actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {rows.map((row) => (
                 row.origin === 'user'
@@ -227,7 +230,7 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Editor user templates (flow existant inchange) */}
@@ -265,7 +268,7 @@ interface UserRowProps {
 const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
   const { t } = useTranslation();
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
         <Stack0Spaced>
           <p className="cn-text-body2 font-semibold text-[var(--ink)]">{template.name}</p>
@@ -287,12 +290,12 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
       <TableCell>
         <StatusChip label={template.language?.toUpperCase()} tokens={TONE.muted} />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         <StatusChip
           label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')} tokens={template.isActive ? TONE.ok : TONE.muted}
         />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
@@ -300,7 +303,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
             Affiche un dash pour ne pas mentir et garder la colonne alignee. */}
         <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">—</p>
       </TableCell>
-      <TableCell align="right">
+      <TableCell className="text-end">
         <Tooltip title={t('common.edit')} arrow>
           <IconButton
             size="small"
@@ -344,7 +347,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
   const firstLang = Object.values(group.languages)[0];
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
         <Stack0Spaced>
           <p className="cn-text-body2 font-semibold text-[var(--ink)]">
@@ -374,13 +377,13 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
           label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'} tokens={TONE.muted}
         />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         {/* Templates systeme toujours actifs (pas de notion d'activation cote BDD). */}
         <StatusChip
           label={t('messaging.templates.active')} tokens={TONE.ok}
         />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
@@ -388,7 +391,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
           {t('messaging.templates.systemAuthor')}
         </p>
       </TableCell>
-      <TableCell align="right">
+      <TableCell className="text-end">
         <Tooltip title={t('common.edit')} arrow>
           <IconButton
             size="small"

@@ -4,7 +4,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -19,8 +20,6 @@ import {
 import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 const EMPTY_RULE: Omit<YieldRuleV1, 'id'> = {
   propertyId: null,
@@ -352,28 +351,28 @@ const YieldRulesPanel: React.FC = () => {
             )}
           </p>
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('yieldRules.col.name', 'Nom')}</TableCell>
-                <TableCell>{t('yieldRules.col.scope', 'Périmètre')}</TableCell>
-                <TableCell>{t('yieldRules.col.condition', 'Condition')}</TableCell>
-                <TableCell align="right">{t('yieldRules.col.adjustment', 'Ajustement')}</TableCell>
-                <TableCell align="right">{t('yieldRules.col.dailyCap', 'Cap / jour')}</TableCell>
-                <TableCell>{t('yieldRules.col.status', 'Statut')}</TableCell>
-                <TableCell align="right" />
+                <TableHead>{t('yieldRules.col.name', 'Nom')}</TableHead>
+                <TableHead>{t('yieldRules.col.scope', 'Périmètre')}</TableHead>
+                <TableHead>{t('yieldRules.col.condition', 'Condition')}</TableHead>
+                <TableHead className="text-end">{t('yieldRules.col.adjustment', 'Ajustement')}</TableHead>
+                <TableHead className="text-end">{t('yieldRules.col.dailyCap', 'Cap / jour')}</TableHead>
+                <TableHead>{t('yieldRules.col.status', 'Statut')}</TableHead>
+                <TableHead className="text-end" />
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {rules.map((rule) => (
-                <TableRow key={rule.id} hover>
+                <TableRow key={rule.id}>
                   <TableCell>{rule.name}</TableCell>
                   <TableCell>
                     {rule.propertyId != null
                       ? propertyNames.get(rule.propertyId) ?? `#${rule.propertyId}`
                       : t('yieldRules.scopeAll', 'Tous les biens')}
                   </TableCell>
-                  <TableCell sx={NUM_SX}>
+                  <TableCell className="tabular-nums">
                     {rule.comparison === 'BELOW'
                       ? t('yieldRules.conditionBelow', 'Occupation < {{pct}} % à {{days}} j', {
                           pct: rule.occupancyThresholdPct,
@@ -384,11 +383,11 @@ const YieldRulesPanel: React.FC = () => {
                           days: rule.windowDaysAhead,
                         })}
                   </TableCell>
-                  <TableCell align="right" sx={NUM_SX}>
+                  <TableCell className="text-end tabular-nums">
                     {rule.comparison === 'BELOW' ? '−' : '+'}
                     {rule.adjustmentPct} %
                   </TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{rule.maxDailyChangePct} %</TableCell>
+                  <TableCell className="text-end tabular-nums">{rule.maxDailyChangePct} %</TableCell>
                   <TableCell>
                     <StatusChip
                       tone={rule.active ? 'ok' : 'neutral'}
@@ -397,7 +396,7 @@ const YieldRulesPanel: React.FC = () => {
                         : t('yieldRules.inactive', 'Inactive')}
                     />
                   </TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-end whitespace-nowrap">
                     <IconButton size="small" onClick={() => openEdit(rule)} sx={{ cursor: 'pointer' }}>
                       <Pencil size={15} />
                     </IconButton>
@@ -427,23 +426,23 @@ const YieldRulesPanel: React.FC = () => {
             'Plancher et plafond obligatoires : sans les deux, le yield ignore le bien (journalisé NO_BOUNDS).',
           )}
         </p>
-        <Table size="small">
-          <TableHead>
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('yieldRules.col.property', 'Bien')}</TableCell>
-              <TableCell align="right">{t('yieldRules.col.floor', 'Plancher (€)')}</TableCell>
-              <TableCell align="right">{t('yieldRules.col.ceiling', 'Plafond (€)')}</TableCell>
-              <TableCell align="right" />
+              <TableHead>{t('yieldRules.col.property', 'Bien')}</TableHead>
+              <TableHead className="text-end">{t('yieldRules.col.floor', 'Plancher (€)')}</TableHead>
+              <TableHead className="text-end">{t('yieldRules.col.ceiling', 'Plafond (€)')}</TableHead>
+              <TableHead className="text-end" />
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {bounds.map((b) => {
               const value = boundsValue(b);
               const dirty = boundsDraft[b.propertyId] != null;
               return (
-                <TableRow key={b.propertyId} hover>
+                <TableRow key={b.propertyId}>
                   <TableCell>{b.propertyName}</TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     <TextField
                       size="small"
                       value={value.floor}
@@ -457,7 +456,7 @@ const YieldRulesPanel: React.FC = () => {
                       sx={{ width: 110 }}
                     />
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     <TextField
                       size="small"
                       value={value.ceiling}
@@ -471,7 +470,7 @@ const YieldRulesPanel: React.FC = () => {
                       sx={{ width: 110 }}
                     />
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     <Tooltip title={t('yieldRules.saveBounds', 'Enregistrer les bornes')}>
                       <span>
                         <IconButton
@@ -504,27 +503,27 @@ const YieldRulesPanel: React.FC = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <Table size="small">
-                <TableHead>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>{t('yieldRules.col.day', 'Évalué le')}</TableCell>
-                    <TableCell>{t('yieldRules.col.property', 'Bien')}</TableCell>
-                    <TableCell>{t('yieldRules.col.targetDate', 'Nuit')}</TableCell>
-                    <TableCell>{t('yieldRules.col.mode', 'Mode')}</TableCell>
-                    <TableCell align="right">{t('yieldRules.col.before', 'Avant')}</TableCell>
-                    <TableCell align="right">{t('yieldRules.col.after', 'Après')}</TableCell>
-                    <TableCell align="right">{t('yieldRules.col.occupancy', 'Occupation')}</TableCell>
-                    <TableCell>{t('yieldRules.col.detail', 'Détail')}</TableCell>
+                    <TableHead>{t('yieldRules.col.day', 'Évalué le')}</TableHead>
+                    <TableHead>{t('yieldRules.col.property', 'Bien')}</TableHead>
+                    <TableHead>{t('yieldRules.col.targetDate', 'Nuit')}</TableHead>
+                    <TableHead>{t('yieldRules.col.mode', 'Mode')}</TableHead>
+                    <TableHead className="text-end">{t('yieldRules.col.before', 'Avant')}</TableHead>
+                    <TableHead className="text-end">{t('yieldRules.col.after', 'Après')}</TableHead>
+                    <TableHead className="text-end">{t('yieldRules.col.occupancy', 'Occupation')}</TableHead>
+                    <TableHead>{t('yieldRules.col.detail', 'Détail')}</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {journal.content.map((entry) => (
-                    <TableRow key={entry.id} hover>
-                      <TableCell sx={NUM_SX}>{entry.adjustmentDay}</TableCell>
+                    <TableRow key={entry.id}>
+                      <TableCell className="tabular-nums">{entry.adjustmentDay}</TableCell>
                       <TableCell>
                         {propertyNames.get(entry.propertyId) ?? `#${entry.propertyId}`}
                       </TableCell>
-                      <TableCell sx={NUM_SX}>{entry.targetDate ?? '—'}</TableCell>
+                      <TableCell className="tabular-nums">{entry.targetDate ?? '—'}</TableCell>
                       <TableCell>
                         {entry.skipReason ? (
                           <Badge variant="warning">{entry.skipReason}</Badge>
@@ -532,16 +531,16 @@ const YieldRulesPanel: React.FC = () => {
                           <Badge variant="outline">{entry.mode}</Badge>
                         )}
                       </TableCell>
-                      <TableCell align="right" sx={NUM_SX}>
+                      <TableCell className="text-end tabular-nums">
                         {entry.priceBefore != null ? entry.priceBefore.toFixed(2) : '—'}
                       </TableCell>
-                      <TableCell align="right" sx={NUM_SX}>
+                      <TableCell className="text-end tabular-nums">
                         {entry.priceAfter != null ? entry.priceAfter.toFixed(2) : '—'}
                       </TableCell>
-                      <TableCell align="right" sx={NUM_SX}>
+                      <TableCell className="text-end tabular-nums">
                         {entry.occupancyPct != null ? `${entry.occupancyPct} %` : '—'}
                       </TableCell>
-                      <TableCell sx={{ maxWidth: 320 }}>
+                      <TableCell className="max-w-[320px]">
                         <p className="cn-text-body2 truncate" title={entry.reason ?? ''}>
                           {entry.reason ?? '—'}
                         </p>

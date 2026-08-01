@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Card, IconButton, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button, Card, IconButton, MenuItem, Select, TextField } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -19,7 +20,6 @@ import {
 const DIMENSIONS: ReportDimension[] = ['PROPERTY', 'CHANNEL', 'PERIOD', 'COUNTRY'];
 const METRICS: ReportMetric[] = ['REVENUE', 'ADR', 'REVPAR', 'OCCUPANCY', 'FEES', 'MARGIN'];
 const GRANULARITIES: ReportGranularity[] = ['DAY', 'WEEK', 'MONTH', 'YEAR'];
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -223,25 +223,25 @@ const CustomReport: React.FC = () => {
             />
           ) : (
             <div className="overflow-x-auto">
-              <Table size="small">
-                <TableHead>
+              <Table>
+                <TableHeader>
                   <TableRow>
                     {result.dimensions.map((d) => (
-                      <TableCell key={d}>{dimensionLabel(d)}</TableCell>
+                      <TableHead key={d}>{dimensionLabel(d)}</TableHead>
                     ))}
                     {result.metrics.map((m) => (
-                      <TableCell key={m} align="right">{metricLabel(m)}</TableCell>
+                      <TableHead key={m} className="text-end">{metricLabel(m)}</TableHead>
                     ))}
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {result.rows.map((row) => (
-                    <TableRow key={row.dimensionValues.join('|')} hover>
+                    <TableRow key={row.dimensionValues.join('|')}>
                       {row.dimensionValues.map((value, i) => (
                         <TableCell key={`${i}-${value}`}>{value}</TableCell>
                       ))}
                       {result.metrics.map((m) => (
-                        <TableCell key={m} align="right" sx={NUM_SX}>
+                        <TableCell key={m} className="text-end tabular-nums">
                           {formatValue(m, row.metrics[m])}
                         </TableCell>
                       ))}

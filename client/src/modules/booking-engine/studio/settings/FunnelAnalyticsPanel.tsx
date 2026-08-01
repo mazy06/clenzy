@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Card, Skeleton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
 import StatTile from '../../../../components/StatTile';
 import EmptyState from '../../../../components/EmptyState';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { funnelApi, type FunnelAnalytics } from '../../../../services/api/funnelApi';
-
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -137,22 +136,22 @@ export default function FunnelAnalyticsPanel() {
             variant="plain"
           />
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('bookingEngine.funnel.colCheckIn', 'Arrivée')}</TableCell>
-                <TableCell>{t('bookingEngine.funnel.colCheckOut', 'Départ')}</TableCell>
-                <TableCell align="right">{t('bookingEngine.funnel.colGuests', 'Voyageurs')}</TableCell>
-                <TableCell align="right">{t('bookingEngine.funnel.colCount', 'Demandes')}</TableCell>
+                <TableHead>{t('bookingEngine.funnel.colCheckIn', 'Arrivée')}</TableHead>
+                <TableHead>{t('bookingEngine.funnel.colCheckOut', 'Départ')}</TableHead>
+                <TableHead className="text-end">{t('bookingEngine.funnel.colGuests', 'Voyageurs')}</TableHead>
+                <TableHead className="text-end">{t('bookingEngine.funnel.colCount', 'Demandes')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {data?.topDenied.map((row) => (
-                <TableRow key={`${row.checkIn}-${row.checkOut}-${row.guests}`} hover>
-                  <TableCell sx={NUM_SX}>{row.checkIn ?? '—'}</TableCell>
-                  <TableCell sx={NUM_SX}>{row.checkOut ?? '—'}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{row.guests ?? '—'}</TableCell>
-                  <TableCell align="right" sx={{ ...NUM_SX, fontWeight: 600 }}>{row.count}</TableCell>
+                <TableRow key={`${row.checkIn}-${row.checkOut}-${row.guests}`}>
+                  <TableCell className="tabular-nums">{row.checkIn ?? '—'}</TableCell>
+                  <TableCell className="tabular-nums">{row.checkOut ?? '—'}</TableCell>
+                  <TableCell className="text-end tabular-nums">{row.guests ?? '—'}</TableCell>
+                  <TableCell className="text-end tabular-nums font-semibold">{row.count}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

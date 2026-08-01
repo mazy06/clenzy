@@ -14,7 +14,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Paper, Button, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Skeleton } from '@mui/material';
+import { Paper, Button, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -40,8 +41,6 @@ const CARD_SX = {
   borderRadius: 'var(--radius-lg)',
   bgcolor: 'var(--card)',
 } as const;
-const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
-const HEAD_CELL_SX = { py: 1 } as const;
 
 // Chip statut sobre (pattern softChipSx AccountingPage) : texte couleur + fond 9 %.
 const softChipSx = (color: string) => ({
@@ -205,19 +204,19 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.housekeeperPayouts.col.provider', 'Prestataire')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.housekeeperPayouts.col.mission', 'Mission')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.housekeeperPayouts.col.net', 'Montant net')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.housekeeperPayouts.col.commission', 'Commission')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.housekeeperPayouts.col.status', 'Statut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.housekeeperPayouts.col.date', 'Date')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('accounting.housekeeperPayouts.col.provider', 'Prestataire')}</TableHead>
+                <TableHead>{t('accounting.housekeeperPayouts.col.mission', 'Mission')}</TableHead>
+                <TableHead className="text-end">{t('accounting.housekeeperPayouts.col.net', 'Montant net')}</TableHead>
+                <TableHead className="text-end">{t('accounting.housekeeperPayouts.col.commission', 'Commission')}</TableHead>
+                <TableHead className="text-center">{t('accounting.housekeeperPayouts.col.status', 'Statut')}</TableHead>
+                <TableHead>{t('accounting.housekeeperPayouts.col.date', 'Date')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {paged.map((r) => {
                 const reason = r.failureReason
@@ -225,9 +224,9 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                   : null;
                 const showReason = reason && (r.status === 'FAILED' || r.status === 'BLOCKED');
                 return (
-                  <TableRow key={r.id} data-highlight-id={String(r.id)} hover>
-                    <TableCell sx={CELL_SX}>{providerName(r)}</TableCell>
-                    <TableCell sx={CELL_SX}>
+                  <TableRow key={r.id} data-highlight-id={String(r.id)}>
+                    <TableCell className="py-[7.5px] tabular-nums">{providerName(r)}</TableCell>
+                    <TableCell className="py-[7.5px] tabular-nums">
                       <Link
                         component={RouterLink}
                         to={`/interventions/${r.interventionId}`}
@@ -236,11 +235,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                         {t('accounting.housekeeperPayouts.missionRef', 'Mission')} #{r.interventionId}
                       </Link>
                     </TableCell>
-                    <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">{fmtCurrency(r.amount)}</TableCell>
-                    <TableCell sx={CELL_SX} align="right">
+                    <TableCell className="py-[7.5px] tabular-nums text-end font-bold">{fmtCurrency(r.amount)}</TableCell>
+                    <TableCell className="py-[7.5px] tabular-nums text-end">
                       {r.commissionAmount > 0 ? fmtCurrency(r.commissionAmount) : '—'}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
                       <div className="inline-flex items-center gap-0.5">
                         <StatusChip color={STATUS_COLORS[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
                         {showReason && (
@@ -252,8 +251,8 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>{fmtDate(r.createdAt)}</TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell className="py-[7.5px] tabular-nums text-[0.75rem]">{fmtDate(r.createdAt)}</TableCell>
+                    <TableCell className="text-end whitespace-nowrap">
                       {RETRYABLE.includes(r.status) && (
                         <Tooltip title={t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}>
                           <span>
@@ -284,7 +283,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
               rowsPerPage={ROWS_PER_PAGE}
             />
           )}
-        </TableContainer>
+        </div>
       )}
 
       {/* ── Confirmation de relance (money-path) ── */}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Paper, Grid, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, alpha } from '@mui/material';
+import { Paper, Grid, Skeleton, alpha } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   AccountBalanceWallet,
@@ -44,12 +45,6 @@ const softChipSx = (c: string) => ({
 });
 
 /** Montants : display tabular-nums (jamais proportional) */
-const moneySx = {
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-};
-
-/** Equivalent Tailwind de `moneySx` (les cibles MUI restantes gardent l'objet). */
 const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const ENTRY_TYPE_TOKENS: Record<string, string> = {
@@ -238,22 +233,22 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                 </div>
               ) : (
                 <>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell>Date</TableCell>
-                          <TableCell>Description</TableCell>
-                          <TableCell>Type</TableCell>
-                          <TableCell>Référence</TableCell>
-                          <TableCell align="right">Montant</TableCell>
-                          <TableCell align="right">Solde</TableCell>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Référence</TableHead>
+                          <TableHead className="text-end">Montant</TableHead>
+                          <TableHead className="text-end">Solde</TableHead>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {entries.map((entry) => (
                           <TableRow key={entry.id}>
-                            <TableCell sx={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                            <TableCell className="text-[var(--muted)] tabular-nums">
                               {new Date(entry.createdAt).toLocaleDateString('fr-FR', {
                                 day: '2-digit', month: '2-digit', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit',
@@ -266,7 +261,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                             <TableCell>
                               <StatusChip color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--muted)'} label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType} />
                             </TableCell>
-                            <TableCell align="right">
+                            <TableCell className="text-end">
                               {/* Montant signé : display tabular-nums, ok/err */}
                               <p
                                 className={cn(
@@ -279,14 +274,15 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                                 <Money value={entry.amount} from={entry.currency} />
                               </p>
                             </TableCell>
-                            <TableCell align="right" sx={{ ...moneySx, color: 'var(--ink)' }}>
+                            {/* chaine litterale : tailwind-merge rangerait font-[…] et font-semibold dans le meme groupe */}
+                            <TableCell className="font-[family-name:var(--font-display)] tabular-nums text-end text-[var(--ink)]">
                               <Money value={entry.balanceAfter} from={entry.currency} />
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  </TableContainer>
+                  </div>
                   <PagePagination
                     count={totalEntries}
                     page={page}

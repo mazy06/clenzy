@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, MenuItem, TextField, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Paper, MenuItem, TextField, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
   Gavel as StepTvaIcon,
@@ -23,9 +24,9 @@ import type { VatSummary } from '../../services/api/fiscalReportingApi';
 
 type PeriodMode = 'monthly' | 'quarterly' | 'annual';
 
-// Tableaux : entêtes overline / valeurs 12.5px via le thème global Signature.
-const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
-const HEAD_CELL_SX = { py: 1 } as const;
+// Tableaux : entetes overline / valeurs 12.5px portes par le primitif du kit.
+// Seul l'ecart au gabarit reste ici : padding vertical 7.5px et tabular-nums.
+const CELL_CLASS = 'py-[7.5px] tabular-nums';
 
 // Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
 const PANEL_SX = {
@@ -206,32 +207,32 @@ const FiscalReportSection: React.FC = () => {
 
           {/* Breakdown table */}
           {summary.breakdown?.length > 0 && (
-            <TableContainer component={Paper} sx={PANEL_SX}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={HEAD_CELL_SX}>Categorie</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>Taxe</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Taux</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Base HT</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Montant TVA</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Lignes</TableCell>
+                    <TableHead>Categorie</TableHead>
+                    <TableHead>Taxe</TableHead>
+                    <TableHead className="text-end">Taux</TableHead>
+                    <TableHead className="text-end">Base HT</TableHead>
+                    <TableHead className="text-end">Montant TVA</TableHead>
+                    <TableHead className="text-end">Lignes</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {summary.breakdown.map((row) => (
-                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`} hover>
-                      <TableCell sx={CELL_SX}>{row.taxCategory}</TableCell>
-                      <TableCell sx={CELL_SX}>{row.taxName}</TableCell>
-                      <TableCell sx={CELL_SX} align="right">{formatTaxRate(row.taxRate)}</TableCell>
-                      <TableCell sx={CELL_SX} align="right"><Money value={row.baseAmount} from={summary.currency} /></TableCell>
-                      <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right"><Money value={row.taxAmount} from={summary.currency} /></TableCell>
-                      <TableCell sx={CELL_SX} align="right">{row.lineCount}</TableCell>
+                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`}>
+                      <TableCell className={CELL_CLASS}>{row.taxCategory}</TableCell>
+                      <TableCell className={CELL_CLASS}>{row.taxName}</TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end')}>{formatTaxRate(row.taxRate)}</TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end')}><Money value={row.baseAmount} from={summary.currency} /></TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end font-semibold')}><Money value={row.taxAmount} from={summary.currency} /></TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end')}>{row.lineCount}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </>
       )}

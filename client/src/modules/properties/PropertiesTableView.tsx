@@ -1,9 +1,8 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import {
-  Paper, Tooltip, IconButton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
+import { Paper, Tooltip, IconButton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -64,55 +63,33 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
         overflow: 'hidden',
       }}
     >
-      <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
-          <TableHead>
-            <TableRow
-              sx={{
-                // .pr-lhead — entête overline sur surface sur-élevée (h42)
-                '& th': {
-                  fontWeight: 700,
-                  fontSize: '10.5px',
-                  letterSpacing: '.05em',
-                  textTransform: 'uppercase',
-                  color: 'var(--faint)',
-                  bgcolor: 'var(--surface-2)',
-                  height: 42,
-                  py: 0,
-                  borderBottom: '1px solid var(--line)',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <TableCell sx={{ width: '28%' }}>Nom</TableCell>
-              <TableCell sx={{ width: '11%' }}>Type</TableCell>
-              <TableCell sx={{ width: '20%' }}>Caractéristiques</TableCell>
-              <TableCell sx={{ width: '18%' }}>Commodités</TableCell>
-              <TableCell sx={{ width: '13%' }}>Ménage</TableCell>
-              <TableCell align="center" sx={{ width: '10%' }}>Actions</TableCell>
+      <div className="flex-1 overflow-hidden">
+        <Table className="table-fixed w-full">
+          <TableHeader>
+            {/* .pr-lhead — entête overline sur surface sur-élevée (h42) ; seuls le
+                fond, la hauteur et le py:0 s'ecartent du primitif. */}
+            <TableRow className="bg-[var(--surface-2)] h-[42px]">
+              <TableHead className="w-[28%] py-0">Nom</TableHead>
+              <TableHead className="w-[11%] py-0">Type</TableHead>
+              <TableHead className="w-[20%] py-0">Caractéristiques</TableHead>
+              <TableHead className="w-[18%] py-0">Commodités</TableHead>
+              <TableHead className="w-[13%] py-0">Ménage</TableHead>
+              <TableHead className="w-[10%] py-0 text-center">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {properties.map((property) => {
               const details = toPropertyDetails(property);
               const price = cleaningEstimates[Number(property.id)];
               const duration = estimateCleaningDuration(details);
+              // .pr-lrow:hover → fond accent doux, plus soutenu que le --hover du primitif
               return (
                 <TableRow
                   key={property.id}
-                  hover
-                  sx={{
-                    cursor: 'pointer',
-                    '& td': { borderBottom: '1px solid var(--line)', fontSize: '12.5px' },
-                    // .pr-lrow:hover → fond accent doux (transition douce, pas de scale)
-                    transition: 'background-color .12s',
-                    '&:hover': { bgcolor: 'var(--accent-soft)' },
-                    '&:last-child td': { borderBottom: 0 },
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
+                  className="cursor-pointer hover:bg-[var(--accent-soft)] motion-reduce:transition-none"
                   onClick={() => navigate(`/properties/${property.id}`)}
                 >
-                  <TableCell sx={{ py: 1, pr: 1 }}>
+                  <TableCell className="py-1.5 pe-1.5">
                     <div className="flex items-center min-w-0 gap-2">
                       {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo) */}
                       <div
@@ -228,7 +205,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-center">
                     {(() => { const sc = getPropertyStatusHex(property.status); return (
                       <Tooltip title={`${getPropertyStatusLabel(property.status, t)} — cliquer pour ${property.status === 'active' ? 'désactiver' : 'activer'}`}>
                         <IconButton
@@ -273,7 +250,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalCount}
         page={page}

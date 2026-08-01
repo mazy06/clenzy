@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Paper, Button, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
+import { Button, IconButton, Tooltip, TextField, Alert, Snackbar, Stack } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
   Handshake, Home, Person, PictureAsPdf, Send,
@@ -402,20 +404,20 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
           {contracts.length}
         </span>
       </div>
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', opacity: muted ? 0.85 : 1 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'var(--surface-2)' }}>
-              <TableCell>{t('contracts.contractNumber')}</TableCell>
-              <TableCell>{t('contracts.property')}</TableCell>
-              <TableCell>{t('contracts.owner')}</TableCell>
-              <TableCell>{t('contracts.type')}</TableCell>
-              <TableCell align="center">{t('contracts.commission')}</TableCell>
-              <TableCell>{t('contracts.period')}</TableCell>
-              <TableCell align="center">{t('contracts.status')}</TableCell>
-              <TableCell align="right">{t('contracts.actions')}</TableCell>
+      <div className={cn('overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]', muted && 'opacity-85')}>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-[var(--surface-2)]">
+              <TableHead>{t('contracts.contractNumber')}</TableHead>
+              <TableHead>{t('contracts.property')}</TableHead>
+              <TableHead>{t('contracts.owner')}</TableHead>
+              <TableHead>{t('contracts.type')}</TableHead>
+              <TableHead className="text-center">{t('contracts.commission')}</TableHead>
+              <TableHead>{t('contracts.period')}</TableHead>
+              <TableHead className="text-center">{t('contracts.status')}</TableHead>
+              <TableHead className="text-end">{t('contracts.actions')}</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {contracts.map(c => {
               const meta = STATUS_META[c.status] ?? { label: c.status, color: 'var(--muted)', soft: 'var(--hover)' };
@@ -424,7 +426,9 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
               if (isTerminating) {
                 return (
                   <TableRow key={c.id}>
-                    <TableCell colSpan={8} sx={{ p: 2, bgcolor: 'var(--err-soft)' }}>
+                    {/* whitespace-normal : le primitif est nowrap par defaut, or cette
+                        cellule porte un panneau de texte qui doit se replier. */}
+                    <TableCell colSpan={8} className="p-3 bg-[var(--err-soft)] whitespace-normal">
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-1.5 text-[var(--err)]">
                           <Cancel size={18} strokeWidth={2} />
@@ -470,7 +474,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
               }
 
               return (
-                <TableRow key={c.id} hover>
+                <TableRow key={c.id}>
                   <TableCell>
                     <p className="cn-text-body2 font-semibold font-mono text-[0.8125rem] text-[var(--ink)]">
                       {c.contractNumber}
@@ -495,7 +499,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   <TableCell>
                     <p className="cn-text-body2 text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums">{`${(c.commissionRate * 100).toFixed(0)}%`}</Badge>
                   </TableCell>
                   <TableCell>
@@ -503,7 +507,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                       {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
                     </p>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     <div className="flex flex-col items-center gap-0.5">
                       <StatusChip tokens={{ color: meta.color, bg: meta.soft }} label={meta.label} />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
@@ -518,7 +522,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     <div className="flex justify-end gap-0.5">
                       <Tooltip title="Voir le mandat de gestion">
                         <IconButton size="small" color="primary" onClick={() => onViewMandate(c.id)}>
@@ -567,7 +571,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
     </div>
   );
 };

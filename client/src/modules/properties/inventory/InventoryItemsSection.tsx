@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
-import { Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Button, IconButton, TextField, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Add,
   Edit,
@@ -469,25 +470,25 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           </p>
         </Card>
       ) : (
-        <TableContainer component="div" className="overflow-x-auto rounded-xl border border-border bg-card">
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={{ width: 64 }} />
-                <TableCell>Designation</TableCell>
-                <TableCell>Categorie</TableCell>
-                <TableCell align="center">Qte</TableCell>
-                <TableCell>Notes</TableCell>
-                {canEdit && <TableCell align="right" sx={{ width: 80 }} />}
+                <TableHead className="w-16" />
+                <TableHead>Designation</TableHead>
+                <TableHead>Categorie</TableHead>
+                <TableHead className="text-center">Qte</TableHead>
+                <TableHead>Notes</TableHead>
+                {canEdit && <TableHead className="w-20 text-end" />}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {orderedItems.map((item) => {
                 const isEditing = editingId === item.id;
                 if (isEditing) {
                   return (
                     <TableRow key={item.id}>
-                      <TableCell colSpan={6} sx={{ p: 1, bgcolor: 'action.hover' }}>
+                      <TableCell colSpan={6} className="p-1.5 bg-[var(--hover)]">
                         <InlineForm
                           value={editForm}
                           onChange={setEditForm}
@@ -501,8 +502,8 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                   );
                 }
                 return (
-                  <TableRow key={item.id} hover>
-                    <TableCell sx={{ p: 0.75 }}>
+                  <TableRow key={item.id}>
+                    <TableCell className="p-[4.5px]">
                       {item.photoUrl ? (
                         <a
                           href={item.photoUrl}
@@ -520,12 +521,12 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                     </TableCell>
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category && renderCategoryChip(item.category)}</TableCell>
-                    <TableCell align="center">{item.quantity}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                    <TableCell className="text-center">{item.quantity}</TableCell>
+                    <TableCell className="text-[var(--muted)] text-[0.8rem]">
                       {item.notes || '—'}
                     </TableCell>
                     {canEdit && (
-                      <TableCell align="right">
+                      <TableCell className="text-end">
                         <Tooltip title="Modifier">
                           <IconButton size="small" onClick={() => startEdit(item)}>
                             <Edit size={16} strokeWidth={1.75} />
@@ -543,7 +544,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
     </div>
   );

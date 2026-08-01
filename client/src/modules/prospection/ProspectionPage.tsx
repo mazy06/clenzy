@@ -3,8 +3,9 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, SelectChangeEvent } from '@mui/material';
+import { Box, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, SelectChangeEvent } from '@mui/material';
 import {
   ExpandMore,
   ExpandLess,
@@ -297,29 +298,26 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
                 {/* Prospects table */}
                 <Collapse in={isExpanded}>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Nom</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Ville</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Specialite</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Taille</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>CA</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Liens</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Statut</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Notes</TableCell>
+                          <TableHead className="text-[0.75rem]">Nom</TableHead>
+                          <TableHead className="text-[0.75rem]">Ville</TableHead>
+                          <TableHead className="text-[0.75rem]">Specialite</TableHead>
+                          <TableHead className="text-[0.75rem]">Taille</TableHead>
+                          <TableHead className="text-[0.75rem]">CA</TableHead>
+                          <TableHead className="text-[0.75rem]">Liens</TableHead>
+                          <TableHead className="text-[0.75rem]">Statut</TableHead>
+                          <TableHead className="text-[0.75rem]">Notes</TableHead>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {cat.prospects.map((p) => {
                           const sc = STATUS_CONFIG[(p.status as ProspectStatus) || 'TO_CONTACT'] || STATUS_CONFIG.TO_CONTACT;
+                          // le filet de derniere ligne est deja absent cote kit : pas de sx a reporter
                           return (
-                            <TableRow
-                              key={p.id}
-                              hover
-                              sx={{ '&:last-child td': { borderBottom: 0 } }}
-                            >
+                            <TableRow key={p.id}>
                               <TableCell>
                                 <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                                   {p.name}
@@ -432,7 +430,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                         })}
                       </TableBody>
                     </Table>
-                  </TableContainer>
+                  </div>
                 </Collapse>
               </Card>
             );
