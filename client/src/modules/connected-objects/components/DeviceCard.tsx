@@ -3,8 +3,9 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Typography, Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
+import { Typography, Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
+import { cn } from '../../../utils/cn';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
 import BatteryIndicator from './BatteryIndicator';
@@ -97,9 +98,9 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </span>
         </div>
         <Tooltip title={device.online ? 'En ligne' : 'Hors ligne'} arrow>
-          <Box component="span" sx={{ color: device.online ? 'success.main' : 'text.disabled', display: 'inline-flex', flexShrink: 0, mt: 0.25 }}>
+          <span className={cn('inline-flex shrink-0 mt-[1.5px]', device.online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
             {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
-          </Box>
+          </span>
         </Tooltip>
       </div>
 

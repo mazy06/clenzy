@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Dialog, DialogContent } from '@mui/material';
+import { Typography, Dialog, DialogContent } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
@@ -38,51 +39,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     return (
       <>
         <div className="flex justify-end mb-3">
-          <Box
-            sx={{
-              maxWidth: '74%',
-              p: '11px 14px',
-              borderRadius: '15px',
-              borderBottomRightRadius: '5px',
-              bgcolor: 'var(--accent)',
-              color: 'var(--on-accent)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-            }}
-          >
+          <div className="max-w-[74%] py-[11px] px-[14px] rounded-[15px] rounded-br-[5px] bg-[var(--accent)] text-[var(--on-accent)] flex flex-col gap-1.5">
             {/* Attachments thumbnails 100x100 — au-dessus du texte */}
             {attachments.length > 0 && (
               <div className="flex gap-1 flex-wrap">
                 {attachments.map((att) => (
-                  <Box
+                  <button
                     key={att.storageKey}
-                    component="button"
                     onClick={() => {
                       setFullSizeUrl(att.url);
                       setFullSizeAlt(att.name ?? 'image jointe');
                     }}
                     aria-label={`Voir ${att.name ?? 'l\'image'} en grand`}
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: '10px',
-                      overflow: 'hidden',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      bgcolor: 'rgba(255,255,255,.18)',
-                      transition: 'opacity .15s',
-                      '&:hover': { opacity: 0.85 },
-                      '&:focus-visible': {
-                        outline: '2px solid var(--on-accent)',
-                        outlineOffset: 2,
-                      },
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
+                    className="w-[100px] h-[100px] rounded-[10px] overflow-hidden border-none p-0 cursor-pointer bg-[rgba(255,255,255,.18)] transition-opacity duration-150 hover:opacity-[.85] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-[var(--on-accent)] focus-visible:outline-offset-2 motion-reduce:transition-none"
                   >
                     <img className="w-full h-full object-cover block" src={att.url} alt={att.name ?? 'image jointe'} />
-                  </Box>
+                  </button>
                 ))}
               </div>
             )}
@@ -106,7 +78,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 {message.content}
               </Typography>
             )}
-          </Box>
+          </div>
         </div>
 
         {/* Modal full-size — declenche par clic sur un thumbnail */}
@@ -131,19 +103,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
   // ── ASSISTANT : avatar mark + bulle .mg-b in (carte hairline) ────────────
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        alignItems: 'flex-start',
-        mb: 2.5,
+    <div
+      className={cn(
+        'flex gap-[9px] items-start mb-[15px] transition-opacity duration-200 motion-reduce:transition-none',
         // Streaming visual : opacity subtile uniquement avant tout contenu
-        opacity: isStreaming && !message.content && !message.toolCalls?.length ? 0.85 : 1,
-        transition: 'opacity .2s',
-        '@media (prefers-reduced-motion: reduce)': {
-          transition: 'none',
-        },
-      }}
+        isStreaming && !message.content && !message.toolCalls?.length ? 'opacity-[.85]' : 'opacity-100',
+      )}
     >
       {/* Avatar Baitly mark — signature visuelle de l'assistant.
           Pas de bg circulaire : le mark a son propre dessin (8 nodes +
@@ -190,20 +155,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             Permet au LLM de proposer "[Settings](/settings?tab=ai)" cliquable inline.
             Bulle in : carte hairline, coin bas-gauche 5px. */}
         {message.content && (
-          <Box
-            sx={{
-              display: 'inline-block',
-              maxWidth: '100%',
-              p: '11px 14px',
-              borderRadius: '15px',
-              borderBottomLeftRadius: '5px',
-              bgcolor: 'var(--card)',
-              border: '1px solid var(--line)',
-              color: 'var(--body)',
-            }}
-          >
+          <div className="inline-block max-w-full py-[11px] px-[14px] rounded-[15px] rounded-bl-[5px] bg-[var(--card)] border border-solid border-[var(--line)] text-[var(--body)]">
             <AssistantMarkdown text={message.content} />
-          </Box>
+          </div>
         )}
 
         {/* Streaming indicator quand le contenu est encore vide */}
@@ -216,6 +170,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </div>
         )}
       </div>
-    </Box>
+    </div>
   );
 };

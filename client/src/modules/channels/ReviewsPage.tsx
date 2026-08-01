@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Collapse } from '@mui/material';
+import { Paper, Typography, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Collapse } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
@@ -12,7 +12,6 @@ import {
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
-import { SPACING } from '../../theme/spacing';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { AirbnbReview } from '../../services/api/airbnbApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -107,7 +106,8 @@ const ReviewsPage: React.FC = () => {
   }, {} as Record<string, number>);
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    // SPACING.PAGE_PADDING = 2 pas de theme, et theme.spacing vaut 6 → 12 px.
+    <div className="p-3">
       <PageHeader
         title={t('channels.reviews.title')}
         subtitle={t('channels.reviews.subtitle')}
@@ -196,7 +196,7 @@ const ReviewsPage: React.FC = () => {
           ))}
         </div>
       )}
-    </Box>
+    </div>
   );
 };
 

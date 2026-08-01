@@ -1,4 +1,4 @@
-import { Box, Typography, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
+import { Typography, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
@@ -53,9 +53,9 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
           <span className="cn-text-caption text-muted-foreground">{roomName ? `${roomName} · ` : ''}{brand || 'Thermostat'}</span>
         </div>
         <Tooltip title={online ? 'En ligne' : 'Hors ligne'} arrow>
-          <Box component="span" sx={{ color: online ? 'success.main' : 'text.disabled', display: 'inline-flex', flexShrink: 0, mt: 0.25 }}>
+          <span className={cn('inline-flex shrink-0 mt-[1.5px]', online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
             {online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
-          </Box>
+          </span>
         </Tooltip>
         {onDelete && (
           <Tooltip title="Supprimer" arrow>

@@ -2,7 +2,8 @@ import React, { useMemo, useState, useRef, useCallback } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Box, Typography, IconButton, Divider, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Typography, IconButton, Divider, TextField } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import {
   Close,
   Person,
@@ -190,30 +191,25 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   {saving && <Spinner className="size-3.5" />}
                 </div>
               ) : (
-                <Box
+                <div
                   onClick={() => startEdit('name')}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                    borderRadius: 0.5,
-                    px: 0.5,
-                    mx: -0.5,
-                    '&:hover': onUpdateGuestInfo ? {
-                      bgcolor: 'var(--hover)',
-                      '& .edit-hint': { opacity: 1 },
-                    } : {},
-                  }}
+                  className={cn(
+                    'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px]',
+                    // Variante unique '&:hover .edit-hint' : evite toute ambiguite
+                    // d'ordre entre les variantes hover: et [&_...]:
+                    onUpdateGuestInfo
+                      ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                      : 'cursor-default',
+                  )}
                 >
                   <p className="cn-text-body1 text-[1rem] font-bold">
                     {displayName}
                   </p>
                   {onUpdateGuestInfo && (
-                    <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></Box>
+                    <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></span>
                   )}
                   {saved === 'name' && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
-                </Box>
+                </div>
               )}
 
               {/* Editable contact info */}
@@ -241,32 +237,24 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     )}
                   </div>
                 ) : (
-                  <Box
+                  <div
                     onClick={() => startEdit('email')}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                      borderRadius: 0.5,
-                      px: 0.5,
-                      mx: -0.5,
-                      py: 0.25,
-                      '&:hover': onUpdateGuestInfo ? {
-                        bgcolor: 'var(--hover)',
-                        '& .edit-hint': { opacity: 1 },
-                      } : {},
-                    }}
+                    className={cn(
+                      'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px] py-[1.5px]',
+                      onUpdateGuestInfo
+                        ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                        : 'cursor-default',
+                    )}
                   >
                     <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
                     <Typography sx={{ fontSize: '0.75rem', color: displayEmail ? 'text.secondary' : 'text.disabled', fontStyle: displayEmail ? 'normal' : 'italic' }}>
                       {displayEmail || 'Ajouter un email'}
                     </Typography>
                     {onUpdateGuestInfo && (
-                      <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
+                      <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
                     )}
                     {saved === 'email' && <span className="inline-flex text-[var(--ok)]"><Check size={12} strokeWidth={1.75} /></span>}
-                  </Box>
+                  </div>
                 )}
 
                 {/* Phone — editable */}
@@ -289,32 +277,24 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     {saving && <Spinner className="size-3" />}
                   </div>
                 ) : (
-                  <Box
+                  <div
                     onClick={() => startEdit('phone')}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                      borderRadius: 0.5,
-                      px: 0.5,
-                      mx: -0.5,
-                      py: 0.25,
-                      '&:hover': onUpdateGuestInfo ? {
-                        bgcolor: 'var(--hover)',
-                        '& .edit-hint': { opacity: 1 },
-                      } : {},
-                    }}
+                    className={cn(
+                      'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px] py-[1.5px]',
+                      onUpdateGuestInfo
+                        ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                        : 'cursor-default',
+                    )}
                   >
                     <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
                     <Typography sx={{ fontSize: '0.75rem', color: displayPhone ? 'text.secondary' : 'text.disabled', fontStyle: displayPhone ? 'normal' : 'italic' }}>
                       {displayPhone || 'Ajouter un telephone'}
                     </Typography>
                     {onUpdateGuestInfo && (
-                      <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
+                      <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
                     )}
                     {saved === 'phone' && <span className="inline-flex text-[var(--ok)]"><Check size={12} strokeWidth={1.75} /></span>}
-                  </Box>
+                  </div>
                 )}
               </div>
             </div>

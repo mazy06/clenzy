@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Tooltip } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { useDraggable } from '@dnd-kit/core';
 import { Lock as LockIcon, Close, Warning, BroomFill, WrenchFill, CreditCardFill, CheckBold } from '../../icons';
 import { INTERVENTION_TYPE_LABELS } from '../../services/api/reservationsApi';
@@ -82,16 +83,7 @@ const RadarPastille: React.FC<{
   right?: number;
 }> = ({ color, tooltip, right = -4 }) => (
   <Tooltip title={tooltip} arrow>
-    <Box
-      sx={{
-        position: 'absolute',
-        top: -3,
-        right,
-        width: 10,
-        height: 10,
-        zIndex: 12,
-      }}
-    >
+    <div className="absolute top-[-3px] w-[10px] h-[10px] z-[12]" style={{ right }}>
       {/* Anneau 1 (pulse continu) */}
       <Box
         sx={{
@@ -122,7 +114,7 @@ const RadarPastille: React.FC<{
       />
       {/* Point central solide */}
       <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
-    </Box>
+    </div>
   </Tooltip>
 );
 
@@ -142,17 +134,9 @@ const PILL_INK = '#15242D';         // texte neutre (montant prestation, « +N �
 const PILL_UNPAID = '#B25A2A';      // montant non réglé (ambre foncé)
 const PILL_UNPAID_ICON = '#C9803F'; // icône carte (non réglé)
 
-const BAR_BADGE_SX = {
-  width: BAR_BADGE_SIZE,
-  height: BAR_BADGE_SIZE,
-  borderRadius: '7px',
-  backgroundColor: '#fff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  boxShadow: '0 1px 2px rgba(0,0,0,.14)',
-} as const;
+// Pendant en classes de l'ancien BAR_BADGE_SX (21x21, r7, fond blanc, ombre douce).
+const BAR_BADGE_CLS =
+  'w-[21px] h-[21px] rounded-[7px] bg-[#fff] flex items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,.14)]';
 
 // ─── Resize Handle (right edge) ──────────────────────────────────────────────
 
@@ -173,22 +157,11 @@ const ResizeHandle: React.FC<{ eventId: string; event: PlanningEvent; layout: Ba
   };
 
   return (
-    <Box
+    <div
       ref={setNodeRef}
       {...attributes}
       onPointerDown={handlePointerDown}
-      sx={{
-        position: 'absolute',
-        right: 0,
-        top: 0,
-        width: 8,
-        height: '100%',
-        cursor: 'col-resize',
-        zIndex: 10,
-        '&:hover': {
-          backgroundColor: 'color-mix(in srgb, var(--ink) 8%, transparent)',
-        },
-      }}
+      className="absolute right-0 top-0 w-[8px] h-full cursor-col-resize z-10 hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)]"
     />
   );
 };
@@ -262,7 +235,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     ].filter(Boolean).join(' — ');
     return (
       <Tooltip title={tooltipTitle} arrow>
-        <Box
+        <div
           ref={setNodeRef}
           data-planning-bar
           {...(!isDragDisabled ? listeners : {})}
@@ -272,44 +245,33 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             e.stopPropagation();
             onClick(event);
           }}
-          sx={{
-            position: 'absolute',
+          // left/top et la couleur du type (lookup dans un Record) sont des
+          // valeurs d'execution : aucune classe Tailwind ne peut les porter.
+          style={{
             left: left + 2,
             top: top + (height - BAR_BADGE_SIZE) / 2,
-            ...BAR_BADGE_SX,
-            border: '1px solid var(--line)',
             color: isCleaning
               ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning
               : INTERVENTION_TYPE_TOKEN_COLORS.maintenance,
-            cursor: 'pointer',
-            touchAction: 'none',
-            userSelect: 'none',
-            opacity: isDragging ? 0.3 : 1,
-            // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
-            zIndex: isSelected ? 7 : 2,
-            transition: isDragging ? 'none' : 'transform .12s, box-shadow .12s',
-            // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5
-            '&:hover': {
-              boxShadow: '0 7px 16px -8px var(--shadow-pop)',
-              transform: 'translateY(-1px)',
-              zIndex: 5,
-            },
-            '@media (prefers-reduced-motion: reduce)': {
-              transition: 'none',
-              '&:hover': { transform: 'none' },
-            },
-            ...(isSelected && {
-              boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
-            }),
-            ...(isConflict && {
-              boxShadow: '0 0 0 2px var(--err)',
-            }),
           }}
+          className={cn(
+            'absolute',
+            BAR_BADGE_CLS,
+            'border border-solid border-[var(--line)] cursor-pointer touch-none select-none',
+            // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5
+            'hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5]',
+            'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+            isDragging ? 'opacity-30 transition-none' : 'opacity-100 transition-[transform,box-shadow] duration-[120ms]',
+            // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
+            isSelected ? 'z-[7]' : 'z-[2]',
+            isSelected && 'shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent)]',
+            isConflict && 'shadow-[0_0_0_2px_var(--err)]',
+          )}
         >
           {isCleaning
             ? <BroomFill size={14} />
             : <WrenchFill size={13} />}
-        </Box>
+        </div>
       </Tooltip>
     );
   }
@@ -577,23 +539,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     >
       {/* ── RESERVATION : avatar + 2 lignes (nuits + nom) + pastilles ────── */}
       {isReservation && (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            // Spec .pl-bar : gap 7px entre avatar / texte / pastilles.
-            gap: '7px',
-            width: '100%',
-            height: '100%',
-            color: isCancelled ? 'var(--muted)' : 'var(--on-accent)',
-            minWidth: 0,
-            // Clip le contenu (texte + pastilles) au radius de la brique.
-            // L'overflow visible reste sur le parent pour les pastilles radar.
-            overflow: 'hidden',
-            borderRadius: `${BAR_BORDER_RADIUS}px`,
-          }}
+        // Spec .pl-bar : gap 7px entre avatar / texte / pastilles. Le clip du
+        // contenu se fait ici, l'overflow visible reste sur le parent (radar).
+        <div
+          style={{ borderRadius: `${BAR_BORDER_RADIUS}px` }}
+          className={cn(
+            'flex flex-row items-center justify-between gap-[7px] w-full h-full min-w-0 overflow-hidden',
+            isCancelled ? 'text-[var(--muted)]' : 'text-[var(--on-accent)]',
+          )}
         >
           {/* Avatar voyageur : rond 26px (spec .pl-bar__av), bord clair,
               initiales 9.5px fw700. Pas de pastille d'alerte dessus (les
@@ -625,19 +578,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             </span>
             {/* Ligne 2 (spec .pl-bar__g) : nom du voyageur — 12px fw600 */}
             {showLabel && (
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  ...(isCancelled && { textDecoration: 'line-through' }),
-                }}
+              <span
+                className={cn(
+                  'text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis',
+                  isCancelled && 'line-through',
+                )}
               >
                 {event.label}
-              </Box>
+              </span>
             )}
           </div>
           {/* Prix réservation (pilule .pl-price) — toujours visible quand la
@@ -648,52 +596,30 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               arrow
               title={priceUnpaid ? `${paymentTooltip} · ${priceFull}` : `Réglé · ${priceFull}`}
             >
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  flexShrink: 0,
-                  height: 21,
-                  padding: priceAmountVisible ? '0 8px' : '0 6px',
-                  borderRadius: '7px',
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '-.01em',
-                  whiteSpace: 'nowrap',
+              <div
+                // PILL_UNPAID / PILL_UNPAID_ICON sont des constantes locales :
+                // posees en style pour ne pas dupliquer leur valeur en classe.
+                style={{ fontFamily: 'var(--font-display)', ...(priceUnpaid ? { color: PILL_UNPAID } : {}) }}
+                className={cn(
+                  'inline-flex items-center gap-[4px] shrink-0 h-[21px] rounded-[7px] text-[11px] font-bold tabular-nums tracking-[-.01em] whitespace-nowrap',
+                  priceAmountVisible ? 'px-[8px]' : 'px-[6px]',
                   // Couleur = sens : non réglé = blanc + ambre + carte ;
                   // réglé/OTA = verre translucide + check ; annulé = neutre.
-                  ...(priceUnpaid
-                    ? {
-                        backgroundColor: '#fff',
-                        color: PILL_UNPAID,
-                        boxShadow: '0 1px 2px rgba(0,0,0,.14)',
-                      }
+                  priceUnpaid
+                    ? 'bg-[#fff] shadow-[0_1px_2px_rgba(0,0,0,.14)]'
                     : isCancelled
-                      ? {
-                          backgroundColor: 'var(--surface-2)',
-                          color: 'var(--muted)',
-                          boxShadow: 'inset 0 0 0 1px var(--line-2)',
-                        }
-                      : {
-                          // Verre SOMBRE (et non clair) : un check / montant blanc
-                          // reste lisible sur TOUTES les couleurs de brique, y
-                          // compris les plus claires (ambre, vert) où le verre clair
-                          // d'origine se confondait avec le fond.
-                          backgroundColor: 'rgba(0,0,0,.20)',
-                          color: '#fff',
-                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.22)',
-                        }),
-                  '& > .pl-price-ic': {
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    color: priceUnpaid ? PILL_UNPAID_ICON : 'inherit',
-                  },
-                }}
+                      ? 'bg-[var(--surface-2)] text-[var(--muted)] shadow-[inset_0_0_0_1px_var(--line-2)]'
+                      // Verre SOMBRE (et non clair) : un check / montant blanc
+                      // reste lisible sur TOUTES les couleurs de brique, y
+                      // compris les plus claires (ambre, vert) où le verre clair
+                      // d'origine se confondait avec le fond.
+                      : 'bg-[rgba(0,0,0,.20)] text-[#fff] shadow-[inset_0_0_0_1px_rgba(255,255,255,.22)]',
+                )}
               >
-                <span className="pl-price-ic">
+                <span
+                  className="pl-price-ic inline-flex items-center"
+                  style={{ color: priceUnpaid ? PILL_UNPAID_ICON : 'inherit' }}
+                >
                   {priceUnpaid ? <CreditCardFill size={13} /> : <CheckBold size={12} />}
                 </span>
                 {priceAmountVisible && (
@@ -701,7 +627,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                     <Money value={totalPrice} from={srcCurrency} compact symbolSize={11} symbolSx={{ ml: '2px' }} />
                   </span>
                 )}
-              </Box>
+              </div>
             </Tooltip>
           )}
           {/* Pastilles a droite : indicateurs (+N) + logo canal */}
@@ -713,7 +639,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 const asFeePill = !!it.fee && displayWidth >= FEE_PILL_MIN;
                 return (
                   <Tooltip key={it.key} title={it.tooltip} arrow>
-                    <Box
+                    <div
                       onClick={it.onClick}
                       {...(it.onClick && {
                         role: 'button',
@@ -727,23 +653,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                           }
                         },
                       })}
-                      sx={{
-                        ...BAR_BADGE_SX,
-                        ...(asFeePill && {
-                          width: 'auto',
-                          minWidth: BAR_BADGE_SIZE,
-                          padding: '0 7px 0 5px',
-                          gap: '4px',
-                        }),
-                        color: it.color,
-                        ...(it.onClick && {
-                          cursor: 'pointer',
-                          '&:focus-visible': {
-                            outline: '2px solid var(--accent)',
-                            outlineOffset: 1,
-                          },
-                        }),
-                      }}
+                      // it.color est resolu a l'execution (token du type d'intervention).
+                      style={{ color: it.color }}
+                      className={cn(
+                        BAR_BADGE_CLS,
+                        asFeePill && 'w-auto min-w-[21px] p-[0_7px_0_5px] gap-[4px]',
+                        it.onClick && 'cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
+                      )}
                     >
                       {it.icon}
                       {asFeePill && (
@@ -751,7 +667,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                           <Money value={it.feeRaw} from={srcCurrency} compact symbolSize={10} />
                         </span>
                       )}
-                    </Box>
+                    </div>
                   </Tooltip>
                 );
               })}
@@ -765,17 +681,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   onOpen={() => setOverflowOpen(true)}
                   onClose={() => setOverflowOpen(false)}
                   title={
-                    <Box
-                      component="ul"
-                      sx={{
-                        listStyle: 'none',
-                        m: 0,
-                        p: '2px 0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '5px',
-                      }}
-                    >
+                    <ul className="list-none m-0 p-[2px_0] flex flex-col gap-[5px]">
                       {overflowItems.map((it) => (
                         <li className="flex items-center gap-[7px]" key={it.key}>
                           <div className="flex items-center justify-center w-[16px] shrink-0" style={{ color: it.color }}>
@@ -786,10 +692,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                           </span>
                         </li>
                       ))}
-                    </Box>
+                    </ul>
                   }
                 >
-                  <Box
+                  <div
                     role="button"
                     tabIndex={0}
                     aria-label={`${overflowItems.length} ${overflowItems.length > 1 ? 'indicateurs masqués' : 'indicateur masqué'} : ${overflowItems.map((it) => it.label).join(', ')}`}
@@ -805,111 +711,70 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                         setOverflowOpen((o) => !o);
                       }
                     }}
-                    sx={{
-                      ...BAR_BADGE_SX,
+                    style={{ fontFamily: 'var(--font-display)', color: PILL_INK }}
+                    className={cn(
+                      BAR_BADGE_CLS,
                       // Spec .s-brick__badge.combo
-                      backgroundColor: 'rgba(255,255,255,.9)',
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      color: PILL_INK,
-                      cursor: 'pointer',
-                      '&:focus-visible': {
-                        outline: '2px solid var(--accent)',
-                        outlineOffset: 1,
-                      },
-                    }}
+                      'bg-[rgba(255,255,255,.9)] text-[10px] font-bold cursor-pointer',
+                      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
+                    )}
                   >
                     +{overflowItems.length}
-                  </Box>
+                  </div>
                 </Tooltip>
               )}
               {sourceLogo && displayWidth > 60 && !compactRightZone && (
                 <Tooltip title={event.sublabel || ''} arrow>
-                  <Box sx={BAR_BADGE_SX}>
-                    <Box
-                      component="img"
+                  <div className={BAR_BADGE_CLS}>
+                    <img
                       src={sourceLogo}
                       alt={event.sublabel || ''}
-                      sx={{
-                        width: 13,
-                        height: 13,
-                        objectFit: 'contain',
-                        display: 'block',
-                        ...(isCancelled && { filter: 'grayscale(1)', opacity: 0.7 }),
-                      }}
+                      className={cn(
+                        'w-[13px] h-[13px] object-contain block',
+                        isCancelled && 'grayscale opacity-70',
+                      )}
                     />
-                  </Box>
+                  </div>
                 </Tooltip>
               )}
             </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* ── BLOCAGE (blocked) : layout inline, icone cadenas seule.
           Menage/maintenance sont rendues en pastille (branche dediee). */}
       {!isReservation && (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.5,
-            width: '100%',
-            height: '100%',
-            color: 'var(--on-accent)',
-            minWidth: 0,
-            overflow: 'hidden',
-            borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
-          }}
+        // gap 0.5 = 3px (theme.spacing = 6) ; le rayon suit une constante partagee.
+        <div
+          style={{ borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px` }}
+          className="flex flex-row items-center justify-center gap-[3px] w-full h-full text-[var(--on-accent)] min-w-0 overflow-hidden"
         >
           {icon && (
             <div className="text-[var(--on-accent)] shrink-0 flex items-center opacity-95">
               {icon}
             </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Hide button for cancelled reservations — always visible, badge-style top-right */}
       {isReservation && event.status === 'cancelled' && onHide && (
         <Tooltip title="Masquer du planning" arrow>
-          <Box
+          <div
             onClick={(e) => {
               e.stopPropagation();
               onHide(event);
             }}
-            sx={{
-              position: 'absolute',
-              top: -6,
-              right: -6,
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              backgroundColor: 'var(--muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 12,
-              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 30%, transparent)',
-              border: '1.5px solid var(--card)',
-              color: 'var(--on-accent)',
-              '&:hover': {
-                backgroundColor: 'var(--body)',
-                transform: 'scale(1.1)',
-              },
-              transition: 'transform 0.15s ease, background-color 0.15s ease',
-              '@media (prefers-reduced-motion: reduce)': {
-                transition: 'none',
-                '&:hover': { transform: 'none' },
-              },
-            }}
+            className={
+              'absolute top-[-6px] right-[-6px] w-[16px] h-[16px] rounded-[50%] bg-[var(--muted)] flex items-center justify-center cursor-pointer z-[12] '
+              + 'shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_30%,transparent)] border-[1.5px] border-solid border-[var(--card)] text-[var(--on-accent)] '
+              + 'transition-[transform,background-color] duration-150 ease-[ease] hover:bg-[var(--body)] hover:scale-110 '
+              + 'motion-reduce:transition-none motion-reduce:hover:scale-100'
+            }
           >
             <Close size={10} strokeWidth={1.75} />
-          </Box>
+          </div>
         </Tooltip>
       )}
 

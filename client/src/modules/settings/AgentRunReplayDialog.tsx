@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
+import { Button, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
@@ -103,19 +103,12 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                 const Icon = KIND_ICON[step.kind] ?? Brain;
                 const tokens = step.promptTokens + step.completionTokens;
                 return (
-                  <Box
+                  <div
                     key={step.seq}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 1.25,
-                      p: 1,
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderLeft: '2px solid',
-                      borderLeftColor: step.status === 'ERROR' ? theme.palette.error.main : 'divider',
-                    }}
+                    className="flex items-start gap-[7.5px] p-1.5 rounded-[8px] border border-solid border-[var(--line)] border-l-2"
+                    // Teinte d'erreur lue dans le theme a l'execution ; sinon le
+                    // liseré garde la couleur de bordure posee par la classe.
+                    style={{ borderLeftColor: step.status === 'ERROR' ? theme.palette.error.main : undefined }}
                   >
                     <Icon
                       size={16}
@@ -143,7 +136,7 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                         {tokens.toLocaleString()} tok
                       </span>
                     )}
-                  </Box>
+                  </div>
                 );
               })}
             </div>

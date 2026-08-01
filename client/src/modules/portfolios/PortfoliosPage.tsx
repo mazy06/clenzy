@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Typography, Button, Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Typography, Button, Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -75,7 +75,8 @@ interface SectionHeaderProps {
 function SectionHeader({ icon, title, count, color = 'var(--accent)' }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-1.5 mb-2">
-      <Box sx={{ color, display: 'flex', alignItems: 'center' }}>{icon}</Box>
+      {/* `color` est une prop : aucune classe Tailwind ne peut en naitre. */}
+      <span className="flex items-center" style={{ color }}>{icon}</span>
       <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem]">
         {title}
       </h6>
@@ -206,7 +207,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
       )}
 
       <BuiCard className="gap-0 py-0 w-full mt-3 overflow-hidden">
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <div className="border-b border-solid border-[var(--line)]">
           <PageTabs
             options={[
               {
@@ -221,7 +222,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             ariaLabel="portfolios tabs"
             mb={0}
           />
-        </Box>
+        </div>
 
         {/* ─── Tab 0: My Portfolios ─────────────────────────────────────── */}
         <TabPanel value={tabValue} index={0}>

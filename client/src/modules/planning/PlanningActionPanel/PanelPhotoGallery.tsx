@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Dialog, IconButton } from '@mui/material';
+import { Dialog, IconButton } from '@mui/material';
 import {
   Close,
   ChevronLeft,
@@ -48,21 +48,10 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
 
       <div className="grid grid-cols-2 gap-0.5 mb-1.5">
         {visible.map((url, i) => (
-          <Box
+          <div
             key={url}
             onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
-            sx={{
-              position: 'relative',
-              width: '100%',
-              paddingTop: '75%',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              border: '1px solid var(--line)',
-              transition: 'opacity .15s, border-color .15s',
-              '&:hover': { opacity: 0.85, borderColor: 'var(--line-2)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className="relative w-full pt-[75%] rounded-[10px] overflow-hidden cursor-pointer border border-solid border-[var(--line)] transition-[opacity,border-color] duration-150 hover:opacity-85 hover:border-[var(--line-2)] motion-reduce:transition-none"
           >
             <img className="absolute top-[0px] start-[0px] w-full h-full object-cover" src={url} alt={`${label} ${i + 1}`} />
             {/* "+N" overlay on last visible */}
@@ -73,7 +62,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
                 </p>
               </div>
             )}
-          </Box>
+          </div>
         ))}
       </div>
 

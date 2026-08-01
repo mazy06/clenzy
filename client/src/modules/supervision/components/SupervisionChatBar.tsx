@@ -14,7 +14,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Box, IconButton, Tooltip } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { Send, SmartToy } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationTurn } from '../types';
@@ -56,25 +55,17 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
   const hasTranscript = conversation.length > 0;
 
   return (
-    <Box
-      sx={{
-        // Surface/bordure via tokens MUI → suit le thème de la session (clair
-        // ou sombre) et matche le reste du PMS. En flottant sur le canvas de la
-        // constellation, elle reste lisible dans les deux modes.
-        borderRadius: '14px',
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        backdropFilter: 'blur(10px)',
-        boxShadow: (t) => `0 16px 40px -22px ${alpha(t.palette.common.black, 0.35)}`,
-        overflow: 'hidden',
-        transition: 'border-color 160ms ease, box-shadow 160ms ease',
-        // Focus du champ → bordure au token d'accent de la session.
-        '&:focus-within': {
-          borderColor: 'var(--accent)',
-          boxShadow: '0 0 0 3px var(--accent-soft)',
-        },
-      }}
+    // Surface/bordure via tokens de session → suit le thème (clair ou sombre) et
+    // matche le reste du PMS. L'ombre reprend `alpha(common.black, .35)` : les deux
+    // palettes du projet fixent common.black a #000000, elle est donc figeable.
+    // Focus du champ → bordure au token d'accent de la session.
+    <div
+      className={
+        'overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] ' +
+        'backdrop-blur-[10px] shadow-[0_16px_40px_-22px_rgba(0,0,0,0.35)] ' +
+        'transition-[border-color,box-shadow] duration-[160ms] ease-[ease] ' +
+        'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_0_3px_var(--accent-soft)]'
+      }
     >
       {/* Transcription */}
       {hasTranscript && (
@@ -87,19 +78,13 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
       )}
 
       {/* Champ de saisie */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 1,
-          px: 1.25,
-          py: 1,
-          borderTop: hasTranscript ? '1px solid' : 'none',
-          borderColor: 'divider',
-        }}
+      <div
+        className={cn(
+          'flex items-end gap-1.5 px-[7.5px] py-1.5',
+          hasTranscript && 'border-t border-solid border-[var(--line)]',
+        )}
       >
-        <Box
-          component="textarea"
+        <textarea
           rows={1}
           value={value}
           disabled={busy}
@@ -113,23 +98,12 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
               submit();
             }
           }}
-          sx={{
-            flex: 1,
-            resize: 'none',
-            border: 'none',
-            outline: 'none',
-            bgcolor: 'transparent',
-            color: 'text.primary',
-            caretColor: 'var(--accent)',
-            fontFamily: 'inherit',
-            fontSize: 13.5,
-            lineHeight: 1.5,
-            maxHeight: 96,
-            py: 0.75,
-            px: 0.5,
-            '&::placeholder': { color: 'text.secondary', opacity: 1 },
-            '&:disabled': { color: 'text.disabled', cursor: 'not-allowed' },
-          }}
+          className={
+            'flex-1 resize-none border-none outline-none bg-transparent [font-family:inherit] ' +
+            'max-h-[96px] px-[3px] py-[4.5px] text-[13.5px] leading-normal text-[var(--ink)] caret-[var(--accent)] ' +
+            'placeholder:text-[var(--muted)] placeholder:opacity-100 ' +
+            'disabled:cursor-not-allowed disabled:text-[var(--faint)]'
+          }
         />
         <Tooltip title={t('supervision.chat.send', 'Envoyer')} arrow>
           {/* span : Tooltip a besoin d'un enfant montable même quand le bouton est désactivé */}
@@ -158,8 +132,8 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
             </IconButton>
           </span>
         </Tooltip>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -167,24 +141,17 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
   const isOperator = turn.role === 'operator';
   return (
     <div className={cn('flex flex-col', isOperator ? 'items-end' : 'items-start')}>
-      <Box
-        sx={{
-          maxWidth: '85%',
-          px: 1.25,
-          py: 0.75,
-          borderRadius: isOperator ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-          bgcolor: (t) => (isOperator ? 'var(--accent-soft)' : t.palette.action.hover),
-          border: '1px solid',
-          borderColor: (t) => (isOperator ? 'var(--accent)' : t.palette.divider),
-          color: 'text.primary',
-          fontSize: 13,
-          lineHeight: 1.5,
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
+      <div
+        className={cn(
+          'max-w-[85%] border border-solid px-[7.5px] py-[4.5px] text-[13px] leading-normal',
+          'text-[var(--ink)] whitespace-pre-wrap wrap-break-word',
+          isOperator
+            ? 'rounded-[12px_12px_4px_12px] border-[var(--accent)] bg-[var(--accent-soft)]'
+            : 'rounded-[12px_12px_12px_4px] border-[var(--line)] bg-[var(--hover)]',
+        )}
       >
         {turn.text || '…'}
-      </Box>
+      </div>
       {turn.at && (
         <div className="mt-0.5 text-[10.5px] text-muted-foreground opacity-60 tabular-nums">
           {formatTime(turn.at)}

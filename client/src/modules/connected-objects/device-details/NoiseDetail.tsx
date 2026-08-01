@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { Settings, History, Save, VolumeUp, Wifi, WifiOff, TrendingUp, ArrowUpward } from '../../../icons';
 import NoiseMonitorChart from '../../dashboard/NoiseMonitorChart';
 import NoiseAlertConfigPanel, {
@@ -101,7 +101,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
 
       {/* 3. Configuration | Historique */}
       <div>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+        <div className="flex items-center justify-between border-b border-solid border-[var(--line)]">
           <PageTabs
             options={[
               { label: 'Configuration', icon: <Settings /> },
@@ -136,7 +136,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
               </Button>
             </div>
           )}
-        </Box>
+        </div>
 
         <div className="pt-3">
           {subTab === 0 && (

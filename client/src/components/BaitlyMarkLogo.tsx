@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { Box, useTheme } from '@mui/material';
+import { useTheme } from '@mui/material';
 
 /**
  * Logo Baitly SaaS — nouveau mark « maison + flux » + wordmark Space Grotesk.
@@ -280,14 +280,9 @@ export default function BaitlyMarkLogo({
     <>{mark}{wordmark}</>;
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: variant === 'full' ? `${gap}px` : 0,
-      }}
-    >
+    // `gap` est calcule a l'execution : il passe par `style`, pas par une classe.
+    <div className="inline-flex items-center" style={{ gap: variant === 'full' ? `${gap}px` : 0 }}>
       {content}
-    </Box>
+    </div>
   );
 }

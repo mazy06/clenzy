@@ -3,7 +3,7 @@ import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, InputBase, ButtonBase, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Button, InputBase, ButtonBase, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
@@ -247,13 +247,13 @@ export default function SiteGenerationPage() {
     <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr, marque centrée (modèle .ds-setup-topbar). */}
       <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
-        <Box sx={{ justifySelf: 'start' }}>
+        <div className="justify-self-start">
           <Button onClick={() => (step === 2 ? (setError(null), setStep(1)) : navigate(-1))} startIcon={<ArrowLeft size={16} strokeWidth={2} />} sx={{ textTransform: 'none', color: 'var(--muted)' }}>
             {step === 2 ? k('back', 'Direction') : 'Retour'}
           </Button>
-        </Box>
-        <Box sx={{ justifySelf: 'center', display: 'grid', placeItems: 'center', width: 32, height: 32, color: 'var(--accent)' }}><LayoutGrid size={20} strokeWidth={2} /></Box>
-        <Box sx={{ justifySelf: 'end' }}>
+        </div>
+        <div className="grid h-8 w-8 place-items-center justify-self-center text-[var(--accent)]"><LayoutGrid size={20} strokeWidth={2} /></div>
+        <div className="justify-self-end">
           {step === 1 ? (
             <Button disableElevation onClick={() => { setError(null); setStep(2); }}
               endIcon={<ArrowRight size={16} strokeWidth={2} />} sx={accentBtnSx}>{k('continue', 'Continuer vers le brief')}</Button>
@@ -261,12 +261,13 @@ export default function SiteGenerationPage() {
             <Button disableElevation onClick={handleSubmit} disabled={!canSubmit}
               startIcon={<Sparkles size={16} strokeWidth={2} />} sx={accentBtnSx}>{k('submit', 'Générer le site')}</Button>
           )}
-        </Box>
+        </div>
       </div>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 420px) minmax(0, 1fr)' }, gap: { xs: 3, md: '48px' }, alignItems: 'start', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 }, maxWidth: 1320, mx: 'auto' }}>
+      {/* Ruptures ecrites en pixels : le `md` MUI vaut 900px, pas les 768px de Tailwind. */}
+      <div className="mx-auto grid max-w-[1320px] grid-cols-[1fr] items-start gap-[18px] px-3 py-[18px] min-[900px]:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] min-[900px]:gap-12 min-[900px]:px-6 min-[900px]:py-[30px]">
         {/* ─── Colonne gauche : cadrage + étapes — épinglée au scroll (position: sticky, comme open-design) ─── */}
-        <Box sx={{ position: { md: 'sticky' }, top: { md: 84 }, alignSelf: 'start' }}>
+        <div className="self-start min-[900px]:sticky min-[900px]:top-[84px]">
           <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-[var(--radius-pill,_999px)] bg-[color-mix(in_srgb,_var(--accent)_7%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_18%,_var(--line))]" style={{ boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)' }}>
             <div className="grid place-items-[center] w-[22px] h-[22px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] shrink-0" style={{ boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' }} aria-hidden>
               <Sparkles size={12} strokeWidth={2.4} />
@@ -275,9 +276,9 @@ export default function SiteGenerationPage() {
               Génération IA
             </span>
           </div>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: { xs: 30, md: 42 }, fontWeight: 700, lineHeight: 1.08, color: 'var(--ink)', letterSpacing: '-0.02em', textWrap: 'balance' }}>
+          <div className="[font-family:var(--font-display)] text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-balance text-[var(--ink)] min-[900px]:text-[42px]">
             Générez votre site, en minutes
-          </Box>
+          </div>
           <div className="text-[var(--text-md)] text-[var(--muted)] leading-[1.6] mt-3 max-w-[460px]">
             L'IA rédige et structure un site complet à partir de votre brief, puis en dérive un thème on-brand. Les pages sont créées en brouillon — à relire avant publication.
           </div>
@@ -326,7 +327,7 @@ export default function SiteGenerationPage() {
               </div>
             </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Colonne droite : contenu d'étape ─── */}
         <div className="flex flex-col">
@@ -424,7 +425,7 @@ export default function SiteGenerationPage() {
             </div>
           )}
         </div>
-      </Box>
+      </div>
 
       {/* Paywall de rachat de crédits (402 AI_CREDITS_INSUFFICIENT / 429 quota) → packs Stripe existants. */}
       <AiCreditsPaywall open={paywallOpen} onClose={() => setPaywallOpen(false)} balanceMillicredits={paywallBalance} />

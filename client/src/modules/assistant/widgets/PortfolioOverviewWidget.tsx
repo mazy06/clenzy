@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Typography, LinearProgress } from '@mui/material';
+import { Typography, LinearProgress } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import {
   TrendingUp as TrendUpIcon,
   TrendingDown as TrendDownIcon,
@@ -132,17 +133,22 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
             icon={<TrendUpIcon size={14} />}
             color="var(--ok)"
           />
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: `repeat(${Math.min(topPerformers.length, 3)}, 1fr)` },
-              gap: 1,
-            }}
+          {/* md MUI = 900px. Le nombre de colonnes ne vaut que 1, 2 ou 3 : on enumere les
+              classes plutot que de les construire (Tailwind compile en scannant le source). */}
+          <div
+            className={cn(
+              'grid grid-cols-[1fr] gap-1.5',
+              topPerformers.length === 1
+                ? 'min-[900px]:grid-cols-[repeat(1,1fr)]'
+                : topPerformers.length === 2
+                  ? 'min-[900px]:grid-cols-[repeat(2,1fr)]'
+                  : 'min-[900px]:grid-cols-[repeat(3,1fr)]',
+            )}
           >
             {topPerformers.slice(0, 3).map((p) => (
               <TopPerformerCard key={p.id} performer={p} />
             ))}
-          </Box>
+          </div>
         </div>
       )}
 
@@ -217,7 +223,7 @@ const SectionHeader: React.FC<{
   color: string;
 }> = ({ label, icon, color }) => (
   <div className="flex items-center gap-0.5 mb-1">
-    <Box sx={{ display: 'inline-flex', color }}>{icon}</Box>
+    <div className="inline-flex" style={{ color }}>{icon}</div>
     <Typography
       sx={{
         fontSize: '10.5px', fontWeight: 700,

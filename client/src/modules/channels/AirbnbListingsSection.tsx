@@ -1,6 +1,7 @@
 import React from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
+import { Paper, Button, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -223,6 +224,10 @@ function ListingCard({
   );
 }
 
+/** Champ du formulaire de liaison (select + inputs) — meme habillage pour les quatre. */
+const AIRBNB_FIELD_CLS =
+  'text-[0.8125rem] px-1.5 py-[4.5px] rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)] text-[var(--body)] focus:outline-none focus:border-[var(--accent)]';
+
 function LinkPropertyForm({
   properties,
   selectedPropertyId,
@@ -250,40 +255,33 @@ function LinkPropertyForm({
         {t('channels.listings.linkNewProperty')}
       </p>
       <div className="flex gap-1.5 flex-wrap items-end">
-        <Box component="select"
+        {/* px: 1 = 6px et py: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet). */}
+        <select
           value={selectedPropertyId}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPropertyChange(Number(e.target.value))}
-          sx={{
-            fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px',
-            border: '1px solid', borderColor: 'var(--field-line)', minWidth: 160, bgcolor: 'var(--field)',
-            color: 'var(--body)',
-            '&:focus': { outline: 'none', borderColor: 'var(--accent)' },
-          }}
+          onChange={(e) => onPropertyChange(Number(e.target.value))}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[160px]')}
         >
           {properties.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </Box>
-        <Box
-          component="input"
+        </select>
+        <input
           placeholder="Airbnb Listing ID"
           value={form.airbnbListingId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingId: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 140 }}
+          onChange={(e) => onFormChange({ ...form, airbnbListingId: e.target.value })}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[140px]')}
         />
-        <Box
-          component="input"
+        <input
           placeholder={t('channels.listings.listingTitle')}
           value={form.airbnbListingTitle}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 180, flex: 1 }}
+          onChange={(e) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[180px] flex-1')}
         />
-        <Box
-          component="input"
+        <input
           placeholder="URL Airbnb"
           value={form.airbnbListingUrl}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 200, flex: 1 }}
+          onChange={(e) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[200px] flex-1')}
         />
         <Button
           size="small"

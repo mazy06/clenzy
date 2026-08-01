@@ -4,7 +4,6 @@ import {
   CardContent,
   Typography,
   Button,
-  Box,
   IconButton,
 } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
@@ -95,40 +94,6 @@ const styles = {
       '&:hover': { transform: 'none' },
     },
   },
-  // Bandeau statique photo + dégradé par type (h110) — identique à ServiceRequestCard.
-  bannerBox: {
-    position: 'relative',
-    height: 110,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  // Pastille statut top-left (fond translucide + blur, dot coloré + libellé).
-  statusPill: {
-    position: 'absolute',
-    top: 10,
-    left: 12,
-    zIndex: 2,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.625,
-    fontSize: '10.5px',
-    fontWeight: 700,
-    px: '9px',
-    py: '4px',
-    borderRadius: '20px',
-    bgcolor: 'rgba(255,255,255,.92)',
-    backdropFilter: 'blur(4px)',
-    color: '#2A3942',
-    lineHeight: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
   menuButton: {
     position: 'absolute',
     top: 10,
@@ -159,12 +124,6 @@ const styles = {
     color: 'var(--ink)',
   },
   // Ligne localisation (propriété).
-  locationRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-    mb: 1.25,
-  },
   locationText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -174,20 +133,6 @@ const styles = {
     color: 'var(--muted)',
   },
   // Bande de KPI (valeurs display tabular-nums).
-  statsBand: {
-    display: 'flex',
-    borderTop: '1px solid var(--line)',
-    borderBottom: '1px solid var(--line)',
-    mb: 1.25,
-  },
-  statCell: {
-    flex: 1,
-    py: '9px',
-    textAlign: 'center',
-    borderRight: '1px solid var(--line)',
-    minWidth: 0,
-    '&:last-child': { borderRight: 0 },
-  },
   statValue: {
     fontFamily: 'var(--font-display)',
     fontSize: '15px',
@@ -203,34 +148,6 @@ const styles = {
     textTransform: 'uppercase',
     color: 'var(--faint)',
     mt: '1px',
-  },
-  // Pied opérationnel : icône accent + libellé fort.
-  footRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.875,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-    minWidth: 0,
-  },
-  footIcon: {
-    display: 'inline-flex',
-    color: 'var(--accent)',
-    flexShrink: 0,
-  },
-  footStrong: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: 'var(--body)',
-    fontWeight: 600,
-  },
-  actionBar: {
-    px: 1.75,
-    pb: 1.25,
-    pt: 0,
-    display: 'flex',
-    gap: 0.75,
   },
   detailsButton: {
     fontSize: '0.72rem',
@@ -269,9 +186,10 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       onClick={handleViewDetails}
     >
       {/* ─── Bandeau statique photo + dégradé (par type) + pastille statut ─── */}
-      <Box
-        sx={{
-          ...styles.bannerBox,
+      {/* Le degrade et la photo dependent du type, connu seulement a l'execution. */}
+      <div
+        className="relative h-[110px] flex items-center justify-center overflow-hidden"
+        style={{
           background: getTypeGradient(intervention.type),
           backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getServiceTypeBannerUrl(intervention.type)})`,
           backgroundSize: 'cover',
@@ -279,10 +197,10 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         }}
       >
         {/* Pastille statut top-left (dot coloré + libellé) */}
-        <Box sx={styles.statusPill}>
-          <Box sx={{ ...styles.statusDot, bgcolor: statusTokens.color }} />
+        <div className="absolute top-[10px] left-3 z-[2] inline-flex items-center gap-[3.75px] px-[9px] py-[4px] rounded-[20px] bg-[rgba(255,255,255,.92)] backdrop-blur-[4px] text-[10.5px] font-bold leading-none text-[#2A3942]">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: statusTokens.color }} />
           {getInterventionStatusLabel(intervention.status, t)}
-        </Box>
+        </div>
 
         {/* Menu contextuel top-right */}
         <IconButton
@@ -292,7 +210,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         >
           <MoreVert size={16} strokeWidth={1.75} />
         </IconButton>
-      </Box>
+      </div>
 
       {/* ─── Zone info ─── */}
       <CardContent sx={styles.infoContent}>
@@ -311,7 +229,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         </div>
 
         {/* Propriété */}
-        <Box sx={styles.locationRow}>
+        <div className="flex items-center gap-[3px] mb-[7.5px]">
           <span className="inline-flex text-[var(--muted)] shrink-0">
             <LocationOn size={14} strokeWidth={1.75} />
           </span>
@@ -321,39 +239,42 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           >
             {intervention.propertyName}
           </Typography>
-        </Box>
+        </div>
 
         {/* Bande de KPI : échéance / avancement / durée */}
-        <Box sx={styles.statsBand}>
+        <div className="flex border-t border-b border-solid border-[var(--line)] mb-[7.5px]">
           {kpiCells.map((cell) => (
-            <Box key={cell.label} sx={styles.statCell}>
+            <div
+              key={cell.label}
+              className="flex-1 py-[9px] text-center min-w-0 border-r border-solid border-[var(--line)] last:border-r-0"
+            >
               <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
                 {cell.value}
               </Typography>
               <Typography sx={styles.statLabel}>{cell.label}</Typography>
-            </Box>
+            </div>
           ))}
-        </Box>
+        </div>
 
         {/* Pied opérationnel : assigné (gauche) + priorité (droite) */}
-        <Box sx={{ ...styles.footRow, minHeight: 20 }}>
-          <Box component="span" sx={styles.footIcon}>
+        <div className="flex items-center gap-[5.25px] min-h-[20px] min-w-0 text-[11.5px] text-[var(--muted)]">
+          <span className="inline-flex shrink-0 text-[var(--accent)]">
             {intervention.assignedToType === 'team'
               ? <GroupIcon size={13} strokeWidth={2} />
               : <PersonIcon size={13} strokeWidth={2} />}
-          </Box>
-          <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
+          </span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-[var(--body)]">{assigneeName}</span>
           <div className="flex-1" />
           <StatusChip
             tokens={priorityTokens}
             label={getInterventionPriorityLabel(intervention.priority, t)}
             className="h-5 shrink-0 text-[0.62rem]"
           />
-        </Box>
+        </div>
       </CardContent>
 
       {/* ─── Zone actions ─── */}
-      <Box sx={styles.actionBar}>
+      <div className="flex gap-[4.5px] px-[10.5px] pt-0 pb-[7.5px]">
         <Button
           fullWidth
           size="small"
@@ -377,7 +298,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
             Modifier
           </Button>
         )}
-      </Box>
+      </div>
     </Card>
   );
 });

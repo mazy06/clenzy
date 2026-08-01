@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowForward as ArrowRightIcon,
@@ -47,25 +47,9 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
   const Icon = pickIcon(data.icon, data.path);
 
   return (
-    <Box
-      sx={{
-        mt: 1, mb: 1.5,
-        p: 1.5,
-        borderRadius: '12px',
-        bgcolor: 'var(--accent-soft)',
-        cursor: 'pointer',
-        transition: 'background-color .15s',
-        '&:hover': {
-          bgcolor: 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)',
-        },
-        '&:focus-visible': {
-          outline: '2px solid var(--accent)',
-          outlineOffset: 2,
-        },
-        '@media (prefers-reduced-motion: reduce)': {
-          transition: 'none',
-        },
-      }}
+    <div
+      className="mt-1.5 mb-[9px] p-[9px] rounded-[12px] bg-[var(--accent-soft)] cursor-pointer transition-[background-color] duration-150 motion-reduce:transition-none hover:bg-[var(--nav-card-hover)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2"
+      style={{ '--nav-card-hover': 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)' } as React.CSSProperties}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -111,7 +95,7 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
           <ArrowRightIcon size={18} strokeWidth={2} />
         </Button>
       </div>
-    </Box>
+    </div>
   );
 };
 

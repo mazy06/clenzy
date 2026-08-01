@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, TextField } from '@mui/material';
+import { Typography, TextField } from '@mui/material';
 import { AccessTime } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
@@ -24,10 +24,10 @@ const StaySection: React.FC<Props> = ({ form }) => {
             { label: t('reservations.fields.checkIn'), value: form.startDate },
             { label: t('reservations.fields.checkOut'), value: form.endDate },
           ].map((f) => (
-            <Box key={f.label} sx={{ padding: '8px 12px', borderRadius: '11px', border: '1px solid var(--field-line)', backgroundColor: 'var(--field)' }}>
+            <div key={f.label} className="rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)] px-3 py-2">
               <p className="cn-text-body1 text-[10.5px] font-semibold text-[var(--muted)]">{f.label}</p>
               <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] tabular-nums">{f.value || '—'}</p>
-            </Box>
+            </div>
           ))}
         </div>
       ) : (

@@ -93,7 +93,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
           <div className="flex flex-col gap-2">
             {/* Header */}
             <div className="flex items-center gap-3">
-              <div className="w-[48px] h-[48px] rounded-[50%] bg-[#6B8A9A] flex items-center justify-center text-[white] text-[1.125rem] font-bold">
+              <div className="w-[48px] h-[48px] rounded-[50%] bg-[var(--mui-primary)] flex items-center justify-center text-[white] text-[1.125rem] font-bold">
                 {guest.name.charAt(0).toUpperCase()}
               </div>
               <div>

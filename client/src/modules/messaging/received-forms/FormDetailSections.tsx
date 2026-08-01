@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import {
   Home as HomeIcon,
   SquareFoot as RulerIcon,
@@ -35,11 +36,7 @@ function FrSection({ title }: { title: string }) {
 /** .fr-tile — icône accent-soft 36 r11, label overline, valeur display 20. */
 function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <Box sx={{
-      bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '13px', p: '15px',
-      minWidth: 0, transition: 'border-color .14s, box-shadow .14s',
-      '&:hover': { borderColor: 'var(--line-2)', boxShadow: '0 8px 24px -18px var(--ink)' },
-    }}>
+    <div className="bg-[var(--card)] border border-solid border-[var(--line)] rounded-[13px] p-[15px] min-w-0 transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--line-2)] hover:shadow-[0_8px_24px_-18px_var(--ink)]">
       <div className="w-[36px] h-[36px] rounded-[11px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-3">
         {icon}
       </div>
@@ -53,21 +50,17 @@ function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; va
       }}>
         {value}
       </Typography>
-    </Box>
+    </div>
   );
 }
 
 /** .fr-svc__h — entête de colonne services. */
 function SvcHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <Box sx={{
-      display: 'flex', alignItems: 'center', gap: '8px', mb: '10px',
-      fontSize: '11px', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--muted)',
-      '& svg': { color: 'var(--accent)' },
-    }}>
+    <div className="flex items-center gap-[8px] mb-[10px] text-[11px] font-bold tracking-[.04em] uppercase text-[var(--muted)] [&_svg]:text-[var(--accent)]">
       {icon}
       {label}
-    </Box>
+    </div>
   );
 }
 
@@ -76,31 +69,26 @@ function ServiceChip({ icon, label, variant = 'default' }: {
   icon?: React.ReactNode; label: string; variant?: 'default' | 'devis' | 'muted';
 }) {
   return (
-    <Box component="span" sx={{
-      display: 'inline-flex', alignItems: 'center', gap: '7px',
-      fontSize: '12.5px', fontWeight: 600, borderRadius: '9px', p: '7px 12px',
-      ...(variant === 'devis'
-        ? { bgcolor: 'var(--accent-soft)', border: '1px solid transparent', color: 'var(--accent)' }
-        : {
-            bgcolor: 'var(--field)', border: '1px solid var(--field-line)',
-            color: variant === 'muted' ? 'var(--muted)' : 'var(--ink)',
-          }),
-      '& svg': { color: 'var(--accent)', flexShrink: 0 },
-    }}>
+    <span className={cn(
+      'inline-flex items-center gap-[7px] text-[12.5px] font-semibold rounded-[9px] p-[7px_12px] border border-solid',
+      '[&_svg]:text-[var(--accent)] [&_svg]:shrink-0',
+      variant === 'devis'
+        ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent)]'
+        : cn(
+            'bg-[var(--field)] border-[var(--field-line)]',
+            variant === 'muted' ? 'text-[var(--muted)]' : 'text-[var(--ink)]',
+          ),
+    )}>
       {icon}
       {label}
-    </Box>
+    </span>
   );
 }
 
 /** .fr-sync — ligne synchro calendrier ok-soft. */
 function SyncRow({ value }: { value: string }) {
   return (
-    <Box sx={{
-      display: 'flex', alignItems: 'center', gap: '10px', bgcolor: 'var(--ok-soft)',
-      borderRadius: '11px', p: '11px 14px', mt: '14px', fontSize: '13px', color: 'var(--body)',
-      '& > svg': { color: 'var(--ok)', flexShrink: 0 },
-    }}>
+    <div className="flex items-center gap-[10px] bg-[var(--ok-soft)] rounded-[11px] p-[11px_14px] mt-[14px] text-[13px] text-[var(--body)] [&>svg]:text-[var(--ok)] [&>svg]:shrink-0">
       <RefreshIcon size={16} strokeWidth={1.75} />
       <b className="text-[13px] text-[var(--ink)] font-semibold">
         Synchronisation calendrier
@@ -108,7 +96,7 @@ function SyncRow({ value }: { value: string }) {
       <span className="ms-auto text-[11px] font-bold text-[var(--ok)]">
         {value}
       </span>
-    </Box>
+    </div>
   );
 }
 

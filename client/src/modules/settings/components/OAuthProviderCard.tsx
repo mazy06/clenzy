@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Button, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Button, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -257,7 +257,7 @@ export default function OAuthProviderCard({
       </div>
 
       {message && (
-        <Box sx={{ px: 2, pb: 1.5, mt: -0.5 }}>
+        <div className="px-3 pb-[9px] mt-[-3px]">
           <Alert
             severity={message.type}
             variant="outlined"
@@ -266,7 +266,7 @@ export default function OAuthProviderCard({
           >
             {message.text}
           </Alert>
-        </Box>
+        </div>
       )}
 
       {/* Dialog confirmation */}

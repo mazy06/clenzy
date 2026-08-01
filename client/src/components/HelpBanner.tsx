@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Typography, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../icons';
 import { useUserPreference } from '../hooks/useUserPreference';
 
@@ -59,17 +59,14 @@ const ACCENT_TOKENS: Record<HelpStepAccent, { color: string; soft: string }> = {
 export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = ({ steps, columns }) => {
   if (steps.length === 0) return null;
   const maxCols = columns ?? Math.min(steps.length, 4);
+  // Le gabarit de colonnes depend du nombre d'etapes (donc de l'execution) : il
+  // passe par des custom properties, les ruptures restent des variantes statiques.
+  const smCols = maxCols >= 2 && steps.length === 2 ? 'repeat(2, 1fr)' : '1fr';
+  const mdCols = `repeat(${Math.max(1, Math.min(steps.length, maxCols))}, 1fr)`;
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: maxCols >= 2 && steps.length === 2 ? 'repeat(2, 1fr)' : '1fr',
-          md: `repeat(${Math.max(1, Math.min(steps.length, maxCols))}, 1fr)`,
-        },
-        gap: { xs: 1.5, md: 2 },
-      }}
+    <div
+      className="grid grid-cols-1 gap-[9px] min-[600px]:grid-cols-[var(--help-sm-cols)] min-[900px]:grid-cols-[var(--help-md-cols)] min-[900px]:gap-3"
+      style={{ '--help-sm-cols': smCols, '--help-md-cols': mdCols } as React.CSSProperties}
     >
       {steps.map((step, i) => {
         const accentKey: HelpStepAccent
@@ -105,7 +102,7 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
           </div>
         );
       })}
-    </Box>
+    </div>
   );
 };
 
@@ -187,28 +184,12 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
 
   if (dismissed) return null;
 
+  // before:* — le seul filet autorise, accent 1 px en haut (<=1px : pas un side-stripe).
   return (
-    <Box
+    <div
       role="region"
       aria-label={title}
-      sx={{
-        position: 'relative',
-        borderRadius: '14px',
-        border: '1px solid var(--line)',
-        mb: 1.5,
-        p: { xs: 1.75, sm: 2.25 },
-        overflow: 'hidden',
-        bgcolor: 'var(--card)',
-        // Single allowed filet — 1 px top accent (≤1px : pas un side-stripe).
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0, left: 0, right: 0,
-          height: '1px',
-          bgcolor: 'var(--accent)',
-          opacity: 0.5,
-        },
-      }}
+      className="relative rounded-[14px] border border-solid border-[var(--line)] mb-[9px] p-[10.5px] min-[600px]:p-[13.5px] overflow-hidden bg-[var(--card)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-[var(--accent)] before:opacity-50"
     >
       {/* Header row — accent chip + title + dismiss button */}
       <div className="flex items-start gap-1.5 mb-1">
@@ -259,7 +240,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
 
       {/* Steps — responsive grid, per-step accent breaks templating */}
       <HelpStepsGrid steps={steps} />
-    </Box>
+    </div>
   );
 };
 

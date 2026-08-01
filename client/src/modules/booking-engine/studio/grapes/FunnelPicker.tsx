@@ -1,6 +1,6 @@
 import { createElement, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Box, ButtonBase, Dialog, TextField, Tooltip } from '@mui/material';
+import { ButtonBase, Dialog, TextField, Tooltip } from '@mui/material';
 import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from 'lucide-react';
 import {
   BUILTIN_FUNNEL_PRESETS,
@@ -348,7 +348,10 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
   const steps = flowSteps(p);
   const screensMeta = p.steps && p.steps.length ? ` · ${p.steps.length} écran${p.steps.length > 1 ? 's' : ''}` : '';
   return (
-    <Box sx={{ position: 'relative', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'var(--card)', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)', boxShadow: 'var(--shadow-sm, 0 6px 18px rgba(28,40,70,.08))' } }}>
+    <div
+      className="relative border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] p-3 flex flex-col gap-[9px] hover:border-[var(--accent)] hover:shadow-[var(--shadow-sm,_0_6px_18px_rgba(28,40,70,.08))]"
+      style={{ transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)' }}
+    >
       {/* Titre + badge + (supprimer) */}
       <div className="flex items-center gap-1.5">
         <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
@@ -360,18 +363,18 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
         {onDelete && !p.builtin && <IconAction title="Supprimer" icon={Trash2} danger onClick={onDelete} />}
       </div>
 
-      {p.description && <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.4, mt: -0.75 }}>{p.description}</Box>}
+      {p.description && <div className="text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4] -mt-[4.5px]">{p.description}</div>}
 
       {/* Visualisation du parcours : étapes numérotées + flèches */}
       <div className="flex items-center flex-wrap gap-1 p-2 bg-[var(--hover)] border border-[var(--line)] rounded-[var(--radius-md)]">
         {steps.map((s, i) => (
-          <Box key={`${s}-${i}`} sx={{ display: 'contents' }}>
+          <div key={`${s}-${i}`} className="contents">
             <div className="inline-flex items-center gap-1 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-sm)] ps-0.5 pe-1.5 py-0.5">
               <span className="shrink-0 w-[17px] h-[17px] rounded-[50%] bg-[var(--hover)] text-[var(--body)] text-[10px] grid place-items-[center] tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{i + 1}</span>
               <span className="text-[var(--text-2xs)] font-[var(--fw-medium)] text-[var(--ink)]">{s}</span>
             </div>
             {i < steps.length - 1 && <span className="text-[var(--muted)] grid place-items-[center]"><ChevronRight size={14} strokeWidth={2.4} /></span>}
-          </Box>
+          </div>
         ))}
       </div>
 
@@ -385,7 +388,7 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
           <InsertBtn onClick={onInsert} />
         </div>
       </div>
-    </Box>
+    </div>
   );
 }
 

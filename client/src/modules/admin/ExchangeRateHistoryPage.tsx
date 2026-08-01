@@ -4,7 +4,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -155,16 +155,12 @@ export default function ExchangeRateHistoryPage() {
 
       {/* Current rates summary */}
       {matrix && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: 'repeat(2, 1fr)',
-            sm: 'repeat(3, 1fr)',
-            md: `repeat(${CURRENCY_PAIRS.length}, 1fr)`,
-          },
-          gap: 2,
-          mb: 3,
-        }}>
+        // Le nombre de colonnes >=900px suit CURRENCY_PAIRS.length : il passe par
+        // une variable CSS, une classe Tailwind ne pouvant naitre d'une valeur runtime.
+        <div
+          className="grid grid-cols-2 min-[600px]:grid-cols-3 min-[900px]:grid-cols-[repeat(var(--pair-cols),1fr)] gap-3 mb-[18px]"
+          style={{ '--pair-cols': String(CURRENCY_PAIRS.length) } as React.CSSProperties}
+        >
           {CURRENCY_PAIRS.map((p) => {
             let rate: number | null = null;
             if (p.base === 'EUR' && matrix.rates[p.target]) {
@@ -185,7 +181,7 @@ export default function ExchangeRateHistoryPage() {
               />
             ) : null;
           })}
-        </Box>
+        </div>
       )}
 
       {/* Filters */}

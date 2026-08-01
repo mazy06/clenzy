@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Box,
   Container,
   Typography,
   Link,
@@ -11,6 +10,7 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack } from '../../icons';
+import { cn } from '../../utils/cn';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
@@ -90,47 +90,21 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
             {t('auth.legal.lastUpdated', `Dernière mise à jour : ${lastUpdated}`, { date: lastUpdated })}
           </span>
           <Divider sx={{ mb: 4 }} />
-          <Box
-            sx={{
-              maxWidth: 680,
-              '& h2': {
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                color: 'text.primary',
-                mt: 4,
-                mb: 1.5,
-              },
-              '& h3': {
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'text.primary',
-                mt: 3,
-                mb: 1,
-              },
-              '& p': {
-                fontSize: '0.9375rem',
-                lineHeight: 1.7,
-                color: 'text.primary',
-                mb: 2,
-              },
-              '& ul, & ol': {
-                pl: 3,
-                mb: 2,
-              },
-              '& li': {
-                fontSize: '0.9375rem',
-                lineHeight: 1.7,
-                color: 'text.primary',
-                mb: 0.5,
-              },
-              '& a': {
-                color: 'primary.main',
-                textDecoration: 'underline',
-              },
-            }}
+          {/* Habillage typographique du contenu legal : les selecteurs imbriques
+              MUI deviennent des variantes descendantes [&_x]:. */}
+          <div
+            className={cn(
+              'max-w-[680px]',
+              '[&_h2]:mt-6 [&_h2]:mb-[9px] [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-[var(--ink)]',
+              '[&_h3]:mt-[18px] [&_h3]:mb-1.5 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[var(--ink)]',
+              '[&_p]:mb-3 [&_p]:text-[0.9375rem] [&_p]:leading-[1.7] [&_p]:text-[var(--ink)]',
+              '[&_ul]:mb-3 [&_ul]:pl-[18px] [&_ol]:mb-3 [&_ol]:pl-[18px]',
+              '[&_li]:mb-[3px] [&_li]:text-[0.9375rem] [&_li]:leading-[1.7] [&_li]:text-[var(--ink)]',
+              '[&_a]:text-[var(--mui-primary)] [&_a]:underline',
+            )}
           >
             {children}
-          </Box>
+          </div>
         </Container>
 
         {/* Footer minimal */}

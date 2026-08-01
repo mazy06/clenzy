@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { Box, Typography, Button, useTheme } from '@mui/material';
+import { Typography, Button, useTheme } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   CalendarMonth as CalendarIcon,
   TrendingUp as TrendingIcon,
@@ -75,18 +76,9 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
   }
 
   return (
-    <Box
-      sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '12px',
-        borderLeft: `4px solid ${C.primary}`,
-        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(107,138,154,0.12)',
-        p: 2.5,
-        mb: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}
+    <div
+      className="bg-[var(--card)] rounded-[12px] border-l-4 border-solid border-l-[var(--mui-primary)] p-[15px] mb-3 flex flex-col gap-3"
+      style={{ boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(107,138,154,0.12)' }}
     >
       {/* ── Ligne 1 : Description (gauche) + Forfaits (droite) ──────── */}
       <div className="flex flex-col min-[900px]:flex-row gap-[15px] min-[900px]:items-start">
@@ -117,21 +109,17 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           {Object.entries(FORFAITS).map(([key, { label, features, highlight }]) => {
             const isCurrent = key === currentForfait?.toLowerCase();
             return (
-              <Box
+              <div
                 key={key}
-                sx={{
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  bgcolor: highlight
+                className={cn(
+                  'flex-[1_1_0] min-w-0 rounded-[8px] p-[9px] relative border-solid',
+                  highlight ? 'border-[1.5px] border-[var(--mui-primary)]' : 'border border-[var(--line)]',
+                )}
+                style={{
+                  // Fonds dependants du mode MUI (runtime) : pas de classe possible.
+                  backgroundColor: highlight
                     ? (isDark ? 'rgba(107,138,154,0.12)' : 'rgba(107,138,154,0.05)')
                     : (isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC'),
-                  borderRadius: '8px',
-                  p: 1.5,
-                  border: highlight
-                    ? `1.5px solid ${C.primary}`
-                    : '1px solid',
-                  borderColor: highlight ? C.primary : 'divider',
-                  position: 'relative',
                   transition: 'box-shadow 0.2s ease',
                   ...(highlight && {
                     boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.2)' : '0 1px 4px rgba(107,138,154,0.10)',
@@ -167,7 +155,8 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 </Typography>
                 {features.map((f) => (
                   <div className="flex items-center gap-1 mb-0.5" key={f}>
-                    <span className="inline-flex shrink-0" style={{ color: highlight ? C.primary : isCurrent ? 'text.disabled' : C.primaryLight }}>
+                    {/* 'text.disabled' etait un jeton MUI inerte en style inline : jeton CSS du projet */}
+                    <span className="inline-flex shrink-0" style={{ color: highlight ? C.primary : isCurrent ? 'var(--faint)' : C.primaryLight }}>
                       <CheckIcon size={13} strokeWidth={1.75} />
                     </span>
                     <Typography
@@ -183,7 +172,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                     </Typography>
                   </div>
                 ))}
-              </Box>
+              </div>
             );
           })}
         </div>
@@ -252,7 +241,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           </span>
         )}
       </div>
-    </Box>
+    </div>
   );
 };
 

@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Paper, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -14,7 +14,6 @@ import {
 import PageHeader from '../../components/PageHeader';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
-import { SPACING } from '../../theme/spacing';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import {
@@ -174,7 +173,8 @@ const ChannelPromotionsPage: React.FC = () => {
   }, [properties]);
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
+    <div className="p-3">
       <PageHeader
         title={t('promotions.title', 'Promotions OTA')}
         subtitle={t('promotions.subtitle', 'Gerez vos promotions sur les channels OTA')}
@@ -464,7 +464,7 @@ const ChannelPromotionsPage: React.FC = () => {
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
       />
-    </Box>
+    </div>
   );
 };
 

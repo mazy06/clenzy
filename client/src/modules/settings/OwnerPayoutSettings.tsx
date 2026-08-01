@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Box, TextField, Button, Alert, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, Button, Alert, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -240,19 +240,7 @@ export default function OwnerPayoutSettings() {
         })()}
 
         {configs.length === 0 ? (
-          <Box
-            sx={{
-              p: 4,
-              borderRadius: '8px',
-              border: '1px dashed',
-              borderColor: 'divider',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
+          <div className="p-6 rounded-[8px] border border-dashed border-[var(--line)] text-center flex flex-col items-center gap-1.5">
             <div className="w-[48px] h-[48px] rounded-[12px] inline-flex items-center justify-center bg-[var(--ok-soft)] text-[var(--ok)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)]">
               <AccountBalance size={22} strokeWidth={1.75} />
             </div>
@@ -262,7 +250,7 @@ export default function OwnerPayoutSettings() {
                 'Aucune configuration trouvée. Les configurations sont créées automatiquement lors de la première génération de payout.',
               )}
             </p>
-          </Box>
+          </div>
         ) : (
           <TableContainer sx={{ overflowX: 'hidden' }}>
             <Table size="small" sx={{ width: '100%' }}>

@@ -4,7 +4,8 @@ import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import { Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   Lock,
   GppGood,
@@ -352,9 +353,10 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 aria-label="Relancer la verification"
                 sx={{ cursor: 'pointer', color: 'var(--accent)', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
               >
-                <Box component="span" sx={{ display: 'inline-flex', animation: autoCheckRunning ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } }, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+                {/* `animate-spin` de Tailwind = animation: spin 1s linear infinite, identique aux keyframes locales remplacees. */}
+                <span className={cn('inline-flex', autoCheckRunning && 'animate-spin motion-reduce:animate-none')}>
                   <Refresh size={20} strokeWidth={1.75} />
-                </Box>
+                </span>
               </IconButton>
             </Tooltip>
           </div>
@@ -501,13 +503,13 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           {report ? (
                             <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'} arrow>
                               {report.compliant ? (
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', animation: 'fadeIn 0.4s ease', '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+                                <span className="inline-flex text-[var(--ok)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
                                   <GppGood size={20} strokeWidth={1.75} />
-                                </Box>
+                                </span>
                               ) : (
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)', animation: 'fadeIn 0.4s ease', '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+                                <span className="inline-flex text-[var(--err)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
                                   <GppBad size={20} strokeWidth={1.75} />
-                                </Box>
+                                </span>
                               )}
                             </Tooltip>
                           ) : isChecking ? (

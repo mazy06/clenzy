@@ -1,4 +1,4 @@
-import { Box, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { Smartphone, Refresh } from '../../../icons';
 import { BAITLY_APP } from '../baitlyApp';
 
@@ -39,11 +39,11 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
         l'appareil). Il apparaîtra ensuite ici automatiquement, rattaché au compte de l'organisation.
       </p>
 
-      <Box component="ol" sx={{ m: 0, pl: 2.25, mb: 1, '& li': { fontSize: '0.74rem', color: 'text.secondary', mb: 0.25 } }}>
+      <ol className="m-0 mb-1.5 ps-[13.5px] [&_li]:mb-[1.5px] [&_li]:text-[0.74rem] [&_li]:text-[var(--muted)]">
         {STEPS.map((s) => (
           <li key={s}>{s}</li>
         ))}
-      </Box>
+      </ol>
 
       <div className="flex items-center gap-1.5 flex-wrap">
         {BAITLY_APP.available ? (

@@ -1,11 +1,12 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from './ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Typography, IconButton, ImageList, ImageListItem, ImageListItemBar } from '@mui/material';
+import { Typography, IconButton, ImageList, ImageListItem, ImageListItemBar } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon,
   Close as CloseIcon,
 } from '../icons';
+import { cn } from '../utils/cn';
 
 // ============================================================
 // PhotoUploader — Composant réutilisable d'upload de photos
@@ -204,51 +205,31 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       )}
 
       {/* Zone de dépôt (drag-and-drop) */}
-      <Box
+      <div
         onClick={handleDropzoneClick}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        sx={{
-          border: '2px dashed',
-          borderColor: error
-            ? 'error.main'
-            : isDragOver
-            ? 'primary.main'
-            : 'divider',
-          borderRadius: 2,
-          p: 3,
-          textAlign: 'center',
-          cursor: disabled ? 'default' : 'pointer',
-          bgcolor: isDragOver ? 'action.hover' : 'background.paper',
-          transition: 'all 0.2s ease',
-          opacity: disabled ? 0.5 : 1,
-          '&:hover': disabled
-            ? {}
-            : {
-                borderColor: 'primary.main',
-                bgcolor: 'action.hover',
-              },
-        }}
+        className={cn(
+          'border-2 border-dashed rounded-[16px] p-[18px] text-center transition-all duration-200 ease-[ease]',
+          error ? 'border-[#C97A7A]' : isDragOver ? 'border-[var(--mui-primary)]' : 'border-[var(--line)]',
+          isDragOver ? 'bg-[var(--hover)]' : 'bg-[var(--card)]',
+          disabled
+            ? 'cursor-default opacity-50'
+            : 'cursor-pointer opacity-100 hover:border-[var(--mui-primary)] hover:bg-[var(--hover)]',
+        )}
       >
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex',
-            color: isDragOver ? 'primary.main' : 'text.secondary',
-            mb: 1,
-          }}
-        >
+        <span className={cn('inline-flex mb-1.5', isDragOver ? 'text-[var(--mui-primary)]' : 'text-[var(--muted)]')}>
           <CloudUploadIcon size={40} strokeWidth={1.5} />
-        </Box>
+        </span>
         <p className="cn-text-body2 text-muted-foreground">
           Glissez-déposez vos photos ici
         </p>
         <span className="cn-text-caption text-muted-foreground">
           ou cliquez pour parcourir
         </span>
-      </Box>
+      </div>
 
       {/* Input fichier caché */}
       <input

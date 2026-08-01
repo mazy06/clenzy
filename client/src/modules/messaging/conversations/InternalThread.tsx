@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import StatusChip from '../../../components/StatusChip';
 import {
   Archive as ArchiveIcon,
@@ -15,8 +15,12 @@ import {
 } from '../../../hooks/useContactMessages';
 import { useAiSuggestResponse } from '../../../hooks/useAi';
 import type { ContactThreadSummary } from '../../../services/api/contactApi';
-import ThreadView, { composeToolSx } from './ThreadView';
+import ThreadView from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
+
+/** Equivalent classes de `composeToolSx` (toujours exporte par ThreadView pour ChannelThread). */
+const COMPOSE_TOOL_CLASS =
+  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
 
 interface InternalThreadProps {
   thread: ContactThreadSummary;
@@ -152,14 +156,13 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         composeTools={
           <>
             <Tooltip title={t('messagingHub.attachFile', 'Joindre un fichier')} arrow>
-              <Box
-                component="button"
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 aria-label={t('messagingHub.attachFile', 'Joindre un fichier')}
-                sx={composeToolSx}
+                className={COMPOSE_TOOL_CLASS}
               >
                 <AttachFileIcon size={15} strokeWidth={1.75} />
-              </Box>
+              </button>
             </Tooltip>
             {lastInbound && (
               <Tooltip
@@ -170,15 +173,14 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
                 }
                 arrow
               >
-                <Box
-                  component="button"
+                <button
                   onClick={handleAiSuggest}
                   disabled={aiSuggestMutation.isPending}
                   aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                  sx={composeToolSx}
+                  className={COMPOSE_TOOL_CLASS}
                 >
                   <SparklesIcon size={15} strokeWidth={1.75} />
-                </Box>
+                </button>
               </Tooltip>
             )}
           </>

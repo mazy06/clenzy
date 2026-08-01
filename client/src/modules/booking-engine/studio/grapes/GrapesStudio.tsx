@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, ButtonBase, Tooltip } from '@mui/material';
+import { ButtonBase, Tooltip } from '@mui/material';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
   Undo2, Redo2, Eye, Maximize, Code, SquareDashed, FolderInput, Workflow, PaintBucket, Boxes, Trash2, Plus,
@@ -1812,7 +1812,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
           {/* Contenu — SEUL à scroller : la barre de défilement n'apparaît plus au niveau des onglets. */}
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {/* `data-guided` (mode Guidé) → la palette se restreint au set curé via CSS (`grapesStudio.css`). */}
-            <Box ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
+            <div ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} className={cn(activeView === 'blocks' ? 'block' : 'hidden')} />
             {activeView === 'composites' && (
               <CompositesPanel
                 composites={[...BUILTIN_COMPOSITES, ...globalComposites, ...savedComposites]}

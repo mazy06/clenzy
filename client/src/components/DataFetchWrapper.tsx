@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Spinner } from './ui';
-import { Box, CircularProgress, Alert, Button, Skeleton, Card, CardContent } from '@mui/material';
+import { CircularProgress, Alert, Button, Skeleton, Card, CardContent } from '@mui/material';
 import { Refresh as RefreshIcon } from '../icons';
 
 /**
@@ -68,21 +68,15 @@ const CenteredSpinner: React.FC<{ size: number; message?: string; minHeight: str
   message,
   minHeight,
 }) => (
-  <Box
-    display="flex"
-    flexDirection="column"
-    justifyContent="center"
-    alignItems="center"
-    minHeight={minHeight}
-    gap={1.5}
-  >
+  // minHeight vient des props (runtime) : style inline, pas de classe Tailwind.
+  <div className="flex flex-col justify-center items-center gap-[9px]" style={{ minHeight }}>
     <CircularProgress size={size} thickness={3.5} sx={{ color: 'var(--accent)' }} />
     {message && (
       <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
         {message}
       </p>
     )}
-  </Box>
+  </div>
 );
 
 // Composant erreur

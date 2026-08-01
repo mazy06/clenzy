@@ -77,7 +77,7 @@ export default function MarketingPreferencesCard() {
     <Card className="gap-0 py-0 p-3">
       {/* Header */}
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[#A6C0CE]">
+        <span className="inline-flex text-[var(--mui-secondary)]">
           <Mail size={20} strokeWidth={1.75} />
         </span>
         <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">

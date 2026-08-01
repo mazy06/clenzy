@@ -2,7 +2,7 @@ import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { Typography, IconButton, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Delete,
@@ -94,21 +94,10 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
         /* ── Cartes hairline r14 avec overline (type) ── */
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
           {templates.map((t) => (
-            <Box
+            <div
               key={t.id}
               onClick={() => navigate(`/documents/templates/${t.id}`)}
-              sx={{
-                display: 'flex', flexDirection: 'column', gap: 0.75,
-                p: '14px 16px',
-                border: '1px solid var(--line)',
-                borderRadius: 'var(--radius-lg)',
-                bgcolor: 'var(--card)',
-                cursor: 'pointer',
-                transition: 'border-color .14s, box-shadow .14s',
-                '&:hover': { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-              }}
+              className="flex flex-col gap-[4.5px] py-[14px] px-4 border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)] cursor-pointer transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 motion-reduce:transition-none"
               role="link"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/documents/templates/${t.id}`); }}
@@ -181,7 +170,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                   </Tooltip>
                 </div>
               </div>
-            </Box>
+            </div>
           ))}
         </div>
       )}

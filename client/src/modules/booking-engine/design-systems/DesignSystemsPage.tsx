@@ -3,7 +3,7 @@ import { cn } from '../../../utils/cn';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -175,7 +175,8 @@ export default function DesignSystemsPage() {
                   );
                 })}
               </ToggleButtonGroup>
-              <Box sx={{ fontSize: 13, color: 'var(--muted)', mt: -1 }}>{SOURCES.find((s) => s.id === source)?.hint}</Box>
+              {/* mt: -1 = -6px (theme.spacing vaut 6 dans ce projet). */}
+              <div className="text-[13px] text-[var(--muted)] -mt-1.5">{SOURCES.find((s) => s.id === source)?.hint}</div>
 
               <div className="flex gap-2 flex-wrap">
                 <TextField size="small" label="Nom" value={name} onChange={(e) => setName(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />

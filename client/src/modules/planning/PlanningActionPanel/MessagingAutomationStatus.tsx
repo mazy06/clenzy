@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bolt, CheckCircle, Close, Settings, Warning, AccessTime } from '../../../icons';
@@ -18,14 +18,6 @@ const CHECK_OUT_TRIGGERS: AutomationTrigger[] = ['CHECK_OUT_DAY', 'CHECK_OUT_PAS
 // ✓ var(--ok) (ou ✕ var(--faint)) + libellé + détail à droite. Reprend tel
 // quel l'état config (check-in / check-out / destinataire) historiquement
 // affiché dans l'onglet Infos — déplacé ici, aucune logique nouvelle.
-
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
 
 interface MessagingAutomationStatusProps {
   guestEmail?: string | null;
@@ -73,7 +65,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
         <span className="inline-flex text-[var(--faint)]">
           <Bolt size={13} strokeWidth={1.75} />
         </span>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>Messagerie automatique</Box>
+        <span className="flex-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]">Messagerie automatique</span>
         <Tooltip title="Configurer dans Automatisations">
           <IconButton
             size="small"

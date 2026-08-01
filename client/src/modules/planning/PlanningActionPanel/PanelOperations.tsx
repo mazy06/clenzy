@@ -5,7 +5,7 @@ import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
+import { Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -1026,25 +1026,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     || (sr.assignedToUser ? `${sr.assignedToUser.firstName} ${sr.assignedToUser.lastName}` : null)
                     || sr.assignedToName;
                   return (
-                    <Box
+                    <div
                       key={sr.id}
-                      sx={{
-                        mb: 0.75,
-                        p: 1.25,
-                        borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        transition: 'all 0.15s ease',
-                      }}
+                      className="mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid border-[var(--line)] transition-all duration-150 ease-[ease]"
                     >
                       {/* Header: icône type + titre + assigné en sous-ligne + lien */}
-                      <Box
+                      {/* La fleche est convertie en meme temps que ce parent : un
+                          `opacity` reste en sx (Emotion, hors @layer) battrait la
+                          regle de survol Tailwind, qui elle est dans @layer utilities. */}
+                      <div
                         onClick={() => navigate(`/service-requests/${sr.id}`)}
-                        sx={{
-                          display: 'flex', alignItems: 'flex-start', gap: 0.875,
-                          cursor: 'pointer',
-                          '&:hover .sr-arrow': { opacity: 1, transform: 'translateX(2px)' },
-                        }}
+                        className="flex items-start gap-[5.25px] cursor-pointer hover:[&_.sr-arrow]:opacity-100 hover:[&_.sr-arrow]:translate-x-[2px]"
                       >
                         <span className="inline-flex mt-0.5" style={{ color: srTypeColor }}>
                           {isCleaningSr ? <BroomFill size={14} /> : <WrenchFill size={13} />}
@@ -1064,14 +1056,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             </div>
                           )}
                         </div>
-                        <Box
-                          component="span"
-                          className="sr-arrow"
-                          sx={{ display: 'inline-flex', mt: '2px', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
-                        >
+                        <span className="sr-arrow inline-flex mt-[2px] text-[var(--muted)] opacity-40 transition-all duration-150 ease-[ease]">
                           <OpenInNew size={14} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
+                        </span>
+                      </div>
                       {/* Méta : type + montant + statut (icône↔libellé espacés) */}
                       <div className="flex items-center gap-0.5 mt-1.5 mb-0.5 flex-wrap">
                         <StatusChip tokens={{ color: srTypeColor, bg: `color-mix(in srgb, ${srTypeColor} 14%, transparent)` }} label={typeLabel} icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />} className="text-[0.5625rem] h-[21px]" />
@@ -1208,7 +1196,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           </IconButton>
                         )}
                       </div>
-                    </Box>
+                    </div>
                   );
                 })}
               </div>
@@ -1242,26 +1230,23 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   const isInProgress = ['in_progress', 'awaiting_validation'].includes(li.status);
 
                   return (
-                    <Box
+                    <div
                       key={li.id}
-                      sx={{
-                        mb: 0.75,
-                        p: 1.25,
-                        borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 22%, transparent)' : 'divider',
-                        backgroundColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 6%, transparent)' : 'transparent',
-                        transition: 'all 0.15s ease',
-                      }}
+                      className={cn(
+                        'mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid transition-all duration-150 ease-[ease]',
+                        isOnPlanning
+                          ? 'border-[color-mix(in_srgb,var(--ok)_22%,transparent)] bg-[color-mix(in_srgb,var(--ok)_6%,transparent)]'
+                          : 'border-[var(--line)] bg-transparent',
+                      )}
                     >
                       {/* Header: icône type + titre + assigné en sous-ligne + flèche */}
-                      <Box
+                      <div
                         onClick={() => onNavigate?.({ type: 'intervention-detail', interventionId: li.id })}
-                        sx={{
-                          display: 'flex', alignItems: 'flex-start', gap: 0.875,
-                          cursor: onNavigate ? 'pointer' : 'default',
-                          '&:hover .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
-                        }}
+                        className={cn(
+                          'flex items-start gap-[5.25px]',
+                          'hover:[&_.drill-arrow]:opacity-100 hover:[&_.drill-arrow]:translate-x-[2px]',
+                          onNavigate ? 'cursor-pointer' : 'cursor-default',
+                        )}
                       >
                         <span className="inline-flex mt-0.5" style={{ color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
                           {li.type === 'cleaning' ? <BroomFill size={15} /> : <WrenchFill size={14} />}
@@ -1280,14 +1265,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             </Typography>
                           </div>
                         </div>
-                        <Box
-                          component="span"
-                          className="drill-arrow"
-                          sx={{ display: 'inline-flex', mt: '2px', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
-                        >
+                        <span className="drill-arrow inline-flex mt-[2px] text-[var(--muted)] opacity-40 transition-all duration-150 ease-[ease]">
                           <ChevronRight size={16} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
+                        </span>
+                      </div>
 
                       {/* Méta : statut + montant/paiement ; indicateur planning à droite */}
                       <div className="flex items-center gap-0.5 mt-1.5 flex-wrap">
@@ -1343,7 +1324,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           Assigner un prestataire
                         </Button>
                       )}
-                    </Box>
+                    </div>
                   );
                 })}
               </div>
@@ -1517,19 +1498,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
           {/* Auto-assign toggle (only visible if feature enabled in settings) */}
           {autoAssignEnabled && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 1.5,
-                mb: 1.5,
-                borderRadius: 1.5,
-                border: '1px solid',
-                borderColor: assignAutoMode ? 'var(--accent)' : 'divider',
-                backgroundColor: assignAutoMode ? 'var(--accent-soft)' : 'transparent',
-                transition: 'all 0.2s ease',
-              }}
+            <div
+              className={cn(
+                'flex items-center justify-between p-[9px] mb-[9px] rounded-[12px] border border-solid transition-all duration-200 ease-[ease]',
+                assignAutoMode ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-transparent',
+              )}
             >
               <div className="flex items-center gap-1.5">
                 <span className={cn('inline-flex', assignAutoMode ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><AutoFixHigh size={18} strokeWidth={1.75} /></span>
@@ -1547,7 +1520,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 checked={assignAutoMode}
                 onChange={(e) => handleAutoAssignToggle(e.target.checked)}
               />
-            </Box>
+            </div>
           )}
 
           {/* Auto-assign suggestion info */}
@@ -1674,18 +1647,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   )}
                   <div className="border border-[var(--line)] rounded-[1.5px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
-                      <Box
+                      <div
                         key={member.userId}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          px: 1.5,
-                          py: 0.75,
-                          borderBottom: idx < teamMembers.length - 1 ? '1px solid' : 'none',
-                          borderColor: 'divider',
-                          backgroundColor: member.available ? 'transparent' : 'var(--hover)',
-                        }}
+                        className={cn(
+                          'flex items-center justify-between px-[9px] py-[4.5px]',
+                          idx < teamMembers.length - 1 && 'border-b border-solid border-b-[var(--line)]',
+                          member.available ? 'bg-transparent' : 'bg-[var(--hover)]',
+                        )}
                       >
                         <div className="flex items-center gap-1.5">
                           <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><Person size={15} strokeWidth={1.75} /></span>
@@ -1719,7 +1687,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             borderColor: `color-mix(in srgb, ${member.available ? OK_TOKENS.color : WARN_TOKENS.color} 35%, transparent)`,
                           }}
                         />
-                      </Box>
+                      </div>
                     ))}
                   </div>
                 </>

@@ -3,7 +3,6 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
 import {
-  Box,
   Typography,
   FormControl,
   InputLabel,
@@ -92,16 +91,6 @@ export interface ServiceRequestFormPropertyProps {
   /** Info de l'utilisateur connecté — si fourni, le demandeur est affiché en lecture seule */
   currentUser?: CurrentUserInfo | null;
 }
-
-// ─── Stable sx ──────────────────────────────────────────────────────────────
-
-const TAGS_CONTAINER_SX = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: 0.75,
-  mt: 1.5,
-  mb: 0.5,
-} as const;
 
 // Chip neutre « champ » (.fr-chip) : fond --field, icône accent (géométrie pilule du thème).
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
@@ -390,7 +379,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
 
         {/* Chips caractéristiques du logement */}
         {propertyTags.length > 0 && (
-          <Box sx={TAGS_CONTAINER_SX}>
+          <div className="mt-[9px] mb-[3px] flex flex-wrap gap-[4.5px]">
             {propertyTags.map((tag) => (
               <StatusChip
                 key={tag.label}
@@ -400,7 +389,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                 className={FORM_TAG_CLASS}
               />
             ))}
-          </Box>
+          </div>
         )}
       </>
     );

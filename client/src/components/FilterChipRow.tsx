@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '../utils/cn';
-import { Box } from '@mui/material';
 import StatusChip, { type ToneTokens } from './StatusChip';
 
 /**
@@ -83,7 +82,9 @@ export default function FilterChipRow<T extends string>({
   const compact = size === 'compact';
 
   return (
-    <Box sx={{ display: 'flex', gap, flexWrap: 'wrap', alignItems: 'center' }}>
+    // `gap` est une prop : aucune classe Tailwind ne peut en naitre. Conversion
+    // explicite depuis l'unite de theme (spacing = 6 px dans ce projet).
+    <div className="flex flex-wrap items-center" style={{ gap: `${gap * 6}px` }}>
       {items.map((opt) => {
         const active = value === opt.value;
         return (
@@ -110,6 +111,6 @@ export default function FilterChipRow<T extends string>({
           />
         );
       })}
-    </Box>
+    </div>
   );
 }

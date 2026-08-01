@@ -123,31 +123,23 @@ export default function StudioCommandPalette({
             const Icon = c.icon;
             const isActive = i === active;
             return (
-              <Box
+              // gap 1.25 = 7.5px, mx 0.75 = 4.5px, px 1.25 = 7.5px (theme.spacing = 6)
+              <div
                 key={c.id}
                 role="option"
                 aria-selected={isActive}
                 onMouseEnter={() => setActive(i)}
                 onClick={() => { onClose(); c.run(); }}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.25,
-                  mx: 0.75,
-                  px: 1.25,
-                  height: 40,
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  color: 'var(--body)',
-                  bgcolor: isActive ? 'var(--accent-soft)' : 'transparent',
-                  ...(isActive && { color: 'var(--ink)' }),
-                }}
+                className={cn(
+                  'flex items-center gap-[7.5px] mx-[4.5px] px-[7.5px] h-[40px] rounded-[var(--radius-md)] cursor-pointer',
+                  isActive ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : 'bg-transparent text-[var(--body)]',
+                )}
               >
                 {Icon && <span className={cn('inline-flex', isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><Icon size={16} strokeWidth={2} /></span>}
                 <span className="flex-1 text-[var(--text-md)]">{c.label}</span>
                 {c.group && <span className="text-[var(--text-2xs)] text-[var(--faint)]">{c.group}</span>}
                 {isActive && <span className="inline-flex text-[var(--faint)]"><CornerDownLeft size={13} strokeWidth={2} /></span>}
-              </Box>
+              </div>
             );
           })}
         </div>

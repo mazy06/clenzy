@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Button, Paper, alpha, useTheme, Skeleton } from '@mui/material';
+import { Button, Paper, alpha, useTheme, Skeleton } from '@mui/material';
 import { PhotoCamera, Add, Home } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
@@ -10,7 +10,8 @@ import AddDeviceWizard from '../components/AddDeviceWizard';
 import CameraTile from './CameraTile';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
-const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.25 } as const;
+// gap: 1.25 avec theme.spacing = 6 => 7,5 px (hors echelle Tailwind).
+const GRID_CLS = 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[7.5px]';
 const ACCENT = '#C97A7A';
 
 /**
@@ -101,9 +102,9 @@ export default function CamerasScreen() {
       </Paper>
 
       {isLoading ? (
-        <Box sx={GRID}>
+        <div className={GRID_CLS}>
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
-        </Box>
+        </div>
       ) : cameras.length === 0 ? (
         <EmptyState
           icon={<PhotoCamera />}
@@ -119,7 +120,7 @@ export default function CamerasScreen() {
               <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">{propertyName}</p>
               <span className="cn-text-caption text-muted-foreground opacity-60">· {items.length} caméra{items.length > 1 ? 's' : ''}</span>
             </div>
-            <Box sx={GRID}>
+            <div className={GRID_CLS}>
               {items.map((c) => (
                 <CameraTile
                   key={c.id}
@@ -130,7 +131,7 @@ export default function CamerasScreen() {
                   acting={deleting && pendingDeleteId === c.id}
                 />
               ))}
-            </Box>
+            </div>
           </div>
         ))
       )}

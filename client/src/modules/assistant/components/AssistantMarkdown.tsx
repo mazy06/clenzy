@@ -11,15 +11,10 @@ interface AssistantMarkdownProps {
 }
 
 /** Style commun des liens (internes + externes) — accent + soulignement doux. */
-const linkSx = {
-  color: 'var(--accent)',
-  fontWeight: 600,
-  textDecoration: 'none',
-  borderBottom: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
-  transition: 'border-color .15s',
-  '&:hover': { borderBottomColor: 'var(--accent)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-} as const;
+const LINK_CLASS =
+  'text-[var(--accent)] font-semibold no-underline border-b border-solid ' +
+  'border-b-[color-mix(in_srgb,var(--accent)_35%,transparent)] ' +
+  'transition-[border-color] duration-150 hover:border-b-[var(--accent)] motion-reduce:transition-none';
 
 /**
  * Renderer markdown pour le texte des messages assistant.
@@ -59,40 +54,35 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
       const isInternal = href.startsWith('/');
       if (isInternal) {
         return (
-          <Box component={RouterLink} to={href} sx={linkSx}>
+          <RouterLink to={href} className={LINK_CLASS}>
             {children}
-          </Box>
+          </RouterLink>
         );
       }
       return (
-        <Box
-          component="a"
+        <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          sx={linkSx}
+          className={LINK_CLASS}
         >
           {children}
-        </Box>
+        </a>
       );
     },
 
     // Listes : tight, bullets discrets
+    // `ps-` (logique) et non `pl-` : les classes Tailwind ne passent pas par le
+    // plugin RTL d'Emotion qui retournait le `pl` du sx d'origine en arabe.
     ul: ({ children }) => (
-      <Box component="ul" sx={{
-        pl: 2.5, my: 1,
-        '& li': { mb: 0.25 },
-      }}>
+      <ul className="ps-[15px] my-1.5 [&_li]:mb-[1.5px]">
         {children}
-      </Box>
+      </ul>
     ),
     ol: ({ children }) => (
-      <Box component="ol" sx={{
-        pl: 2.5, my: 1,
-        '& li': { mb: 0.25 },
-      }}>
+      <ol className="ps-[15px] my-1.5 [&_li]:mb-[1.5px]">
         {children}
-      </Box>
+      </ol>
     ),
     li: ({ children }) => (
       <li className="text-[13px] leading-[1.55] text-[var(--body)]">

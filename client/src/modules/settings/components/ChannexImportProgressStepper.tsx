@@ -21,7 +21,7 @@
  * dans le dialog. Le stepper sert juste de boussole.</p>
  */
 import React from 'react';
-import { Box, Typography, Stack } from '@mui/material';
+import { Typography, Stack } from '@mui/material';
 import { Cable, Search, Check, ArrowRight } from 'lucide-react';
 
 interface ChannexImportProgressStepperProps {
@@ -95,24 +95,18 @@ function StepBubble({ step }: { step: Step }) {
   const Icon = step.status === 'COMPLETE' ? Check : step.Icon;
   return (
     <div className="flex items-start gap-1.5 min-w-0 flex-1">
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          bgcolor: step.status === 'UPCOMING' ? 'transparent' : `color-mix(in srgb, ${color} 10%, transparent)`,
+      {/* Teintes derivees du statut a l'execution : elles restent dans style. */}
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-[0.6px] font-bold text-[0.75rem]"
+        style={{
+          backgroundColor: step.status === 'UPCOMING'
+            ? 'transparent'
+            : `color-mix(in srgb, ${color} 10%, transparent)`,
           border: `2px solid ${color}`,
-          color: color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          mt: 0.1,
-          fontWeight: 700,
-          fontSize: '0.75rem',
-          ...(step.status === 'ACTIVE' && {
-            boxShadow: `0 0 0 4px color-mix(in srgb, ${color} 10%, transparent)`,
-          }),
+          color,
+          boxShadow: step.status === 'ACTIVE'
+            ? `0 0 0 4px color-mix(in srgb, ${color} 10%, transparent)`
+            : undefined,
         }}
       >
         {step.status === 'COMPLETE' ? (
@@ -120,7 +114,7 @@ function StepBubble({ step }: { step: Step }) {
         ) : (
           step.num
         )}
-      </Box>
+      </div>
       <div className="min-w-0 flex-1">
         <Typography
           variant="caption"
@@ -154,9 +148,9 @@ function StepBubble({ step }: { step: Step }) {
 function Connector({ next }: { next: StepStatus }) {
   const color = next === 'UPCOMING' ? 'var(--line)' : STATUS_COLOR[next];
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', color, flexShrink: 0, mt: 1 }}>
+    <div className="flex items-center shrink-0 mt-1.5" style={{ color }}>
       <ArrowRight size={14} strokeWidth={2.2} />
-    </Box>
+    </div>
   );
 }
 

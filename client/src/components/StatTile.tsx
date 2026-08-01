@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Box, Typography, Skeleton } from '@mui/material';
+import { Paper, Typography, Skeleton } from '@mui/material';
 
 interface StatTileProps {
   /** Icône inline (accent par défaut, ou la couleur passée) à gauche du label. */
@@ -70,14 +70,16 @@ export default function StatTile({
     >
       {/* Ligne 1 : icône inline + label */}
       <div className="flex items-center gap-[7px] min-w-0">
-        <Box sx={{ display: 'inline-flex', color, flexShrink: 0 }}>
+        {/* `color` est calcule a l'execution : passe par style, une classe Tailwind
+            ne peut pas naitre d'une variable. */}
+        <span className="inline-flex shrink-0" style={{ color }}>
           {React.isValidElement(icon)
             ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                 size: 15,
                 strokeWidth: 1.85,
               })
             : icon}
-        </Box>
+        </span>
         <span className="text-[11.5px] font-semibold text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
           {label}
         </span>

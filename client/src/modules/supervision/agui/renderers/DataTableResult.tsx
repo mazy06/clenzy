@@ -8,7 +8,8 @@
    Aucun tool backend n'émet ce hint aujourd'hui — renderer forward-compatible.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import { Overline, humanizeKey } from './shared';
 
 interface ColumnObj {
@@ -77,19 +78,13 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
         </div>
 
         {visible.map((row, idx) => (
-          <Box
+          <div
             key={idx}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-              transition: 'background .12s',
-              '&:hover': { bgcolor: 'var(--hover)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className={cn(
+              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] hover:bg-[var(--hover)] motion-reduce:transition-none',
+              idx > 0 && 'border-t border-solid border-[var(--line)]',
+            )}
+            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
           >
             {columns.map((col, colIdx) => {
               const v = cellValue(row, col, colIdx);
@@ -111,7 +106,7 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
                 </Typography>
               );
             })}
-          </Box>
+          </div>
         ))}
       </div>
 

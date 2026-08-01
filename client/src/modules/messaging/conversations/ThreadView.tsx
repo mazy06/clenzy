@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, InputBase, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
+import { InputBase, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import {
   ArrowBack as ArrowBackIcon,
   MoreHoriz as MoreHorizIcon,
@@ -47,6 +48,10 @@ export const composeToolSx: SxProps<Theme> = {
   '&:hover': { bgcolor: 'var(--bg)', color: 'var(--accent)' },
   '&:disabled': { opacity: 0.45, cursor: 'default' },
 };
+
+/** Equivalent en classes de `mgIcoSx` (la constante sx reste exportee pour les containers). */
+const MG_ICO_CLS =
+  'flex items-center justify-center shrink-0 p-0 rounded-[11px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer [transition:color_.14s,border-color_.14s] hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-[.45] disabled:cursor-default';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -151,9 +156,9 @@ export default function ThreadView({
       {/* ── Entête 62px ─────────────────────────────────────────────────── */}
       <div className="h-[62px] shrink-0 flex items-center gap-2 px-3.5 bg-[var(--card)] border-b border-[var(--line)]">
         {showBack && (
-          <Box component="button" onClick={onBack} aria-label="Retour" sx={{ ...mgIcoSx, width: 32, height: 32 }}>
+          <button onClick={onBack} aria-label="Retour" className={cn(MG_ICO_CLS, 'w-8 h-8')}>
             <ArrowBackIcon size={16} strokeWidth={1.75} />
-          </Box>
+          </button>
         )}
         <div className="min-w-0">
           <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)] leading-[1.25] whitespace-nowrap overflow-hidden text-ellipsis">
@@ -166,20 +171,19 @@ export default function ThreadView({
         <div className="ms-auto flex gap-1.5 items-center">
           {actions.map((action) => (
             <Tooltip key={action.key} title={action.title} arrow>
-              <Box component="button" onClick={action.onClick} aria-label={action.title} sx={mgIcoSx}>
+              <button onClick={action.onClick} aria-label={action.title} className={cn(MG_ICO_CLS, 'w-9 h-9')}>
                 {action.icon}
-              </Box>
+              </button>
             </Tooltip>
           ))}
           {menuItems.length > 0 && (
-            <Box
-              component="button"
-              onClick={(e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget)}
+            <button
+              onClick={(e) => setMenuAnchor(e.currentTarget)}
               aria-label="Plus d'actions"
-              sx={mgIcoSx}
+              className={cn(MG_ICO_CLS, 'w-9 h-9')}
             >
               <MoreHorizIcon size={16} strokeWidth={1.75} />
-            </Box>
+            </button>
           )}
         </div>
         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
@@ -219,31 +223,14 @@ export default function ThreadView({
                 {group.day}
               </div>
               {group.msgs.map((msg) => (
-                <Box
+                <div
                   key={msg.id}
-                  sx={{
-                    maxWidth: '74%',
-                    p: '11px 14px',
-                    borderRadius: '15px',
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    ...(msg.out
-                      ? {
-                          alignSelf: 'flex-end',
-                          bgcolor: 'var(--accent)',
-                          color: '#fff',
-                          borderBottomRightRadius: '5px',
-                        }
-                      : {
-                          alignSelf: 'flex-start',
-                          bgcolor: 'var(--card)',
-                          border: '1px solid var(--line)',
-                          color: 'var(--body)',
-                          borderBottomLeftRadius: '5px',
-                        }),
-                  }}
+                  className={cn(
+                    'max-w-[74%] px-[14px] py-[11px] rounded-[15px] text-[13px] leading-[1.5] whitespace-pre-wrap break-words',
+                    msg.out
+                      ? 'self-end bg-[var(--accent)] text-[#fff] rounded-br-[5px]'
+                      : 'self-start bg-[var(--card)] border border-solid border-[var(--line)] text-[var(--body)] rounded-bl-[5px]',
+                  )}
                 >
                   {msg.text}
                   {msg.attachments && msg.attachments.length > 0 && (
@@ -256,18 +243,11 @@ export default function ThreadView({
                       ))}
                     </div>
                   )}
-                  <Box
-                    sx={{
-                      fontSize: '9.5px',
-                      mt: 0.5,
-                      opacity: 0.7,
-                      fontVariantNumeric: 'tabular-nums',
-                      ...(msg.out && { textAlign: 'right' }),
-                    }}
-                  >
+                  {/* mt: 0.5 = 3px (theme.spacing vaut 6 dans ce projet, pas 8). */}
+                  <div className={cn('text-[9.5px] mt-[3px] opacity-70 tabular-nums', msg.out && 'text-right')}>
                     {formatMsgTime(msg.at)}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
             </React.Fragment>
           ))
@@ -298,31 +278,14 @@ export default function ThreadView({
               sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', lineHeight: 1.5, py: 0, '& textarea': { p: 0, maxHeight: 80 } }}
             />
             {composeTools}
-            <Box
-              component="button"
+            <button
               onClick={handleSend}
               disabled={!canSend}
               aria-label="Envoyer"
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '11px',
-                bgcolor: 'var(--accent)',
-                color: '#fff',
-                border: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'transform .12s, background .14s',
-                '&:hover': { bgcolor: 'var(--accent-deep)' },
-                '&:active': { transform: 'scale(.97)' },
-                '&:disabled': { opacity: 0.45, cursor: 'default' },
-              }}
+              className="flex items-center justify-center shrink-0 w-9 h-9 rounded-[11px] border-0 bg-[var(--accent)] text-[#fff] cursor-pointer [transition:transform_.12s,background_.14s] hover:bg-[var(--accent-deep)] active:scale-[.97] disabled:opacity-[.45] disabled:cursor-default"
             >
               {sending ? <Spinner className="size-[15px] text-[#fff]" /> : <SendIcon size={15} strokeWidth={1.75} />}
-            </Box>
+            </button>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@
  * Reference : docs/strategy/channex-integration-plan.md (Sprint 5)
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
@@ -124,17 +125,7 @@ const choiceCardSx = {
   '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
 } as const;
 
-const choiceIconSx = {
-  width: 40,
-  height: 40,
-  borderRadius: '10px',
-  bgcolor: 'var(--accent-soft)',
-  color: 'var(--accent)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-} as const;
+const CHOICE_ICON_CLASS = 'w-10 h-10 rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center shrink-0';
 
 export default function ChannexMappingDialog({ open, onClose, guided = false }: ChannexMappingDialogProps) {
   const { t } = useTranslation();
@@ -592,9 +583,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 onClick={() => setImportDialogOpen(true)}
                 sx={choiceCardSx}
               >
-                <Box sx={choiceIconSx}>
+                <div className={CHOICE_ICON_CLASS}>
                   <Globe size={22} />
-                </Box>
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="cn-text-body2 font-bold mb-0.5">
                     {guided
@@ -617,9 +608,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 onClick={() => setView('CONNECT_EXISTING')}
                 sx={choiceCardSx}
               >
-                <Box sx={choiceIconSx}>
+                <div className={CHOICE_ICON_CLASS}>
                   <Home size={22} />
-                </Box>
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="cn-text-body2 font-bold mb-0.5">
                     {guided
@@ -642,9 +633,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 onClick={() => setView('MANAGE_OTAS')}
                 sx={choiceCardSx}
               >
-                <Box sx={choiceIconSx}>
+                <div className={CHOICE_ICON_CLASS}>
                   <Link2 size={22} />
-                </Box>
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="cn-text-body2 font-bold mb-0.5">
                     {guided
@@ -1007,20 +998,17 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
 
           {/* Mode toggle */}
           <Stack spacing={1} sx={{ mb: 2 }}>
-            <Box
+            <div
               role="button"
               tabIndex={0}
               onClick={() => setConnectForm((s) => ({ ...s, mode: 'AUTO_CREATE', error: null }))}
-              sx={{
-                p: 1.25,
-                border: '1.5px solid',
-                borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
-                borderRadius: 1.5,
-                cursor: 'pointer',
-                backgroundColor: connectForm.mode === 'AUTO_CREATE' ? 'var(--accent-soft)' : 'background.paper',
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { borderColor: ACCENT },
-              }}
+              className={cn(
+                'p-[7.5px] border-[1.5px] border-solid rounded-[12px] cursor-pointer hover:border-[var(--accent)]',
+                connectForm.mode === 'AUTO_CREATE'
+                  ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                  : 'border-[var(--line)] bg-[var(--card)]',
+              )}
+              style={{ transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
             >
               <div className="flex items-center gap-1.5">
                 <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider', backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent' }} />
@@ -1031,22 +1019,19 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               <p className="cn-text-body1 text-[0.72rem] text-muted-foreground ms-4 mt-0.5">
                 Baitly cree la Property, le Room Type et le Rate Plan automatiquement dans le hub de distribution en utilisant les infos de votre propriete.
               </p>
-            </Box>
+            </div>
 
-            <Box
+            <div
               role="button"
               tabIndex={0}
               onClick={() => setConnectForm((s) => ({ ...s, mode: 'IMPORT_EXISTING', error: null }))}
-              sx={{
-                p: 1.25,
-                border: '1.5px solid',
-                borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
-                borderRadius: 1.5,
-                cursor: 'pointer',
-                backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? 'var(--accent-soft)' : 'background.paper',
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { borderColor: ACCENT },
-              }}
+              className={cn(
+                'p-[7.5px] border-[1.5px] border-solid rounded-[12px] cursor-pointer hover:border-[var(--accent)]',
+                connectForm.mode === 'IMPORT_EXISTING'
+                  ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                  : 'border-[var(--line)] bg-[var(--card)]',
+              )}
+              style={{ transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
             >
               <div className="flex items-center gap-1.5">
                 <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider', backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent' }} />
@@ -1057,7 +1042,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               <p className="cn-text-body1 text-[0.72rem] text-muted-foreground ms-4 mt-0.5">
                 Vous avez deja cree la propriete dans le hub de distribution et possedez les 3 UUIDs.
               </p>
-            </Box>
+            </div>
           </Stack>
 
           {/* Champs IDs : visibles uniquement en mode IMPORT */}
@@ -1109,11 +1094,11 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           {connectForm.mode === 'AUTO_CREATE' && connectForm.property && (
             <UiAlert variant="info" className="text-[0.72rem]">
               <Info />
-              <AlertDescription><strong>Sera cree dans le hub de distribution :</strong><Box component="ul" sx={{ margin: 0, paddingInlineStart: 2, mt: 0.5 }}>
+              <AlertDescription><strong>Sera cree dans le hub de distribution :</strong><ul className="m-0 ps-3 mt-[3px]">
                 <li>Property : <em>{connectForm.property.name}</em> ({connectForm.property.city}, {connectForm.property.country})</li>
                 <li>Room Type : 1 unite, capacite {connectForm.property.maxGuests} personnes</li>
                 <li>Rate Plan : Standard Rate, per_room</li>
-              </Box></AlertDescription>
+              </ul></AlertDescription>
             </UiAlert>
           )}
 

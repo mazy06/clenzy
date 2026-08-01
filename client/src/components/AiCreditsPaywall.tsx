@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { cn } from '../utils/cn';
 import { Spinner } from './ui';
-import { Dialog, DialogContent, Box, Button, IconButton } from '@mui/material';
+import { Dialog, DialogContent, Button, IconButton } from '@mui/material';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 
@@ -91,7 +91,12 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         ) : packs.length === 0 ? (
           <div className="text-[var(--text-sm)] text-[var(--muted)]">Aucun pack disponible pour le moment.</div>
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: `repeat(${Math.min(packs.length, 3)}, 1fr)` }, gap: 1.25 }}>
+          // Le gabarit depend du nombre de packs (execution) : custom property,
+          // la rupture sm (600px MUI) reste une variante statique.
+          <div
+            className="grid grid-cols-[1fr] min-[600px]:grid-cols-[var(--packs-cols)] gap-[7.5px]"
+            style={{ '--packs-cols': `repeat(${Math.min(packs.length, 3)}, 1fr)` } as CSSProperties}
+          >
             {packs.map((p) => {
               const active = p.key === selected;
               return (
@@ -103,7 +108,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
                 </button>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {error && (

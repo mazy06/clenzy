@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box } from '@mui/material';
 import {
   WeatherSun,
   WeatherCloudSun,
@@ -69,24 +68,16 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
         </p>
       )}
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(4, minmax(72px, 1fr))', sm: `repeat(${items.length}, minmax(72px, 1fr))` },
-          gap: 0.75,
-          overflowX: 'auto',
-          // Scrollbar discrete
-          '&::-webkit-scrollbar': { height: 4 },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'var(--line-2)',
-            borderRadius: 2,
-          },
-        }}
+      {/* Le nombre de colonnes depend des donnees : custom property, la rupture
+          sm (600px MUI) reste une variante statique. Scrollbar discrete. */}
+      <div
+        className="grid grid-cols-[repeat(4,_minmax(72px,_1fr))] min-[600px]:grid-cols-[var(--wx-cols)] gap-[4.5px] overflow-x-auto [&::-webkit-scrollbar]:h-[4px] [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[16px]"
+        style={{ '--wx-cols': `repeat(${items.length}, minmax(72px, 1fr))` } as React.CSSProperties}
       >
         {items.map((item) => (
           <WeatherDayTile key={item.date} item={item} />
         ))}
-      </Box>
+      </div>
     </div>
   );
 };

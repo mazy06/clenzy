@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Typography, Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -201,24 +202,16 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
               const dayValue = idx + 1;
               const selected = daysOfWeekSet.has(dayValue);
               return (
-                <Box
+                <div
                   key={label}
                   onClick={() => toggleDay(dayValue)}
                   aria-pressed={selected}
-                  sx={{
-                    flex: 1,
-                    textAlign: 'center',
-                    py: 0.5,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    border: '1px solid',
-                    borderColor: selected ? 'var(--accent)' : 'var(--field-line)',
-                    bgcolor: selected ? 'var(--accent-soft)' : 'var(--field)',
-                    transition: 'border-color 0.15s, background-color 0.15s',
-                    '&:hover': {
-                      borderColor: selected ? 'var(--accent)' : 'var(--faint)',
-                    },
-                  }}
+                  className={cn(
+                    'flex-1 text-center py-[3px] rounded-[8px] cursor-pointer border border-solid transition-[border-color,background-color] duration-150',
+                    selected
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:border-[var(--accent)]'
+                      : 'border-[var(--field-line)] bg-[var(--field)] hover:border-[var(--faint)]',
+                  )}
                 >
                   <Typography
                     variant="caption"
@@ -230,7 +223,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
                   >
                     {label}
                   </Typography>
-                </Box>
+                </div>
               );
               });
             })()}

@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
 } from '../../../icons';
@@ -73,21 +73,9 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                 <div className="flex items-center gap-1 py-1.5">
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: 28,
-                      height: 28,
-                      borderRadius: 0.75,
-                      bgcolor: 'rgba(74, 155, 142, 0.08)',
-                      color: '#4A9B8E',
-                      '& .MuiSvgIcon-root': { fontSize: 16 },
-                    }}
-                  >
+                  <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] bg-[rgba(74,_155,_142,_0.08)] text-[#4A9B8E] [&_.MuiSvgIcon-root]:text-[16px]">
                     <InfoOutlined />
-                  </Box>
+                  </div>
                   <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                     {t('dashboard.analytics.noAlerts')}
                   </p>
@@ -107,21 +95,13 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Header */}
                   <div className="flex items-start gap-1 mb-0.5">
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: 28,
-                        height: 28,
-                        borderRadius: 0.75,
-                        bgcolor: SEVERITY_BG[alert.severity],
-                        color: SEVERITY_COLORS[alert.severity],
-                        '& .MuiSvgIcon-root': { fontSize: 16 },
-                      }}
+                    {/* bg et couleur dependent de la severite a l'execution : style inline obligatoire */}
+                    <div
+                      className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] [&_.MuiSvgIcon-root]:text-[16px]"
+                      style={{ backgroundColor: SEVERITY_BG[alert.severity], color: SEVERITY_COLORS[alert.severity] }}
                     >
                       {SEVERITY_ICONS[alert.severity]}
-                    </Box>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-0.5 mb-0.5">
                         <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground leading-[1.3] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">

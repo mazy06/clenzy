@@ -4,7 +4,7 @@ import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
+import { Typography, Paper, Button, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
 import { SIGN_LABELS, detectSignLang, type SignLabels } from './signLabels';
@@ -139,16 +139,10 @@ const ContractSignPage: React.FC = () => {
   // ─── Rendu ─────────────────────────────────────────────────────────────────
 
   return (
-    <Box
+    // md MUI = 900px ; py 3/6 = 18px/36px et px 2 = 12px (theme.spacing vaut 6).
+    <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'var(--bg)',
-        py: { xs: 3, md: 6 },
-        px: 2,
-        display: 'flex',
-        justifyContent: 'center',
-      }}
+      className="min-h-screen flex justify-center bg-[var(--bg)] px-3 py-[18px] min-[900px]:py-9"
     >
       <div className="w-full max-w-[760px] flex flex-col gap-4">
         {/* ── En-tête marque ── */}
@@ -354,7 +348,7 @@ const ContractSignPage: React.FC = () => {
           {L.footer}
         </p>
       </div>
-    </Box>
+    </div>
   );
 };
 

@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Divider } from '@mui/material';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -92,20 +92,13 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
 
         <div className="mt-1.5 flex flex-col gap-3">
           {/* Upload zone — tokens Signature (pas encore de pattern dropzone baseline) */}
-          <Box
-            sx={{
-              border: '2px dashed',
-              borderColor: file ? 'var(--ok)' : 'var(--line-2)',
-              borderRadius: '12px',
-              p: 3,
-              textAlign: 'center',
-              cursor: 'pointer',
-              bgcolor: file ? 'var(--ok-soft)' : 'var(--field)',
-              transition: 'border-color .15s, background-color .15s',
-              '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
-            component="label"
+          <label
+            className={cn(
+              'border-2 border-dashed rounded-[12px] p-[18px] text-center cursor-pointer',
+              'transition-[border-color,background-color] duration-150 motion-reduce:transition-none',
+              'hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]',
+              file ? 'border-[var(--ok)] bg-[var(--ok-soft)]' : 'border-[var(--line-2)] bg-[var(--field)]',
+            )}
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
             <span className={cn('inline-flex mb-1.5', file ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><CloudUpload size={40} strokeWidth={1.75} /></span>
@@ -117,7 +110,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
                 {(file.size / 1024).toFixed(1)} KB
               </span>
             )}
-          </Box>
+          </label>
 
           <TextField
             label="Nom du template *"

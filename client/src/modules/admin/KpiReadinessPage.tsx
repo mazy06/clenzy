@@ -6,7 +6,7 @@ import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Grid, Card, CardActionArea, CardContent, Typography, Button, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
+import { Grid, Card, CardActionArea, CardContent, Typography, Button, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -101,13 +101,14 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
             sx={{ color }}
           />
           <div className="top-[0px] start-[0px] bottom-[0px] end-[0px] absolute flex flex-col items-center justify-center">
-            <Box component="span" sx={{ display: 'inline-flex', color, mb: 0.5 }}>
+            {/* La teinte suit le score, calculee au rendu. */}
+            <span className="mb-[3px] inline-flex" style={{ color }}>
               {criticalFailed ? (
                 <Warning size={32} strokeWidth={1.75} />
               ) : (
                 <Shield size={32} strokeWidth={1.75} />
               )}
-            </Box>
+            </span>
             <Typography
               variant="h3"
               sx={{ fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}

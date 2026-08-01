@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -141,16 +141,12 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               ) : (
                 <div className="flex flex-wrap gap-0.5 mt-[3px]">
                   {data.heatmap.map((day) => (
-                    <Box
+                    <div
                       key={day.date}
-                      sx={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: '2px',
-                        bgcolor: getHeatmapColor(day.rate),
-                        transition: 'transform 0.1s',
-                        '&:hover': { transform: 'scale(1.3)' },
-                      }}
+                      // transform explicite : `scale-*` de Tailwind v4 ecrit la propriete
+                      // `scale`, que la transition sur `transform` n'animerait pas.
+                      className="w-[14px] h-[14px] rounded-[2px] [transition:transform_0.1s] hover:[transform:scale(1.3)]"
+                      style={{ backgroundColor: getHeatmapColor(day.rate) }}
                       title={`${day.date}: ${Math.round(day.rate * 100)}%`}
                     />
                   ))}

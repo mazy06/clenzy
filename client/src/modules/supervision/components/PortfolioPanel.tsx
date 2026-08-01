@@ -11,7 +11,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
 import { useResolutionToasts } from '../core/useResolutionToasts';
@@ -32,12 +32,10 @@ export interface PortfolioPanelProps {
   onEditAction?: (actionId: string) => void;
 }
 
-const cardSx = {
-  border: '1px solid var(--line, #e6e8ef)',
-  borderRadius: '14px',
-  bgcolor: 'var(--card, #fff)',
-  overflow: 'hidden',
-};
+// Litteral complet (pas de concatenation) : Tailwind scanne les sources et
+// n'emet une classe que si elle y apparait telle quelle.
+const CARD_CLASS =
+  'border border-solid border-[var(--line,_#e6e8ef)] rounded-[14px] bg-[var(--card,_#fff)] overflow-hidden';
 
 export function PortfolioPanel({ createProvider, deps, onEditAction }: PortfolioPanelProps) {
   const { t } = useTranslation();
@@ -88,7 +86,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           <SupervisionReportStrip />
 
           {(portfolio.orgAlerts?.length ?? 0) > 0 && (
-            <Box sx={cardSx}>
+            <div className={CARD_CLASS}>
               <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
                 {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
               </Typography>
@@ -107,10 +105,10 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
                   </div>
                 ))}
               </div>
-            </Box>
+            </div>
           )}
 
-          <Box sx={cardSx}>
+          <div className={CARD_CLASS}>
             <div className="flex items-center gap-1.5 p-[14px 16px 12px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
               {t('supervision.queue.title')}
               <span className="ms-auto min-w-[24px] h-[24px] px-[4.5px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center text-[12px] font-extrabold">
@@ -120,9 +118,9 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
             <div className="p-2 max-h-[320px] overflow-y-auto">
               <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
             </div>
-          </Box>
+          </div>
 
-          <Box sx={cardSx}>
+          <div className={CARD_CLASS}>
             <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
               {t('supervision.feed.title')}
             </Typography>
@@ -138,7 +136,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
                 </div>
               )}
             </div>
-          </Box>
+          </div>
         </div>
       </div>
 

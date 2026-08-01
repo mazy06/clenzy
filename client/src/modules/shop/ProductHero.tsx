@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Box } from '@mui/material';
 import {
   VolumeUp,
   Lock,
@@ -64,11 +63,10 @@ const SvgBackdrop: React.FC<SvgBackdropProps> = ({ shape, accent }) => {
   const fill = `${accent}1C`;
 
   return (
-    <Box
-      component="svg"
+    <svg
       viewBox="0 0 400 240"
       preserveAspectRatio="xMidYMid slice"
-      sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+      className="absolute inset-0 w-full h-full pointer-events-none"
       aria-hidden="true"
     >
       {shape === 'wave' && (
@@ -181,7 +179,7 @@ const SvgBackdrop: React.FC<SvgBackdropProps> = ({ shape, accent }) => {
           <circle cx="200" cy="120" r="56" fill={fill} />
         </>
       )}
-    </Box>
+    </svg>
   );
 };
 
@@ -198,56 +196,36 @@ const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168 }) => {
   const showImage = !!product.imageUrl && !imgFailed;
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        width: '100%',
-        height,
-        overflow: 'hidden',
-        bgcolor: palette.bg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+    <div
+      className="relative w-full overflow-hidden flex items-center justify-center"
+      style={{ height, backgroundColor: palette.bg }}
     >
       {showImage ? (
-        <Box
-          component="img"
+        <img
           src={product.imageUrl}
           alt={product.imageAlt}
           loading="lazy"
           onError={() => setImgFailed(true)}
-          sx={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 400ms cubic-bezier(0.22, 1, 0.36, 1)',
-          }}
+          className="w-full h-full object-cover"
+          style={{ transition: 'transform 400ms cubic-bezier(0.22, 1, 0.36, 1)' }}
         />
       ) : (
         <>
           <SvgBackdrop shape={palette.shape} accent={palette.bgAccent} />
-          <Box
-            sx={{
-              position: 'relative',
-              width: 64,
-              height: 64,
-              borderRadius: '14px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'background.paper',
+          <div
+            className="relative w-16 h-16 rounded-[14px] inline-flex items-center justify-center bg-[var(--card)] border border-solid"
+            style={{
               color: palette.icon,
-              border: `1px solid ${palette.bgAccent}40`,
+              borderColor: `${palette.bgAccent}40`,
               boxShadow: `0 4px 14px ${palette.bgAccent}1F`,
             }}
             aria-label={product.imageAlt}
           >
             {Icon && <Icon size={28} strokeWidth={1.75} />}
-          </Box>
+          </div>
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

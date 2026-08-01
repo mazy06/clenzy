@@ -17,7 +17,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, IconButton, Stack, Skeleton, Tooltip, Button } from '@mui/material';
+import { Typography, IconButton, Stack, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AlertCircle,
   AlertTriangle,
@@ -74,36 +74,20 @@ function AttentionRow({
 }) {
   const meta = SEVERITY_META[item.severity];
   const Icon = meta.Icon;
+  // La couleur de severite est choisie a l'execution : elle passe par une custom
+  // property inline pour rester utilisable dans les classes (y compris hover/focus).
+  const Root = onClick ? 'button' : 'div';
   return (
-    <Box
-      component={onClick ? 'button' : 'div'}
+    <Root
       onClick={onClick}
-      sx={{
-        display: 'flex',
-        gap: 1.25,
-        alignItems: 'flex-start',
-        width: '100%',
-        textAlign: 'left',
-        p: 1,
-        borderRadius: 0.75,
-        border: '1px solid',
-        borderColor: `color-mix(in srgb, ${meta.color} 13%, transparent)`,
-        bgcolor: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
-        background: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
-        cursor: onClick ? 'pointer' : 'default',
-        transition: onClick ? 'all 150ms cubic-bezier(0.22, 1, 0.36, 1)' : undefined,
-        ...(onClick && {
-          '&:hover': {
-            borderColor: `color-mix(in srgb, ${meta.color} 33%, transparent)`,
-            bgcolor: `color-mix(in srgb, ${meta.color} 6%, transparent)`,
-            transform: 'translateX(2px)',
-          },
-          '&:focus-visible': {
-            outline: `2px solid ${meta.color}`,
-            outlineOffset: 2,
-          },
-        }),
-      }}
+      className={cn(
+        'flex gap-[7.5px] items-start w-full text-left p-1.5 rounded-[6px] border border-solid',
+        'border-[color-mix(in_srgb,_var(--sev)_13%,_transparent)] bg-[color-mix(in_srgb,_var(--sev)_3%,_transparent)]',
+        onClick
+          ? 'cursor-pointer transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[color-mix(in_srgb,_var(--sev)_33%,_transparent)] hover:bg-[color-mix(in_srgb,_var(--sev)_6%,_transparent)] hover:translate-x-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sev)] focus-visible:outline-offset-2'
+          : 'cursor-default',
+      )}
+      style={{ '--sev': meta.color } as React.CSSProperties}
     >
       <div className="mt-[1.2000000000000002px] shrink-0" style={{ color: meta.color }}>
         <Icon size={16} strokeWidth={2.2} />
@@ -131,7 +115,7 @@ function AttentionRow({
           <ChevronRight size={14} />
         </div>
       )}
-    </Box>
+    </Root>
   );
 }
 

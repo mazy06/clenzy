@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Switch, TextField, Alert, Snackbar } from '@mui/material';
+import { Switch, TextField, Alert, Snackbar } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
 import SettingsSection from './components/SettingsSection';
 
 const VALID_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
-
-const ACCENT = 'var(--accent)';
 
 const sameDays = (a: number[], b: number[]) => {
   if (a.length !== b.length) return false;
@@ -156,17 +155,12 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         </div>
 
         {/* Days of month selector */}
-        <Box
-          sx={{
-            p: 1.5,
-            mb: 1.5,
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-            opacity: autoGenerate ? 1 : 0.5,
-            pointerEvents: autoGenerate ? 'auto' : 'none',
-            transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-          }}
+        <div
+          className={cn(
+            'p-[9px] mb-[9px] rounded-[8px] border border-solid border-[var(--line)]',
+            autoGenerate ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none',
+          )}
+          style={{ transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
         >
           <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
             {t('settings.payoutSchedule.daysOfMonth')}
@@ -178,7 +172,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
             {VALID_DAYS.map((day) => {
               const active = selectedDays.includes(day);
               return (
-                <Box
+                <div
                   key={day}
                   role="button"
                   tabIndex={0}
@@ -190,42 +184,25 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
                       toggleDay(day);
                     }
                   }}
-                  sx={{
-                    minWidth: 30,
-                    height: 26,
-                    px: 1,
-                    borderRadius: '6px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    fontSize: '0.72rem',
-                    fontWeight: active ? 700 : 500,
-                    fontVariantNumeric: 'tabular-nums',
-                    letterSpacing: '0.01em',
-                    border: '1px solid',
-                    borderColor: active ? ACCENT : 'divider',
-                    backgroundColor: active ? ACCENT : 'background.paper',
-                    color: active ? 'var(--on-accent)' : 'text.primary',
+                  className={cn(
+                    'min-w-[30px] h-[26px] px-1.5 rounded-[6px] inline-flex items-center justify-center',
+                    'cursor-pointer select-none text-[0.72rem] tabular-nums tracking-[0.01em] border border-solid',
+                    'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]',
+                    active
+                      ? 'font-bold border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
+                      : 'font-medium border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]',
+                  )}
+                  style={{
                     transition:
                       'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    '&:hover': {
-                      borderColor: active ? ACCENT : 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                      backgroundColor: active ? ACCENT : 'var(--accent-soft)',
-                    },
-                    '&:focus-visible': {
-                      outline: `2px solid ${ACCENT}`,
-                      outlineOffset: 2,
-                    },
                   }}
                 >
                   {day}
-                </Box>
+                </div>
               );
             })}
           </div>
-        </Box>
+        </div>
 
         {/* Grace period */}
         <div className="p-2 rounded-[8px] border border-[var(--line)]">

@@ -1,11 +1,19 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { Box, Typography, TextField, MenuItem, Autocomplete } from '@mui/material';
+import { Typography, TextField, MenuItem, Autocomplete } from '@mui/material';
 import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, COMPACT_FIELD_SX, COMPACT_TEXTAREA_SX, STEP_BTN_SX, AdornIcon } from './reservationDialogStyles';
+import { SEC_SX, COMPACT_FIELD_SX, COMPACT_TEXTAREA_SX, AdornIcon } from './reservationDialogStyles';
+
+// Transposition en classes de STEP_BTN_SX (.rm-count) — la constante reste
+// exportee dans reservationDialogStyles pour les consommateurs sx eventuels.
+const STEP_BTN_CLS =
+  'w-[30px] h-[30px] rounded-[8px] border-0 bg-[var(--card)] text-[var(--body)] cursor-pointer ' +
+  'flex items-center justify-center p-0 transition-[color] duration-[140ms] ' +
+  'enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-default ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[1px]';
 
 interface Props {
   form: UseReservationFormResult;
@@ -25,28 +33,17 @@ const renderStepper = (
   incDisabled: boolean,
   ariaLabel: string,
 ) => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      backgroundColor: 'var(--field)',
-      border: '1px solid var(--field-line)',
-      borderRadius: '10px',
-      padding: '3px',
-      flexShrink: 0,
-    }}
-  >
-    <Box component="button" type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} sx={STEP_BTN_SX}>
+  <div className="flex items-center gap-[4px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] shrink-0">
+    <button type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} className={STEP_BTN_CLS}>
       <RemoveIcon size={15} strokeWidth={1.75} />
-    </Box>
+    </button>
     <div className="font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] min-w-[28px] text-center select-none tabular-nums">
       {value}
     </div>
-    <Box component="button" type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} sx={STEP_BTN_SX}>
+    <button type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} className={STEP_BTN_CLS}>
       <AddIcon size={15} strokeWidth={1.75} />
-    </Box>
-  </Box>
+    </button>
+  </div>
 );
 
 // Champ en lecture seule (infos d'un voyageur — édition de réservation uniquement).
@@ -93,12 +90,12 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       renderOption={(props, option) => {
         const { key, ...optionProps } = props;
         return (
-          <Box component="li" key={key} {...optionProps}>
+          <li key={key} {...optionProps}>
             <div>
               <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">{option.fullName}</p>
               {option.email && <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{option.email}</p>}
             </div>
-          </Box>
+          </li>
         );
       }}
       inputValue={form.guestSearchQuery}
@@ -147,12 +144,12 @@ const GuestSection: React.FC<Props> = ({ form }) => {
   // Formulaire voyageur ÉDITABLE (création) — champs newGuest*, persistés au submit.
   const editableGuestForm = (
     <div className="flex flex-col gap-2.5">
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
+      <div className="flex items-center gap-[10px] mt-[2px]">
         <Typography sx={{ ...SEC_SX, whiteSpace: 'nowrap' }}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
         </Typography>
         <div className="flex-1 h-[1px] bg-[var(--line)]" />
-      </Box>
+      </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-2.5">
         <TextField
@@ -279,7 +276,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       {/* Occupation — voyageurs + dont enfants, regroupés (steppers cohérents). */}
       <div className="border border-[var(--line)] rounded-[12px] overflow-hidden bg-[var(--card)]">
         {/* Voyageurs */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
+        <div className="flex items-center gap-3 px-[14px] py-[11px]">
           <span className="inline-flex text-[var(--accent)] shrink-0">
             <GroupIcon size={18} strokeWidth={1.75} />
           </span>
@@ -294,12 +291,12 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             form.guestCount >= 20 || form.fieldsLocked,
             t('reservations.dialog.travelers'),
           )}
-        </Box>
+        </div>
 
         <div className="h-[1px] bg-[var(--line)]" />
 
         {/* dont enfants (mineurs) — exonérés de la taxe de séjour */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
+        <div className="flex items-center gap-3 px-[14px] py-[11px]">
           <span className="inline-flex text-[var(--accent)] shrink-0">
             <PersonOutline size={18} strokeWidth={1.75} />
           </span>
@@ -319,7 +316,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             form.childrenCount >= form.guestCount || form.fieldsLocked,
             t('reservations.fields.childrenCount'),
           )}
-        </Box>
+        </div>
       </div>
     </>
   );

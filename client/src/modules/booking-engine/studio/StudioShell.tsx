@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Box, ButtonBase, Tooltip } from '@mui/material';
+import { ButtonBase, Tooltip } from '@mui/material';
 import {
   ChevronLeft,
   Command as CommandIcon,
@@ -235,15 +235,26 @@ const seg = {
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
 } as const;
 
+// Equivalent Tailwind de `seg` pour le segment non interactif (fontSize/fontWeight
+// restent en style : `text-[var(...)]` / `font-[var(...)]` sont ambigus en Tailwind v4).
+const SEG_CLASS =
+  'inline-flex items-center gap-[3px] h-7 px-1.5 rounded-[var(--radius-sm)] '
+  + 'transition-[color,background] duration-[var(--duration-fast)] ease-[var(--ease-out)] '
+  + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2';
+
 function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
   return (
     <div className="flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--field)]" role="group" aria-label="Vue du studio">
       {/* Avancé — vue courante (active) */}
       <Tooltip title="Éditeur complet : tous les blocs, calques, réglages et import de design.">
-        <Box aria-pressed sx={{ ...seg, fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', bgcolor: 'var(--card)', boxShadow: 'var(--shadow-card)' }}>
+        <div
+          aria-pressed
+          className={SEG_CLASS + ' text-[var(--accent)] bg-[var(--card)] shadow-[var(--shadow-card)]'}
+          style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }}
+        >
           <SlidersHorizontal size={15} strokeWidth={2} />
           <span>Avancé</span>
-        </Box>
+        </div>
       </Tooltip>
       {/* Assistant — bascule vers l'aperçu immersif + chat */}
       <Tooltip title="Aperçu live + assistant design : décrivez vos modifications en langage naturel.">
@@ -265,26 +276,15 @@ function PreviewSelect({
   return (
     <div className="flex items-center gap-0.5 text-[var(--muted)]">
       {icon}
-      <Box
-        component="select"
+      <select
         aria-label={ariaLabel}
         value={value}
-        onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
-        sx={{
-          height: 30,
-          px: 0.75,
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--line-2)',
-          bgcolor: 'var(--card)',
-          color: 'var(--ink)',
-          fontSize: 'var(--text-sm)',
-          fontFamily: 'var(--font-sans)',
-          cursor: 'pointer',
-          '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 1 },
-        }}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-[30px] px-[4.5px] rounded-[var(--radius-md)] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--ink)] cursor-pointer focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-1"
+        style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-sans)' }}
       >
         {options.map((o) => <option key={o} value={o}>{o.toUpperCase()}</option>)}
-      </Box>
+      </select>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
-import { Box, ButtonBase, CircularProgress } from '@mui/material';
+import { ButtonBase, CircularProgress } from '@mui/material';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -89,17 +89,10 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
 
       {/* Panneau */}
       {open && (
-        <Box
+        <div
           role="dialog"
           aria-label="Concierge"
-          sx={{
-            position: 'fixed', bottom: 24, insetInlineEnd: 24, zIndex: 2147483600,
-            width: { xs: 'calc(100vw - 32px)', sm: 380 }, maxWidth: 380, height: 520, maxHeight: 'calc(100vh - 48px)',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            bgcolor: 'var(--card, #fff)', color: 'var(--ink, #14181c)',
-            border: '1px solid var(--line, #e5e7eb)', borderRadius: 'var(--radius-lg, 16px)',
-            boxShadow: '0 18px 48px rgba(20,24,28,0.28)',
-          }}
+          className="fixed bottom-6 end-6 z-[2147483600] w-[calc(100vw-32px)] min-[600px]:w-[380px] max-w-[380px] h-[520px] max-h-[calc(100vh-48px)] flex flex-col overflow-hidden bg-[var(--card,_#fff)] text-[var(--ink,_#14181c)] border border-solid border-[var(--line,_#e5e7eb)] rounded-[var(--radius-lg,_16px)] shadow-[0_18px_48px_rgba(20,24,28,0.28)]"
         >
           <div className="flex items-center gap-1.5 px-3 h-[52px] shrink-0 bg-[var(--accent,_#5453D6)] text-[var(--on-accent,_#fff)]">
             <MessageCircle size={18} strokeWidth={2} />
@@ -134,7 +127,7 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
               <Send size={17} strokeWidth={2} />
             </ButtonBase>
           </div>
-        </Box>
+        </div>
       )}
     </>
   );

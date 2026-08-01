@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
 } from '../../../icons';
@@ -82,21 +82,13 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Header: icon + title */}
                   <div className="flex items-start gap-1 mb-0.5">
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: 28,
-                        height: 28,
-                        borderRadius: 0.75,
-                        bgcolor: `${TYPE_COLORS[rec.type]}15`,
-                        color: TYPE_COLORS[rec.type],
-                        '& .MuiSvgIcon-root': { fontSize: 16 },
-                      }}
+                    {/* bg et couleur derivent du type a l'execution : style inline obligatoire */}
+                    <div
+                      className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] [&_.MuiSvgIcon-root]:text-[16px]"
+                      style={{ backgroundColor: `${TYPE_COLORS[rec.type]}15`, color: TYPE_COLORS[rec.type] }}
                     >
                       {TYPE_ICONS[rec.type]}
-                    </Box>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <Typography
                         sx={{

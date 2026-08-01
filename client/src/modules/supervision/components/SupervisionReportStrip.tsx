@@ -8,17 +8,10 @@
    Ne s'affiche que si le bilan est disponible.
    ============================================================ */
 
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervisionReport } from '../core/useSupervisionReport';
-
-const cardSx = {
-  border: '1px solid var(--line, #e6e8ef)',
-  borderRadius: '14px',
-  bgcolor: 'var(--card, #fff)',
-  overflow: 'hidden',
-};
 
 export function SupervisionReportStrip() {
   const { t } = useTranslation();
@@ -38,28 +31,19 @@ export function SupervisionReportStrip() {
   const byType = report.acceptanceByType ?? [];
 
   return (
-    <Box sx={cardSx}>
+    <div className="overflow-hidden rounded-[14px] border border-solid border-[var(--line,#e6e8ef)] bg-[var(--card,#fff)]">
       <Typography sx={{ p: '14px 16px 6px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
         {t('supervision.report.title', 'Bilan · 30 jours')}
       </Typography>
       <div className="flex p-[2px 8px 14px]">
         {stats.map((s) => (
           <div className="flex-1 text-center px-0.5 min-w-0" key={s.label}>
-            <Box
-              sx={{
-                fontSize: 17,
-                fontWeight: 800,
-                color: 'var(--accent)',
-                fontVariantNumeric: 'tabular-nums',
-                lineHeight: 1.15,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
+            <div
+              className="text-[17px] font-extrabold text-[var(--accent)] tabular-nums leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis"
               title={s.value}
             >
               {s.value}
-            </Box>
+            </div>
             <div className="text-[10.5px] text-[var(--muted,_#6b7280)] mt-[3px] font-semibold">{s.label}</div>
           </div>
         ))}
@@ -107,6 +91,6 @@ export function SupervisionReportStrip() {
           })}
         </div>
       )}
-    </Box>
+    </div>
   );
 }

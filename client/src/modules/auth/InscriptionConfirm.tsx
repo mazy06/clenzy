@@ -176,7 +176,7 @@ export default function InscriptionConfirm() {
           {/* Loading */}
           {status === 'loading' && (
             <div className="py-6">
-              <Spinner className="size-10 text-[#6B8A9A] mb-3" />
+              <Spinner className="size-10 text-[var(--mui-primary)] mb-3" />
               <p className="cn-text-body1 font-medium text-muted-foreground">
                 {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
               </p>
@@ -302,7 +302,7 @@ export default function InscriptionConfirm() {
               <p className="cn-text-body2 text-muted-foreground mb-3">
                 {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
               </p>
-              <Spinner className="size-6 text-[#6B8A9A]" />
+              <Spinner className="size-6 text-[var(--mui-primary)]" />
             </div>
           )}
 

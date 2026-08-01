@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
   Replay,
@@ -97,17 +97,9 @@ const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) 
   <div className="inline-flex items-center gap-0.5">
     <span>{label}</span>
     <Tooltip arrow title={hint}>
-      <Box
-        component="span"
-        sx={{
-          display: 'inline-flex',
-          color: 'text.disabled',
-          cursor: 'help',
-          '&:hover': { color: 'text.secondary' },
-        }}
-      >
+      <span className="inline-flex text-[var(--faint)] cursor-help hover:text-[var(--muted)]">
         <InfoOutlined size={13} strokeWidth={1.75} />
-      </Box>
+      </span>
     </Tooltip>
   </div>
 );

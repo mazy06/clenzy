@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Box, Skeleton, useMediaQuery } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
@@ -118,24 +119,18 @@ export default function GuidePhotoCarousel({
       {slides.map((s, i) => {
         if (failed.has(s.id)) return null;
         return (
-          <Box
+          <img
             key={s.id}
-            component="img"
             src={s.url}
             alt={alt ? `${alt} — photo ${i + 1}` : `photo ${i + 1}`}
             loading="lazy"
             decoding="async"
             draggable={false}
             onError={() => setFailed((prev) => new Set(prev).add(s.id))}
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={{
               opacity: i === current ? 1 : 0,
               transition: reduceMotion ? 'none' : 'opacity .45s ease',
-              pointerEvents: 'none',
             }}
           />
         );
@@ -147,16 +142,13 @@ export default function GuidePhotoCarousel({
           <CarouselArrow side="right" onClick={() => go(1)} />
           <div className="absolute start-[0px] end-[0px] bottom-[7px] flex justify-center gap-0.5 pointer-events-none">
             {slides.map((s, i) => (
-              <Box
+              <div
                 key={s.id}
-                sx={{
-                  width: i === current ? 14 : 5,
-                  height: 5,
-                  borderRadius: 5,
-                  bgcolor: i === current ? 'common.white' : 'rgba(255,255,255,0.55)',
-                  boxShadow: '0 0 2px rgba(0,0,0,0.4)',
-                  transition: 'width .25s ease, background-color .25s ease',
-                }}
+                className={cn(
+                  'h-[5px] rounded-[5px] shadow-[0_0_2px_rgba(0,0,0,0.4)]',
+                  i === current ? 'w-[14px] bg-white' : 'w-[5px] bg-[rgba(255,255,255,0.55)]',
+                )}
+                style={{ transition: 'width .25s ease, background-color .25s ease' }}
               />
             ))}
           </div>
@@ -169,38 +161,25 @@ export default function GuidePhotoCarousel({
 function CarouselArrow({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight;
   return (
-    <Box
-      className="gpc-nav"
-      component="button"
+    <button
+      className={cn(
+        // `gpc-nav` reste : le conteneur parent (Box) revele les fleches via
+        // `&:hover .gpc-nav`.
+        'gpc-nav absolute top-1/2 -translate-y-1/2 w-[28px] h-[28px] grid place-items-center',
+        'p-0 border-none rounded-full text-white bg-[rgba(20,20,25,0.45)] backdrop-blur-[2px]',
+        'cursor-pointer opacity-0 transition-[opacity,background-color] duration-200',
+        'hover:bg-[rgba(20,20,25,0.7)]',
+        'focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-white',
+        side === 'left' ? 'left-[6px]' : 'right-[6px]',
+      )}
       type="button"
       aria-label={side === 'left' ? 'Photo précédente' : 'Photo suivante'}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      sx={{
-        position: 'absolute',
-        top: '50%',
-        [side]: 6,
-        transform: 'translateY(-50%)',
-        width: 28,
-        height: 28,
-        display: 'grid',
-        placeItems: 'center',
-        p: 0,
-        border: 'none',
-        borderRadius: '50%',
-        color: 'common.white',
-        bgcolor: 'rgba(20,20,25,0.45)',
-        backdropFilter: 'blur(2px)',
-        cursor: 'pointer',
-        opacity: 0,
-        transition: 'opacity .2s ease, background-color .2s ease',
-        '&:hover': { bgcolor: 'rgba(20,20,25,0.7)' },
-        '&:focus-visible': { opacity: 1, outline: '2px solid', outlineColor: 'common.white' },
-      }}
     >
       <Icon size={16} strokeWidth={2} />
-    </Box>
+    </button>
   );
 }

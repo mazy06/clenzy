@@ -3,7 +3,7 @@ import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -24,7 +24,6 @@ import ConditionsEditor from './ConditionsEditor';
 import ConstellationAutoRulesSection from './ConstellationAutoRulesSection';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { SPACING } from '../../theme/spacing';
 import {
   useAutomationRules,
   useSystemAutomations,
@@ -299,7 +298,8 @@ const AutomationRulesPage: React.FC = () => {
   );
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
+    <div className="p-3">
       <PageHeader
         title={t('automation.title', 'Regles d\'automatisation')}
         subtitle={t('automation.subtitle', 'Automatisez les messages et actions pour vos reservations')}
@@ -703,7 +703,7 @@ const AutomationRulesPage: React.FC = () => {
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
       />
-    </Box>
+    </div>
   );
 };
 

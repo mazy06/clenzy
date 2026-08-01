@@ -3,7 +3,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, MenuItem, Alert, Menu, IconButton, Tooltip } from '@mui/material';
+import { MenuItem, Alert, Menu, IconButton, Tooltip } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -20,7 +20,6 @@ import {
   Refresh,
 } from '../../icons';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
-import { createSpacing } from '../../theme/spacing';
 import ExportButton from '../../components/ExportButton';
 import { useInterventionsList, MAP_VIEW_PAGE_SIZE } from './useInterventionsList';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
@@ -198,12 +197,12 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   // Protection contre les données invalides
   if (!Array.isArray(interventions)) {
     return (
-      <Box sx={createSpacing.page()}>
+      <div className="p-3">
         <UiAlert variant="destructive">
           <TriangleAlert />
           <AlertDescription>Erreur de chargement des données. Veuillez rafraîchir la page.</AlertDescription>
         </UiAlert>
-      </Box>
+      </div>
     );
   }
 
@@ -228,7 +227,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   // Si pas de permission, afficher un message informatif
   if (!canViewInterventions) {
     return (
-      <Box sx={createSpacing.page()}>
+      <div className="p-3">
         <UiAlert variant="info">
           <Info />
           <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
@@ -237,7 +236,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             {t('interventions.noPermissionMessage')}
           </p></AlertDescription>
         </UiAlert>
-      </Box>
+      </div>
     );
   }
 

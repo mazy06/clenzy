@@ -19,7 +19,7 @@ import AddDeviceWizard from './components/AddDeviceWizard';
 import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
 
-const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
+const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
 const PROVIDER_LABELS: Record<string, string> = {
   MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
@@ -183,11 +183,11 @@ export default function ConnectedObjectsHub({
 
       {/* Contenu : grille groupée par logement */}
       {loading ? (
-        <Box sx={GRID}>
+        <div className={GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />
           ))}
-        </Box>
+        </div>
       ) : filteredGroups.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
@@ -223,11 +223,11 @@ export default function ConnectedObjectsHub({
                 </span>
               )}
             </Box>
-            <Box sx={GRID}>
+            <div className={GRID}>
               {group.devices.map((d) => (
                 <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />
               ))}
-            </Box>
+            </div>
           </div>
         ))
       )}

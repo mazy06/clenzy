@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, IconButton, Tooltip } from '@mui/material';
+import { Button, IconButton, Tooltip } from '@mui/material';
 import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -223,10 +223,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           {/* data-vertical-scroll : le planning ne détourne PAS la molette
               au-dessus de cette zone (cf. useInfiniteTimeline) ; overscroll
               contain : le scroll ne chaîne pas non plus à la page au bord. */}
-          <Box
-            data-vertical-scroll
-            sx={{ px: 1, pb: 1, overflowY: 'auto', minHeight: 0, overscrollBehavior: 'contain' }}
-          >
+          <div data-vertical-scroll className="px-1.5 pb-1.5 overflow-y-auto min-h-0 overscroll-contain">
             {feed.length > 0 ? (
               <ActivityFeed entries={feed} />
             ) : (
@@ -237,7 +234,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 )}
               </div>
             )}
-          </Box>
+          </div>
         </div>
       ) : undefined,
     [feed, t],

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Box, Typography, Tooltip } from '@mui/material';
+import { Typography, Tooltip } from '@mui/material';
 import {
   AutoAwesome,
   Timer,
@@ -109,100 +109,35 @@ export function formatDuration(mins: number): string {
   return `${hours}h${String(remainder).padStart(2, '0')}`;
 }
 
-// ─── Stable sx (tokens DESIGN_BASELINE) ─────────────────────────────────────
+// ─── Classes stables (tokens DESIGN_BASELINE) ───────────────────────────────
 
-const CONTAINER_SX = {
-  border: '1px solid var(--line)',
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
-  px: 2,
-  py: 1.5,
-} as const;
+const CONTAINER_CLASS =
+  'border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] px-3 py-[9px]';
 
-const HEADER_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  mb: 1.5,
-} as const;
+const HEADER_CLASS = 'flex items-center justify-between mb-[9px]';
 
-const TITLE_ROW_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.75,
-} as const;
+const TITLE_ROW_CLASS = 'flex items-center gap-[4.5px]';
 
-const CARDS_ROW_SX = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr 1fr',
-  gap: 1.5,
-} as const;
+const CARDS_ROW_CLASS = 'grid grid-cols-[1fr_1fr_1fr] gap-[9px]';
 
-const PRICE_CARD_SX = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 0.75,
-  py: 1.5,
-  px: 1.5,
-  borderRadius: '11px',
-  border: '1px solid var(--field-line)',
-  bgcolor: 'var(--field)',
-  position: 'relative',
-} as const;
+const PRICE_CARD_CLASS =
+  'relative flex flex-col items-center justify-center gap-[4.5px] py-[9px] px-[9px] rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)]';
 
-const PRICE_CARD_PRIMARY_SX = {
-  ...PRICE_CARD_SX,
-  border: '1px solid var(--accent)',
-  bgcolor: 'var(--accent-soft)',
-} as const;
+const PRICE_CARD_PRIMARY_CLASS = 'border-[var(--accent)] bg-[var(--accent-soft)]';
 
 /** Puce de palier tarifaire : le gabarit statut, avec une graisse plus marquee
  *  parce qu'elle sert d'etiquette a un montant. */
 const TIER_CHIP_CLASS = 'text-[10.5px] font-bold';
 
-const DURATION_BANNER_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 0.75,
-  py: 1,
-  px: 1.5,
-  mb: 1.5,
-  borderRadius: '11px',
-  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-  bgcolor: 'var(--accent-soft)',
-} as const;
+const DURATION_BANNER_CLASS =
+  'flex items-center justify-center gap-[4.5px] py-1.5 px-[9px] mb-[9px] rounded-[11px] border border-solid border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[var(--accent-soft)]';
 
-const NO_DATA_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  py: 1.5,
-  px: 2,
-  borderRadius: '11px',
-  bgcolor: 'var(--field)',
-  border: '1px dashed var(--line-2)',
-} as const;
+const NO_DATA_CLASS =
+  'flex items-center gap-1.5 py-[9px] px-3 rounded-[11px] bg-[var(--field)] border border-dashed border-[var(--line-2)]';
 
 // Marqueur accent compact (même famille que le carré « aujourd'hui » du planning).
-const RECOMMENDED_BADGE_SX = {
-  position: 'absolute',
-  top: -10,
-  right: -4,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.25,
-  px: 0.75,
-  py: 0.25,
-  borderRadius: '6px',
-  bgcolor: 'var(--accent)',
-  color: 'var(--on-accent)',
-  fontSize: '9px',
-  fontWeight: 700,
-  letterSpacing: '0.03em',
-} as const;
+const RECOMMENDED_BADGE_CLASS =
+  'absolute -top-[10px] -right-[4px] flex items-center gap-[1.5px] px-[4.5px] py-[1.5px] rounded-[6px] bg-[var(--accent)] text-[var(--on-accent)] text-[9px] font-bold tracking-[0.03em]';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -250,45 +185,45 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
     }, [property, forfaits]);
 
     return (
-      <Box sx={CONTAINER_SX}>
+      <div className={CONTAINER_CLASS}>
         {/* Header */}
-        <Box sx={HEADER_SX}>
-          <Box sx={TITLE_ROW_SX}>
+        <div className={HEADER_CLASS}>
+          <div className={TITLE_ROW_CLASS}>
             <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
               Estimation du prix
             </p>
-          </Box>
+          </div>
           <Tooltip title="Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire." arrow>
             <span className="inline-flex text-[var(--faint)] cursor-help"><Info size={14} strokeWidth={1.75} /></span>
           </Tooltip>
-        </Box>
+        </div>
 
         {/* Aucune propriété sélectionnée */}
         {!property && (
-          <Box sx={NO_DATA_SX}>
+          <div className={NO_DATA_CLASS}>
             <span className="inline-flex text-[var(--faint)]"><InfoOutlined size={16} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.3]">
               Sélectionnez une propriété pour afficher l'estimation du prix et de la durée.
             </p>
-          </Box>
+          </div>
         )}
 
         {/* Avertissement données minimales (propriété sélectionnée mais données incomplètes) */}
         {property && !hasRichData && (
-          <Box sx={NO_DATA_SX}>
+          <div className={NO_DATA_CLASS}>
             <span className="inline-flex text-[var(--faint)]"><InfoOutlined size={16} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.3]">
               {canEstimate
                 ? 'Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.'
                 : 'Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation.'}
             </p>
-          </Box>
+          </div>
         )}
 
         {/* Duration banner */}
         {property && (
-          <Box sx={{ ...DURATION_BANNER_SX, mt: !hasRichData ? 1.5 : 0 }}>
+          <div className={cn(DURATION_BANNER_CLASS, !hasRichData && 'mt-[9px]')}>
             <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
             <div className="flex items-baseline gap-0.5">
               <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[var(--font-display)] tabular-nums">
@@ -301,23 +236,23 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
             <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic ms-auto">
               Calculée automatiquement
             </p>
-          </Box>
+          </div>
         )}
 
         {/* Price cards */}
         {estimates.length > 0 && (
-          <Box sx={CARDS_ROW_SX}>
+          <div className={CARDS_ROW_CLASS}>
             {estimates.map(({ key, label, min, max }) => {
               const isSelected = selectedForfaitKey === key;
               const isDefault = !selectedForfaitKey && key === 'CLEANING';
               const isHighlighted = isSelected || isDefault;
               return (
-                <Box key={key} sx={isHighlighted ? PRICE_CARD_PRIMARY_SX : PRICE_CARD_SX}>
+                <div key={key} className={cn(PRICE_CARD_CLASS, isHighlighted && PRICE_CARD_PRIMARY_CLASS)}>
                   {isSelected && (
-                    <Box sx={RECOMMENDED_BADGE_SX}>
+                    <div className={RECOMMENDED_BADGE_CLASS}>
                       <Star size={8} strokeWidth={1.75} fill="currentColor" />
                       Recommandé
-                    </Box>
+                    </div>
                   )}
                   <StatusChip
                     tokens={isHighlighted
@@ -340,19 +275,19 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
                     par intervention
                   </p>
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {/* Placeholder price cards quand pas de propriété */}
         {!property && (
-          <Box sx={{ ...CARDS_ROW_SX, mt: 1.5 }}>
+          <div className={cn(CARDS_ROW_CLASS, 'mt-[9px]')}>
             {forfaits.map((forfait, index) => {
               const isFirst = index === 0;
               return (
-                <Box key={forfait.key} sx={{ ...PRICE_CARD_SX, opacity: 0.4 }}>
+                <div key={forfait.key} className={cn(PRICE_CARD_CLASS, 'opacity-40')}>
                   <StatusChip
                     tone="neutral"
                     label={forfait.label}
@@ -371,10 +306,10 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
                     par intervention
                   </p>
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {/* Base note */}
@@ -384,7 +319,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
             Basé sur les caractéristiques du logement
           </p>
         </div>
-      </Box>
+      </div>
     );
   }
 );

@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import PropertyCard from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
@@ -39,15 +38,7 @@ const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
   return (
   <>
     {/* .pr-grid — grille 4 colonnes (2 colonnes < 1100px), gap 16 */}
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '16px',
-        '@media (max-width: 1100px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
-        '@media (max-width: 560px)': { gridTemplateColumns: '1fr' },
-      }}
-    >
+    <div className="grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[560px]:grid-cols-1">
       {properties.map((property) => (
         <PropertyCard
           key={property.id}
@@ -63,7 +54,7 @@ const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
           onMissingContractClick={() => onMissingContractClick(Number(property.id))}
         />
       ))}
-    </Box>
+    </div>
     {totalCount > ITEMS_PER_PAGE && (
       <PagePagination
         count={totalCount}

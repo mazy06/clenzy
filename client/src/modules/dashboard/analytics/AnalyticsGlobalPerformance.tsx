@@ -84,16 +84,14 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
       ) : (
         <>
           <div className="flex items-center gap-1 mb-1">
-            <Box
-              sx={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 32, height: 32, borderRadius: 1,
-                bgcolor: `${item.iconColor}12`,
-                '& .MuiSvgIcon-root': { fontSize: 18, color: item.iconColor },
-              }}
+            {/* La regle '& .MuiSvgIcon-root' du sx d'origine ne matchait rien : les icones
+                viennent de src/icons (lucide/iconify), pas de @mui/icons-material. Non reportee. */}
+            <div
+              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px]"
+              style={{ backgroundColor: `${item.iconColor}12` }}
             >
               {item.icon}
-            </Box>
+            </div>
             <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground tracking-[0.02em] uppercase">
               {item.title}
             </p>
@@ -117,16 +115,12 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
   <div className="flex items-center gap-2 py-1.5 px-0.5">
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 28, height: 28, borderRadius: 0.75, flexShrink: 0,
-        bgcolor: `${item.iconColor}10`,
-        '& .MuiSvgIcon-root': { fontSize: 15, color: item.iconColor },
-      }}
+    <div
+      className="flex items-center justify-center w-[28px] h-[28px] rounded-[6px] shrink-0"
+      style={{ backgroundColor: `${item.iconColor}10` }}
     >
       {item.icon}
-    </Box>
+    </div>
     <div className="flex-1 min-w-0">
       <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground font-medium leading-[1.2]">
         {item.title}

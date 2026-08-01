@@ -77,15 +77,18 @@ function TaskCard({
   const tile = `${meta.color}26`; // teinte ~15 % pour la tuile d'icône
 
   return (
-    <Box
+    <div
       data-pending-action={action.id}
-      sx={{
-        display: 'flex', flexDirection: 'column',
-        bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
-        p: '14px', boxShadow: behind ? 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))' : 'var(--shadow-md, 0 4px 14px rgba(0,0,0,.08))',
-        minHeight: 128, overflow: 'hidden',
+      className={cn(
+        'flex flex-col bg-[var(--card)] border border-solid border-[var(--line)] rounded-[16px] p-[14px] min-h-[128px] overflow-hidden',
         // Contenu masqué pour les cartes derrière (seuls les bords apparaissent).
-        '& > *': { opacity: behind ? 0 : 1, transition: 'opacity .25s' },
+        '[&>*]:transition-opacity [&>*]:duration-[250ms]',
+        behind ? '[&>*]:opacity-0' : '[&>*]:opacity-100',
+      )}
+      style={{
+        boxShadow: behind
+          ? 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))'
+          : 'var(--shadow-md, 0 4px 14px rgba(0,0,0,.08))',
       }}
     >
       {/* En-tête : tuile d'icône + label du type + badge d'urgence */}
@@ -114,12 +117,9 @@ function TaskCard({
       </div>
 
       {/* Titre (2 lignes max) */}
-      <Box sx={{
-        fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.35, mt: 1, mb: 'auto',
-        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-      }}>
+      <div className="text-[12.5px] font-medium text-[var(--ink)] leading-[1.35] mt-1.5 mb-auto line-clamp-2">
         {action.title}
-      </Box>
+      </div>
 
       {/* Pied : action primaire / secondaire / chevron « Pourquoi ? » */}
       <div className="flex gap-1.5 mt-2">
@@ -169,7 +169,7 @@ function TaskCard({
           {action.reasoning}
         </div>
       </Collapse>
-    </Box>
+    </div>
   );
 }
 
@@ -225,9 +225,9 @@ function TaskStack({
         {/* Liste (cascade) */}
         <div className="flex flex-col gap-2">
           {actions.map((a, i) => (
-            <Box key={a.id} sx={{ animation: 'deckCascadeIn .42s var(--ease-out, cubic-bezier(.16,1,.3,1)) both', animationDelay: `${i * 0.05}s` }}>
+            <div key={a.id} style={{ animation: 'deckCascadeIn .42s var(--ease-out, cubic-bezier(.16,1,.3,1)) both', animationDelay: `${i * 0.05}s` }}>
               <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
-            </Box>
+            </div>
           ))}
         </div>
       </div>
@@ -252,11 +252,13 @@ function TaskStack({
   const behind = Math.min(n - 1, 3);
   const PEEK = 6;
   return (
-    <Box
+    <div
       onClick={dimmed ? onClose : onOpen}
-      sx={{
-        position: 'relative', cursor: 'pointer', mb: `${behind * PEEK}px`,
-        filter: dimmed ? 'blur(4px)' : 'none', opacity: dimmed ? 0.45 : 1,
+      className="relative cursor-pointer"
+      style={{
+        marginBottom: `${behind * PEEK}px`,
+        filter: dimmed ? 'blur(4px)' : 'none',
+        opacity: dimmed ? 0.45 : 1,
         transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s',
       }}
     >
@@ -277,7 +279,7 @@ function TaskStack({
           {n}
         </div>
       )}
-    </Box>
+    </div>
   );
 }
 

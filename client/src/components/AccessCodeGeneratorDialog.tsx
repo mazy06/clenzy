@@ -4,7 +4,6 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
   Typography,
   Slider,
   Chip,
@@ -281,18 +280,22 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
             {pattern.map((type, i) => {
               const meta = TYPE_META[type];
               return (
+                // Fonds au repos ET au survol derives de la couleur du type (valeur
+                // d'execution) : passes en variables CSS, pas en style inline, sinon le
+                // style l'emporterait sur la classe hover:.
                 <Tooltip key={i} title={t('channels.checkIn.generator.slotCycle', 'Changer le type')}>
-                  <Box
+                  <div
                     onClick={() => cycleSlot(i)}
-                    sx={{
-                      width: 46, py: 0.75, borderRadius: 1.5, cursor: 'pointer', textAlign: 'center',
-                      border: '1px solid', borderColor: `${meta.color}66`, bgcolor: `${meta.color}14`,
-                      transition: 'all .15s ease', '&:hover': { bgcolor: `${meta.color}24` },
-                    }}
+                    className="w-[46px] py-[4.5px] rounded-[12px] cursor-pointer text-center border border-solid bg-[var(--slot-bg)] transition-all duration-150 ease-[ease] hover:bg-[var(--slot-bg-hover)]"
+                    style={{
+                      borderColor: `${meta.color}66`,
+                      '--slot-bg': `${meta.color}14`,
+                      '--slot-bg-hover': `${meta.color}24`,
+                    } as React.CSSProperties}
                   >
                     <p className="cn-text-body1 text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
                     <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', color: meta.color, mt: 0.25 }}>{meta.abbr}</Typography>
-                  </Box>
+                  </div>
                 </Tooltip>
               );
             })}

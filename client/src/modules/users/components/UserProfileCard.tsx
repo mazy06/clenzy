@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Avatar, Box, Card, CardContent, Typography } from '@mui/material';
+import { Avatar, Card, CardContent, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
 import type { ChipColor } from '../../../types';
@@ -80,19 +81,9 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
               </Avatar>
               {/* Tiny active dot — green pulse if status === ACTIVE. */}
               {isActive && (
-                <Box
+                <span
                   aria-hidden
-                  sx={{
-                    position: 'absolute',
-                    bottom: 2,
-                    right: 2,
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    bgcolor: 'var(--ok)',
-                    border: '2px solid',
-                    borderColor: 'background.paper',
-                  }}
+                  className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-[var(--ok)] border-2 border-solid border-[var(--card)]"
                 />
               )}
             </div>
@@ -129,18 +120,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
         </div>
 
         {/* Meta row — replaces the 3-up centered KPI tiles. */}
-        <Box
-          sx={{
-            mt: 2,
-            pt: 1.5,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            gap: { xs: 1.5, sm: 3 },
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="mt-3 pt-[9px] border-t border-solid border-[var(--line)] flex items-center gap-[9px] min-[600px]:gap-[18px] flex-wrap">
           <MetaItem
             icon={<MailIcon size={14} strokeWidth={1.75} />}
             value={user.email}
@@ -159,7 +139,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
               value={user.organizationName}
             />
           )}
-        </Box>
+        </div>
       </CardContent>
     </Card>
   );
@@ -171,34 +151,20 @@ const MetaItem: React.FC<{
   href?: string;
 }> = ({ icon, value, href }) => {
   const content = (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.625,
-        fontSize: '0.75rem',
-        color: 'text.secondary',
-        minWidth: 0,
-        transition: 'color 150ms ease',
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': href ? { color: 'var(--accent)' } : undefined,
-      }}
+    <span
+      className={cn(
+        'inline-flex items-center gap-[3.75px] text-[0.75rem] text-[var(--muted)] min-w-0',
+        'transition-colors duration-150 ease-[ease] motion-reduce:transition-none',
+        href && 'hover:text-[var(--accent)]',
+      )}
     >
       <span className="inline-flex text-muted-foreground opacity-60">
         {icon}
       </span>
-      <Box
-        component="span"
-        sx={{
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          maxWidth: { xs: 180, sm: 240, md: 320 },
-        }}
-      >
+      <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px] min-[600px]:max-w-[240px] min-[900px]:max-w-[320px]">
         {value}
-      </Box>
-    </Box>
+      </span>
+    </span>
   );
 
   if (href) {

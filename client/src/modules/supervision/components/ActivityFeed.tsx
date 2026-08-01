@@ -6,9 +6,10 @@
    ============================================================ */
 
 import { memo, useState, type KeyboardEvent } from 'react';
-import { Box, IconButton } from '@mui/material';
+import { IconButton } from '@mui/material';
 import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
 import { toolIconFor } from '../renderers/toolIcon';
@@ -81,7 +82,7 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
         const detail = clickable ? null : detailFor(entry);
         const isOpen = expanded.has(entry.id);
         return (
-          <Box
+          <div
             key={entry.id}
             {...(clickable
               ? {
@@ -99,23 +100,11 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                     : t('supervision.feed.openInvoice', { defaultValue: 'Voir la facture' }),
                 }
               : {})}
-            sx={{
-              display: 'flex',
-              gap: 1.25,
-              py: 1,
-              px: 0.5,
-              borderBottom: '1px solid var(--line, #eef0f4)',
-              '&:last-of-type': { borderBottom: 'none' },
-              ...(clickable
-                ? {
-                    cursor: 'pointer',
-                    borderRadius: '6px',
-                    transition: 'background 150ms ease',
-                    '&:hover': { background: 'var(--hover, rgba(107,138,154,0.08))' },
-                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
-                  }
-                : {}),
-            }}
+            className={cn(
+              'flex gap-[7.5px] py-1.5 px-[3px] border-b border-solid border-b-[var(--line,_#eef0f4)] last-of-type:border-b-0',
+              clickable &&
+                'cursor-pointer rounded-[6px] transition-[background] duration-150 ease-[ease] hover:bg-[var(--hover,_rgba(107,138,154,0.08))] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[-2px]',
+            )}
           >
             <div className="w-[26px] h-[26px] rounded-[8px] text-[#fff] flex items-center justify-center shrink-0" style={{ background: isOrchestrator ? 'var(--accent)' : meta.color }}>
               {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
@@ -155,7 +144,7 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                 </div>
               )}
             </div>
-          </Box>
+          </div>
         );
       })}
     </div>

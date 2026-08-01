@@ -836,7 +836,7 @@ export default function Inscription() {
                         <p className="cn-text-body2 font-semibold">
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
                         </p>
-                        <p className="cn-text-body1 font-bold text-[#5A7684]">
+                        <p className="cn-text-body1 font-bold text-[var(--mui-primary-d)]">
                           {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                         </p>
                       </div>

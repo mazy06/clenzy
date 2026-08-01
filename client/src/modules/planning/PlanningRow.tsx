@@ -8,6 +8,7 @@ import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtil
 import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
+import { cn } from '../../utils/cn';
 import { Money } from '../../components/Money';
 import { NightsStay } from '../../icons';
 
@@ -485,12 +486,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
           visibles sur les colonnes teintées. Clip 1px avant le bord droit
           (dernier jour sans séparateur). pointer-events:none → n'intercepte
           pas les clics ; sous les briques (rendues après dans le DOM). */}
-      <Box
+      <div
         aria-hidden
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
+        className="absolute inset-0 pointer-events-none"
+        style={{
           backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
           backgroundSize: `${totalGridWidth - 1}px 100%`,
           backgroundRepeat: 'no-repeat',
@@ -498,17 +497,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       />
 
       {/* Cursor zone for empty areas (pointer-events off — parent handles mouseDown) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: totalGridWidth,
-          height: activeRowHeight,
-          cursor: 'cell',
-          zIndex: 1,
-          pointerEvents: 'none',
-        }}
+      <div
+        className="absolute left-0 top-0 cursor-cell z-[1] pointer-events-none"
+        style={{ width: totalGridWidth, height: activeRowHeight }}
       />
 
       {/* Selection highlight overlay (drag-to-select) — styled like reservation bars */}
@@ -615,24 +606,14 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         return (
           <div className="absolute top-0 flex items-center justify-center pointer-events-none z-[0] px-[1.5px] overflow-hidden" style={{ left: idx * dayWidth, width: dayWidth, height: activeRowHeight }} key={`cell-info-${dateStr}`}>
             {price != null && (
-              <Box
-                component="span"
-                sx={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: dayWidth < 60 ? '0.625rem' : '0.6875rem',
-                  fontWeight: 500,
-                  color: 'var(--muted)',
-                  opacity: 0.8,
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
+              <span
+                className={cn(
+                  'font-[var(--font-display)] font-medium text-[var(--muted)] opacity-80 leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
+                  dayWidth < 60 ? 'text-[0.625rem]' : 'text-[0.6875rem]',
+                )}
               >
                 <Money value={price} from={property.currency ?? 'EUR'} compact symbolSize={dayWidth < 60 ? 9 : 10} />
-              </Box>
+              </span>
             )}
             {minNights != null && dayWidth >= 38 && (
               <div className="absolute bottom-[2px] end-[3px] flex items-center gap-0 text-[var(--faint)] opacity-85">

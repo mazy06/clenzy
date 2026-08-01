@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Box, ButtonBase } from '@mui/material';
+import { ButtonBase } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import { AlertTriangle, ClipboardPaste } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import { importToHtml } from './import/registry';
@@ -31,21 +32,8 @@ export interface ImportPasteProps {
 /** Valeur du sélecteur de format : `auto` = auto-détection, sinon `TemplateImporter.id` imposé. */
 const AUTO = 'auto';
 
-const fieldSx = {
-  width: '100%',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-  fontSize: 'var(--text-sm)',
-  lineHeight: 1.5,
-  color: 'var(--ink)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--line)',
-  borderRadius: 'var(--radius-md)',
-  p: 1.25,
-  resize: 'vertical' as const,
-  outline: 'none',
-  '&:focus': { borderColor: 'var(--accent)' },
-  '&:disabled': { opacity: 0.6 },
-} as const;
+/** Classes des 2 zones de collage (litteral entier : Tailwind scanne le texte source). */
+const FIELD_CLASS = 'w-full font-[ui-monospace,_SFMono-Regular,_Menlo,_Consolas,_monospace] text-[var(--text-sm)] leading-[1.5] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] p-[7.5px] resize-y outline-none focus:border-[var(--accent)] disabled:opacity-60';
 
 export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
   const [html, setHtml] = useState('');
@@ -106,14 +94,13 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
         <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-html">
           HTML
         </label>
-        <Box
-          component="textarea"
+        <textarea
           id="paste-html"
           value={html}
           placeholder="<section>…</section>"
           spellCheck={false}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHtml(e.target.value)}
-          sx={{ ...fieldSx, minHeight: 160 }}
+          className={cn(FIELD_CLASS, 'min-h-[160px]')}
         />
       </div>
 
@@ -122,14 +109,13 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
         <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-css">
           CSS <span className="text-[var(--faint)]" style={{ fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</span>
         </label>
-        <Box
-          component="textarea"
+        <textarea
           id="paste-css"
           value={css}
           placeholder=".hero { … }"
           spellCheck={false}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCss(e.target.value)}
-          sx={{ ...fieldSx, minHeight: 100 }}
+          className={cn(FIELD_CLASS, 'min-h-[100px]')}
         />
       </div>
 

@@ -6,8 +6,8 @@
    - 'panel'    : colonne pleine hauteur avec état vide (vue d'ensemble, Phase 6)
    ============================================================ */
 
-import { Box } from '@mui/material';
 import { CheckCircle } from '../../../icons';
+import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { PendingActionCard } from './PendingActionCard';
 import type { PendingAction, PortfolioPendingAction } from '../types';
@@ -38,39 +38,28 @@ export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, varia
   }
 
   return (
-    <Box
+    // En 'floating' : hauteur max mesurée (bornée au viewport, cf. SupervisionPanel)
+    // posée DIRECTEMENT sur la colonne → elle prend min(contenu, maxHeight) et scrolle.
+    // (Pas de flex:1 : dans un parent à height auto, il collapse à 0.) La colonne démarre
+    // à ~278px du haut, donc calc(100vh - 300px) la fait toujours finir avant le bas de
+    // fenêtre → dernière carte atteignable au scroll (vérifié dans Chrome). Scrollbar
+    // masquée (scroll actif) + padding bas pour dégager la DERNIÈRE carte.
+    // `overscroll-contain` : le planning détourne la molette verticale en scroll
+    // horizontal, ce marqueur fait respecter le scroll vertical natif (cf. useInfiniteTimeline).
+    // `-ms-overflow-style` abandonné au passage : IE/Edge legacy sont hors cible Tailwind v4.
+    <div
       data-pending-queue
       data-vertical-scroll
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.25,
-        width: variant === 'floating' ? 300 : '100%',
-        // En 'floating' : hauteur max mesurée (bornée au viewport, cf. SupervisionPanel)
-        // posée DIRECTEMENT sur la colonne → elle prend min(contenu, maxHeight) et scrolle.
-        // (Pas de flex:1 : dans un parent à height auto, il collapse à 0.)
-        // Scrollbar masquée (scroll actif) + padding bas pour dégager la DERNIÈRE carte.
-        ...(variant === 'floating'
-          ? {
-              // Bornée au viewport : la colonne démarre à ~278px du haut (sous le planning),
-              // donc calc(100vh - 300px) la fait toujours finir avant le bas de fenêtre →
-              // dernière carte atteignable au scroll (vérifié dans Chrome).
-              maxHeight: 'max(220px, calc(100vh - 300px))',
-              overflowY: 'auto' as const,
-              pb: '12px',
-              '&::-webkit-scrollbar': { display: 'none' },
-              scrollbarWidth: 'none' as const,
-              msOverflowStyle: 'none' as const,
-            }
-          : { overflowY: 'visible' as const }),
-        // Le planning détourne la molette verticale en scroll horizontal ; ce marqueur
-        // fait respecter le scroll vertical natif de la colonne de cartes (cf. useInfiniteTimeline).
-        overscrollBehavior: 'contain',
-      }}
+      className={cn(
+        'flex flex-col gap-[7.5px] overscroll-contain',
+        variant === 'floating'
+          ? 'w-[300px] max-h-[max(220px,calc(100vh-300px))] overflow-y-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          : 'w-full overflow-y-visible',
+      )}
     >
       {actions.map((action) => (
         <PendingActionCard key={action.id} action={action} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
       ))}
-    </Box>
+    </div>
   );
 }

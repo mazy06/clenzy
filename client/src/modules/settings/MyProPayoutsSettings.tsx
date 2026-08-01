@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Button, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Button, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -130,7 +130,7 @@ export default function MyProPayoutsSettings() {
             {t('settings.myProPayouts.accountSection')}
           </p>
           {statusChip}
-          <Box sx={{ marginInlineStart: 'auto', display: 'flex', gap: 1 }}>
+          <div className="ms-auto flex gap-1.5">
             {data?.accountCreated && !data?.onboardingCompleted && (
               <Button
                 size="small"
@@ -155,7 +155,7 @@ export default function MyProPayoutsSettings() {
                   : t('settings.myProPayouts.startOnboarding')}
               </Button>
             )}
-          </Box>
+          </div>
         </div>
         <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
           {t('settings.myProPayouts.accountHint')}
@@ -213,17 +213,19 @@ export default function MyProPayoutsSettings() {
                       {record.commissionAmount > 0 ? `−${record.commissionAmount} €` : '—'}
                     </TableCell>
                     <TableCell>
-                      <Box component="span" sx={{
-                        fontSize: '10.5px', fontWeight: 700, borderRadius: '7px', padding: '2px 7px',
-                        color: STATUS_COLOR[record.status],
-                        backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[record.status]} 12%, transparent)`,
-                        whiteSpace: 'nowrap',
-                      }}>
+                      {/* Couleurs derivees du statut a l'execution : inline, pas de classe. */}
+                      <span
+                        className="text-[10.5px] font-bold rounded-[7px] py-[2px] px-[7px] whitespace-nowrap"
+                        style={{
+                          color: STATUS_COLOR[record.status],
+                          backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[record.status]} 12%, transparent)`,
+                        }}
+                      >
                         {t(`settings.myProPayouts.status.${record.status}`)}
                         {record.status === 'BLOCKED' && record.failureReason
                           ? ` · ${t(`settings.myProPayouts.reason.${record.failureReason}`, record.failureReason)}`
                           : ''}
-                      </Box>
+                      </span>
                       {record.status === 'BLOCKED' && record.failureReason === 'PROOF_MISSING' && (
                         <div className="mt-0.5">
                           <a

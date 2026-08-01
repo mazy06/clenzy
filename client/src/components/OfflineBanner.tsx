@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Slide } from '@mui/material';
+import { Slide } from '@mui/material';
 import { WifiOff as WifiOffIcon } from '../icons';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useTranslation } from 'react-i18next';
@@ -15,25 +15,15 @@ export default function OfflineBanner() {
 
   return (
     <Slide direction="down" in={!isOnline} mountOnEnter unmountOnExit>
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 9999,
-          // Alerte -soft hairline : fond opaque (card) + couche warn-soft plate
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'linear-gradient(var(--warn-soft), var(--warn-soft))',
-          borderBottom: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-          color: 'var(--ink)',
-          py: 1,
-          px: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1,
-        }}
+      {/* Alerte -soft hairline : fond opaque (card) + couche warn-soft plate.
+          Indices de type (color:/image:) obligatoires : sans eux Tailwind ne sait
+          pas si `bg-[var(--card)]` vise background-color ou background-image. */}
+      <div
+        className={
+          'fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-1.5 py-1.5 px-3 '
+          + 'text-[var(--ink)] bg-[color:var(--card)] bg-[image:linear-gradient(var(--warn-soft),var(--warn-soft))] '
+          + '[border-bottom:1px_solid_color-mix(in_srgb,var(--warn)_30%,transparent)]'
+        }
       >
         <span className="inline-flex text-[var(--warn)]">
           <WifiOffIcon size={17} strokeWidth={1.75} />
@@ -41,7 +31,7 @@ export default function OfflineBanner() {
         <p className="cn-text-body2 font-semibold text-[12.5px]">
           {t('offline.banner', 'Vous \u00eates hors ligne. Certaines fonctionnalit\u00e9s peuvent ne pas \u00eatre disponibles.')}
         </p>
-      </Box>
+      </div>
     </Slide>
   );
 }

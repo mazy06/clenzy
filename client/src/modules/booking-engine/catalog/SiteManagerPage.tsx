@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Button, Skeleton, Menu, MenuItem } from '@mui/material';
+import { Button, Skeleton, Menu, MenuItem } from '@mui/material';
 import { Sparkles, Rocket, AlertTriangle, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 
@@ -277,15 +277,14 @@ export default function SiteManagerPage() {
 
           <div className="p-2 border-t border-[var(--line)] shrink-0">
             <div className="flex items-end gap-1.5 border border-solid border-[var(--line)] rounded-[var(--radius-md)] px-1.5 py-[4.5px] bg-[var(--field,_#fff)]">
-              <Box
-                component="textarea"
+              <textarea
                 value={instruction}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInstruction(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
+                onChange={(e) => setInstruction(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
                 placeholder="Décrivez une modification…"
                 disabled={refining}
                 rows={2}
-                sx={{ flex: 1, resize: 'none', border: 0, outline: 0, bgcolor: 'transparent', fontFamily: 'inherit', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5, py: 0.5 }}
+                className="flex-1 resize-none border-0 outline-0 bg-transparent [font-family:inherit] text-[13.5px] text-[var(--ink)] leading-[1.5] py-[3px]"
               />
               <button className={cn('shrink-0 w-[34px] h-[34px] rounded-[50%] text-[#fff] grid place-items-[center]', refining || !instruction.trim() ? 'cursor-default' : 'cursor-pointer', instruction.trim() && !refining ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ border: 0, transition: 'background 150ms ease' }} type="button" aria-label="Envoyer" onClick={handleRefine} disabled={refining || !instruction.trim()}>
                 <ArrowUp size={17} strokeWidth={2.4} />

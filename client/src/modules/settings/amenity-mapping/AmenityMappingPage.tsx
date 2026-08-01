@@ -16,6 +16,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
+import { cn } from '../../../utils/cn';
 import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
@@ -59,7 +60,17 @@ const ACCENT = 'var(--accent)';
 const PRIMARY = 'var(--info)';
 const SUCCESS = 'var(--ok)';
 const WARN = 'var(--warn)';
-const SURFACE = 'var(--surface-2)';
+
+// Pastille d'icone cliquable (tabs Custom + Referentiel). Les variantes sont
+// deux chaines constantes et non une interpolation : une classe Tailwind est
+// emise a la compilation, elle ne peut pas naitre d'une variable.
+const CLASS_ICON_BADGE =
+  'w-[32px] h-[32px] rounded-[8px] inline-flex items-center justify-center shrink-0 cursor-pointer ' +
+  'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]';
+const CLASS_ICON_BADGE_OVERRIDDEN =
+  'bg-[var(--info-soft)] text-[var(--info)] hover:bg-[color-mix(in_srgb,var(--info)_14%,transparent)]';
+const CLASS_ICON_BADGE_DEFAULT =
+  'bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
 
 type TabKey = 'unmapped' | 'aliases' | 'custom' | 'ignored' | 'reference';
 
@@ -486,7 +497,7 @@ export default function AmenityMappingPage() {
             />
           ) : (
             aliases.map((a) => (
-              <Box key={a.id} sx={SX_LIST_ROW}>
+              <div key={a.id} className={CLASS_LIST_ROW}>
                 <div className="flex-1 min-w-0">
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <p className="cn-text-body1 font-mono text-[0.85rem] font-medium">
@@ -506,7 +517,7 @@ export default function AmenityMappingPage() {
                 <IconButton size="small" onClick={() => handleDeleteAlias(a.id)} sx={{ color: 'var(--err)' }}>
                   <Trash2 size={14} />
                 </IconButton>
-              </Box>
+              </div>
             ))
           )}
         </Stack>
@@ -538,30 +549,15 @@ export default function AmenityMappingPage() {
               const Icon = resolveAmenityIcon(c.code, iconOverrides);
               const isOverridden = c.code in iconOverrides;
               return (
-                <Box key={c.id} sx={SX_LIST_ROW}>
+                <div key={c.id} className={CLASS_LIST_ROW}>
                   {/* Icone (cliquable = ouvre le picker) — meme pattern que tab Reference */}
                   <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
-                    <Box
+                    <div
                       onClick={() => setIconPicker({ open: true, code: c.code, label: c.labelFr })}
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 1,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: isOverridden ? 'var(--info-soft)' : 'var(--accent-soft)',
-                        color: isOverridden ? PRIMARY : ACCENT,
-                        flexShrink: 0,
-                        cursor: 'pointer',
-                        transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                        '&:hover': {
-                          bgcolor: isOverridden ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)` : `color-mix(in srgb, ${ACCENT} 14%, transparent)`,
-                        },
-                      }}
+                      className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
                     >
                       <Icon size={18} strokeWidth={1.75} />
-                    </Box>
+                    </div>
                   </Tooltip>
 
                   <div className="flex-1 min-w-0">
@@ -602,7 +598,7 @@ export default function AmenityMappingPage() {
                   >
                     <Trash2 size={14} />
                   </IconButton>
-                </Box>
+                </div>
               );
             })
           )}
@@ -621,7 +617,7 @@ export default function AmenityMappingPage() {
             />
           ) : (
             ignored.map((i) => (
-              <Box key={i.id} sx={SX_LIST_ROW}>
+              <div key={i.id} className={CLASS_LIST_ROW}>
                 <div className="flex-1 min-w-0">
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Ban size={14} color="var(--faint)" />
@@ -636,7 +632,7 @@ export default function AmenityMappingPage() {
                     <RotateCcw size={14} />
                   </IconButton>
                 </Tooltip>
-              </Box>
+              </div>
             ))
           )}
         </Stack>
@@ -693,27 +689,12 @@ export default function AmenityMappingPage() {
                       >
                         {/* Icone (cliquable = ouvre le picker) */}
                         <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
-                          <Box
+                          <div
                             onClick={() => setIconPicker({ open: true, code: a.code, label })}
-                            sx={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 1,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              bgcolor: isOverridden ? 'var(--info-soft)' : 'var(--accent-soft)',
-                              color: isOverridden ? PRIMARY : ACCENT,
-                              flexShrink: 0,
-                              cursor: 'pointer',
-                              transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                              '&:hover': {
-                                bgcolor: isOverridden ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)` : `color-mix(in srgb, ${ACCENT} 14%, transparent)`,
-                              },
-                            }}
+                            className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
                           >
                             <Icon size={18} strokeWidth={1.75} />
-                          </Box>
+                          </div>
                         </Tooltip>
 
                         {/* Label + code */}
@@ -872,29 +853,17 @@ export default function AmenityMappingPage() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-const SX_LIST_ROW = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1.5,
-  px: 2, py: 1.25,
-  borderRadius: 1.5,
-  border: '1px solid', borderColor: 'divider',
-  bgcolor: SURFACE,
-  transition: 'all 180ms ease-out',
-  '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' },
-};
+const CLASS_LIST_ROW =
+  'flex items-center gap-[9px] px-3 py-[7.5px] rounded-[12px] ' +
+  'border border-solid border-[var(--line)] bg-[var(--surface-2)] ' +
+  'transition-all duration-[180ms] ease-out ' +
+  'hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)]';
 
 function KpiTile({ label, value, color, loading }: {
   label: string; value: number; color: string; loading: boolean;
 }) {
   return (
-    <Box sx={{
-      flex: '1 1 180px', minWidth: 140,
-      px: 2, py: 1.5,
-      borderRadius: 1.5,
-      border: '1px solid', borderColor: 'divider',
-      bgcolor: 'var(--card)',
-    }}>
+    <div className="flex-[1_1_180px] min-w-[140px] px-3 py-[9px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
       <span className="cn-text-caption text-muted-foreground block mb-0.5">
         {label}
       </span>
@@ -907,21 +876,16 @@ function KpiTile({ label, value, color, loading }: {
           {value}
         </Typography>
       )}
-    </Box>
+    </div>
   );
 }
 
 function EmptyState({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <Box sx={{
-      textAlign: 'center', py: 6, px: 3,
-      borderRadius: 1.5,
-      border: '1px dashed', borderColor: 'divider',
-      bgcolor: SURFACE,
-    }}>
+    <div className="text-center py-9 px-[18px] rounded-[12px] border border-dashed border-[var(--line)] bg-[var(--surface-2)]">
       <h6 className="cn-text-subtitle1 font-semibold mb-0.5">{title}</h6>
       <p className="cn-text-body2 text-muted-foreground">{subtitle}</p>
-    </Box>
+    </div>
   );
 }
 
@@ -937,17 +901,14 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
   const [pendingCode, setPendingCode] = useState<string>('');
 
   return (
-    <Box sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 1.5,
-      px: 1.5, py: 1.5,
-      borderRadius: 1.5,
-      border: '1px solid', borderColor: selected ? 'color-mix(in srgb, var(--accent) 40%, transparent)' : 'divider',
-      bgcolor: selected ? 'var(--accent-soft)' : 'var(--card)',
-      transition: 'all 180ms ease-out',
-      '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' },
-    }}>
+    <div className={cn(
+      'flex items-center gap-[9px] px-[9px] py-[9px] rounded-[12px] border border-solid',
+      'transition-all duration-[180ms] ease-out',
+      'hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)]',
+      selected
+        ? 'border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[var(--accent-soft)]'
+        : 'border-[var(--line)] bg-[var(--card)]',
+    )}>
       <Checkbox
         size="small"
         checked={selected}
@@ -1008,6 +969,6 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
           </IconButton>
         </Tooltip>
       </Stack>
-    </Box>
+    </div>
   );
 }

@@ -18,7 +18,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Skeleton, Stack, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Tooltip } from '@mui/material';
 import { X, Link2, Info, RefreshCw } from 'lucide-react';
 
 import {
@@ -282,24 +282,10 @@ export default function ChannexEmbedDialog({
                           </span>
                           {' '}— vos listings {selectedOta.name} s'affichent avec le
                           statut{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: 'var(--err-soft)',
-                              color: 'var(--err)',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                              textDecoration: 'underline',
-                              textDecorationStyle: 'dashed',
-                            }}
-                          >
+                          {/* px .625 = 3.75px, py .125 = .75px (spacing 6) ; radius .5 = 4px (shape 8) */}
+                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-[4px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem] underline decoration-dashed">
                             Not mapped
-                          </Box>
+                          </span>
                           .
                         </>
                       ),
@@ -409,20 +395,14 @@ export default function ChannexEmbedDialog({
         )}
 
         {embedUrl && (
-          <Box
-            component="iframe"
+          <iframe
             ref={iframeRef}
             // key={iframeKey} : changer la cle force React a recreer l'iframe →
             // nouvelle session Channex (utile si l'UI est figee apres OAuth).
             key={iframeKey}
             src={embedUrl}
             title="Widget de connexion OTA"
-            sx={{
-              flex: 1,
-              width: '100%',
-              border: 0,
-              minHeight: 0,
-            }}
+            className="flex-1 w-full border-0 min-h-0"
             // PAS de sandbox : Channex est un provider de confiance qu'on embarque
             // consciemment. Le sandbox (meme permissif) casse la communication
             // entre l'iframe Channex et les popups OAuth qu'elle ouvre (Airbnb,

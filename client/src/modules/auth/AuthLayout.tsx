@@ -300,42 +300,29 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   const current = SLIDES[slideIndex];
 
   return (
-    <Box
+    <div
       // Écrans auth = toujours CLAIRS + accent de marque indigo, quel que soit
       // le thème/teinte du device (résidu localStorage du dernier compte). On
       // force data-theme="light" (le device peut être en data-theme="dark") pour
       // que les vars CSS de surfaces/champs (--field, --card…) repassent en clair,
       // et className="brand-accent" fige l'accent indigo #5453D6 (cf. tokens.css).
-      className="brand-accent"
+      className="brand-accent min-h-screen flex flex-col min-[900px]:flex-row bg-[var(--card)]"
       data-theme="light"
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        bgcolor: 'background.paper',
-      }}
     >
       {/* ── PANNEAU BRAND (desktop) ─────────────────────────────────────── */}
       {isMdUp && (
-        <Box
-          sx={{
-            flex: '0 0 42%',
-            minWidth: 420,
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            p: 6,
+        <div
+          className="flex-[0_0_42%] min-w-[420px] relative flex flex-col justify-between p-9 overflow-hidden"
+          style={{
             // Photo mode : bg ratio composite (photo darkening overlay sous
             // le dot pattern translucide). Sober mode : bg primary alpha 0.04.
-            bgcolor: ENABLE_PHOTO_HERO ? '#0F1A22' : alpha(primary, 0.04),
+            backgroundColor: ENABLE_PHOTO_HERO ? '#0F1A22' : alpha(primary, 0.04),
             // Dot pattern visible dans les deux modes, alpha ajuste selon le bg
             backgroundImage: ENABLE_PHOTO_HERO
               ? `radial-gradient(${alpha('#FFFFFF', 0.10)} 1px, transparent 1px)`
               : `radial-gradient(${alpha(primary, 0.12)} 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
             backgroundPosition: '0 0',
-            overflow: 'hidden',
           }}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -354,20 +341,15 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                  "spotlight" subtil sur le texte sans surcharger. */}
           {ENABLE_PHOTO_HERO && (
             <>
-              <Box
+              <div
                 aria-hidden
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
+                className="absolute inset-0 bg-cover bg-center z-[0] pointer-events-none"
+                style={{
                   backgroundImage: `url(${HERO_PHOTO_URL})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
                   filter: 'saturate(0.6) brightness(0.55) blur(1.5px)',
                   // scale 1.05 evite que le blur 1.5px revele les bords
                   // transparents (artefact classique du filter:blur en CSS)
                   transform: 'scale(1.05)',
-                  zIndex: 0,
-                  pointerEvents: 'none',
                 }}
               />
               <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: alpha('#0F1E28', 0.85) }} aria-hidden />
@@ -510,31 +492,28 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   ? alpha('#FFFFFF', 0.55)
                   : alpha(primary, 0.45);
                 return (
-                  <Box
+                  // Les 3 teintes du dot dependent du mode photo et du theme :
+                  // elles passent par des custom properties, les classes qui les
+                  // consomment (dont hover / focus-visible) restent statiques.
+                  <button
                     key={slide.tagline}
-                    component="button"
                     type="button"
                     role="tab"
                     aria-selected={isActive}
                     aria-label={`Slide ${i + 1} sur ${SLIDES.length}`}
                     onClick={() => setSlideIndex(i)}
-                    sx={{
-                      width: 8,
-                      height: isActive ? 24 : 8,
-                      borderRadius: 999,
-                      border: 'none',
-                      p: 0,
-                      cursor: 'pointer',
-                      bgcolor: isActive ? dotActiveBg : dotInactiveBg,
+                    className={cn(
+                      'w-[8px] rounded-full border-none p-0 cursor-pointer',
+                      'bg-[var(--dot-bg)] hover:bg-[var(--dot-bg-hover)]',
+                      'focus-visible:outline-2 focus-visible:outline-[var(--dot-ring)] focus-visible:outline-offset-2',
+                      isActive ? 'h-[24px]' : 'h-[8px]',
+                    )}
+                    style={{
+                      '--dot-bg': isActive ? dotActiveBg : dotInactiveBg,
+                      '--dot-bg-hover': isActive ? dotActiveBg : dotInactiveHoverBg,
+                      '--dot-ring': ENABLE_PHOTO_HERO ? '#FFFFFF' : primary,
                       transition: 'height 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
-                      '&:hover': {
-                        bgcolor: isActive ? dotActiveBg : dotInactiveHoverBg,
-                      },
-                      '&:focus-visible': {
-                        outline: `2px solid ${ENABLE_PHOTO_HERO ? '#FFFFFF' : primary}`,
-                        outlineOffset: 2,
-                      },
-                    }}
+                    } as React.CSSProperties}
                   />
                 );
               })}
@@ -562,20 +541,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               />
             </div>
           </div>
-        </Box>
+        </div>
       )}
 
       {/* ── ZONE FORM ───────────────────────────────────────────────────── */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          p: { xs: 3, sm: 5, md: 6 },
-          bgcolor: 'background.paper',
-        }}
-      >
+      <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-[var(--card)]">
         <Box
           sx={{
             width: '100%',
@@ -611,8 +581,8 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
           {children}
         </Box>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -645,27 +615,19 @@ function ServiceChip({
   const iconColor = onDark ? 'white' : '6B8A9A';
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.625,
-        px: 1.125,
-        py: 0.5,
-        borderRadius: 999,
-        bgcolor: onDark ? alpha('#FFFFFF', 0.08) : alpha('#000000', 0.04),
-        border: `1px solid ${
-          onDark ? alpha('#FFFFFF', 0.12) : alpha('#000000', 0.06)
-        }`,
+    // Les teintes dependent du mode photo : custom properties, la variante
+    // hover reste une classe statique.
+    <div
+      className="inline-flex items-center gap-[3.75px] px-[6.75px] py-[3px] rounded-full border border-solid border-[var(--chip-border)] bg-[var(--chip-bg)] hover:bg-[var(--chip-bg-hover)]"
+      style={{
+        '--chip-bg': onDark ? alpha('#FFFFFF', 0.08) : alpha('#000000', 0.04),
+        '--chip-bg-hover': onDark ? alpha('#FFFFFF', 0.14) : alpha('#000000', 0.06),
+        '--chip-border': onDark ? alpha('#FFFFFF', 0.12) : alpha('#000000', 0.06),
         transition: 'background-color 200ms ease-out',
-        '&:hover': {
-          bgcolor: onDark ? alpha('#FFFFFF', 0.14) : alpha('#000000', 0.06),
-        },
-      }}
+      } as React.CSSProperties}
     >
       {service.slug && (
-        <Box
-          component="img"
+        <img
           src={`https://cdn.simpleicons.org/${service.slug}/${iconColor}`}
           alt=""
           aria-hidden
@@ -674,13 +636,7 @@ function ServiceChip({
           onError={(event) => {
             (event.currentTarget as HTMLImageElement).style.display = 'none';
           }}
-          sx={{
-            width: 11,
-            height: 11,
-            opacity: onDark ? 0.88 : 0.75,
-            objectFit: 'contain',
-            flexShrink: 0,
-          }}
+          className={cn('w-[11px] h-[11px] object-contain shrink-0', onDark ? 'opacity-[0.88]' : 'opacity-75')}
         />
       )}
       <Typography
@@ -696,7 +652,7 @@ function ServiceChip({
       >
         {service.name}
       </Typography>
-    </Box>
+    </div>
   );
 }
 

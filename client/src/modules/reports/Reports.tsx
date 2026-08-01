@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -113,7 +112,7 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const TAB_PANEL_SX = { pt: 1.5 } as const;
+const TAB_PANEL_CLASS = 'pt-[9px]';
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. reportsTabMeta plus bas).
@@ -252,7 +251,7 @@ const Reports: React.FC = () => {
           onChange={setActiveTab}
         />
 
-        <Box sx={TAB_PANEL_SX}>
+        <div className={TAB_PANEL_CLASS}>
           {allowedTabs[activeTab] ? (
             currentTab.hasPeriodFilter ? (
               <CurrentComponent period={period} onPeriodChange={setPeriod} />
@@ -265,7 +264,7 @@ const Reports: React.FC = () => {
               <AlertDescription>{t('reports.noPermission')}</AlertDescription>
             </Alert>
           )}
-        </Box>
+        </div>
       </div>
     </PageHeaderActionsProvider>
   );

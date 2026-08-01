@@ -3,7 +3,7 @@ import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, InputBase, Tooltip, Typography } from '@mui/material';
+import { InputBase, Tooltip, Typography } from '@mui/material';
 import {
   Search as SearchIcon,
   Archive as ArchiveIcon,
@@ -60,33 +60,19 @@ function ConversationRow({
 }) {
   const badge = getChannelBadge(item.channel);
   return (
-    <Box
+    // gap: 1.5 = 9px (theme.spacing vaut 6 dans ce projet). Le survol de la rangee
+    // revele l'action Archiver et masque la pastille non-lus : selecteurs descendants.
+    <div
       onClick={onSelect}
       data-highlight-id={conversationRawId(item) || undefined}
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        p: '13px 16px',
-        borderBottom: '1px solid var(--line)',
-        cursor: onSelect ? 'pointer' : 'default',
-        position: 'relative',
-        transition: 'background .12s',
-        bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-        '&:hover': { bgcolor: active ? 'var(--accent-soft)' : onSelect ? 'var(--bg)' : 'transparent' },
-        ...(active && {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 3,
-            bgcolor: 'var(--accent)',
-          },
-        }),
-        '&:hover .mg-archive': { opacity: 1, pointerEvents: 'auto' },
-        '&:hover .mg-unread': { opacity: 0 },
-      }}
+      className={cn(
+        'relative flex gap-[9px] px-4 py-[13px] border-b border-solid border-[var(--line)] [transition:background_.12s]',
+        'hover:[&_.mg-archive]:opacity-100 hover:[&_.mg-archive]:pointer-events-auto hover:[&_.mg-unread]:opacity-0',
+        onSelect ? 'cursor-pointer' : 'cursor-default',
+        active
+          ? "bg-[var(--accent-soft)] before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[var(--accent)]"
+          : cn('bg-transparent', onSelect && 'hover:bg-[var(--bg)]'),
+      )}
     >
       {/* Avatar initiales + pastille canal coin bas-droit */}
       <div className="w-[44px] h-[44px] rounded-[13px] shrink-0 flex items-center justify-center font-semibold text-[15px] text-[#fff] relative" style={{ fontFamily: 'var(--font-display)', backgroundColor: avatarColor(item.name) }}>
@@ -147,7 +133,7 @@ function ConversationRow({
           </button>
         </Tooltip>
       )}
-    </Box>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Tooltip, Typography } from '@mui/material';
 import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel } from './types';
@@ -26,25 +26,14 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
     <div className="sticky top-0 z-[12] flex bg-[var(--surface-2)]" style={{ borderBottom: '1px solid var(--line)', minHeight: DATE_HEADER_HEIGHT }}>
       {/* Coin « LOGEMENT » (spec .pl-corner) : cellule unique sur toute la
           hauteur de l'entête — padding 10px 16px, overline 10.5px fw700. */}
-      <Box
-        sx={{
-          width: propertyColWidth,
-          minWidth: propertyColWidth,
-          flexShrink: 0,
-          position: 'sticky',
-          left: 0,
-          zIndex: 14,
-          backgroundColor: 'var(--surface-2)',
-          borderRight: '1px solid var(--line)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '10px 16px',
-        }}
+      <div
+        className="sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] px-4 py-2.5"
+        style={{ width: propertyColWidth, minWidth: propertyColWidth }}
       >
         <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
           {propertyCount} {propertyCount > 1 ? 'logements' : 'logement'}
         </span>
-      </Box>
+      </div>
 
       {/* Day row (spec .pl-day : padding 8px 0, hairlines, dernier sans) :
           jour abrégé + numéro (aujourd'hui = carré accent 24×24).
@@ -69,7 +58,9 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   },
                 }}
               >
-                <div className="flex flex-col items-center justify-center gap-px py-2 border-e-[1px_solid_var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
+                {/* border-e-[1px_solid_var(--line)] laisse par le codemod ne produisait
+                    rien : une largeur de bordure n'accepte pas une valeur raccourcie. */}
+                <div className="flex flex-col items-center justify-center gap-px py-2 border-e border-solid border-e-[var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
                     <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}>

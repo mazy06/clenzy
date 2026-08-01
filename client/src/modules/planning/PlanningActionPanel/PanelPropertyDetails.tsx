@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
+import { Typography, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
 import {
   Apartment,
   Bed,
@@ -291,7 +291,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {accessRows.length > 0 && (
         <div className="mb-2">
           <Typography sx={SECTION_TITLE_SX}>Accès</Typography>
-          <Box sx={{ '& > * + *': { borderTop: '1px solid var(--line)' } }}>
+          <div className="[&>*+*]:[border-top:1px_solid_var(--line)]">
             {accessRows.map((row) => (
               <div className="flex items-center gap-1.5 py-[7px]" key={row.label}>
                 <span className="inline-flex text-[var(--muted)] shrink-0">
@@ -317,7 +317,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 </Typography>
               </div>
             ))}
-          </Box>
+          </div>
         </div>
       )}
 
@@ -651,24 +651,9 @@ function ListItemCard({
   onClick: () => void;
 }) {
   return (
-    <Box
+    <div
       onClick={onClick}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        px: 1,
-        py: 0.75,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        cursor: 'pointer',
-        transition: 'background-color 150ms, border-color 150ms',
-        '&:hover': {
-          backgroundColor: 'action.hover',
-          borderColor: 'text.secondary',
-        },
-      }}
+      className="flex items-center gap-1.5 px-1.5 py-[4.5px] border border-solid border-[var(--line)] rounded-lg cursor-pointer transition-[background-color,border-color] duration-150 hover:bg-[var(--hover)] hover:border-[var(--muted)]"
     >
       <span className="inline-flex text-muted-foreground shrink-0">
         {icon}
@@ -708,7 +693,7 @@ function ListItemCard({
         sx={{ borderColor: `${statusColor}40` }}
         className="shrink-0 border border-solid text-[0.5625rem]"
       />
-    </Box>
+    </div>
   );
 }
 

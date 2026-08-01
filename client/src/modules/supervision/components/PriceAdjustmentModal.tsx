@@ -9,9 +9,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { cn } from '../../../utils/cn';
 import { Money } from '../../../components/Money';
 import { pricingApi, type PriceSegment, type PricingSimulation } from '../pricingApi';
 
@@ -240,18 +241,18 @@ export function PriceAdjustmentModal({
                   const segIdx = segmentIndexOfDay(day);
                   const color = segIdx >= 0 ? SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length] : undefined;
                   return (
-                    <Box
+                    <div
                       key={`d-${mi}-${day.getTime()}`}
-                      sx={{
-                        textAlign: 'center', fontSize: 11, py: 0.5, borderRadius: 1,
-                        fontVariantNumeric: 'tabular-nums',
-                        color: color ? '#fff' : inMonth ? 'text.primary' : 'text.disabled',
-                        bgcolor: color ?? 'transparent',
-                        opacity: inMonth ? 1 : 0.4,
-                      }}
+                      className={cn(
+                        'rounded-[8px] py-[3px] text-center text-[11px] tabular-nums',
+                        inMonth ? 'opacity-100' : 'opacity-40',
+                        color ? 'text-white' : inMonth ? 'text-[var(--ink)]' : 'text-[var(--faint)]',
+                      )}
+                      // La teinte du segment n'est connue qu'a l'execution.
+                      style={{ backgroundColor: color ?? 'transparent' }}
                     >
                       {day.getDate()}
-                    </Box>
+                    </div>
                   );
                 })}
               </div>
@@ -352,9 +353,9 @@ export function PriceAdjustmentModal({
               {t('supervision.price.revenue', 'Revenu')} <Money value={sim.totalBaselineRevenue} from="EUR" decimals={0} />
               {' → '}<b><Money value={sim.totalScenarioRevenue} from="EUR" decimals={0} /></b>
               {'  ('}
-              <Box component="span" sx={{ color: sim.totalDeltaRevenue >= 0 ? 'success.main' : 'error.main' }}>
+              <span className={sim.totalDeltaRevenue >= 0 ? 'text-[#4A9B8E]' : 'text-[#C97A7A]'}>
                 {sim.totalDeltaRevenue >= 0 ? '+' : ''}<Money value={sim.totalDeltaRevenue} from="EUR" decimals={0} />
-              </Box>
+              </span>
               {')'}
             </p>
           </div>

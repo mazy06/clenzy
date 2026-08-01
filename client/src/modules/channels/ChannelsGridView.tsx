@@ -1,7 +1,8 @@
 import React from 'react';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button } from '@mui/material';
+import { Typography, Button } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -11,7 +12,7 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { OTA_CARD_SX, OTA_CARD_CONTENT_SX, STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
+import { STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
 
 interface ChannelsGridViewProps {
   isConnected: boolean;
@@ -130,25 +131,16 @@ function OtaChannelCard({
   const isError = (connectionStatus?.status ?? '').toUpperCase() === 'ERROR';
 
   return (
-    <Box
-      sx={{
-        ...OTA_CARD_SX,
-        opacity: isAvailable ? 1 : 0.6,
-      }}
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden rounded-[14px] bg-[var(--card)] cursor-default',
+        'border border-solid border-[var(--line)] hover:border-[var(--line-2)]',
+        'transition-[border-color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)]',
+        isAvailable ? 'opacity-100' : 'opacity-60',
+      )}
     >
       {/* Entête : pastille logo (marque) + chip de statut -soft */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1,
-          borderBottom: '1px solid',
-          borderBottomColor: 'var(--line)',
-        }}
-      >
+      <div className="flex items-center justify-between gap-[6px] px-[15px] py-3 border-b border-solid border-b-[var(--line)]">
         <OtaLogo channel={channel} />
         {connectionLoading && isAvailable ? (
           <Spinner className="size-3.5 text-[var(--muted)]" />
@@ -169,10 +161,10 @@ function OtaChannelCard({
             tokens={STATUS_CHIP_TOKENS.muted} className={STATUS_CHIP_CLASS}
           />
         )}
-      </Box>
+      </div>
 
       {/* Card content */}
-      <Box sx={OTA_CARD_CONTENT_SX}>
+      <div className="flex flex-col flex-1 gap-[9px] p-[15px]">
         {/* Channel name */}
         <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
           {channel.name}
@@ -214,7 +206,7 @@ function OtaChannelCard({
             </Button>
           )}
         </div>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -35,14 +35,9 @@ function RateNudge({ amount, rate }: { amount: number | null; rate: HousekeeperP
     ? Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100)
     : 0;
   return (
-    <Box
-      component="span"
-      sx={{
-        fontSize: '10.5px',
-        fontWeight: 700,
-        borderRadius: '7px',
-        padding: '2px 7px',
-        whiteSpace: 'nowrap',
+    <span
+      className="text-[10.5px] font-bold rounded-[7px] px-[7px] py-[2px] whitespace-nowrap"
+      style={{
         color: inMarket ? 'var(--ok)' : 'var(--muted)',
         backgroundColor: inMarket
           ? 'color-mix(in srgb, var(--ok) 12%, transparent)'
@@ -52,7 +47,7 @@ function RateNudge({ amount, rate }: { amount: number | null; rate: HousekeeperP
       {inMarket
         ? t('users.ratesDialog.inMarket', 'Dans le marché')
         : `${deltaPct > 0 ? '+' : ''}${deltaPct} %`}
-    </Box>
+    </span>
   );
 }
 

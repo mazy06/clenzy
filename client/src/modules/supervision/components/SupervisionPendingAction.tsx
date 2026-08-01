@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import { Box } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Gavel, Check, Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { PendingAgentAction } from '../types';
@@ -117,38 +118,25 @@ interface DecisionButtonProps {
 function DecisionButton({ variant, disabled, onClick, icon, label }: DecisionButtonProps) {
   const isValidate = variant === 'validate';
   return (
-    <Box
-      component="button"
+    <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      sx={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.625,
-        px: 1,
-        py: 0.75,
-        borderRadius: '10px',
-        fontFamily: 'inherit',
-        fontSize: 12.5,
-        fontWeight: 700,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background-color 180ms ease, border-color 180ms ease, color 180ms ease, opacity 180ms ease',
-        border: isValidate ? '1px solid transparent' : '1px solid rgba(255,255,255,.18)',
-        bgcolor: isValidate ? ACCENT : 'transparent',
-        color: isValidate ? '#0c0e2a' : '#E7E9FB',
-        '&:hover': disabled
-          ? {}
-          : isValidate
-            ? { bgcolor: '#F6C36B' }
-            : { bgcolor: 'rgba(255,255,255,.08)', borderColor: 'rgba(255,255,255,.3)' },
-        '&:disabled': { opacity: 0.55 },
-      }}
+      className={cn(
+        'flex-1 flex items-center justify-center gap-[3.75px] px-1.5 py-[4.5px] rounded-[10px]',
+        '[font-family:inherit] text-[12.5px] font-bold border border-solid',
+        'transition-[background-color,border-color,color,opacity] duration-[180ms] ease-[ease]',
+        'disabled:opacity-[.55]',
+        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+        // Hex ecrits en dur : une classe Tailwind ne peut pas naitre de la
+        // constante ACCENT (les classes sont emises a la compilation).
+        isValidate
+          ? 'border-transparent bg-[#F0B24B] text-[#0c0e2a] enabled:hover:bg-[#F6C36B]'
+          : 'border-[rgba(255,255,255,.18)] bg-transparent text-[#E7E9FB] enabled:hover:bg-[rgba(255,255,255,.08)] enabled:hover:border-[rgba(255,255,255,.3)]',
+      )}
     >
       {icon}
       <span>{label}</span>
-    </Box>
+    </button>
   );
 }

@@ -24,7 +24,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Typography, Button, Alert, Stack, Skeleton } from '@mui/material';
 import {
   CheckCircle2,
   AlertCircle,
@@ -121,14 +121,14 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
           </Typography>
         </div>
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
-          <Box sx={{ pt: 0.5, mt: 0.25, borderTop: '1px dashed', borderTopColor: 'divider' }}>
+          <div className="pt-[3px] mt-[1.5px] border-t border-dashed border-t-[var(--line)]">
             <span className="cn-text-caption text-muted-foreground block mb-0.5 font-medium">
               Derniere erreur
             </span>
             <p className="cn-text-body2 text-[0.78rem] text-[var(--err)] font-mono break-words leading-[1.45]">
               {snapshot.lastSyncError}
             </p>
-          </Box>
+          </div>
         )}
       </Stack>
     </div>
@@ -147,17 +147,13 @@ function ActionButton({
   const Icon = ACTION_ICONS[action.code];
   const isPrimary = action.priority === 'PRIMARY';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.25,
-        p: 1.25,
-        borderRadius: 1,
-        border: '1px solid',
-        borderColor: isPrimary ? 'color-mix(in srgb, var(--accent) 25%, transparent)' : 'divider',
-        bgcolor: isPrimary ? 'var(--accent-soft)' : 'transparent',
-        alignItems: 'flex-start',
-      }}
+    <div
+      className={cn(
+        'flex gap-[7.5px] p-[7.5px] rounded-[8px] border border-solid items-start',
+        isPrimary
+          ? 'border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[var(--accent-soft)]'
+          : 'border-[var(--line)] bg-transparent',
+      )}
     >
       <div className={cn('w-[32px] h-[32px] rounded-[6px] flex items-center justify-center shrink-0', isPrimary ? 'bg-[var(--accent-soft)]' : 'bg-[var(--hover)]', isPrimary ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
         <Icon size={16} strokeWidth={2.2} />
@@ -180,7 +176,7 @@ function ActionButton({
           {busy ? 'En cours…' : action.label}
         </Button>
       </div>
-    </Box>
+    </div>
   );
 }
 

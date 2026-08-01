@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
-import { Box, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
 import {
   Add,
   Edit,
@@ -161,59 +161,26 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
         }}
       />
       {photoUrl ? (
-        <Box
-          sx={{
-            position: 'relative',
-            width: 64,
-            height: 64,
-            borderRadius: 1.5,
-            overflow: 'hidden',
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundImage: `url(${photoUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            cursor: 'pointer',
-            transition: 'border-color 150ms',
-            '&:hover': { borderColor: 'error.main' },
-            '&:hover .photo-remove': { opacity: 1 },
-          }}
+        <div
+          className="relative w-16 h-16 rounded-[12px] overflow-hidden border border-solid border-[var(--line)] bg-cover bg-center cursor-pointer transition-[border-color] duration-150 hover:border-[#C97A7A] [&:hover_.photo-remove]:opacity-100"
+          style={{ backgroundImage: `url(${photoUrl})` }}
           onClick={() => onChange(null)}
           title="Cliquer pour retirer la photo"
         >
           <div className="photo-remove absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--err)_75%,_transparent)] text-[var(--on-accent)] opacity-0" style={{ transition: 'opacity 150ms' }}>
             <Close size={20} strokeWidth={2} />
           </div>
-        </Box>
+        </div>
       ) : (
-        <Box
+        <div
           onClick={() => inputRef.current?.click()}
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1.5,
-            border: '1.5px dashed',
-            borderColor: 'divider',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.25,
-            cursor: 'pointer',
-            color: 'text.disabled',
-            transition: 'border-color 150ms, color 150ms, background-color 150ms',
-            '&:hover': {
-              borderColor: 'var(--accent)',
-              color: 'var(--accent)',
-              bgcolor: 'var(--accent-soft)',
-            },
-          }}
+          className="w-16 h-16 rounded-[12px] border-[1.5px] border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-[1.5px] cursor-pointer text-[var(--faint)] transition-[border-color,color,background-color] duration-150 hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
         >
           <PhotoCamera size={20} strokeWidth={1.75} />
           <p className="cn-text-body1 text-[0.5625rem] font-semibold leading-[1]">
             Ajouter
           </p>
-        </Box>
+        </div>
       )}
       {error && (
         <p className="cn-text-body1 text-[0.625rem] text-destructive mt-0.5">
@@ -537,43 +504,18 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                   <TableRow key={item.id} hover>
                     <TableCell sx={{ p: 0.75 }}>
                       {item.photoUrl ? (
-                        <Box
-                          component="a"
+                        <a
                           href={item.photoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            display: 'block',
-                            width: 44,
-                            height: 44,
-                            borderRadius: 1,
-                            backgroundImage: `url(${item.photoUrl})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            cursor: 'zoom-in',
-                            transition: 'border-color .14s, box-shadow .14s',
-                            '&:hover': { borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-card)' },
-                          }}
+                          className="block w-11 h-11 rounded-[8px] bg-cover bg-center border border-solid border-[var(--line)] cursor-zoom-in transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]"
+                          style={{ backgroundImage: `url(${item.photoUrl})` }}
                         />
                       ) : (
-                        <Box
-                          sx={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 1,
-                            border: '1px dashed',
-                            borderColor: 'divider',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'text.disabled',
-                          }}
-                        >
+                        <div className="w-11 h-11 rounded-[8px] border border-dashed border-[var(--line)] flex items-center justify-center text-[var(--faint)]">
                           <ImageIcon size={16} strokeWidth={1.5} />
-                        </Box>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>{item.name}</TableCell>

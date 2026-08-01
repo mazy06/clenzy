@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
-  Box,
   Typography,
   Chip,
   Alert,
@@ -496,9 +496,9 @@ export default function PaymentSettings() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
+      <div className="flex justify-center p-6">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 
@@ -521,24 +521,12 @@ export default function PaymentSettings() {
           id="payment-providers-title"
           sx={{ display: "flex", alignItems: "center", gap: 1.25, pb: 1 }}
         >
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "8px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "color-mix(in srgb, var(--accent) 8%, transparent)",
-              color: "var(--accent)",
-              border:
-                "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-              flexShrink: 0,
-            }}
+          <div
+            className="w-8 h-8 rounded-[8px] inline-flex items-center justify-center shrink-0 text-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
             aria-hidden="true"
           >
             <Payment size={16} strokeWidth={1.75} />
-          </Box>
+          </div>
           <div className="min-w-0">
             <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.25]">
               {t("settings.providers.title", "Fournisseurs de paiement")}
@@ -629,17 +617,10 @@ export default function PaymentSettings() {
                   divider={index < allProviders.length - 1}
                 />
                 {configureButton && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      right: 56, // a gauche du Switch (qui fait ~36px + margin)
-                      transform: "translateY(-50%)",
-                      pointerEvents: "auto",
-                    }}
-                  >
+                  // right-[56px] : a gauche du Switch (qui fait ~36px + margin)
+                  <div className="absolute top-1/2 right-[56px] -translate-y-1/2 pointer-events-auto">
                     {configureButton}
-                  </Box>
+                  </div>
                 )}
               </div>
             );
@@ -1153,44 +1134,24 @@ function RevenueSplitPanel({
               {t("settings.split.simulateOn", "Simuler sur")}
             </p>
             {rows.map((row) => (
-              <Box
+              // `font: inherit` du sx est rendu par famille + interlignage herites,
+              // la taille et la graisse etant de toute facon redefinies juste apres.
+              <button
                 key={row.channel}
-                component="button"
                 type="button"
                 onClick={() => onSelectChannel(row.channel)}
                 aria-pressed={activeChannel === row.channel}
-                sx={{
-                  font: "inherit",
-                  fontSize: "0.72rem",
-                  fontWeight: activeChannel === row.channel ? 600 : 500,
-                  px: 1,
-                  py: 0.375,
-                  borderRadius: "7px",
-                  cursor: "pointer",
-                  border: "1px solid",
-                  borderColor:
-                    activeChannel === row.channel
-                      ? "color-mix(in srgb, var(--accent) 45%, transparent)"
-                      : "divider",
-                  bgcolor:
-                    activeChannel === row.channel
-                      ? "var(--accent-soft)"
-                      : "transparent",
-                  color:
-                    activeChannel === row.channel
-                      ? "var(--accent)"
-                      : "text.secondary",
-                  transition:
-                    "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-                  "&:hover": { color: "var(--accent)" },
-                  "&:focus-visible": {
-                    outline: "2px solid var(--accent)",
-                    outlineOffset: 2,
-                  },
-                }}
+                className={cn(
+                  "[font-family:inherit] leading-[inherit] text-[0.72rem] px-1.5 py-[2.25px] rounded-[7px] cursor-pointer border border-solid",
+                  "transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  "hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2",
+                  activeChannel === row.channel
+                    ? "font-semibold border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "font-medium border-[var(--line)] bg-transparent text-[var(--muted)]",
+                )}
               >
                 {row.label}
-              </Box>
+              </button>
             ))}
           </div>
 
@@ -1297,18 +1258,7 @@ function BookingEngineRateRow({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        mt: 1.25,
-        pt: 1.25,
-        borderTop: "1px dashed",
-        borderColor: "divider",
-        flexWrap: "wrap",
-      }}
-    >
+    <div className="flex items-center gap-1.5 mt-[7.5px] pt-[7.5px] border-t border-dashed border-[var(--line)] flex-wrap">
       <p className="cn-text-body1 text-[0.75rem] text-muted-foreground font-medium">
         {t("settings.commissions.bookingEngineRate", "Taux du booking engine")}
       </p>
@@ -1371,7 +1321,7 @@ function BookingEngineRateRow({
           </IconButton>
         </Tooltip>
       )}
-    </Box>
+    </div>
   );
 }
 

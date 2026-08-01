@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Stepper, Step, StepLabel, Button } from '@mui/material';
+import { Stepper, Step, StepLabel, Button } from '@mui/material';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
 
 interface StepDef {
@@ -156,12 +156,9 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
             Etape {currentIdx + 1}/{total}
             {data.currentStep.title ? ` · ${data.currentStep.title}` : ''}
           </p>
-          <Box sx={{
-            '& > *:first-of-type': { mt: 0 },
-            '& > *:last-of-type': { mb: 0 },
-          }}>
+          <div className="[&>*:first-of-type]:mt-0 [&>*:last-of-type]:mb-0">
             <AssistantMarkdown text={data.currentStep.prompt} />
-          </Box>
+          </div>
 
           {/* Quick replies pour les booleens + CTA Continuer texte libre */}
           {expectsBool ? (

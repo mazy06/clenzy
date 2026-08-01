@@ -1,8 +1,9 @@
 import React from 'react';
 import {
-  Box, Typography, TextField, MenuItem, FormControlLabel, Switch,
+  Typography, TextField, MenuItem, FormControlLabel, Switch,
   InputAdornment, Tooltip,
 } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { Check, Home, Handshake } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type {
@@ -205,26 +206,22 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
           {CONTRACT_PRESETS.map(preset => {
             const active = isPresetActive(preset);
             return (
-              <Box
+              <div
                 key={preset.id}
                 role="radio"
                 aria-checked={active}
                 tabIndex={0}
                 onClick={() => applyPreset(preset)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyPreset(preset); } }}
-                sx={{
-                  position: 'relative',
-                  cursor: 'pointer',
-                  px: 1.5, py: 1.25,
-                  borderRadius: '12px',
-                  border: '1px solid',
-                  borderColor: active ? 'var(--accent)' : 'var(--line)',
-                  bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-                  transition: 'background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms cubic-bezier(0.16, 1, 0.3, 1)',
-                  '&:hover': { borderColor: 'var(--accent)', bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)' },
-                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                }}
+                className={cn(
+                  'relative cursor-pointer px-[9px] py-[7.5px] rounded-[12px] border border-solid',
+                  'transition-[background-color,border-color] duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none',
+                  'hover:border-[var(--accent)]',
+                  'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                  active
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                    : 'border-[var(--line)] bg-transparent hover:bg-[var(--hover)]',
+                )}
               >
                 {active && (
                   <span className="absolute top-[8px] end-[8px] inline-flex items-center justify-center w-[16px] h-[16px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)]">
@@ -237,7 +234,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                 <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] leading-[1.45] mt-0.5">
                   {preset.description}
                 </p>
-              </Box>
+              </div>
             );
           })}
         </div>
@@ -357,7 +354,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
         label="Services & inclusions"
         hint="Part conciergerie sur les ventes annexes. Vide = répartition par défaut de l'organisation."
       >
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, alignItems: 'start' }}>
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 items-start">
           <div className="flex gap-3">
             <TextField
               label="Upsells" type="number"
@@ -386,7 +383,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.8125rem' } }}
             />
           </div>
-        </Box>
+        </div>
       </FormSection>
 
       {/* ── Notes ── */}

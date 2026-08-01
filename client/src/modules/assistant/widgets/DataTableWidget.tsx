@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
 
 type DataItem = Record<string, unknown>;
 
@@ -76,19 +77,15 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
 
         {/* Data rows */}
         {visibleItems.map((item, idx) => (
-          <Box
+          // Le gabarit de grille depend du nombre de colonnes (execution) → style.
+          // gap 1 = 6px, px 1.5 = 9px, py 1 = 6px (theme.spacing = 6).
+          <div
             key={String(item.id ?? idx)}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-              transition: 'background .12s',
-              '&:hover': { bgcolor: 'var(--hover)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+            className={cn(
+              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] motion-reduce:transition-none hover:bg-[var(--hover)]',
+              idx > 0 ? 'border-t border-solid border-[var(--line)]' : 'border-t-0',
+            )}
           >
             {columns.map((col) => (
               <Typography
@@ -105,7 +102,7 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
                 {formatCell(item[col.key], col)}
               </Typography>
             ))}
-          </Box>
+          </div>
         ))}
       </div>
 

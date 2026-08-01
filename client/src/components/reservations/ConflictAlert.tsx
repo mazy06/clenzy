@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { Warning as WarningIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
 
 // ─── Alerte conflit (partagée wizard réservation / écran blocage) ──────────────
@@ -10,14 +11,11 @@ const ConflictAlert: React.FC<{ form: UseReservationFormResult; fullWidth?: bool
   const { t } = useTranslation();
   if (!form.hasConflict) return null;
   return (
-    <Box
-      sx={{
-        ...(fullWidth ? { gridColumn: '1 / -1', margin: '0 22px 20px' } : {}),
-        backgroundColor: 'var(--warn-soft)',
-        border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-        borderRadius: '12px',
-        padding: '13px 16px',
-      }}
+    <div
+      className={cn(
+        'bg-[var(--warn-soft)] border border-solid border-[color-mix(in_srgb,var(--warn)_30%,transparent)] rounded-[12px] px-4 py-[13px]',
+        fullWidth && 'col-[1/-1] mt-0 mx-[22px] mb-5',
+      )}
     >
       <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-[var(--ink)]">
         <span className="inline-flex text-[var(--warn)]">
@@ -30,7 +28,7 @@ const ConflictAlert: React.FC<{ form: UseReservationFormResult; fullWidth?: bool
           {w}
         </Typography>
       ))}
-    </Box>
+    </div>
   );
 };
 

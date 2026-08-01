@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import { Box, useMediaQuery } from '@mui/material';
+import { useMediaQuery } from '@mui/material';
 import { ChevronLeft, ChevronRight, NightsStay } from '../../icons';
 
 // ─── Calendrier range « Signature » (.rm-cal) ───────────────────────────────
@@ -52,37 +52,16 @@ function buildCalGrid(month: Date): CalCell[] {
 
 const DEFAULT_WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-const CAL_NAV_BTN_SX = {
-  width: 28,
-  height: 28,
-  borderRadius: '8px',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--muted)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 0,
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
-} as const;
+const CAL_NAV_BTN_CLS =
+  'w-[28px] h-[28px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] ' +
+  'text-[var(--muted)] cursor-pointer flex items-center justify-center p-0 ' +
+  'transition-[color,border-color] duration-[140ms] hover:text-[var(--accent)] hover:border-[var(--accent)] ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[1px]';
 
-const CLEAR_LINK_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '8px',
-  fontSize: '12px',
-  fontWeight: 600,
-  color: 'var(--accent)',
-  cursor: 'pointer',
-  background: 'none',
-  border: 0,
-  padding: 0,
-  fontFamily: 'inherit',
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-} as const;
+const CLEAR_LINK_CLS =
+  'inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--accent)] cursor-pointer ' +
+  'bg-transparent border-0 p-0 [font-family:inherit] ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2';
 
 /** Champ date flottant cliquable (Arrivée / Départ) — affichage + cible de sélection. */
 const FloatDateField: React.FC<{
@@ -91,52 +70,25 @@ const FloatDateField: React.FC<{
   active: boolean;
   onClick: () => void;
 }> = ({ label, value, active, onClick }) => (
-  <Box
-    component="button"
+  <button
     type="button"
     onClick={onClick}
-    sx={{
-      position: 'relative',
-      width: '100%',
-      height: 44,
-      borderRadius: '11px',
-      backgroundColor: active ? 'var(--card)' : 'var(--field)',
-      border: '1px solid',
-      borderColor: active ? 'var(--accent)' : 'var(--field-line)',
-      boxShadow: active ? '0 0 0 3px var(--accent-soft)' : 'none',
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 13px',
-      fontFamily: 'inherit',
-      fontSize: '13.5px',
-      fontWeight: value ? 600 : 500,
-      color: value ? 'var(--ink)' : 'var(--faint)',
-      cursor: 'pointer',
-      textAlign: 'left',
-      fontVariantNumeric: 'tabular-nums',
-      transition: 'border-color .14s, box-shadow .14s, background-color .14s',
-      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-    }}
+    className={cn(
+      'relative w-full h-[44px] rounded-[11px] border border-solid flex items-center px-[13px]',
+      '[font-family:inherit] text-[13.5px] cursor-pointer text-left tabular-nums',
+      'transition-[border-color,box-shadow,background-color] duration-[140ms]',
+      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+      active
+        ? 'bg-[var(--card)] border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]'
+        : 'bg-[var(--field)] border-[var(--field-line)] shadow-none',
+      value ? 'font-semibold text-[var(--ink)]' : 'font-medium text-[var(--faint)]',
+    )}
   >
-    <Box
-      component="span"
-      sx={{
-        position: 'absolute',
-        top: -7,
-        insetInlineStart: 12,
-        backgroundColor: 'var(--card)',
-        padding: '0 5px',
-        fontSize: '10.5px',
-        fontWeight: 600,
-        color: 'var(--muted)',
-        lineHeight: '14px',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className="absolute -top-[7px] start-[12px] bg-[var(--card)] px-[5px] text-[10.5px] font-semibold text-[var(--muted)] leading-[14px] whitespace-nowrap">
       {label}
-    </Box>
+    </span>
     {value || '—'}
-  </Box>
+  </button>
 );
 
 export interface ReservationRangeCalendarProps {
@@ -241,29 +193,14 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
   // in-range) fonctionne à cheval sur les deux mois via les mêmes handlers.
   const renderMonth = (cells: CalCell[], label: string) => (
     <div className="flex-1 min-w-0">
-      <Box
-        component="b"
-        sx={{
-          display: 'block',
-          fontFamily: 'var(--font-display)',
-          fontSize: '14px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          textAlign: 'center',
-          textTransform: 'capitalize',
-          marginBottom: '6px',
-        }}
-      >
+      <b className="block [font-family:var(--font-display)] text-[14px] font-semibold text-[var(--ink)] text-center capitalize mb-[6px]">
         {label}
-      </Box>
+      </b>
       <div className="grid grid-cols-[repeat(7,_1fr)] gap-[3px]">
         {weekdayLabels.map((wl, i) => (
-          <Box
-            key={`${wl}-${i}`}
-            sx={{ textAlign: 'center', fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', padding: '4px 0' }}
-          >
+          <div key={`${wl}-${i}`} className="text-center text-[10.5px] font-bold text-[var(--faint)] py-[4px]">
             {wl}
-          </Box>
+          </div>
         ))}
         {cells.map((cell) => {
           // Jours des mois adjacents : cellule vide (garde l'alignement 7 colonnes),
@@ -276,49 +213,27 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
           const inRange = !edge && isInRange(cell.dateStr);
 
           return (
-            <Box
+            // `cell.inMonth` est garanti vrai ici (retour anticipe ci-dessus) :
+            // les branches `inMonth ? … : …` de l'ancien sx sont resolues.
+            <button
               key={cell.dateStr}
-              component="button"
               type="button"
               onClick={() => handleCellClick(cell.dateStr)}
-              sx={{
-                aspectRatio: '1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: 0,
-                padding: 0,
-                fontFamily: 'var(--font-display)',
-                fontSize: '13px',
-                fontWeight: 600,
-                fontVariantNumeric: 'tabular-nums',
-                color: edge
-                  ? 'var(--on-accent)'
-                  : inRange
-                    ? 'var(--accent)'
-                    : cell.inMonth
-                      ? 'var(--body)'
-                      : 'var(--faint)',
-                backgroundColor: edge ? 'var(--accent)' : inRange ? 'var(--accent-soft)' : 'transparent',
-                borderRadius: edge
-                  ? isStart && isEnd
-                    ? '9px'
-                    : isStart
-                      ? '9px 0 0 9px'
-                      : '0 9px 9px 0'
-                  : inRange
-                    ? 0
-                    : '9px',
-                opacity: cell.inMonth ? 1 : 0.5,
-                cursor: cell.inMonth ? 'pointer' : 'default',
-                transition: 'background .12s, color .12s',
-                userSelect: 'none',
-                ...(cell.inMonth && !edge && !inRange ? { '&:hover': { backgroundColor: 'var(--hover)' } } : {}),
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
-              }}
+              className={cn(
+                'aspect-[1] flex items-center justify-center border-0 p-0',
+                '[font-family:var(--font-display)] text-[13px] font-semibold tabular-nums',
+                'cursor-pointer select-none transition-[background,color] duration-[120ms]',
+                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[-2px]',
+                edge && 'text-[var(--on-accent)] bg-[var(--accent)]',
+                inRange && 'text-[var(--accent)] bg-[var(--accent-soft)] rounded-none',
+                !edge && !inRange && 'text-[var(--body)] bg-transparent rounded-[9px] hover:bg-[var(--hover)]',
+                edge && isStart && isEnd && 'rounded-[9px]',
+                edge && isStart && !isEnd && 'rounded-l-[9px] rounded-r-none',
+                edge && !isStart && 'rounded-r-[9px] rounded-l-none',
+              )}
             >
               {cell.date.getDate()}
-            </Box>
+            </button>
           );
         })}
       </div>
@@ -345,26 +260,24 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
 
       <div>
         {/* Navigation : décale la paire de mois. Chevrons aux extrémités (style Airbnb). */}
-        <Box sx={{ position: 'relative', minHeight: 28, marginBottom: '2px' }}>
-          <Box
-            component="button"
+        <div className="relative min-h-[28px] mb-[2px]">
+          <button
             type="button"
             aria-label={prevMonthLabel}
             onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-            sx={{ ...CAL_NAV_BTN_SX, position: 'absolute', insetInlineStart: 0, top: 0 }}
+            className={cn(CAL_NAV_BTN_CLS, 'absolute start-0 top-0')}
           >
             <ChevronLeft size={15} strokeWidth={1.75} />
-          </Box>
-          <Box
-            component="button"
+          </button>
+          <button
             type="button"
             aria-label={nextMonthLabel}
             onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-            sx={{ ...CAL_NAV_BTN_SX, position: 'absolute', insetInlineEnd: 0, top: 0 }}
+            className={cn(CAL_NAV_BTN_CLS, 'absolute end-0 top-0')}
           >
             <ChevronRight size={15} strokeWidth={1.75} />
-          </Box>
-        </Box>
+          </button>
+        </div>
 
         {/* Un ou deux mois côte à côte */}
         <div className={cn('grid gap-7', singleMonth ? 'grid-cols-[1fr]' : 'grid-cols-[1fr_1fr]')}>
@@ -374,7 +287,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
 
         {/* Nuits + Effacer */}
         {(startDate || endDate) && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+          <div className="flex items-center justify-between mt-2">
             {nights > 0 ? (
               <div className="inline-flex items-center gap-[5px] text-[12px] font-semibold text-[var(--muted)] tabular-nums">
                 <NightsStay size={13} strokeWidth={1.75} />
@@ -383,19 +296,18 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
             ) : (
               <span />
             )}
-            <Box
-              component="button"
+            <button
               type="button"
               onClick={() => {
                 onChangeStart('');
                 onChangeEnd('');
                 setSelectingField('start');
               }}
-              sx={CLEAR_LINK_SX}
+              className={CLEAR_LINK_CLS}
             >
               {clearLabel}
-            </Box>
-          </Box>
+            </button>
+          </div>
         )}
       </div>
     </div>

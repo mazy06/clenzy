@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRe
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Tooltip } from '@mui/material';
+import { Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -347,7 +347,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
     <Card className="gap-0 py-0 p-3">
       {/* Header */}
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[#A6C0CE]"><Notifications size={20} strokeWidth={1.75} /></span>
+        <span className="inline-flex text-[var(--mui-secondary)]"><Notifications size={20} strokeWidth={1.75} /></span>
         <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           Preferences de notifications
         </h6>
@@ -358,14 +358,8 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       </p>
 
       {/* Categories Accordions — grille 2 colonnes */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 1,
-          alignItems: 'start',
-        }}
-      >
+      {/* md MUI = 900px (breakpoints non configures) et gap: 1 = 6px (spacing 6). */}
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-1.5 items-start">
         {CATEGORIES.map((category) => {
           const stats = getCategoryStats(category);
           const allEnabled = stats.enabled === stats.total;
@@ -390,9 +384,10 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                 sx={{ minHeight: 48, '& .MuiAccordionSummary-content': { my: 0.5 } }}
               >
                 <div className="flex items-center gap-1.5 w-full pe-1.5">
-                  <Box sx={{ color: noneEnabled ? 'text.disabled' : category.color, display: 'flex', transition: 'color 0.2s' }}>
+                  {/* La couleur de categorie vient des donnees : elle passe par style, pas par une classe. */}
+                  <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--faint)' : category.color }}>
                     {category.icon}
-                  </Box>
+                  </div>
                   <Typography
                     variant="body2"
                     fontWeight={600}
@@ -455,7 +450,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
             </Accordion>
           );
         })}
-      </Box>
+      </div>
 
       {/* Snackbar */}
       <Snackbar

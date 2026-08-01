@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, FormControl, InputLabel, Select, MenuItem, Button, Tooltip } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Button, Tooltip } from '@mui/material';
 import {
   CloudUpload as PushIcon,
   TrendingUp,
@@ -10,7 +10,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useDynamicPricing } from '../../hooks/useDynamicPricing';
 import PageHeader from '../../components/PageHeader';
-import { SPACING } from '../../theme/spacing';
 import PricingCalendarView from './PricingCalendarView';
 import RatePlanManager from './RatePlanManager';
 import RatePlanForm from './RatePlanForm';
@@ -248,7 +247,8 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
   ) : null;
 
   return (
-    <Box sx={{ p: embedded ? 0 : SPACING.PAGE_PADDING }}>
+    // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
+    <div className={embedded ? 'p-0' : 'p-3'}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
 
@@ -365,7 +365,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
 
       {/* ─── Tab: Restrictions de séjour (min/max stay, CTA/CTD → OTAs) ─── */}
       {activeTab === 3 && <RestrictionsPanel propertyId={selectedPropertyId} />}
-    </Box>
+    </div>
   );
 };
 

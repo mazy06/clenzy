@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../ui';
-import { Box, Typography, TextField, MenuItem } from '@mui/material';
+import { Typography, TextField, MenuItem } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { Lock, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -8,11 +8,20 @@ import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { planningKeys } from '../../modules/planning/hooks/usePlanningData';
 import { reservationsKeys } from '../../hooks/useReservations';
 import { INTERVENTION_TYPE_TOKEN_COLORS } from '../../modules/planning/constants';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, TEXTAREA_SX, FOOT_SX, BTN_GHOST_SX, BTN_PRIMARY_SX } from './reservationDialogStyles';
+import { SEC_SX, FIELD_SX, TEXTAREA_SX } from './reservationDialogStyles';
 import PropertySelectField from './PropertySelectField';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 import ConflictAlert from './ConflictAlert';
+
+// Equivalent classes du BTN_BASE_SX de reservationDialogStyles (.s-btn) —
+// le .ts partage reste la source pour les autres ecrans du dialogue.
+const BTN_BASE_CLS =
+  'inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-[11px] border border-solid border-transparent px-[17px] py-0 '
+  + '[font-family:inherit] text-[12.5px] font-semibold '
+  + '[transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] enabled:active:scale-[.97] '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
 
 type BlockType = 'BLOCKED' | 'MAINTENANCE';
 
@@ -66,7 +75,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
 
   return (
     <>
-      <Box sx={{ flex: 1, overflowY: 'auto', padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
         {form.showPropertySelector && <PropertySelectField form={form} />}
 
         <div className="flex flex-col gap-2.5">
@@ -138,23 +147,30 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         {error && (
           <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{error}</p>
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ ...FOOT_SX, justifyContent: 'flex-end' }}>
-        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
+      <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-solid border-[var(--line)] bg-[var(--surface-2)] px-[22px] py-[14px]">
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn(BTN_BASE_CLS, 'bg-transparent text-[var(--muted)] hover:text-[var(--ink)]')}
+        >
           {t('common.cancel')}
-        </Box>
-        <Box
-          component="button"
+        </button>
+        <button
           type="button"
           onClick={handleBlock}
           disabled={saving || !canSubmit}
-          sx={BTN_PRIMARY_SX}
+          className={cn(
+            BTN_BASE_CLS,
+            'border-[var(--accent)] bg-transparent text-[var(--accent)]',
+            'enabled:hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-45',
+          )}
         >
           {saving ? <Spinner className="size-[15px]" /> : <Lock size={15} strokeWidth={2} />}
           {saving ? t('reservations.dialog.blockSubmitting') : t('reservations.dialog.blockSubmit')}
-        </Box>
-      </Box>
+        </button>
+      </div>
     </>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
 /**
  * Donnees attendues par {@link KpiSummaryWidget}, alignees avec le tool
@@ -87,27 +87,12 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
 const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = ({ kpi }) => {
   const statusColor = statusToColor(kpi.status);
 
+  // La couleur de pastille est calculee a l'execution : elle passe par une custom
+  // property inline, car une classe Tailwind ne peut pas naitre d'une variable.
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        px: 1.25,
-        py: 1,
-        borderRadius: '10px',
-        bgcolor: 'var(--card)',
-        border: '1px solid var(--line)',
-        // Pastille status en haut-droite, pas de border-stripe
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          bgcolor: statusColor,
-        },
-      }}
+    <div
+      className="relative px-[7.5px] py-1.5 rounded-[10px] bg-[var(--card)] border border-solid border-[var(--line)] before:content-[''] before:absolute before:top-2 before:right-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[var(--kpi-dot)]"
+      style={{ '--kpi-dot': statusColor } as React.CSSProperties}
     >
       <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
         {kpi.name}
@@ -120,7 +105,7 @@ const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = 
           cible {kpi.target}
         </p>
       )}
-    </Box>
+    </div>
   );
 };
 

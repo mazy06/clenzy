@@ -8,7 +8,7 @@
  *   - Cochee par defaut : "Appliquer aux X propriete(s)"
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, TextField, Select, MenuItem, FormControl, InputLabel, Button, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Button, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
 import { X, Sparkles } from 'lucide-react';
 
 import {
@@ -249,30 +249,15 @@ export default function CreateCustomAmenityModal({
 
           {/* Icone : preview cliquable + label + bouton "Choisir" */}
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Box
+            <div
               onClick={() => setIconPickerOpen(true)}
               role="button"
               tabIndex={0}
               aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'var(--accent-soft)',
-                color: ACCENT,
-                cursor: 'pointer',
-                border: '1px solid',
-                borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { bgcolor: 'color-mix(in srgb, var(--accent) 14%, transparent)', borderColor: ACCENT },
-                '&:focus-visible': { boxShadow: '0 0 0 3px var(--accent-soft)', outline: 'none' },
-              }}
+              className="w-10 h-10 rounded-[8px] inline-flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)] cursor-pointer border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)] transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] hover:border-[var(--accent)] focus-visible:shadow-[0_0_0_3px_var(--accent-soft)] focus-visible:outline-none"
             >
               <PreviewIcon size={20} strokeWidth={1.75} />
-            </Box>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="cn-text-body1 text-[0.78rem] font-semibold">
                 {t('settings.amenities.iconLabel', 'Icône')}

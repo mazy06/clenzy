@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -66,7 +65,8 @@ export const GuideMap: React.FC<GuideMapProps> = ({ center, pins, height = 220 }
   }, []);
 
   if (!MAPBOX_TOKEN) return null;
-  return <Box ref={containerRef} sx={{ width: '100%', height, borderRadius: 2, overflow: 'hidden' }} />;
+  // height vient des props (valeur d'execution) → style ; borderRadius 2 = 16px (shape 8).
+  return <div ref={containerRef} className="w-full rounded-[16px] overflow-hidden" style={{ height }} />;
 };
 
 function escapeHtml(text: string): string {

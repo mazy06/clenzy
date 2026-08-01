@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Paper, IconButton, Button } from '@mui/material';
+import { Typography, Paper, IconButton, Button } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
@@ -301,7 +302,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 
               return (
-                <Box
+                <div
                   key={cell.dateStr}
                   onMouseDown={(e) => cell.inMonth && handleCellMouseDown(cell.dateStr, e)}
                   onMouseEnter={() => cell.inMonth && handleCellMouseEnter(cell.dateStr)}
@@ -311,24 +312,15 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                       setEditDialogOpen(true);
                     }
                   }}
-                  sx={{
-                    minHeight: 64,
-                    p: 0.5,
-                    borderRadius: '8px',
-                    userSelect: 'none',
-                    cursor: cell.inMonth ? 'pointer' : 'default',
-                    opacity: cell.inMonth ? 1 : 0.3,
-                    bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
-                    border: '1px solid',
-                    borderColor: isSelected ? 'var(--accent)' : 'var(--line)',
-                    boxShadow: isSelected ? 'inset 0 0 0 1px var(--accent)' : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'border-color 0.15s, background-color 0.15s',
-                    '&:hover': cell.inMonth && !isSelected
-                      ? { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' }
-                      : {},
-                  }}
+                  className={cn(
+                    'min-h-[64px] p-[3px] rounded-[8px] select-none border border-solid flex flex-col',
+                    cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-30',
+                    isSelected
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent)] shadow-[inset_0_0_0_1px_var(--accent)]'
+                      : 'bg-transparent border-[var(--line)] shadow-none',
+                    cell.inMonth && !isSelected && 'hover:border-[var(--line-2)] hover:bg-[var(--hover)]',
+                  )}
+                  style={{ transition: 'border-color 0.15s, background-color 0.15s' }}
                 >
                   {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
                   {isToday ? (
@@ -363,7 +355,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                   {pricing && (
                     <div className="h-[3px] rounded-[8px] mt-auto" style={{ backgroundColor: sourceColor }} />
                   )}
-                </Box>
+                </div>
               );
             })}
           </div>

@@ -7,7 +7,7 @@
    « Channel Manager » du Dashboard.
    ============================================================ */
 
-import { Box, Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { CalendarMonth, Hub } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -31,7 +31,10 @@ interface ChoiceCardProps {
 
 function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: ChoiceCardProps) {
   return (
-    <Box
+    // iconColor vient des props : une classe Tailwind ne peut pas naitre d'une
+    // valeur d'execution, on la passe en variable CSS pour garder les classes
+    // de survol statiques. gap 1.25 = 7.5px, p 2 = 12px (theme.spacing = 6).
+    <div
       role="button"
       tabIndex={0}
       onClick={onSelect}
@@ -41,25 +44,13 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
           onSelect();
         }
       }}
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.25,
-        p: 2,
-        borderRadius: '14px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        cursor: 'pointer',
-        transition: 'border-color 180ms cubic-bezier(.16,1,.3,1), background 180ms cubic-bezier(.16,1,.3,1), box-shadow 180ms cubic-bezier(.16,1,.3,1)',
-        '&:hover': {
-          borderColor: iconColor,
-          boxShadow: `0 8px 24px -16px color-mix(in srgb, ${iconColor} 55%, transparent)`,
-        },
-        '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-      }}
+      style={{ '--choice-accent': iconColor } as React.CSSProperties}
+      className={
+        'flex-1 min-w-0 flex flex-col gap-[7.5px] p-3 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] cursor-pointer '
+        + 'transition-[border-color,background,box-shadow] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none '
+        + 'hover:border-[var(--choice-accent)] hover:shadow-[0_8px_24px_-16px_color-mix(in_srgb,var(--choice-accent)_55%,transparent)] '
+        + 'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'
+      }
     >
       <div className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg, color: iconColor }}>
         {icon}
@@ -72,7 +63,7 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
           {description}
         </p>
       </div>
-    </Box>
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Card, CardContent, CircularProgress, LinearProgress } from '@mui/material';
+import { Button, Card, CardContent, CircularProgress, LinearProgress } from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -78,9 +78,11 @@ const PaymentSuccess: React.FC = () => {
       <div className="max-w-[500px] mx-auto mt-9">
         <Card>
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } }, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+            {/* `motion-safe:` porte l'animation entiere plutot que `motion-reduce:animate-none` :
+                pas de course d'ordre entre l'utilitaire et la surcharge de duree. */}
+            <span className="inline-flex text-[var(--accent)] mb-3 motion-safe:animate-spin motion-safe:[animation-duration:2s]">
               <HourglassTop size={56} strokeWidth={1.75} />
-            </Box>
+            </span>
             <h5 className="cn-text-h5 font-semibold mb-1.5">
               Verification du paiement...
             </h5>

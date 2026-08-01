@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '../../../utils/cn';
 import { Box, Button, InputBase, Switch, Select, MenuItem, FormControl, Collapse, Divider } from '@mui/material';
 import { ArrowLeft, ArrowRight, AlertTriangle, Sparkles, Upload, LayoutGrid } from 'lucide-react';
 import { designSystemsApi, type DesignSystem, type DesignSystemCreateRequest } from '../../../services/api/designSystemsApi';
@@ -153,22 +154,23 @@ export default function DesignSystemCreatePage() {
     <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr avec marque centrée (modèle .ds-setup-topbar). */}
       <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
-        <Box sx={{ justifySelf: 'start' }}>
+        <div className="justify-self-start">
           <Button onClick={() => navigate(-1)} startIcon={<ArrowLeft size={16} strokeWidth={2} />} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Retour</Button>
-        </Box>
-        <Box sx={{ justifySelf: 'center', display: 'grid', placeItems: 'center', width: 32, height: 32, color: 'var(--accent)' }}><LayoutGrid size={20} strokeWidth={2} /></Box>
-        <Box sx={{ justifySelf: 'end' }}>
+        </div>
+        <div className="justify-self-center grid place-items-center w-8 h-8 text-[var(--accent)]"><LayoutGrid size={20} strokeWidth={2} /></div>
+        <div className="justify-self-end">
           <Button disableElevation onClick={handleCreate} disabled={!canCreate}
             startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
             endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined} sx={accentBtnSx}>
             {primaryLabel}
           </Button>
-        </Box>
+        </div>
       </div>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 420px) minmax(0, 1fr)' }, gap: { xs: 3, md: '48px' }, alignItems: 'start', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 }, maxWidth: 1320, mx: 'auto' }}>
+      {/* Rupture MUI md = 900px (breakpoints non configures) ; gap 3 = 18px, px 2/4 = 12/24px, py 3/5 = 18/30px. */}
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[minmax(320px,_420px)_minmax(0,_1fr)] gap-[18px] min-[900px]:gap-[48px] items-start px-3 min-[900px]:px-6 py-[18px] min-[900px]:py-[30px] max-w-[1320px] mx-auto">
         {/* ─── Colonne gauche : cadrage + aperçu — épinglée au scroll (position: sticky, comme open-design) ─── */}
-        <Box sx={{ position: { md: 'sticky' }, top: { md: 84 }, alignSelf: 'start' }}>
+        <div className="min-[900px]:sticky min-[900px]:top-[84px] self-start">
           <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-[var(--radius-pill,_999px)] bg-[color-mix(in_srgb,_var(--accent)_7%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_18%,_var(--line))]" style={{ boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)' }}>
             <div className="grid place-items-[center] w-[22px] h-[22px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] shrink-0" style={{ boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' }} aria-hidden>
               <Sparkles size={12} strokeWidth={2.4} />
@@ -177,9 +179,9 @@ export default function DesignSystemCreatePage() {
               Système de design
             </span>
           </div>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: { xs: 30, md: 42 }, fontWeight: 700, lineHeight: 1.08, color: 'var(--ink)', letterSpacing: '-0.02em', textWrap: 'balance' }}>
+          <div className="[font-family:var(--font-display)] text-[30px] min-[900px]:text-[42px] font-bold leading-[1.08] text-[var(--ink)] tracking-[-0.02em] [text-wrap:balance]">
             Concevez un système, en minutes
-          </Box>
+          </div>
           <div className="text-[var(--text-md)] text-[var(--muted)] leading-[1.6] mt-3 max-w-[460px]">
             Un site, une marque ou un DESIGN.md — plus tout le contexte que vous avez — deviennent un système de design complet et on-brand, réutilisable partout.
           </div>
@@ -234,7 +236,7 @@ export default function DesignSystemCreatePage() {
               <div className="flex-1 h-[8px] rounded-[999px] bg-[var(--hover)]" />
             </div>
           </Box>
-        </Box>
+        </div>
 
         {/* ─── Colonne droite : tableau de sources (libellé → champ) ─── */}
         <div className="flex flex-col">
@@ -272,7 +274,7 @@ export default function DesignSystemCreatePage() {
 
           {/* Tableau de sources dans une carte — lignes « libellé (gauche) → description + champ (droite) »
               séparées par des filets doux (modèle open-design .ds-resource-card / .ds-resource-row). */}
-          <Box sx={{ mt: 1.5, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--surface)', boxShadow: 'var(--shadow-card)', overflow: 'hidden', '& > .od-row + .od-row': { borderTop: '1px solid var(--line-soft)' } }}>
+          <div className="mt-[9px] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden [&>.od-row+.od-row]:[border-top:1px_solid_var(--line-soft)]">
             <Row label="Nom du système" required>
               <InputBase value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Riad Marrakech" sx={inputSx} />
             </Row>
@@ -347,7 +349,7 @@ export default function DesignSystemCreatePage() {
             <Row label="Code local" optional soon description="Un dossier ou des fichiers de votre machine.">
               <Button disabled variant="outlined" sx={{ textTransform: 'none', borderColor: 'var(--line)', color: 'var(--muted)' }}>Parcourir un dossier</Button>
             </Row>
-          </Box>
+          </div>
 
           {error && (
             <div className="flex items-start gap-1.5 mt-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)] whitespace-pre-wrap">
@@ -362,7 +364,7 @@ export default function DesignSystemCreatePage() {
             </Button>
           </div>
         </div>
-      </Box>
+      </div>
     </div>
   );
 }
@@ -376,10 +378,13 @@ function Row({ label, required, optional, soon, description, children }: {
   label: string; required?: boolean; optional?: boolean; soon?: boolean; description?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <Box className="od-row" sx={{
-      display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px minmax(0, 1fr)' }, gap: { xs: 1, md: '16px' },
-      alignItems: 'start', px: '18px', py: '16px', opacity: soon ? 0.6 : 1,
-    }}>
+    <div
+      className={cn(
+        'od-row grid grid-cols-[1fr] min-[900px]:grid-cols-[220px_minmax(0,_1fr)] gap-1.5 min-[900px]:gap-[16px]',
+        'items-start px-[18px] py-[16px]',
+        soon ? 'opacity-60' : 'opacity-100',
+      )}
+    >
       <div>
         <div className="text-[13.5px] font-bold text-[var(--ink)] leading-[1.3]">
           {label}{required && <span className="text-[var(--accent)] ms-0.5">*</span>}
@@ -391,7 +396,7 @@ function Row({ label, required, optional, soon, description, children }: {
         {description && <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5] mb-2">{description}</div>}
         {children}
       </div>
-    </Box>
+    </div>
   );
 }
 

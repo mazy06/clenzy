@@ -2,7 +2,6 @@ import React, { useRef, useState } from "react";
 import { Spinner } from '../../../components/ui';
 import {
   Alert,
-  Box,
   Button,
   CircularProgress,
   Dialog,
@@ -126,8 +125,8 @@ export default function AffiliateImportDialog({
               )}
             </p>
 
-            <Box
-              component="input"
+            {/* ::file-selector-button = variante `file:` ; mr/px 1.25 = 7.5px, py 0.625 = 3.75px */}
+            <input
               ref={inputRef}
               type="file"
               accept=".csv,text/csv"
@@ -135,23 +134,7 @@ export default function AffiliateImportDialog({
                 setFile(e.target.files?.[0] ?? null);
                 setError(null);
               }}
-              sx={{
-                width: "100%",
-                fontSize: "0.8125rem",
-                color: "text.secondary",
-                "&::file-selector-button": {
-                  font: "inherit",
-                  mr: 1.25,
-                  px: 1.25,
-                  py: 0.625,
-                  borderRadius: "7px",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "transparent",
-                  color: "text.primary",
-                  cursor: "pointer",
-                },
-              }}
+              className="w-full text-[0.8125rem] text-[var(--muted)] file:[font:inherit] file:mr-[7.5px] file:px-[7.5px] file:py-[3.75px] file:rounded-[7px] file:border file:border-solid file:border-[var(--line)] file:bg-transparent file:text-[var(--ink)] file:cursor-pointer"
             />
 
             {error && (

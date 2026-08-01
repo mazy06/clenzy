@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, Close, Refresh } from '../../../icons';
+import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   whatsAppConfigApi,
@@ -254,17 +255,17 @@ export default function OpenWaQrScanDialog({
               "Ouvrez WhatsApp sur votre téléphone → Paramètres → Appareils connectés → Connecter un appareil")}
           </span>
         </Stack>
-        <Box sx={{
-          display: 'flex', alignItems: 'center', gap: 1,
-          color: status === 'qr_pending' ? 'warning.main' : 'text.secondary',
-        }}>
+        <div className={cn(
+          'flex items-center gap-1.5',
+          status === 'qr_pending' ? 'text-[#D4A574]' : 'text-[var(--muted)]',
+        )}>
           <Spinner className="size-3" />
           <span className="cn-text-caption">
             {status === 'qr_pending'
               ? t('settings.whatsapp.qr.waiting', 'En attente du scan…')
               : t('settings.whatsapp.qr.pending', 'Initialisation…')}
           </span>
-        </Box>
+        </div>
       </Stack>
     );
   };

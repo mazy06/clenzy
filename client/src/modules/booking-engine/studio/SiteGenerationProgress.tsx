@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
-import { Box } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FileSearch, LayoutTemplate, PenLine, Palette, Check, type LucideIcon } from 'lucide-react';
 
@@ -58,9 +57,9 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
           {k('title', 'Construction de votre site…')}
         </div>
         {brandLabel ? (
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.25, maxWidth: 360, lineHeight: 1.45, textWrap: 'balance' }}>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-[1.5px] max-w-[360px] leading-[1.45] text-balance">
             {brandLabel}
-          </Box>
+          </div>
         ) : null}
       </div>
 
@@ -149,7 +148,7 @@ function IndeterminateBar({ reduce }: { reduce: boolean }) {
   return (
     <div className="w-full max-w-[300px] h-[5px] rounded-[999px] bg-[var(--line)] overflow-hidden relative">
       {reduce ? (
-        <Box sx={{ position: 'absolute', insetBlock: 0, left: 0, width: '45%', borderRadius: 999, bgcolor: 'var(--accent)', opacity: 0.6 }} />
+        <div className="absolute inset-y-0 left-0 w-[45%] rounded-[999px] bg-[var(--accent)] opacity-60" />
       ) : (
         <motion.div
           animate={{ x: ['-45%', '260%'] }}

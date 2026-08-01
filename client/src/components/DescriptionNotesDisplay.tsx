@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Checkbox } from '@mui/material';
+import { Typography, Checkbox } from '@mui/material';
 import {
   Description,
   Checklist,
@@ -78,18 +78,10 @@ function parseNotes(notes: string): ChecklistItem[] {
     .filter(item => item.text.length > 0);
 }
 
-// ─── Shared box sx ──────────────────────────────────────────────────────────
+// ─── Shared box classes ─────────────────────────────────────────────────────
 
-const BOX_BASE_SX = {
-  flex: 1,
-  display: 'flex',
-  gap: 1,
-  py: 1.25,
-  px: 1.5,
-  borderRadius: '12px',
-  border: '1px solid',
-  minHeight: 80,
-} as const;
+const BOX_BASE_CLASS =
+  'flex-1 flex gap-1.5 py-[7.5px] px-[9px] rounded-[12px] border border-solid min-h-[80px]';
 
 const TITLE_SX = {
   fontSize: '10.5px',
@@ -119,11 +111,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
     return (
       <div className="flex gap-2">
         {/* Description du logement */}
-        <Box sx={{
-          ...BOX_BASE_SX,
-          bgcolor: 'var(--surface-2)',
-          borderColor: 'var(--line)',
-        }}>
+        <div className={`${BOX_BASE_CLASS} bg-[var(--surface-2)] border-[var(--line)]`}>
           <span className="inline-flex text-[var(--faint)] mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
           <div className="flex-1">
             <Typography sx={{ ...TITLE_SX, color: 'var(--faint)' }}>
@@ -139,14 +127,13 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
               </Typography>
             )}
           </div>
-        </Box>
+        </div>
 
-        {/* Consignes — variant-driven */}
-        <Box sx={{
-          ...BOX_BASE_SX,
-          bgcolor: config.bgColor,
-          borderColor: config.borderColor,
-        }}>
+        {/* Consignes — variant-driven : couleurs choisies a l'execution, donc via style. */}
+        <div
+          className={BOX_BASE_CLASS}
+          style={{ backgroundColor: config.bgColor, borderColor: config.borderColor }}
+        >
           {config.icon}
           <div className="flex-1">
             <Typography sx={{ ...TITLE_SX, color: config.accentColor }}>
@@ -198,7 +185,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
               </Typography>
             )}
           </div>
-        </Box>
+        </div>
       </div>
     );
   }

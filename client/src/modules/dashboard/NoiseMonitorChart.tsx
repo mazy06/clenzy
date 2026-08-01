@@ -40,15 +40,8 @@ const PROPERTY_COLORS = [
 ];
 
 // Overlay non bloquant centré sur la zone de tracé (le graphique reste visible derrière).
-const CHART_OVERLAY_SX: SxProps<Theme> = {
-  position: 'absolute',
-  inset: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  pointerEvents: 'none',
-  p: 2,
-};
+const CHART_OVERLAY_CLASS =
+  'absolute inset-0 flex items-center justify-center pointer-events-none p-3';
 
 // Pastille translucide qui porte le message sans masquer les axes alentour.
 const CHART_OVERLAY_PILL_SX: SxProps<Theme> = {
@@ -94,17 +87,8 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
   if (!active || !payload?.length) return null;
 
   return (
-    <Box
-      sx={{
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1,
-        boxShadow: 1,
-        minWidth: 140,
-      }}
-    >
+    // boxShadow: 1 = index dans theme.shadows (aucun override projet) => elevation 1 de MUI, ecrite en clair.
+    <div className="bg-[var(--card)] border border-solid border-[var(--line)] rounded-[8px] p-[6px] min-w-[140px] shadow-[0px_2px_1px_-1px_rgba(0,0,0,0.2),0px_1px_1px_0px_rgba(0,0,0,0.14),0px_1px_3px_0px_rgba(0,0,0,0.12)]">
       <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground mb-0.5">
         {label}
       </p>
@@ -118,7 +102,7 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
           </div>
         );
       })}
-    </Box>
+    </div>
   );
 };
 
@@ -334,7 +318,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             <p className="cn-text-body1 text-[0.75rem] font-bold uppercase tracking-[0.04em] text-muted-foreground">
               {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
             </p>
-            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[#6B8A9A] text-[#6B8A9A] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[var(--mui-primary)] text-[var(--mui-primary)] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
           </div>
 
           {!isDevice && (
@@ -464,19 +448,19 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
 
           {/* Overlay : chargement de l'historique réel (axes visibles derrière) */}
           {loading && (
-            <Box sx={CHART_OVERLAY_SX}>
+            <div className={CHART_OVERLAY_CLASS}>
               <Box sx={CHART_OVERLAY_PILL_SX}>
                 <Spinner className="size-[22px]" />
                 <span className="cn-text-caption text-muted-foreground font-semibold">
                   Chargement de l'historique…
                 </span>
               </Box>
-            </Box>
+            </div>
           )}
 
           {/* Overlay : aucune mesure encore remontée (le graphique reste « amorcé ») */}
           {!loading && combinedChartData.length === 0 && (
-            <Box sx={CHART_OVERLAY_SX}>
+            <div className={CHART_OVERLAY_CLASS}>
               <Box sx={CHART_OVERLAY_PILL_SX}>
                 <span className="inline-flex text-primary">
                   <VolumeUp size={24} strokeWidth={1.5} />
@@ -488,23 +472,13 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                   Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
                 </span>
               </Box>
-            </Box>
+            </div>
           )}
         </div>
 
         {/* Recent alerts strip */}
         {recentAlerts.length > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 0.5,
-              mt: 0.5,
-              flexShrink: 0,
-              overflowX: 'auto',
-              '&::-webkit-scrollbar': { height: 4 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
-            }}
-          >
+          <div className="flex gap-[3px] mt-[3px] shrink-0 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-[var(--line)] [&::-webkit-scrollbar-thumb]:rounded-[16px]">
             {recentAlerts.map(alert => (
               <StatusChip
                 key={alert.id}
@@ -515,7 +489,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 className="shrink-0 text-[0.5625rem] [&>svg]:size-3"
               />
             ))}
-          </Box>
+          </div>
         )}
       </CardContent>
     </Card>

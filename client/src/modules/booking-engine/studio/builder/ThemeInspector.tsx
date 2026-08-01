@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Box, InputBase } from '@mui/material';
+import { InputBase } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
 import { SelectControl } from '../settings/settingsControls';
 
@@ -90,11 +91,11 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
     <div className="p-3 flex flex-col gap-3.5">
       {/* Couleur */}
       <div>
-        <Box component="label" htmlFor="theme-primary" sx={labelSx}>Couleur principale</Box>
+        <label htmlFor="theme-primary" className={LABEL_CLS}>Couleur principale</label>
         <div className="flex items-center gap-1.5 mt-1">
-          <Box component="input" id="theme-primary" type="color" value={primary}
+          <input id="theme-primary" type="color" value={primary}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)}
-            sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0, '&::-webkit-color-swatch-wrapper': { p: '3px' }, '&::-webkit-color-swatch': { border: 'none', borderRadius: 6 } }}
+            className={COLOR_INPUT_CLS}
           />
           <InputBase value={primary} onChange={(e) => setColor(e.target.value)}
             sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
@@ -102,10 +103,15 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
         </div>
         <div className="flex flex-wrap gap-1 mt-1.5">
           {SWATCHES.map((c) => (
-            <Box key={c} component="button" type="button" aria-label={`Couleur ${c}`} onClick={() => setColor(c)}
-              sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: c, cursor: 'pointer', p: 0,
-                border: primary.toLowerCase() === c.toLowerCase() ? '2px solid var(--ink)' : '2px solid transparent',
-                boxShadow: '0 0 0 1px var(--line)', '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 } }}
+            // La couleur du pastilleur est une donnee (SWATCHES) : elle ne peut pas
+            // devenir une classe Tailwind, generee a la compilation → style inline.
+            <button key={c} type="button" aria-label={`Couleur ${c}`} onClick={() => setColor(c)}
+              style={{ backgroundColor: c }}
+              className={cn(
+                'w-[22px] h-[22px] rounded-[50%] cursor-pointer p-0 border-2 border-solid',
+                'shadow-[0_0_0_1px_var(--line)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                primary.toLowerCase() === c.toLowerCase() ? 'border-[var(--ink)]' : 'border-transparent',
+              )}
             />
           ))}
         </div>
@@ -113,11 +119,11 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
 
       {/* Couleur de fond de la page (site publié). L'éditeur GrapesJS garde, lui, un canvas blanc neutre. */}
       <div>
-        <Box component="label" htmlFor="theme-bg" sx={labelSx}>Couleur de fond</Box>
+        <label htmlFor="theme-bg" className={LABEL_CLS}>Couleur de fond</label>
         <div className="flex items-center gap-1.5 mt-1">
-          <Box component="input" id="theme-bg" type="color" value={bg}
+          <input id="theme-bg" type="color" value={bg}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => writeTokens({ backgroundColor: e.target.value })}
-            sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0, '&::-webkit-color-swatch-wrapper': { p: '3px' }, '&::-webkit-color-swatch': { border: 'none', borderRadius: 6 } }}
+            className={COLOR_INPUT_CLS}
           />
           <InputBase value={bg} onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
             sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
@@ -165,12 +171,18 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
     <div>
-      <Box component="label" htmlFor={htmlFor} sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{label}</Box>
+      {/* mb 0.75 = 4.5px (theme.spacing = 6) */}
+      <label htmlFor={htmlFor} className={`${LABEL_CLS} block mb-[4.5px]`}>{label}</label>
       {children}
     </div>
   );
 }
 
-const labelSx = {
-  fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--body)',
-} as const;
+// `text-[var(...)]` / `font-[var(...)]` sont ambigus (taille vs couleur, famille vs
+// graisse) : la propriete explicite garantit la declaration attendue.
+const LABEL_CLS = '[font-size:var(--text-sm)] [font-weight:var(--fw-medium)] text-[var(--body)]';
+
+// Le rayon 6 du sx d'origine passait par theme.shape.borderRadius (8) → 48px.
+const COLOR_INPUT_CLS =
+  'w-[38px] h-[38px] p-0 border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-transparent cursor-pointer shrink-0 ' +
+  '[&::-webkit-color-swatch-wrapper]:p-[3px] [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-[48px]';

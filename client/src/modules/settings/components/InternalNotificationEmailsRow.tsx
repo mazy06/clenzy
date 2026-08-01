@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import TagChip from '../../../components/TagChip';
 import { Spinner } from '../../../components/ui';
-import { Autocomplete, Box, TextField } from '@mui/material';
+import { Autocomplete, TextField } from '@mui/material';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -44,9 +44,9 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
   return (
     <div className="py-2">
       <div className="flex items-start gap-2 mb-1">
-        <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0, mt: '1px' }}>
+        <span className="mt-px inline-flex shrink-0 text-[var(--muted)]">
           <BellRing size={18} />
-        </Box>
+        </span>
         <div className="min-w-0">
           <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
             Destinataires des notifications internes
@@ -97,9 +97,9 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
 
       {hasSelfSend && (
         <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
-          <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+          <span className="mt-px inline-flex shrink-0 text-[#D4A574]">
             <AlertTriangle size={14} />
-          </Box>
+          </span>
           <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
             info@clenzy.fr est l'expéditeur : se l'envoyer à soi-même provoque des soft bounces
             intermittents. Préférez une autre adresse (ex. votre boîte perso).

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Spinner } from './ui';
-import { Dialog, DialogTitle, DialogContent, Box, IconButton, Button, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, IconButton, Button, Alert } from '@mui/material';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -261,18 +261,11 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
 
             {/* Stripe Embedded Checkout */}
             {clientSecret && embeddedOptions && (
-              <Box
-                sx={{
-                  p: 0,
-                  '& .StripeEmbeddedCheckout': {
-                    minHeight: 400,
-                  },
-                }}
-              >
+              <div className="p-0 [&_.StripeEmbeddedCheckout]:min-h-[400px]">
                 <EmbeddedCheckoutProvider stripe={stripePromise} options={embeddedOptions}>
                   <EmbeddedCheckout />
                 </EmbeddedCheckoutProvider>
-              </Box>
+              </div>
             )}
 
             {/* Footer security note */}

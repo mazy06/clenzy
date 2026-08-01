@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -74,24 +74,14 @@ function detectSourceFromUrl(url: string): SourceDef {
 const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> = ({ logo, label, size = 20 }) => {
   if (!logo) return null;
   const imgSize = size * 0.7;
+  // La taille est une prop : elle passe par style, une classe ne peut pas naitre d'une variable.
   return (
-    <Box
-      sx={{
-        width: size,
-        height: size,
-        minWidth: size,
-        borderRadius: '50%',
-        border: '1.5px solid',
-        borderColor: 'divider',
-        backgroundColor: '#fff',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
+    <div
+      className="inline-flex items-center justify-center shrink-0 rounded-[50%] border-[1.5px] border-solid border-[var(--line)] bg-[#fff]"
+      style={{ width: size, height: size, minWidth: size }}
     >
       <img src={logo} alt={label} width={imgSize} height={imgSize} style={{ objectFit: 'contain', borderRadius: '50%' }} />
-    </Box>
+    </div>
   );
 };
 
@@ -128,36 +118,16 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
             <div className={cn('w-[48px] h-[2px] mx-[3px] rounded-[8px]', isDone ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ transition: 'background-color 0.3s' }} />
           )}
           <div className="flex flex-col items-center gap-0.5">
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                transition: 'all 0.3s',
-                ...(isActive && {
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  boxShadow: '0 0 0 3px var(--accent-soft)',
-                }),
-                ...(isDone && {
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                }),
-                ...(!isActive && !isDone && {
-                  backgroundColor: 'var(--field)',
-                  color: 'var(--muted)',
-                  border: '1.5px solid',
-                  borderColor: 'var(--line-2)',
-                }),
-              }}
+            <div
+              className={cn(
+                'w-7 h-7 rounded-[50%] flex items-center justify-center text-[0.75rem] font-bold [transition:all_0.3s]',
+                isActive && 'bg-[var(--accent)] text-[var(--on-accent)] shadow-[0_0_0_3px_var(--accent-soft)]',
+                isDone && 'bg-[var(--accent)] text-[var(--on-accent)]',
+                !isActive && !isDone && 'bg-[var(--field)] text-[var(--muted)] border-[1.5px] border-solid border-[var(--line-2)]',
+              )}
             >
               {isDone ? '✓' : idx + 1}
-            </Box>
+            </div>
             <Typography
               variant="caption"
               sx={{

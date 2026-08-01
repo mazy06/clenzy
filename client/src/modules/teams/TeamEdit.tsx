@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
+import { Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
 import {
   Autocomplete,
   IconButton,
@@ -383,12 +383,12 @@ const TeamEdit: React.FC = () => {
             </div>
 
             {formData.coverageZones.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 3, mb: 4, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+              <div className="text-center py-[18px] mb-6 border border-dashed border-[var(--line)] rounded-[16px]">
                 <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><MapIcon size={32} strokeWidth={1.75} /></span>
                 <p className="cn-text-body2 text-muted-foreground">
                   Aucune zone de couverture definie
                 </p>
-              </Box>
+              </div>
             ) : (
               <div className="mb-6">
                 {formData.coverageZones.map((zone, index) => {

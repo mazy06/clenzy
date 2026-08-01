@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Drawer, IconButton, Button, Divider } from '@mui/material';
+import { Drawer, IconButton, Button, Divider } from '@mui/material';
 import {
   Close,
   Add,
@@ -96,18 +96,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           ) : (
             <div className="flex flex-col gap-2">
               {cartItems.map(({ product, quantity }) => (
-                <Box
+                <div
                   key={product.id}
-                  sx={{
-                    display: 'flex',
-                    gap: 1.25,
-                    p: 1,
-                    borderRadius: '10px',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
-                    '&:hover': { borderColor: 'var(--line-2)' },
-                  }}
+                  className="flex gap-[7.5px] p-1.5 rounded-[10px] border border-solid border-[var(--line)] hover:border-[var(--line-2)]"
+                  style={{ transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)' }}
                 >
                   {/* Thumbnail */}
                   <div className="w-[64px] h-[64px] rounded-[8px] overflow-hidden shrink-0 border border-[var(--line)]">
@@ -185,7 +177,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                       </p>
                     </div>
                   </div>
-                </Box>
+                </div>
               ))}
             </div>
           )}

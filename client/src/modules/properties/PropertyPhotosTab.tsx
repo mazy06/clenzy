@@ -2,7 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Typography, Button, IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   CloudUpload,
   Delete,
@@ -52,53 +53,7 @@ const CARD_SX = {
 
 // Dropzone — pattern manquant au baseline (signalé) : dérivé minimal en tokens
 // (tirets --line-2, hover/drag accent + accent-soft), aucun style inventé au-delà.
-const DROP_ZONE_SX = {
-  border: '2px dashed var(--line-2)',
-  borderRadius: '11px',
-  p: 3,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  transition: 'border-color .14s, background-color .14s',
-  '&:hover': {
-    borderColor: 'var(--accent)',
-    bgcolor: 'var(--accent-soft)',
-  },
-} as const;
-
-const DROP_ZONE_ACTIVE_SX = {
-  ...DROP_ZONE_SX,
-  borderColor: 'var(--accent)',
-  bgcolor: 'var(--accent-soft)',
-} as const;
-
-const PHOTO_CARD_SX = {
-  position: 'relative',
-  borderRadius: '11px',
-  overflow: 'hidden',
-  border: '1px solid var(--line)',
-  aspectRatio: '4 / 3',
-  '&:hover .photo-overlay': {
-    opacity: 1,
-  },
-} as const;
-
-const PHOTO_OVERLAY_SX = {
-  position: 'absolute',
-  top: 0,
-  right: 0,
-  left: 0,
-  bottom: 0,
-  bgcolor: 'rgba(10, 18, 24, 0.42)',
-  opacity: 0,
-  transition: 'opacity .2s',
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'flex-end',
-  p: 0.5,
-} as const;
+const DROP_ZONE_CLASS = 'border-2 border-dashed border-[var(--line-2)] rounded-[11px] p-[18px] flex flex-col items-center justify-center cursor-pointer transition-[border-color,background-color] duration-[140ms] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -246,8 +201,8 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       {/* ── Upload zone ──────────────────────────────────────────────────── */}
       <Paper sx={CARD_SX}>
         <Typography sx={SECTION_TITLE_SX}>{t('properties.photos.upload')}</Typography>
-        <Box
-          sx={isDragOver ? DROP_ZONE_ACTIVE_SX : DROP_ZONE_SX}
+        <div
+          className={cn(DROP_ZONE_CLASS, isDragOver && 'border-[var(--accent)] bg-[var(--accent-soft)]')}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -260,7 +215,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
             {t('properties.photos.maxSize')}
           </p>
-        </Box>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -286,9 +241,12 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           </Typography>
           <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
             {photos.map((photo) => (
-              <Box key={photo.id} sx={PHOTO_CARD_SX}>
+              <div
+                key={photo.id}
+                className="relative rounded-[11px] overflow-hidden border border-solid border-[var(--line)] aspect-[4/3] [&:hover_.photo-overlay]:opacity-100"
+              >
                 <img className="w-full h-full object-cover block" src={photo.url} alt={photo.name} />
-                <Box className="photo-overlay" sx={PHOTO_OVERLAY_SX}>
+                <div className="photo-overlay absolute inset-0 bg-[rgba(10,18,24,0.42)] opacity-0 transition-opacity duration-200 flex items-start justify-end p-[3px]">
                   <IconButton
                     size="small"
                     onClick={() => setDeleteTarget(photo)}
@@ -303,23 +261,18 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
                   >
                     <Delete size={16} strokeWidth={1.75} />
                   </IconButton>
-                </Box>
-              </Box>
+                </div>
+              </div>
             ))}
 
             {/* Add more button */}
-            <Box
-              sx={{
-                ...DROP_ZONE_SX,
-                p: 0,
-                aspectRatio: '4 / 3',
-                border: '2px dashed',
-                borderColor: 'divider',
-              }}
+            {/* `borderColor: 'divider'` (jeton MUI) => var(--line). */}
+            <div
+              className={cn(DROP_ZONE_CLASS, 'p-0 aspect-[4/3] border-[var(--line)]')}
               onClick={() => fileInputRef.current?.click()}
             >
               <span className="inline-flex text-muted-foreground opacity-60"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
-            </Box>
+            </div>
           </div>
         </Paper>
       ) : !loading ? (

@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { Box, useTheme } from '@mui/material';
+import { useTheme } from '@mui/material';
 
 /**
  * ⚠️ ANCIEN LOGO — CONSERVÉ POUR RÉFÉRENCE, NE PLUS UTILISER.
@@ -452,16 +452,14 @@ export default function BaitlyMarkLogoLegacy({
   return (
     <>
       {!disableAnimation && <style>{animationCss}</style>}
-      <Box
-        className={rootClassName}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: variant === 'full' ? `${gap}px` : 0,
-        }}
+      {/* `gap` vient d'une prop : valeur calculee a l'execution, donc `style` et
+          non une classe Tailwind (les classes sont emises a la compilation). */}
+      <div
+        className={`${rootClassName} inline-flex items-center`}
+        style={{ gap: variant === 'full' ? `${gap}px` : 0 }}
       >
         {content}
-      </Box>
+      </div>
     </>
   );
 }

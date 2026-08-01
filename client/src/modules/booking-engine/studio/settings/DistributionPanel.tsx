@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Box, ButtonBase, InputBase, Skeleton } from '@mui/material';
+import { ButtonBase, InputBase, Skeleton } from '@mui/material';
 import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from 'lucide-react';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, ToggleControl } from './settingsControls';
@@ -88,16 +88,23 @@ const properties = await booking.getProperties();`;
       <SettingCard title="Site hébergé" description="Une page de réservation prête à l'emploi, sans rien installer.">
         <div className="py-2 flex items-center gap-1.5 flex-wrap">
           <div className="inline-flex text-[var(--accent)]"><Globe size={18} strokeWidth={2} /></div>
-          <Box sx={{ flex: 1, minWidth: 220, fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-sm)', color: 'var(--body)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="flex-1 min-w-[220px] [font-family:var(--font-mono,_monospace)] text-[var(--text-sm)] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis">
             {hostedUrl}
-          </Box>
+          </div>
           <ButtonBase onClick={() => copy('hosted', hostedUrl)} sx={miniBtnSx}>
             {copiedId === 'hosted' ? <Check size={14} strokeWidth={2.4} /> : <Copy size={14} strokeWidth={2} />}
             {copiedId === 'hosted' ? 'Copié' : 'Copier'}
           </ButtonBase>
-          <Box component="a" href={hostedUrl} target="_blank" rel="noopener noreferrer" sx={{ ...miniBtnSx, textDecoration: 'none' }}>
+          {/* Equivalent classes de `miniBtnSx` (que gardent les ButtonBase voisins) ;
+              `&.Mui-disabled` est sans objet sur une ancre. */}
+          <a
+            href={hostedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-[3px] h-[34px] px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] font-[var(--fw-medium)] text-[var(--text-sm)] cursor-pointer no-underline transition-[border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2"
+          >
             <ExternalLink size={14} strokeWidth={2} /> Ouvrir
-          </Box>
+          </a>
         </div>
       </SettingCard>
 

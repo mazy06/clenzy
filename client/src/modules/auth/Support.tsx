@@ -79,7 +79,7 @@ export default function Support() {
           <div className="flex justify-center mb-2">
             <BaitlyMarkLogo variant="full" size={42} />
           </div>
-          <p className="cn-text-body2 font-medium text-[#A6C0CE] text-[0.85rem]">
+          <p className="cn-text-body2 font-medium text-[var(--mui-secondary)] text-[0.85rem]">
             {t('auth.support.headerSubtitle', 'Contactez notre support')}
           </p>
         </div>

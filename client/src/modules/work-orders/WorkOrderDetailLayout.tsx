@@ -1,8 +1,8 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import {
-  Box,
   Typography,
   Grid,
   Paper,
@@ -88,13 +88,6 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
-const INFO_ROW_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  py: 0.75,
-} as const;
-
 const INFO_LABEL_SX = {
   fontSize: '11px',
   fontWeight: 500,
@@ -106,20 +99,6 @@ const INFO_VALUE_SX = {
   fontWeight: 600,
   color: 'var(--ink)',
   mt: '1px',
-} as const;
-
-const METRIC_CARD_SX = {
-  p: 1.5,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  textAlign: 'center',
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  borderRadius: '14px',
-  boxShadow: 'none',
-  minHeight: 72,
-  justifyContent: 'center',
 } as const;
 
 const METRIC_VALUE_SX = {
@@ -398,37 +377,37 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       {/* ── Key metrics grid ─────────────────────────────────────────── */}
       <Grid container spacing={1} sx={{ mb: 1.5 }}>
         <Grid item xs={6} sm={4} md={2}>
-          <Box sx={METRIC_CARD_SX}>
+          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
             {getTypeIcon(vm.type)}
             <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
               {getInterventionTypeLabel(vm.type, t)}
             </Typography>
             <Typography sx={METRIC_LABEL_SX}>{t('common.type')}</Typography>
-          </Box>
+          </div>
         </Grid>
         {vm.estimatedDurationHours != null && (
           <Grid item xs={6} sm={4} md={2}>
-            <Box sx={METRIC_CARD_SX}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
               <Typography sx={METRIC_VALUE_SX}>
                 {formatDuration(vm.estimatedDurationHours)}
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
-            </Box>
+            </div>
           </Grid>
         )}
         <Grid item xs={6} sm={4} md={2}>
-          <Box sx={METRIC_CARD_SX}>
+          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
             <span className="inline-flex text-[var(--accent)] mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
             <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
               {formatDateTime(vm.dueDate) || '—'}
             </Typography>
             <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.dueDateShort')}</Typography>
-          </Box>
+          </div>
         </Grid>
         {vm.estimatedCost != null && (
           <Grid item xs={6} sm={4} md={2}>
-            <Box sx={METRIC_CARD_SX}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
               <Typography sx={METRIC_VALUE_SX}>
                 <Money value={vm.estimatedCost} from="EUR" />
@@ -444,61 +423,53 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                   : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
                 return (
                   <Tooltip title={`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`} arrow>
-                    <Box
-                      component="span"
-                      sx={{
-                        mt: 0.5,
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        borderRadius: '7px',
-                        padding: '1px 6px',
-                        whiteSpace: 'nowrap',
-                        cursor: 'default',
-                        fontVariantNumeric: 'tabular-nums',
-                        ...(conform
-                          ? { color: 'var(--ok, #4A9B8E)', backgroundColor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)' }
-                          : { color: 'var(--muted)', backgroundColor: 'var(--field)', border: '1px solid var(--field-line)' }),
-                      }}
+                    <span
+                      className={cn(
+                        'mt-[3px] text-[10px] font-bold rounded-[7px] px-1.5 py-px whitespace-nowrap cursor-default tabular-nums',
+                        conform
+                          ? 'text-[var(--ok,_#4A9B8E)] bg-[color-mix(in_srgb,_var(--ok,_#4A9B8E)_12%,_transparent)]'
+                          : 'text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]',
+                      )}
                     >
                       {label}
-                    </Box>
+                    </span>
                   </Tooltip>
                 );
               })()}
-            </Box>
+            </div>
           </Grid>
         )}
         {vm.actualCost != null && vm.actualCost > 0 && (
           <Grid item xs={6} sm={4} md={2}>
-            <Box sx={METRIC_CARD_SX}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--ok)] mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
               <Typography sx={{ ...METRIC_VALUE_SX, color: 'var(--ok)' }}>
                 <Money value={vm.actualCost} from="EUR" />
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.actualCost')}</Typography>
-            </Box>
+            </div>
           </Grid>
         )}
         {vm.createdAt && (
           <Grid item xs={6} sm={4} md={2}>
-            <Box sx={METRIC_CARD_SX}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
                 {formatDateTime(vm.createdAt)}
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.createdDateShort')}</Typography>
-            </Box>
+            </div>
           </Grid>
         )}
         {vm.extraMetrics?.map((m) => (
           <Grid item xs={6} sm={4} md={2} key={`extra-metric-${m.label}`}>
-            <Box sx={METRIC_CARD_SX}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--accent)' }}>{m.icon}</span>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px', ...(m.tone ? { color: m.tone } : {}) }}>
                 {m.value}
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{m.label}</Typography>
-            </Box>
+            </div>
           </Grid>
         ))}
       </Grid>
@@ -544,37 +515,37 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               {propertyAction}
             </div>
 
-            <Box sx={INFO_ROW_SX}>
+            <div className="flex items-center gap-1.5 py-[4.5px]">
               <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
                 <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.propertyNameLabel')}</Typography>
                 <Typography sx={INFO_VALUE_SX}>{p.name}</Typography>
               </div>
-            </Box>
+            </div>
 
             {(p.address || p.city) && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fullAddressLabel')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{addressLine}</Typography>
                   </div>
-                </Box>
+                </div>
               </>
             )}
 
             {p.country && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Flag size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{p.country}</Typography>
                   </div>
-                </Box>
+                </div>
               </>
             )}
 
@@ -647,7 +618,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </Typography>
 
               {vm.requestor && (
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fields.requestor')}</Typography>
@@ -663,13 +634,13 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                       </p>
                     )}
                   </div>
-                </Box>
+                </div>
               )}
 
               {vm.requestor && vm.assignee && <Divider sx={{ my: 0.5 }} />}
 
               {vm.assignee && (
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   {vm.assignee.type === 'team' ? (
                     <span className="inline-flex text-[var(--muted)]"><Group size={16} strokeWidth={1.75} /></span>
                   ) : (
@@ -700,7 +671,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                       </p>
                     )}
                   </div>
-                </Box>
+                </div>
               )}
             </Paper>
           )}
@@ -712,31 +683,31 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               {t('serviceRequests.layout.timeDetail', 'Détail du temps')}
             </Typography>
 
-            <Box sx={INFO_ROW_SX}>
+            <div className="flex items-center gap-1.5 py-[4.5px]">
               <span className="inline-flex text-[var(--muted)]"><CalendarToday size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
                 <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.dueDateLabel')}</Typography>
                 <Typography sx={INFO_VALUE_SX}>{formatDateTime(vm.dueDate) || '—'}</Typography>
               </div>
-            </Box>
+            </div>
 
             {vm.estimatedDurationHours != null && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{formatDuration(vm.estimatedDurationHours)}</Typography>
                   </div>
-                </Box>
+                </div>
               </>
             )}
 
             {vm.property.cleaningDurationMinutes != null && vm.property.cleaningDurationMinutes > 0 && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</Typography>
@@ -746,33 +717,33 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                         : `${vm.property.cleaningDurationMinutes} min`}
                     </Typography>
                   </div>
-                </Box>
+                </div>
               </>
             )}
 
             {vm.extraTimeRows?.map((row) => (
               <React.Fragment key={`time-row-${row.label}`}>
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]">{row.icon}</span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{row.label}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{row.value}</Typography>
                   </div>
-                </Box>
+                </div>
               </React.Fragment>
             ))}
 
             {vm.createdAt && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.createdDateLabel')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{formatDateTime(vm.createdAt)}</Typography>
                   </div>
-                </Box>
+                </div>
               </>
             )}
           </Paper>

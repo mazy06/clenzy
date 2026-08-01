@@ -1,4 +1,4 @@
-import { Box, ButtonBase } from '@mui/material';
+import { ButtonBase } from '@mui/material';
 import { LayoutTemplate } from 'lucide-react';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 
@@ -49,7 +49,10 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
             }}
           >
             {/* Aperçu : vignette si fournie, sinon bande d'accent du template. */}
-            <Box sx={{ height: 96, bgcolor: 'var(--field)', backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            <div
+              className="h-24 bg-[var(--field)] bg-cover bg-center"
+              style={{ backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none' }}
+            />
             <div className="p-2 flex flex-col gap-0.5">
               <div className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
               {tpl.description ? <div className="text-[var(--text-2xs)] text-[var(--muted)]">{tpl.description}</div> : null}

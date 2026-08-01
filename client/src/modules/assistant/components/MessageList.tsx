@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
 import { MessageBubble } from './MessageBubble';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 
@@ -45,21 +44,10 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
   }
 
   return (
-    <Box
+    <div
       ref={containerRef}
-      sx={{
-        flex: 1,
-        overflow: 'auto',
-        // Fond du fil (réf .mg-thread) : --bg pour faire ressortir les bulles carte.
-        bgcolor: 'var(--bg)',
-        // Smooth scrollbar styling
-        scrollbarWidth: 'thin',
-        '&::-webkit-scrollbar': { width: 8 },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: 'var(--line-2)',
-          borderRadius: 4,
-        },
-      }}
+      // Fond du fil (ref .mg-thread) : --bg pour faire ressortir les bulles carte.
+      className="flex-1 overflow-auto bg-[var(--bg)] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[4px]"
     >
       {/* Centered reading column — pattern Claude.ai/ChatGPT : conversation
           contrainte en largeur (max ~760px) pour preserver la longueur de
@@ -70,6 +58,6 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
         ))}
         <div ref={bottomRef} />
       </div>
-    </Box>
+    </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Box, IconButton, useTheme } from '@mui/material';
+import { Drawer, IconButton, useTheme } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -406,9 +406,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
       )}
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+      <div className="flex-1 overflow-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {isSubView ? renderSubView() : renderTabContent()}
-      </Box>
+      </div>
 
       {/* ─── Pied sticky : actions réservation (grille 2×2) ───────────── */}
       {isReservation && !isSubView && (

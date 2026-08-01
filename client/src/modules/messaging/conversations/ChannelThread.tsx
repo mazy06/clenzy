@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Tooltip, Typography } from '@mui/material';
+import { Alert, Button, Tooltip, Typography } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
@@ -22,8 +22,12 @@ import type { ConversationDto } from '../../../services/api/conversationApi';
 import AttachReservationDialog from '../../channels/AttachReservationDialog';
 import SendWhatsAppTemplateDialog from '../../channels/SendWhatsAppTemplateDialog';
 import GuestProfileDialog from '../../channels/GuestProfileDialog';
-import ThreadView, { composeToolSx, type ThreadAction } from './ThreadView';
+import ThreadView, { type ThreadAction } from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
+
+/** Equivalent classes de `composeToolSx` (meme transcription que InternalThread). */
+const COMPOSE_TOOL_CLASS =
+  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
 
 interface ChannelThreadProps {
   conv: ConversationDto;
@@ -287,15 +291,14 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
               }
               arrow
             >
-              <Box
-                component="button"
+              <button
                 onClick={handleAiSuggest}
                 disabled={aiSuggestMutation.isPending}
                 aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                sx={composeToolSx}
+                className={COMPOSE_TOOL_CLASS}
               >
                 <SparklesIcon size={15} strokeWidth={1.75} />
-              </Box>
+              </button>
             </Tooltip>
           ) : undefined
         }

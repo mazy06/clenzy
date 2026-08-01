@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { useLayoutState } from '../../hooks/useLayoutState';
 import { useScreenChrome } from '../../components/ScreenChrome';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
@@ -147,26 +147,21 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       <SidebarInset className="min-w-0 overflow-hidden">
         <MobileTopBar />
 
-        {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            flexGrow: 1,
-            minHeight: 0,
-            p: fullBleed ? 0 : { xs: 1.5, md: 2 },
-            backgroundColor: 'background.default',
-            // Les pages qui gèrent leur propre scroll (ex: Dashboard Planning)
-            // utilisent flex: 1 + overflow interne.
-            // Les pages classiques débordent et scrollent via ce container.
-            overflow: fullBleed ? 'hidden' : 'auto',
-          }}
+        {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace.
+            p: { xs: 1.5, md: 2 } avec theme.spacing = 6 et le breakpoint MUI md = 900px.
+            Les pages qui gèrent leur propre scroll (ex: Dashboard Planning) utilisent
+            flex: 1 + overflow interne ; les pages classiques scrollent via ce container. */}
+        <div
+          className={cn(
+            'flex flex-col grow min-h-0 bg-[var(--bg)]',
+            fullBleed ? 'p-0 overflow-hidden' : 'p-[9px] min-[900px]:p-3 overflow-auto',
+          )}
         >
           {/* Navigation de niveau 1 des hubs : elle passe par le menu du premier
               segment du fil d'Ariane, rendu DANS le PageHeader de chaque page
               (cf. PageBreadcrumb), pas par un bandeau séparé. */}
           {children}
-        </Box>
+        </div>
       </SidebarInset>
 
       {/* PWA install prompt */}

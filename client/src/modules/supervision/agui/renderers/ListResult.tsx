@@ -8,7 +8,7 @@
    1er item (en sautant les *Id techniques) et on rend une liste compacte.
    ============================================================ */
 import React from 'react';
-import { Box } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import {
   SurfaceCard,
   Overline,
@@ -91,27 +91,21 @@ export const ListResult: React.FC<{ data: ListData }> = ({ data }) => {
 
         {/* Lignes */}
         {visible.map((item, idx) => (
-          <Box
+          <div
             key={String(item.id ?? idx)}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              alignItems: 'center',
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-              transition: 'background .12s',
-              '&:hover': { bgcolor: 'var(--hover)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className={cn(
+              'grid gap-1.5 px-[9px] py-1.5 items-center',
+              'transition-[background-color] duration-[120ms] hover:bg-[var(--hover)] motion-reduce:transition-none',
+              idx > 0 && 'border-t border-solid border-[var(--line)]',
+            )}
+            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
           >
             {columns.map((col) => (
               <div className="text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis tabular-nums" key={col}>
                 {renderCell(col, item[col], item.currency)}
               </div>
             ))}
-          </Box>
+          </div>
         ))}
       </div>
 

@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, IconButton, Tooltip, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Paper, Typography, IconButton, Tooltip, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -324,31 +324,23 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                 const hasItems = items.length > 0;
 
                 return (
-                  <Box
+                  <div
                     key={dateKey(d)}
                     onClick={() => setSelectedDay(d)}
-                    sx={{
-                      minHeight: 56,
-                      borderRadius: '8px',
-                      p: 0.75,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      bgcolor: isSelected
-                        ? 'var(--accent)'
-                        : hasItems
-                          ? 'var(--accent-soft)'
-                          : 'transparent',
-                      color: isSelected ? 'var(--on-accent)' : 'inherit',
-                      border: '1px solid',
-                      borderColor: isToday && !isSelected ? 'var(--accent)' : 'transparent',
-                      opacity: inMonth ? 1 : 0.35,
-                      transition: 'background-color .14s, border-color .14s',
-                      '&:hover': {
-                        bgcolor: isSelected ? 'var(--accent)' : 'var(--hover)',
-                      },
-                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-                    }}
+                    // p 0.75 = 4.5px (theme.spacing = 6)
+                    className={cn(
+                      'min-h-[56px] rounded-[8px] p-[4.5px] flex flex-col cursor-pointer border border-solid',
+                      'transition-[background-color,border-color] duration-[140ms]',
+                      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                      isSelected
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent)]'
+                        : cn(
+                            hasItems ? 'bg-[var(--accent-soft)]' : 'bg-transparent',
+                            'text-inherit hover:bg-[var(--hover)]',
+                          ),
+                      isToday && !isSelected ? 'border-[var(--accent)]' : 'border-transparent',
+                      inMonth ? 'opacity-100' : 'opacity-35',
+                    )}
                   >
                     <Typography
                       sx={{
@@ -380,7 +372,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         )}
                       </div>
                     )}
-                  </Box>
+                  </div>
                 );
               })}
             </div>
@@ -513,22 +505,11 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                   {items.map((iv) => {
                     const tk = interventionStatusTokens(iv.status);
                     return (
-                      <Box
+                      // Breakpoint MUI sm = 600px (non configure) : variante exacte min-[600px].
+                      <div
                         key={iv.id}
                         onClick={() => navigate(`/interventions/${iv.id}`)}
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '70px 1fr auto', sm: '80px 1fr 130px 90px 20px' },
-                          gap: 1.5,
-                          alignItems: 'center',
-                          px: 2,
-                          py: 1.25,
-                          cursor: 'pointer',
-                          borderBottom: '1px solid var(--line)',
-                          '&:last-child': { borderBottom: 'none' },
-                          '&:hover': { bgcolor: 'var(--hover)' },
-                          transition: 'background-color .14s',
-                        }}
+                        className="grid grid-cols-[70px_1fr_auto] min-[600px]:grid-cols-[80px_1fr_130px_90px_20px] gap-[9px] items-center px-3 py-[7.5px] cursor-pointer border-b border-solid border-[var(--line)] last:border-b-0 hover:bg-[var(--hover)] transition-[background-color] duration-[140ms]"
                       >
                         <div className="text-center">
                           <p className="cn-text-body1 font-[var(--font-display)] text-[17px] font-semibold leading-[1] text-[var(--ink)] tabular-nums">
@@ -552,10 +533,10 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'right', display: { xs: 'none', sm: 'block' }, fontVariantNumeric: 'tabular-nums' }}>
                           {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
                         </Typography>
-                        <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.disabled' }}>
+                        <div className="hidden min-[600px]:inline-flex text-[var(--faint)]">
                           <ChevronRight size={16} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

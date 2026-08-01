@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, Alert, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
@@ -602,24 +603,15 @@ const PlanningPage: React.FC = () => {
   const headerSubtitle = `Réservations & interventions · ${visibleMonthLabel.charAt(0).toUpperCase()}${visibleMonthLabel.slice(1)}`;
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        // Compenser le padding du MainLayoutFull <main> pour coller aux bords
-        m: { xs: -1.5, md: -2 },
-        height: nav.isFullscreen ? '100vh' : { xs: 'calc(100vh - 48px)', md: '100vh' },
-        ...(nav.isFullscreen && {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          m: 0,
-          zIndex: 1300,
-          backgroundColor: 'var(--bg)',
-        }),
-      }}
+    // Marges negatives : compensent le padding du MainLayoutFull <main> pour
+    // coller aux bords. Rupture MUI md = 900px (breakpoints non configures).
+    <div
+      className={cn(
+        'flex flex-col',
+        nav.isFullscreen
+          ? 'fixed inset-0 m-0 z-[1300] h-screen bg-[var(--bg)]'
+          : 'm-[-9px] min-[900px]:m-[-12px] h-[calc(100vh_-_48px)] min-[900px]:h-screen',
+      )}
     >
       {/* Page header — masqué en plein écran (le fullscreen masque déjà le
           chrome ; la toolbar garde les actions critiques) */}
@@ -786,7 +778,7 @@ const PlanningPage: React.FC = () => {
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}
-          <Box sx={{ flexShrink: 0, mt: 1, mx: -1.5 }}>
+          <div className="shrink-0 mt-1.5 mx-[-9px]">
             <PlanningPaginationBar
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
@@ -796,7 +788,7 @@ const PlanningPage: React.FC = () => {
               onPrevPage={pagination.goPrevPage}
               onNextPage={pagination.goNextPage}
             />
-          </Box>
+          </div>
         </div>
       )}
 
@@ -881,7 +873,7 @@ const PlanningPage: React.FC = () => {
 
       {/* Channel Manager : même modale guidée Channex que le bouton du Dashboard */}
       <ChannexMappingDialog open={channelManagerOpen} guided onClose={() => setChannelManagerOpen(false)} />
-    </Box>
+    </div>
   );
 };
 

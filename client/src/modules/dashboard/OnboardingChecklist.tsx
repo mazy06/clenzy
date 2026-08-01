@@ -36,6 +36,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import type { OnboardingStepWithStatus } from '../../hooks/useOnboarding';
 import ICalImportModal from './ICalImportModal';
+import { cn } from '../../utils/cn';
 
 // ─── Step icon & CTA style mapping ─────────────────────────────────────────
 
@@ -319,65 +320,37 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             const visual = STEP_VISUALS[step.key] ?? DEFAULT_VISUAL;
 
             return (
-              <Box
+              <div
                 key={step.key}
                 onClick={() => handleStepClick(step)}
-                sx={{
-                  flex: '1 1 auto',
-                  minWidth: { xs: 'calc(50% - 4px)', sm: 'auto' },
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  px: 1.25,
-                  py: 0.75,
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid',
-                  borderColor: step.completed
-                    ? 'color-mix(in srgb, var(--ok) 25%, transparent)'
+                // sm MUI = 600px (breakpoints par defaut), pas le sm=640 de Tailwind.
+                className={cn(
+                  'flex-auto min-w-[calc(50%_-_4px)] min-[600px]:min-w-[auto] flex items-center gap-1.5',
+                  'px-[7.5px] py-[4.5px] rounded-[var(--radius-md)] border border-solid',
+                  '[transition:all_0.15s_ease] motion-reduce:[transition:none]',
+                  step.completed
+                    ? 'border-[color-mix(in_srgb,var(--ok)_25%,transparent)] bg-[color-mix(in_srgb,var(--ok)_5%,transparent)]'
                     : isActive
-                      ? 'var(--accent)'
-                      : 'var(--line)',
-                  bgcolor: step.completed
-                    ? 'color-mix(in srgb, var(--ok) 5%, transparent)'
-                    : isActive
-                      ? 'var(--accent-soft)'
-                      : 'transparent',
-                  cursor: step.locked ? 'default' : 'pointer',
-                  opacity: step.locked ? 0.45 : 1,
-                  transition: 'all 0.15s ease',
-                  ...(!step.locked && {
-                    '&:hover': {
-                      borderColor: 'var(--accent)',
-                      transform: 'translateY(-1px)',
-                      boxShadow: 'var(--shadow-card)',
-                    },
-                  }),
-                  '@media (prefers-reduced-motion: reduce)': {
-                    transition: 'none',
-                    '&:hover': { transform: 'none' },
-                  },
-                }}
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  step.locked
+                    ? 'cursor-default opacity-45'
+                    : 'cursor-pointer hover:border-[var(--accent)] hover:-translate-y-px hover:shadow-[var(--shadow-card)] motion-reduce:hover:translate-y-0',
+                )}
               >
                 {/* Icon */}
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 'var(--radius-sm)',
-                    bgcolor: step.completed
-                      ? 'var(--ok-soft)'
+                <div
+                  className={cn(
+                    'w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0',
+                    step.completed
+                      ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
                       : isActive
-                        ? 'var(--accent-soft)'
-                        : 'var(--hover)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    color: step.completed ? 'var(--ok)' : isActive ? 'var(--accent)' : 'text.secondary',
-                  }}
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'bg-[var(--hover)] text-[var(--muted)]',
+                  )}
                 >
                   {visual.icon}
-                </Box>
+                </div>
 
                 {/* Label */}
                 <Typography
@@ -403,7 +376,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
                 ) : (
                   <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><RadioButtonUnchecked size={14} strokeWidth={1.75} /></span>
                 )}
-              </Box>
+              </div>
             );
           })}
         </div>
@@ -468,17 +441,7 @@ const CtaSection: React.FC<CtaSectionProps> = ({
   onSkip,
   skipLabel,
 }) => (
-  <Box
-    sx={{
-      mt: 1.5,
-      pt: 1.5,
-      borderTop: '1px solid',
-      borderTopColor: 'divider',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 2,
-    }}
-  >
+  <div className="mt-[9px] pt-[9px] border-t border-solid border-t-[var(--line)] flex items-center gap-3">
     <div className="w-[36px] h-[36px] rounded-[var(--radius-md)] flex items-center justify-center shrink-0" style={{ background: gradient, boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)` }}>
       {icon}
     </div>
@@ -537,5 +500,5 @@ const CtaSection: React.FC<CtaSectionProps> = ({
         {actionLabel}
       </Button>
     </div>
-  </Box>
+  </div>
 );

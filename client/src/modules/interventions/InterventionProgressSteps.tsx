@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   CheckCircle as CheckCircleIcon,
@@ -96,10 +96,7 @@ const roomChipClass = [
   'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
 ].join(' ');
 
-const noteBoxSx = {
-  p: 1.5, bgcolor: 'var(--surface-2)', borderRadius: 1.5,
-  border: '1px solid', borderColor: 'var(--line)',
-};
+const noteBoxClass = 'p-[9px] bg-[var(--surface-2)] rounded-[12px] border border-solid border-[var(--line)]';
 
 const actionBtnSx = { textTransform: 'none', fontSize: '0.8125rem', borderRadius: 1.5 };
 
@@ -129,17 +126,12 @@ const StepperHeader: React.FC<{
             <div className={cn('flex-1 h-[2px] mt-[10.5px]', step.completed ? 'bg-[var(--ok)]' : 'bg-[var(--line-2)]')} style={{ transition: 'background-color 0.3s' }} />
           )}
           <div className={cn('flex flex-col items-center min-w-[80px] max-w-[120px]', step.locked ? 'cursor-default' : 'cursor-pointer', step.locked ? 'opacity-40' : 'opacity-100')} style={{ transition: 'opacity 0.2s' }} onClick={() => !step.locked && onStepClick(step.id)}>
-            <Box sx={{
-              width: 28, height: 28, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: step.completed ? 'var(--ok)' : isActive ? 'var(--accent)' : 'var(--hover)',
-              color: step.completed || isActive ? 'var(--on-accent)' : 'var(--muted)',
-              transition: 'all 0.2s',
-              mb: 0.5,
-              ...(isActive && !step.completed && {
-                boxShadow: '0 0 0 3px var(--accent-soft)',
-              }),
-            }}>
+            <div className={cn(
+              'w-[28px] h-[28px] rounded-[50%] flex items-center justify-center mb-[3px] transition-all duration-200',
+              step.completed ? 'bg-[var(--ok)]' : isActive ? 'bg-[var(--accent)]' : 'bg-[var(--hover)]',
+              step.completed || isActive ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]',
+              isActive && !step.completed && 'shadow-[0_0_0_3px_var(--accent-soft)]',
+            )}>
               {step.completed ? (
                 <CheckCircleIcon size={18} strokeWidth={1.75} />
               ) : step.locked ? (
@@ -149,7 +141,7 @@ const StepperHeader: React.FC<{
                   {step.id + 1}
                 </span>
               )}
-            </Box>
+            </div>
             <Typography
               variant="caption"
               fontWeight={isActive ? 700 : 500}
@@ -168,36 +160,20 @@ const handleDownloadPdf = async (doc: DocumentGeneration) => {
   await documentsApi.downloadGeneration(doc.id, doc.fileName);
 };
 
-const recapCardSx = {
-  p: 2.5,
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
-  border: '1px solid',
-  borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)',
-  transition: 'border-color 0.2s',
-  '&:hover': { borderColor: 'var(--line-2)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
+const recapCardClass = [
+  'p-[15px] rounded-[14px] bg-[var(--card)]',
+  'border border-solid border-[color-mix(in_srgb,var(--ok)_30%,transparent)]',
+  'transition-[border-color] duration-200 hover:border-[var(--line-2)] motion-reduce:transition-none',
+].join(' ');
 
-const docCardSx = {
-  display: 'flex',
-  alignItems: { xs: 'flex-start', sm: 'center' },
-  flexDirection: { xs: 'column', sm: 'row' },
-  justifyContent: 'space-between',
-  gap: { xs: 1.5, sm: 1 },
-  p: 2,
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  cursor: 'pointer',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-  '&:hover': {
-    borderColor: 'var(--line-2)',
-    boxShadow: 'var(--shadow-card)',
-  },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
+// Le breakpoint `sm` de MUI vaut 600px (non configure), pas les 640px de Tailwind.
+const docCardClass = [
+  'flex flex-col items-start gap-[9px] min-[600px]:flex-row min-[600px]:items-center min-[600px]:gap-[6px]',
+  'justify-between p-3 rounded-[14px] bg-[var(--card)] cursor-pointer',
+  'border border-solid border-[var(--line)]',
+  'transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none',
+  'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+].join(' ');
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -342,11 +318,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {getStepNote('inspection') && (
         <div className="mb-3">
           <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
-          <Box sx={noteBoxSx}>
+          <div className={noteBoxClass}>
             <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('inspection')}
             </p>
-          </Box>
+          </div>
         </div>
       )}
 
@@ -431,11 +407,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {getStepNote('rooms') && (
         <div className="mb-3">
           <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
-          <Box sx={noteBoxSx}>
+          <div className={noteBoxClass}>
             <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('rooms')}
             </p>
-          </Box>
+          </div>
         </div>
       )}
 
@@ -474,11 +450,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {getStepNote('after_photos') && (
         <div className="mb-3">
           <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
-          <Box sx={noteBoxSx}>
+          <div className={noteBoxClass}>
             <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('after_photos')}
             </p>
-          </Box>
+          </div>
         </div>
       )}
 
@@ -503,7 +479,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr] gap-[15px]">
         {/* Inspection */}
-        <Box sx={recapCardSx}>
+        <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
@@ -523,10 +499,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               <PhotoGallery photos={beforePhotos} columns={3} />
             </div>
           )}
-        </Box>
+        </div>
 
         {/* Rooms */}
-        <Box sx={recapCardSx}>
+        <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
@@ -543,10 +519,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               "{getStepNote('rooms').substring(0, 60)}{getStepNote('rooms').length > 60 ? '...' : ''}"
             </span>
           )}
-        </Box>
+        </div>
 
         {/* Photos */}
-        <Box sx={recapCardSx}>
+        <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
@@ -564,7 +540,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               "{getStepNote('after_photos').substring(0, 60)}{getStepNote('after_photos').length > 60 ? '...' : ''}"
             </span>
           )}
-        </Box>
+        </div>
       </div>
 
       {/* Documents */}
@@ -580,7 +556,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             {documents.map((doc) => {
               const hasFile = !!doc.fileName;
               return (
-                <Box key={doc.id} sx={docCardSx} onClick={() => hasFile && handleViewPdf(doc)}>
+                <div key={doc.id} className={docCardClass} onClick={() => hasFile && handleViewPdf(doc)}>
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="w-[40px] h-[40px] rounded-[1.5px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
                       <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
@@ -620,7 +596,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                       </Button>
                     </div>
                   )}
-                </Box>
+                </div>
               );
             })}
           </div>

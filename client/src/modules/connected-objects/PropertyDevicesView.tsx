@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Skeleton } from '@mui/material';
+import { Button, Skeleton } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -10,7 +10,7 @@ import DeviceCard from './components/DeviceCard';
 import AddDeviceWizard from './components/AddDeviceWizard';
 import type { DeviceAction } from './types';
 
-const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
+const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
 export default function PropertyDevicesView() {
   const { id } = useParams<{ id: string }>();
@@ -69,9 +69,9 @@ export default function PropertyDevicesView() {
       </div>
 
       {loading ? (
-        <Box sx={GRID}>
+        <div className={GRID}>
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
-        </Box>
+        </div>
       ) : propertyDevices.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
@@ -91,9 +91,9 @@ export default function PropertyDevicesView() {
               </p>
               <span className="cn-text-caption text-muted-foreground opacity-60">· {list.length}</span>
             </div>
-            <Box sx={GRID}>
+            <div className={GRID}>
               {list.map((d) => <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />)}
-            </Box>
+            </div>
           </div>
         ))
       )}

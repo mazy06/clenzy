@@ -1,6 +1,5 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box } from '@mui/material';
 import { Card } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { CheckCircle as CheckCircleIcon, ErrorOutline } from '../../../icons';
@@ -20,7 +19,6 @@ import type { ServiceTooltipData } from '../../../services/integrations/serviceT
 
 const ACCENT = 'var(--ok)';
 const NEUTRAL = 'var(--muted)';
-const WARM = 'var(--warn)';
 
 export const buildStatusChipSx = (color: string) => ({
   height: 22,
@@ -150,17 +148,15 @@ export default function ServiceGridCard({
           // teinté selon l'état — warm tant que non configuré, neutre une fois connecté
           // (même langage visuel que les cartes IoT / WhatsApp). La carte entière reste
           // cliquable ; l'icône est purement visuelle.
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-              mt: 0.25,
-              color: status === 'connected' ? 'text.secondary' : WARM,
-            }}
+          <div
+            className={cn(
+              // mt: 0.25 = 1.5px (theme.spacing vaut 6 dans ce projet, pas 8).
+              'flex items-center shrink-0 mt-[1.5px]',
+              status === 'connected' ? 'text-[var(--muted)]' : 'text-[var(--warn)]',
+            )}
           >
             <Settings2 size={18} strokeWidth={2} />
-          </Box>
+          </div>
         ) : null}
       </div>
     </Card>

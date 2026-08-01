@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Box,
   Card,
   CardContent,
   Typography,
@@ -147,20 +146,9 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
             {/* Header row with icon + title */}
             <div className="flex items-center gap-1 mb-0.5">
               {icon && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: 28,
-                    height: 28,
-                    borderRadius: 'var(--radius-sm)',
-                    bgcolor: 'var(--accent-soft)',
-                    '& .MuiSvgIcon-root': { fontSize: 16 },
-                  }}
-                >
+                <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[var(--radius-sm)] bg-[var(--accent-soft)] [&_.MuiSvgIcon-root]:text-[16px]">
                   {icon}
-                </Box>
+                </div>
               )}
               <Typography variant="body2" color="text.secondary" sx={TITLE_SX}>
                 {title}

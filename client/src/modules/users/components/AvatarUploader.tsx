@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Avatar, Box, Button } from '@mui/material';
+import { Avatar, Button } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
 
@@ -94,22 +95,16 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Box
+      <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          p: 2,
-          borderRadius: 2,
-          border: '1px dashed',
-          borderColor: dragOver ? 'var(--accent)' : 'var(--line-2)',
-          bgcolor: dragOver ? 'var(--accent-soft)' : 'transparent',
-          transition: 'border-color 150ms ease, background-color 150ms ease',
-          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        }}
+        // borderRadius: 2 = 16px (shape.borderRadius = 8 dans le theme)
+        className={cn(
+          'flex items-center gap-3 p-3 rounded-[16px] border border-dashed',
+          '[transition:border-color_150ms_ease,background-color_150ms_ease] motion-reduce:[transition:none]',
+          dragOver ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line-2)] bg-transparent',
+        )}
       >
         <div className="relative shrink-0">
           <Avatar
@@ -173,7 +168,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
             </Button>
           )}
         </div>
-      </Box>
+      </div>
       {error && (
         <BuiAlert variant="destructive" className="py-0.5 text-[0.8125rem]">
           <TriangleAlert />

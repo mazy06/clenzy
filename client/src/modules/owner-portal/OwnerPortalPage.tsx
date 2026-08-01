@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -16,7 +16,6 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { SPACING } from '../../theme/spacing';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { useOwnerDashboard, useOwnerStatement } from '../../hooks/useOwnerPortal';
@@ -80,8 +79,10 @@ const OwnerPortalPage: React.FC = () => {
 
   const ownerId = selectedOwnerId === '' ? undefined : selectedOwnerId;
 
+  // SPACING.PAGE_PADDING = 2 unites MUI et theme.spacing = 6 => 12px de padding
+  // (le commentaire « 16px » de theme/spacing.ts date d'un theme a 8px).
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    <div className="p-3">
       <PageHeader
         title={t('ownerPortal.title', 'Portail Proprietaire')}
         subtitle={t('ownerPortal.subtitle', 'Dashboard et releves proprietaires')}
@@ -137,7 +138,7 @@ const OwnerPortalPage: React.FC = () => {
           {activeTab === 1 && <StatementTab ownerId={ownerId} />}
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

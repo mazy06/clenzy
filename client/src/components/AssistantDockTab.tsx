@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, IconButton, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
 import { useLocation } from 'react-router-dom';
+import { cn } from '../utils/cn';
 import { Close as CloseIcon, Fullscreen as FullscreenIcon, ChevronUp } from '../icons';
 import BaitlyMarkLogo from './BaitlyMarkLogo';
 import { useAgent } from '../hooks/useAgent';
@@ -333,17 +334,16 @@ const AssistantDockTab: React.FC = () => {
 
             {/* Chevron : pointe vers le haut (deplier), pivote a l'ouverture.
                 Mobile : logo seul, pas de chevron. */}
-            <Box
-              sx={{
-                display: { xs: 'none', sm: 'flex' },
-                color: theme.palette.text.secondary,
-                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-              }}
+            {/* Rupture ecrite en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind. */}
+            <div
+              className={cn(
+                'hidden text-[var(--muted)] transition-transform duration-[220ms]',
+                'ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none min-[600px]:flex',
+                open ? 'rotate-180' : 'rotate-0',
+              )}
             >
               <ChevronUp size={16} />
-            </Box>
+            </div>
           </Box>
         </Box>
       </ClickAwayListener>

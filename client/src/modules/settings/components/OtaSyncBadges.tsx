@@ -16,7 +16,7 @@
  *   - Si aucun OTA : affiche "—" (rien à montrer)
  */
 import React from 'react';
-import { Box, Tooltip, Stack } from '@mui/material';
+import { Tooltip, Stack } from '@mui/material';
 import { Check } from 'lucide-react';
 
 import {
@@ -92,16 +92,8 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
 
         return (
           <Tooltip key={ota.otaName} title={tooltipLabel} arrow>
-            <Box
-              sx={{
-                position: 'relative',
-                display: 'inline-flex',
-                width: size,
-                height: size,
-                flexShrink: 0,
-                opacity,
-              }}
-            >
+            {/* `size` et `opacity` sont des valeurs runtime : style inline. */}
+            <div className="relative inline-flex shrink-0" style={{ width: size, height: size, opacity }}>
               {/* Logo officiel OTA (SVG/PNG) ou fallback initiales */}
               {logoSrc ? (
                 <img className="w-full h-full rounded-[0.75px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
@@ -122,7 +114,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
               {!ota.isActive && ota.hasOauthToken && (
                 <div className="absolute rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3, width: size * 0.4, height: size * 0.4 }} />
               )}
-            </Box>
+            </div>
           </Tooltip>
         );
       })}

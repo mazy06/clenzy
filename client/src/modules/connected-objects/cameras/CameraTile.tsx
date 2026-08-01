@@ -98,12 +98,11 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         {online ? (
           active ? (
             camera.webrtcUrl ? (
-              <Box
-                component="iframe"
+              <iframe
                 title={name}
                 src={camera.webrtcUrl}
                 allow="autoplay; fullscreen; picture-in-picture"
-                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, zIndex: 2, bgcolor: '#000' }}
+                className="absolute inset-0 z-[2] h-full w-full border-0 bg-[#000]"
               />
             ) : (
               <div className="relative z-[2] text-center px-3">

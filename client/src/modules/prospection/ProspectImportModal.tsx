@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   Close as CloseIcon,
   CloudUpload,
@@ -145,24 +146,20 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
         </FormControl>
 
         {/* File drop zone */}
-        <Box
+        <div
           onDrop={handleDrop}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
           }}
           onDragLeave={() => setDragOver(false)}
-          sx={{
-            border: '1px dashed',
-            borderColor: dragOver ? 'var(--accent)' : 'var(--line-2)',
-            borderRadius: '12px',
-            p: 4,
-            textAlign: 'center',
-            bgcolor: dragOver ? 'var(--accent-soft)' : 'var(--field)',
-            transition: 'border-color 0.2s, background-color 0.2s',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            cursor: 'pointer',
-          }}
+          className={cn(
+            'border border-dashed rounded-[12px] p-6 text-center cursor-pointer',
+            'transition-[border-color,background-color] duration-200 motion-reduce:transition-none',
+            dragOver
+              ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+              : 'border-[var(--line-2)] bg-[var(--field)]',
+          )}
           onClick={() => document.getElementById('csv-file-input')?.click()}
         >
           <input
@@ -193,7 +190,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
               </p>
             </>
           )}
-        </Box>
+        </div>
 
         {/* Progress */}
         {importMutation.isPending && <LinearProgress sx={{ mt: 2 }} />}

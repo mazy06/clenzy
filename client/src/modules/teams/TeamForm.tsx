@@ -3,8 +3,9 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import {
   Save,
   Add,
@@ -393,7 +394,7 @@ const TeamForm: React.FC = () => {
 
                   {/* Compteur utilisateurs */}
                   <div className="flex items-center gap-1">
-                    <Box component="span" sx={{ display: 'inline-flex', color: filteredUsers.length > 0 ? 'var(--accent)' : 'text.disabled' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
+                    <span className={cn('inline-flex', filteredUsers.length > 0 ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><GroupIcon size={16} strokeWidth={1.75} /></span>
                     <Typography variant="caption" sx={{ fontSize: '0.72rem', color: filteredUsers.length > 0 ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
                       {filteredUsers.length} {t('teams.fields.usersAvailable')}
                     </Typography>
@@ -449,19 +450,9 @@ const TeamForm: React.FC = () => {
                       const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                       return (
-                        <Box
+                        <div
                           key={zoneField.id}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            p: 1.25,
-                            border: '1px solid var(--line)',
-                            borderRadius: '12px',
-                            transition: 'border-color 0.2s ease, background-color 0.2s ease',
-                            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                            '&:hover': { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' },
-                          }}
+                          className="flex items-center gap-[9px] p-[7.5px] border border-solid border-[var(--line)] rounded-[12px] transition-[border-color,background-color] duration-200 ease-[ease] motion-reduce:transition-none hover:border-[var(--line-2)] hover:bg-[var(--hover)]"
                         >
                           <div className="flex-[0_0_180px] min-w-0">
                             <Controller
@@ -581,7 +572,7 @@ const TeamForm: React.FC = () => {
                           >
                             <DeleteOutlined size={18} strokeWidth={1.75} />
                           </IconButton>
-                        </Box>
+                        </div>
                       );
                     })}
                   </div>
@@ -632,25 +623,14 @@ const TeamForm: React.FC = () => {
                 ) : (
                   <div>
                     {fields.map((field, index) => (
-                      <Box
+                      <div
                         key={field.id}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          p: 1.25,
-                          mb: 1,
-                          border: '1px solid',
-                          borderColor: field.userId ? 'var(--line)' : 'var(--warn)',
-                          borderRadius: '12px',
-                          bgcolor: field.userId ? 'transparent' : 'var(--warn-soft)',
-                          transition: 'border-color 0.2s ease, background-color 0.2s ease',
-                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                          '&:hover': {
-                            borderColor: 'var(--line-2)',
-                            bgcolor: 'var(--hover)',
-                          },
-                        }}
+                        className={cn(
+                          'flex items-center gap-[9px] p-[7.5px] mb-1.5 border border-solid rounded-[12px]',
+                          'transition-[border-color,background-color] duration-200 ease-[ease] motion-reduce:transition-none',
+                          'hover:border-[var(--line-2)] hover:bg-[var(--hover)]',
+                          field.userId ? 'border-[var(--line)] bg-transparent' : 'border-[var(--warn)] bg-[var(--warn-soft)]',
+                        )}
                       >
                         {/* Avatar */}
                         <Avatar
@@ -742,7 +722,7 @@ const TeamForm: React.FC = () => {
                         >
                           <Delete size={18} strokeWidth={1.75} />
                         </IconButton>
-                      </Box>
+                      </div>
                     ))}
                   </div>
                 )}

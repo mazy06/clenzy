@@ -4,7 +4,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
-import { Box, Typography, Button, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
+import { Typography, Button, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -321,14 +321,8 @@ const TokenMonitoring: React.FC = () => {
             </div>
 
             {/* Countdown */}
-            <Box
-              sx={{
-                minWidth: 200,
-                pl: 3,
-                borderLeft: { md: '1px solid' },
-                borderLeftColor: { md: 'divider' },
-              }}
-            >
+            {/* Le filet gauche n'apparait qu'a partir du breakpoint MUI md (900px). */}
+            <div className="min-w-[200px] pl-[18px] min-[900px]:border-l min-[900px]:border-solid min-[900px]:border-l-[var(--line)]">
               <Typography
                 sx={{
                   fontSize: '0.625rem',
@@ -379,7 +373,7 @@ const TokenMonitoring: React.FC = () => {
                   },
                 }}
               />
-            </Box>
+            </div>
           </div>
         ) : (
           <BuiAlert variant="warning">

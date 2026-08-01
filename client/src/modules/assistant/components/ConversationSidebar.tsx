@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Box,
   Button,
   IconButton,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Add, Delete, Message as MessageIcon } from '../../../icons';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
 
@@ -71,19 +71,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         </Button>
       </div>
 
-      <Box
-        sx={{
-          flex: 1,
-          overflowY: 'auto',
-          px: 0.75,
-          // Scrollbar discrete
-          '&::-webkit-scrollbar': { width: 6 },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'var(--line-2)',
-            borderRadius: 3,
-          },
-        }}
-      >
+      {/* Scrollbar discrete : borderRadius 3 = 3 x shape.borderRadius (8px) = 24px */}
+      <div className="flex-1 overflow-y-auto px-[4.5px] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[24px]">
         {loading && conversations.length === 0 && <SkeletonList />}
 
         {!loading && conversations.length === 0 && (
@@ -116,7 +105,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             ))}
           </div>
         ))}
-      </Box>
+      </div>
     </div>
   );
 };
@@ -157,26 +146,15 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   };
 
   return (
-    <Box
+    <div
       onClick={() => onSelect(conversation.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.5,
-        px: 1.25,
-        py: 0.75,
-        mx: 0.5,
-        borderRadius: '9px',
-        cursor: 'pointer',
-        bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-        transition: 'background .12s',
-        '&:hover': {
-          bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)',
-        },
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-      }}
+      className={cn(
+        'flex items-center gap-[3px] px-[7.5px] py-[4.5px] mx-[3px] rounded-[9px] cursor-pointer',
+        'transition-colors duration-[120ms] motion-reduce:transition-none',
+        active ? 'bg-[var(--accent-soft)]' : 'bg-transparent hover:bg-[var(--hover)]',
+      )}
     >
       <div className="flex-1 min-w-0">
         <Typography
@@ -215,7 +193,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           <Delete size={13} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
-    </Box>
+    </div>
   );
 };
 

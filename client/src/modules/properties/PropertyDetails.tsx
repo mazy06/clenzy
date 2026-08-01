@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import { Box, Typography, Alert, Button, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
+import { Typography, Alert, Button, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -85,33 +85,13 @@ import { useQuery } from '@tanstack/react-query';
 // ── Constantes sx alignées DESIGN_BASELINE (réf maquette screen-property .pd-*) ──
 
 // .pd-kpi — tuile KPI centrée : icône accent-soft, valeur display tabular-nums, label overline.
-const METRIC_CARD_SX = {
-  p: '14px 12px',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  textAlign: 'center',
-  bgcolor: 'var(--card)',
-  border: '1px solid var(--line)',
-  borderRadius: '13px',
-  boxShadow: 'none',
-  minHeight: 72,
-  justifyContent: 'center',
-  transition: 'border-color .14s',
-  '&:hover': { borderColor: 'var(--line-2)' },
-} as const;
+const METRIC_CARD_CLASS =
+  'flex flex-col items-center justify-center text-center py-[14px] px-3 bg-[var(--card)] '
+  + 'border border-solid border-[var(--line)] rounded-[13px] min-h-[72px] '
+  + 'transition-[border-color] duration-[140ms] hover:border-[var(--line-2)]';
 
-const METRIC_ICON_BADGE_SX = {
-  width: 32,
-  height: 32,
-  borderRadius: '10px',
-  bgcolor: 'var(--accent-soft)',
-  color: 'var(--accent)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  mb: '8px',
-} as const;
+const METRIC_ICON_BADGE_CLASS =
+  'w-8 h-8 rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2';
 
 const METRIC_VALUE_SX = {
   fontFamily: 'var(--font-display)',
@@ -143,12 +123,7 @@ const SECTION_TITLE_SX = {
 } as const;
 
 // .pd-kv — bloc label/valeur (icône accent, label muted 11, valeur ink 13 fw600).
-const INFO_ROW_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  py: 0.75,
-} as const;
+const INFO_ROW_CLASS = 'flex items-center gap-1.5 py-[4.5px]';
 
 const INFO_LABEL_SX = {
   fontSize: '11px',
@@ -459,51 +434,51 @@ const PropertyDetails: React.FC = () => {
           <Grid container spacing={1} sx={{ mb: featureChips.length > 0 ? 1 : 1.5 }}>
             <Grid item xs={6} sm={4} md={2}>
               <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
-                <Box sx={{ ...METRIC_CARD_SX, cursor: 'help' }}>
-                  <Box sx={METRIC_ICON_BADGE_SX}><Payments size={16} strokeWidth={1.75} /></Box>
+                <div className={cn(METRIC_CARD_CLASS, 'cursor-help')}>
+                  <div className={METRIC_ICON_BADGE_CLASS}><Payments size={16} strokeWidth={1.75} /></div>
                   <Typography sx={METRIC_VALUE_SX}>
                     {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
                   </Typography>
                   <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningEstimate')}</Typography>
-                </Box>
+                </div>
               </Tooltip>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><Bed size={16} strokeWidth={1.75} /></Box>
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><Bed size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.bedrooms}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.bedrooms')}</Typography>
-              </Box>
+              </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><Bathroom size={16} strokeWidth={1.75} /></Box>
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><Bathroom size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.bathrooms}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.bathroomCount')}</Typography>
-              </Box>
+              </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><SquareFoot size={16} strokeWidth={1.75} /></Box>
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><SquareFoot size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.surfaceArea} m²</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.surface')}</Typography>
-              </Box>
+              </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><Group size={16} strokeWidth={1.75} /></Box>
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><Group size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.maxGuests}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.maxCapacity')}</Typography>
-              </Box>
+              </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><CleaningServices size={16} strokeWidth={1.75} /></Box>
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><CleaningServices size={16} strokeWidth={1.75} /></div>
                 <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12.5px' }}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
                 </Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
-              </Box>
+              </div>
             </Grid>
           </Grid>
 
@@ -565,7 +540,7 @@ const PropertyDetails: React.FC = () => {
                 <Typography sx={SECTION_TITLE_SX}>
                   {t('properties.informationsGeneral')}
                 </Typography>
-                <Box sx={INFO_ROW_SX}>
+                <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.address')}</Typography>
@@ -573,37 +548,37 @@ const PropertyDetails: React.FC = () => {
                       {property.address}, {property.city} {property.postalCode}
                     </Typography>
                   </div>
-                </Box>
+                </div>
                 {property.country && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Flag size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.country}</Typography>
                       </div>
-                    </Box>
+                    </div>
                   </>
                 )}
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.type')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getPropertyTypeLabel(property.propertyType, t)}</Typography>
                   </div>
-                </Box>
+                </div>
                 {property.createdAt && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.createdAt')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.createdAt)}</Typography>
                       </div>
-                    </Box>
+                    </div>
                   </>
                 )}
 
@@ -612,16 +587,16 @@ const PropertyDetails: React.FC = () => {
                 </Typography>
                 <div className="flex flex-col gap-0.5">
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Payments size={16} strokeWidth={1.75} /></span>
                       <div>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
                         <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></Typography>
                       </div>
-                    </Box>
+                    </div>
                   )}
                   {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Timer size={16} strokeWidth={1.75} /></span>
                       <div>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
@@ -631,28 +606,28 @@ const PropertyDetails: React.FC = () => {
                             : `${property.cleaningDurationMinutes} min`}
                         </Typography>
                       </div>
-                    </Box>
+                    </div>
                   )}
                   {property.numberOfFloors != null && property.numberOfFloors > 0 && (
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Stairs size={16} strokeWidth={1.75} /></span>
                       <div>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
                       </div>
-                    </Box>
+                    </div>
                   )}
                   {property.hasExterior && (
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Deck size={16} strokeWidth={1.75} /></span>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
-                    </Box>
+                    </div>
                   )}
                   {property.hasLaundry && (
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><LocalLaundryService size={16} strokeWidth={1.75} /></span>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
-                    </Box>
+                    </div>
                   )}
                 </div>
               </div>
@@ -664,7 +639,7 @@ const PropertyDetails: React.FC = () => {
                 <Typography sx={SECTION_TITLE_SX}>
                   {t('properties.configuration')}
                 </Typography>
-                <Box sx={INFO_ROW_SX}>
+                <div className={INFO_ROW_CLASS}>
                   <div>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
                     <StatusChip
@@ -673,17 +648,17 @@ const PropertyDetails: React.FC = () => {
                       className="mt-0.5"
                     />
                   </div>
-                </Box>
+                </div>
                 {property.ownerName && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.owner')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.ownerName}</Typography>
                       </div>
-                    </Box>
+                    </div>
                   </>
                 )}
                 {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
@@ -691,44 +666,44 @@ const PropertyDetails: React.FC = () => {
                     <Divider sx={{ my: 0.5 }} />
                     <div className="flex flex-col gap-0.5">
                       {property.defaultCheckInTime && (
-                        <Box sx={INFO_ROW_SX}>
+                        <div className={INFO_ROW_CLASS}>
                           <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>
                           <div>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkInTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckInTime)}</Typography>
                           </div>
-                        </Box>
+                        </div>
                       )}
                       {property.defaultCheckOutTime && (
-                        <Box sx={INFO_ROW_SX}>
+                        <div className={INFO_ROW_CLASS}>
                           <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>
                           <div>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkOutTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckOutTime)}</Typography>
                           </div>
-                        </Box>
+                        </div>
                       )}
                     </div>
                   </>
                 )}
                 <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
+                <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><CleaningServices size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
                   </div>
-                </Box>
+                </div>
                 {property.lastCleaning && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.lastCleaning')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.lastCleaning)}</Typography>
                       </div>
-                    </Box>
+                    </div>
                   </>
                 )}
               </div>
@@ -814,13 +789,13 @@ const PropertyDetails: React.FC = () => {
                     {compactFields.length > 0 && (
                       <div className={cn('grid grid-cols-[1fr_1fr] gap-1.5', fullWidthFields.length > 0 ? 'mb-1.5' : 'mb-0')}>
                         {compactFields.map((field) => (
-                          <Box key={field.label} sx={INFO_ROW_SX}>
+                          <div key={field.label} className={INFO_ROW_CLASS}>
                             {field.icon}
                             <div className="flex-1">
                               <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
                               <Typography sx={INFO_VALUE_SX}>{field.value}</Typography>
                             </div>
-                          </Box>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -829,13 +804,13 @@ const PropertyDetails: React.FC = () => {
                     {fullWidthFields.map((field) => (
                       <React.Fragment key={field.label}>
                         <Divider sx={{ my: 0.5 }} />
-                        <Box sx={INFO_ROW_SX}>
+                        <div className={INFO_ROW_CLASS}>
                           {field.icon}
                           <div className="flex-1">
                             <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
                             <Typography sx={{ ...INFO_VALUE_SX, whiteSpace: 'pre-line' }}>{field.value}</Typography>
                           </div>
-                        </Box>
+                        </div>
                       </React.Fragment>
                     ))}
                   </Paper>
@@ -866,7 +841,7 @@ const PropertyDetails: React.FC = () => {
               </div>
               {channelStatus?.airbnb?.linked ? (
                 <div className="flex flex-col gap-0.5">
-                  <Box sx={INFO_ROW_SX}>
+                  <div className={INFO_ROW_CLASS}>
                     <span className={cn('inline-flex', channelStatus.airbnb.syncEnabled ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Sync size={16} strokeWidth={1.75} /></span>
                     <div className="flex-1">
                       <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
@@ -874,15 +849,15 @@ const PropertyDetails: React.FC = () => {
                         {channelStatus.airbnb.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
                       </Typography>
                     </div>
-                  </Box>
+                  </div>
                   {channelStatus.airbnb.lastSyncAt && (
-                    <Box sx={INFO_ROW_SX}>
+                    <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</Typography>
                       </div>
-                    </Box>
+                    </div>
                   )}
                 </div>
               ) : (

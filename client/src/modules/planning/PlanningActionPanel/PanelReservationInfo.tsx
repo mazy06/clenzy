@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Alert, Box, IconButton, TextField } from '@mui/material';
+import { Alert, IconButton, TextField } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -40,13 +40,7 @@ import PanelReservationCompliance from './PanelReservationCompliance';
 
 type ActionResult = { success: boolean; error: string | null };
 
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 /** Couleur + fond doux par statut (tokens — violet « Départ » = constante documentée). */
 const STATUS_SOFT: Record<string, string> = {
@@ -168,7 +162,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                 {nameSaving && <Spinner className="size-3.5" />}
               </div>
             ) : (
-              <Box
+              <div
                 onClick={() => {
                   if (onUpdateGuestInfo) {
                     setNameValue(reservation.guestName);
@@ -176,19 +170,12 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                     setTimeout(() => nameInputRef.current?.focus(), 0);
                   }
                 }}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                  borderRadius: '6px',
-                  px: 0.5,
-                  mx: -0.5,
-                  '&:hover': onUpdateGuestInfo ? {
-                    backgroundColor: 'var(--hover)',
-                    '& .edit-icon': { opacity: 1 },
-                  } : {},
-                }}
+                className={cn(
+                  'flex items-center gap-[3px] rounded-[6px] px-[3px] mx-[-3px]',
+                  onUpdateGuestInfo
+                    ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-icon]:opacity-100'
+                    : 'cursor-default',
+                )}
               >
                 <span className="font-[var(--font-display)] text-[1.0625rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
                   {reservation.guestName}
@@ -198,7 +185,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                     <Edit size={14} strokeWidth={1.75} />
                   </span>
                 )}
-              </Box>
+              </div>
             )}
             <div className="flex items-center gap-[3.75px] mt-[3px]">
               {sourceLogo && (
@@ -304,8 +291,10 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
   };
 
   const DateColumn = ({ label, date, time, align }: { label: string; date: string; time?: string; align: 'left' | 'right' }) => (
-    <Box sx={{ textAlign: align, minWidth: 0 }}>
-      <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.375 }}>{label}</Box>
+    // `align` pilote deja la rangee d'heure en logique (justify-start/end) : on garde
+    // text-start/text-end pour que les deux restent coherents en RTL.
+    <div className={cn('min-w-0', align === 'right' ? 'text-end' : 'text-start')}>
+      <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>{label}</span>
       <span className="block font-[var(--font-display)] text-[1.25rem] font-bold text-[var(--ink)] leading-[1.15] tabular-nums whitespace-nowrap">
         {fmtBigDate(date)}
       </span>
@@ -317,7 +306,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
           </span>
         </div>
       )}
-    </Box>
+    </div>
   );
 
   return (
@@ -326,7 +315,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
         <span className="inline-flex text-[var(--faint)]">
           <CalendarMonth size={13} strokeWidth={1.75} />
         </span>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>Dates & horaires</Box>
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>Dates &amp; horaires</span>
         {!editing ? (
           onUpdate && (
             <IconButton
@@ -369,7 +358,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
         <div className="flex flex-col gap-2">
           {/* Check-in */}
           <div>
-            <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.375 }}>Check-in</Box>
+            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-in</span>
             <div className="flex gap-1.5">
               <TextField
                 type="date"
@@ -393,7 +382,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
 
           {/* Check-out */}
           <div>
-            <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.375 }}>Check-out</Box>
+            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-out</span>
             <div className="flex gap-1.5">
               <TextField
                 type="date"
@@ -569,9 +558,9 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
     <div>
       {/* Header overline */}
       <div className="flex items-center gap-1 mb-1.5">
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>
           Notes{items.length > 0 ? ` · ${items.length}` : ''}
-        </Box>
+        </span>
         {saving && <Spinner className="size-3" />}
         {saved && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
       </div>
@@ -579,7 +568,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
       {/* Bloc référence : téléphone (donnée existante, omis sinon) */}
       {reservation.guestPhone && (
         <div className="bg-[var(--field)] rounded-[10px] px-2 py-1.5 mb-1.5">
-          <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.25 }}>Téléphone</Box>
+          <span className={cn(OVERLINE_CLASS, 'block mb-[1.5px]')}>Téléphone</span>
           <div className="flex items-center gap-1">
             <span className="inline-flex text-[var(--muted)]"><Phone size={12} strokeWidth={1.75} /></span>
             <span className="text-[0.8125rem] font-semibold text-[var(--ink)] tabular-nums">
@@ -592,20 +581,13 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
       {/* Bloc notes éditables (bullets, auto-save) */}
       <div className="bg-[var(--field)] rounded-[10px] max-h-[260px] overflow-y-auto">
         {items.map((item, idx) => (
-          <Box
+          <div
             key={idx}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              px: 1.5,
-              py: 0.5,
-              minHeight: 32,
-              borderBottom: idx < items.length - 1 ? '1px solid var(--field-line)' : 'none',
-              '&:hover': { backgroundColor: 'var(--hover)' },
-              '&:hover .note-delete-btn': { opacity: 1 },
-              cursor: 'pointer',
-            }}
+            className={cn(
+              'flex items-center gap-[4.5px] px-[9px] py-[3px] min-h-[32px] cursor-pointer',
+              'hover:bg-[var(--hover)] [&:hover_.note-delete-btn]:opacity-100',
+              idx < items.length - 1 && 'border-b border-solid border-b-[var(--field-line)]',
+            )}
             onClick={() => { if (editingIdx !== idx) startEditing(idx); }}
           >
             {/* Bullet dot */}
@@ -643,7 +625,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
             >
               <Close size={14} strokeWidth={1.75} />
             </IconButton>
-          </Box>
+          </div>
         ))}
 
         {/* New item input — always visible at the bottom */}

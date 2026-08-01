@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
-  Box,
   Typography,
   TextField,
   FormHelperText,
@@ -205,27 +204,20 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                 return (
                   <div>
                     {/* Chip durée */}
-                    <Box
+                    {/* Ancre du Popover : `e.currentTarget` (element DOM), le <div> convient. */}
+                    <div
                       onClick={canEdit ? (e: React.MouseEvent<HTMLElement>) => {
                         setDurationInputValue(String(currentMins));
                         setDurationAnchor(e.currentTarget);
                       } : undefined}
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 0.75,
-                        py: 0.75,
-                        px: 1.5,
-                        borderRadius: '11px',
-                        border: '1px solid',
-                        borderColor: durationOpen ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 30%, transparent)',
-                        bgcolor: 'var(--accent-soft)',
-                        cursor: canEdit ? 'pointer' : 'default',
-                        transition: 'border-color .15s, background-color .15s',
-                        '&:hover': canEdit ? {
-                          borderColor: 'var(--accent)',
-                        } : {},
-                      }}
+                      className={cn(
+                        'inline-flex items-center gap-[4.5px] py-[4.5px] px-[9px] rounded-[11px]',
+                        'border border-solid bg-[var(--accent-soft)] transition-[border-color,background-color] duration-150',
+                        durationOpen
+                          ? 'border-[var(--accent)]'
+                          : 'border-[color-mix(in_srgb,var(--accent)_30%,transparent)]',
+                        canEdit ? 'cursor-pointer hover:border-[var(--accent)]' : 'cursor-default',
+                      )}
                     >
                       <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
                       <div className="flex items-baseline gap-0.5">
@@ -243,7 +235,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           <span className="inline-flex text-[var(--faint)] ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
                         </Tooltip>
                       )}
-                    </Box>
+                    </div>
 
                     {/* Popover champ édition durée (admin/manager uniquement) */}
                     <Popover
@@ -366,26 +358,17 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           {checkoutDates.map((co) => {
                             const isSelected = field.value === co.isoValue;
                             return (
-                              <Box
+                              <div
                                 key={co.id}
                                 onClick={disabled ? undefined : () => handleSelectCheckout(co.isoValue, field.value)}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                  py: 0.75,
-                                  px: 1.25,
-                                  borderRadius: '11px',
-                                  border: '1px solid',
-                                  borderColor: isSelected ? 'var(--accent)' : 'var(--field-line)',
-                                  bgcolor: isSelected ? 'var(--accent-soft)' : 'var(--field)',
-                                  cursor: disabled ? 'default' : 'pointer',
-                                  opacity: disabled ? 0.45 : 1,
-                                  transition: 'background-color .15s, border-color .15s',
-                                  '&:hover': disabled ? {} : {
-                                    borderColor: 'var(--accent)',
-                                  },
-                                }}
+                                className={cn(
+                                  'flex items-center gap-1.5 py-[4.5px] px-[7.5px] rounded-[11px] border border-solid',
+                                  'transition-[background-color,border-color] duration-150',
+                                  isSelected
+                                    ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                                    : 'border-[var(--field-line)] bg-[var(--field)]',
+                                  disabled ? 'cursor-default opacity-45' : 'cursor-pointer hover:border-[var(--accent)]',
+                                )}
                               >
                                 <span className={cn('inline-flex', isSelected ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><CalendarMonth size={16} strokeWidth={1.75} /></span>
                                 <div className="flex-1">
@@ -399,7 +382,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                 {isSelected && (
                                   <StatusChip size="sm" tokens={{ color: 'var(--accent)', bg: 'var(--card)' }} label="Sélectionné" className="text-[10px]" />
                                 )}
-                              </Box>
+                              </div>
                             );
                           })}
                         </div>

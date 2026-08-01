@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Snackbar } from '@mui/material';
+import { Button, Snackbar } from '@mui/material';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -126,14 +126,8 @@ const UserDetails: React.FC = () => {
       <UserProfileCard user={user} roles={userRoles} statuses={userStatuses} />
 
       {/* Body — two-column on >=md to avoid a single tall column of identical cards */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 7fr) minmax(0, 5fr)' },
-          gap: 1.5,
-          alignItems: 'start',
-        }}
-      >
+      {/* md MUI = 900px (breakpoints non configures) et gap: 1.5 = 9px (spacing 6). */}
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-[9px] items-start">
         <div className="flex flex-col gap-2 min-w-0">
           {/* Personal + Contact + System dates */}
           <UserSystemInfoCard user={user} />
@@ -165,7 +159,7 @@ const UserDetails: React.FC = () => {
             onUnlockUser={handleUnlockUser}
           />
         </div>
-      </Box>
+      </div>
 
       <Snackbar
         open={!!snackMessage}

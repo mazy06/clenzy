@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, IconButton, Alert } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, IconButton, Alert } from '@mui/material';
 import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import {
   ExpandMore,
@@ -287,20 +287,13 @@ interface AvailableTagsReferenceProps {
 
 // Style cohérent partagé pour les chips ${...} (memes proportions que
 // TemplateCatalogAccordions : monospace, accent tinted, font 0.7rem).
-const codeChipSx = {
-  fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-  fontSize: '0.7rem',
-  color: 'var(--accent)',
-  backgroundColor: 'var(--accent-soft)',
-  border: '1px solid',
-  borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-  borderRadius: '4px',
-  px: 0.625,
-  py: '2px',
-  lineHeight: 1.5,
-  display: 'inline-block',
-  whiteSpace: 'nowrap' as const,
-};
+// Puce de code inline. La pile mono est posee en propriete arbitraire plutot
+// qu'avec `font-mono` : la classe Tailwind par defaut n'a pas la meme pile.
+const CODE_CHIP_CLASS =
+  'inline-block whitespace-nowrap rounded-[4px] border border-solid ' +
+  'border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] bg-[var(--accent-soft)] ' +
+  'px-[3.75px] py-[2px] text-[0.7rem] leading-normal text-[var(--accent)] ' +
+  "[font-family:'SF_Mono',_Menlo,_Consolas,_monospace]";
 
 const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search }) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -353,9 +346,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
         <p className="cn-text-body2 text-[0.8125rem] leading-[1.6]">
           <strong className="font-semibold">Comment utiliser les tags :</strong>{' '}
           Dans votre fichier .odt, insérez les tags sous la forme{' '}
-          <Box component="code" sx={codeChipSx}>{'${categorie.champ}'}</Box>
+          <code className={CODE_CHIP_CLASS}>{'${categorie.champ}'}</code>
           . Par exemple{' '}
-          <Box component="code" sx={codeChipSx}>{'${client.nom}'}</Box>{' '}
+          <code className={CODE_CHIP_CLASS}>{'${client.nom}'}</code>{' '}
           sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
           <span className="inline-flex align-[middle] text-[var(--info)] mx-[1.5px]">
             <ContentCopy size={13} strokeWidth={1.75} />
@@ -454,9 +447,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                       sx={{ '&:last-child td': { borderBottom: 0 } }}
                     >
                       <TableCell>
-                        <Box component="code" sx={codeChipSx}>
+                        <code className={CODE_CHIP_CLASS}>
                           {'${' + tagDef.tag + '}'}
-                        </Box>
+                        </code>
                       </TableCell>
                       <TableCell>
                         <p className="cn-text-body2 text-[0.8125rem]">

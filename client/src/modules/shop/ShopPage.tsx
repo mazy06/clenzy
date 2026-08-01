@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { CircleCheck, X } from 'lucide-react';
-import { Box, IconButton, Badge, Snackbar } from '@mui/material';
+import { IconButton, Badge, Snackbar } from '@mui/material';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
@@ -184,7 +184,8 @@ const ShopPage: React.FC = () => {
           const active = selectedCategory === cat.id;
           const count = categoryCounts[cat.id] ?? 0;
           return (
-            <Box
+            // gap 0.75 = 4.5px, px 1.25 = 7.5px, py 0.625 = 3.75px (theme.spacing = 6)
+            <div
               key={cat.id}
               role="tab"
               aria-selected={active}
@@ -196,39 +197,20 @@ const ShopPage: React.FC = () => {
                   setSelectedCategory(cat.id as 'all' | ProductCategory);
                 }
               }}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.25,
-                py: 0.625,
-                cursor: 'pointer',
-                userSelect: 'none',
-                borderRadius: '8px',
-                border: '1px solid',
-                borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-                backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
-                color: active ? 'var(--accent)' : 'var(--body)',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                letterSpacing: '0.01em',
-                transition:
-                  'border-color 0.18s cubic-bezier(.16,1,.3,1), background-color 0.18s cubic-bezier(.16,1,.3,1), color 0.18s cubic-bezier(.16,1,.3,1)',
-                '&:hover': {
-                  borderColor: active ? 'var(--accent)' : 'var(--faint)',
-                  backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)',
-                },
-                '&:focus-visible': {
-                  outline: '2px solid var(--accent)',
-                  outlineOffset: 2,
-                },
-              }}
+              className={cn(
+                'inline-flex items-center gap-[4.5px] px-[7.5px] py-[3.75px] cursor-pointer select-none rounded-[8px] border border-solid text-[0.78rem] font-semibold tracking-[0.01em]',
+                'transition-[border-color,background-color,color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)]',
+                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                active
+                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]'
+                  : 'border-[var(--line-2)] bg-[var(--card)] text-[var(--body)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+              )}
             >
               {t(categoryTranslationKeys[cat.id]) || cat.label}
               <span className={cn('text-[0.6875rem] font-bold tracking-[0.02em] px-[3.75px] py-[0.75px] rounded-[5px] tabular-nums min-w-[16px] text-center', active ? 'bg-[var(--accent)]' : 'bg-[var(--field)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
                 {count}
               </span>
-            </Box>
+            </div>
           );
         })}
       </div>

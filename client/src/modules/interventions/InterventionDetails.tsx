@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Snackbar } from '@mui/material';
+import { Typography, Button, Snackbar } from '@mui/material';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -236,7 +236,7 @@ export default function InterventionDetailsPage() {
             </Button>
           }
           extraSection={
-            <Box sx={{ ...workflowCardSx }}>
+            <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
               <Typography sx={WORKFLOW_TITLE_SX}>
                 {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
               </Typography>
@@ -255,7 +255,7 @@ export default function InterventionDetailsPage() {
                 canStartOrUpdateIntervention={canStartOrUpdateIntervention}
                 isBeforeScheduledDate={isBeforeScheduledDate}
               />
-            </Box>
+            </div>
           }
         />
       )}
@@ -305,16 +305,6 @@ export default function InterventionDetailsPage() {
     </div>
   );
 }
-
-// Carte hairline plate (.pd-card) hébergeant le suivi interactif de l'intervention.
-const workflowCardSx = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 2,
-  mb: 1.5,
-} as const;
 
 const WORKFLOW_TITLE_SX = {
   fontSize: '10.5px',

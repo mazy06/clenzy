@@ -96,7 +96,7 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
       <div ref={containerRef} />
       {!widgetIdRef.current && (
         <div className="flex items-center gap-1.5">
-          <Spinner className="size-5 text-[#A6C0CE]" />
+          <Spinner className="size-5 text-[var(--mui-secondary)]" />
           <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
             Chargement...
           </p>

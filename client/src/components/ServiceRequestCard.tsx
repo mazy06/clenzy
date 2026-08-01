@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Box,
   Card,
   CardContent,
   Typography,
@@ -111,39 +110,6 @@ const styles = {
       '&:hover': { transform: 'none' },
     },
   },
-  bannerBox: {
-    position: 'relative',
-    height: 118,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  // Pastille statut top-left (fond translucide + blur, dot coloré + libellé).
-  statusPill: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 2,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.625,
-    fontSize: '10.5px',
-    fontWeight: 700,
-    px: '9px',
-    py: '4px',
-    borderRadius: '20px',
-    bgcolor: 'rgba(255,255,255,.92)',
-    backdropFilter: 'blur(4px)',
-    color: '#2A3942',
-    lineHeight: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
   menuButton: {
     position: 'absolute',
     top: 8,
@@ -171,13 +137,6 @@ const styles = {
     letterSpacing: '-.01em',
     color: 'var(--ink)',
   },
-  // Ligne localisation (propriété).
-  locationRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-    mb: 1.25,
-  },
   locationText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -187,20 +146,6 @@ const styles = {
     color: 'var(--muted)',
   },
   // Bande de KPI (valeurs display tabular-nums).
-  statsBand: {
-    display: 'flex',
-    borderTop: '1px solid var(--line)',
-    borderBottom: '1px solid var(--line)',
-    mb: 1.25,
-  },
-  statCell: {
-    flex: 1,
-    py: '9px',
-    textAlign: 'center',
-    borderRight: '1px solid var(--line)',
-    minWidth: 0,
-    '&:last-child': { borderRight: 0 },
-  },
   statValue: {
     fontFamily: 'var(--font-display)',
     fontSize: '15px',
@@ -216,34 +161,6 @@ const styles = {
     textTransform: 'uppercase',
     color: 'var(--faint)',
     mt: '1px',
-  },
-  // Pied opérationnel : icône accent + libellé fort.
-  footRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.875,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-    minWidth: 0,
-  },
-  footIcon: {
-    display: 'inline-flex',
-    color: 'var(--accent)',
-    flexShrink: 0,
-  },
-  footStrong: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: 'var(--body)',
-    fontWeight: 600,
-  },
-  actionBar: {
-    px: 1.75,
-    pb: 1.25,
-    pt: 0,
-    display: 'flex',
-    gap: 0.75,
   },
   detailsButton: {
     fontSize: '0.72rem',
@@ -290,20 +207,21 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
       onClick={handleViewDetails}
     >
       {/* ─── Bandeau image + gradient + pastille statut ─── */}
-      <Box
-        sx={{
-          ...styles.bannerBox,
+      <div
+        className="relative flex h-[118px] items-center justify-center overflow-hidden"
+        style={{
           background: getTypeGradient(request.type),
           backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getServiceTypeBannerUrl(request.type)})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        {/* Pastille statut top-left (dot coloré + libellé) */}
-        <Box sx={styles.statusPill}>
-          <Box sx={{ ...styles.statusDot, bgcolor: statusHex }} />
+        {/* Pastille statut top-left (fond translucide + blur, dot coloré + libellé) */}
+        <div className="absolute top-[10px] start-[10px] z-[2] inline-flex items-center gap-[3.75px] rounded-[20px] bg-[rgba(255,255,255,0.92)] px-[9px] py-[4px] text-[10.5px] font-bold leading-none text-[#2A3942] backdrop-blur-[4px]">
+          {/* Teinte de statut calculee a l'execution : impossible en classe Tailwind. */}
+          <span className="h-[6px] w-[6px] shrink-0 rounded-full" style={{ backgroundColor: statusHex }} />
           {statusLabel}
-        </Box>
+        </div>
 
         {/* Menu contextuel top-right */}
         <IconButton
@@ -313,7 +231,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         >
           <MoreVert size={16} strokeWidth={1.75} />
         </IconButton>
-      </Box>
+      </div>
 
       {/* ─── Zone info ─── */}
       <CardContent sx={styles.infoContent}>
@@ -334,7 +252,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         </div>
 
         {/* Propriété */}
-        <Box sx={styles.locationRow}>
+        <div className="mb-[7.5px] flex items-center gap-[3px]">
           <span className="inline-flex text-[var(--muted)] shrink-0">
             <LocationOn size={14} strokeWidth={1.75} />
           </span>
@@ -344,39 +262,42 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           >
             {request.propertyName}
           </Typography>
-        </Box>
+        </div>
 
         {/* Bande de KPI : échéance / coût est. / durée */}
-        <Box sx={styles.statsBand}>
+        <div className="mb-[7.5px] flex border-y border-solid border-[var(--line)]">
           {kpiCells.map((cell) => (
-            <Box key={cell.label} sx={styles.statCell}>
+            <div
+              key={cell.label}
+              className="min-w-0 flex-1 border-e border-solid border-[var(--line)] py-[9px] text-center last:border-e-0"
+            >
               <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
                 {cell.value}
               </Typography>
               <Typography sx={styles.statLabel}>{cell.label}</Typography>
-            </Box>
+            </div>
           ))}
-        </Box>
+        </div>
 
         {/* Pied opérationnel : assigné (gauche) + priorité (droite) */}
-        <Box sx={{ ...styles.footRow, minHeight: 20 }}>
-          <Box component="span" sx={styles.footIcon}>
+        <div className="flex min-h-[20px] min-w-0 items-center gap-[5.25px] text-[11.5px] text-[var(--muted)]">
+          <span className="inline-flex shrink-0 text-[var(--accent)]">
             {request.assignedToType === 'team'
               ? <GroupIcon size={13} strokeWidth={2} />
               : <PersonIcon size={13} strokeWidth={2} />}
-          </Box>
-          <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
+          </span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-[var(--body)]">{assigneeName}</span>
           <div className="flex-1" />
           <StatusChip
             color={priorityHex}
             label={priorityLabel}
             className="h-[20px] shrink-0 text-[0.62rem]"
           />
-        </Box>
+        </div>
       </CardContent>
 
       {/* ─── Zone actions ─── */}
-      <Box sx={styles.actionBar}>
+      <div className="flex gap-[4.5px] px-[10.5px] pt-0 pb-[7.5px]">
         <Button
           fullWidth
           size="small"
@@ -387,7 +308,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         >
           Détails
         </Button>
-      </Box>
+      </div>
     </Card>
   );
 });

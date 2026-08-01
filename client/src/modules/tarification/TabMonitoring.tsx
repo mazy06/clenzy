@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Box, Typography, TextField, Grid, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import {
   VolumeUp,
@@ -154,7 +155,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             <List disablePadding>
               <ListItem disableGutters sx={{ px: 0 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: config.monitoringMinutEnabled ? 'primary.main' : 'text.disabled' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
+                  <span className={cn('inline-flex', config.monitoringMinutEnabled ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}><VolumeUp size={20} strokeWidth={1.75} /></span>
                 </ListItemIcon>
                 <ListItemText
                   primary={t('tarification.monitoring.enable')}
@@ -290,7 +291,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             <List disablePadding>
               <ListItem disableGutters sx={{ px: 0 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: config.monitoringClenzyEnabled ? 'success.main' : 'text.disabled' }}><Memory size={20} strokeWidth={1.75} /></Box>
+                  <span className={cn('inline-flex', config.monitoringClenzyEnabled ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}><Memory size={20} strokeWidth={1.75} /></span>
                 </ListItemIcon>
                 <ListItemText
                   primary={t('tarification.monitoring.enable')}

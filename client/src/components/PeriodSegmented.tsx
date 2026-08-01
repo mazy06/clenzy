@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { cn } from '../utils/cn';
 
 /**
  * Sélecteur segmenté partagé — pattern baseline §2 « Segmented » (réf. .s-seg) :
@@ -34,34 +34,23 @@ function PeriodSegmentedInner<T extends string>({
       {options.map((opt) => {
         const selected = opt.value === value;
         return (
-          <Box
+          // `font-[var(--font-sans)]` serait ambigu (famille vs graisse) : propriete explicite.
+          <button
             key={opt.value}
-            component="button"
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(opt.value)}
-            sx={{
-              border: 0,
-              cursor: 'pointer',
-              borderRadius: '7px',
-              px: '12px',
-              py: '5px',
-              fontFamily: 'var(--font-sans)',
-              fontSize: '12px',
-              fontWeight: 600,
-              lineHeight: 1.2,
-              whiteSpace: 'nowrap',
-              transition: 'background-color .14s, color .14s',
-              bgcolor: selected ? 'var(--card)' : 'transparent',
-              color: selected ? 'var(--accent)' : 'var(--muted)',
-              boxShadow: selected ? '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)' : 'none',
-              '&:hover': { color: selected ? 'var(--accent)' : 'var(--body)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className={cn(
+              'border-0 cursor-pointer rounded-[7px] px-[12px] py-[5px] [font-family:var(--font-sans)] text-[12px] font-semibold leading-[1.2] whitespace-nowrap',
+              'transition-[background-color,color] duration-[140ms] motion-reduce:transition-none',
+              'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+              selected
+                ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)] hover:text-[var(--accent)]'
+                : 'bg-transparent text-[var(--muted)] shadow-none hover:text-[var(--body)]',
+            )}
           >
             {opt.label}
-          </Box>
+          </button>
         );
       })}
     </div>

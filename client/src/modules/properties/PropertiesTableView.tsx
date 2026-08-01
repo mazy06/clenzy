@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
-  Box, Paper, Typography, Tooltip, IconButton,
+  Paper, Typography, Tooltip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
@@ -115,16 +115,9 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   <TableCell sx={{ py: 1, pr: 1 }}>
                     <div className="flex items-center min-w-0 gap-2">
                       {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo) */}
-                      <Box
-                        sx={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: '11px',
-                          flexShrink: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'rgba(255,255,255,.8)',
+                      <div
+                        className="w-11 h-11 rounded-[11px] shrink-0 flex items-center justify-center text-[rgba(255,255,255,.8)]"
+                        style={{
                           background: propertyGradientCss(property.id || property.name),
                           ...(property.photoUrls && property.photoUrls.length > 0
                             ? {
@@ -136,7 +129,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         }}
                       >
                         <Business size={20} strokeWidth={1.75} />
-                      </Box>
+                      </div>
                       <div className="min-w-0">
                         <div className="flex items-center min-w-0 gap-1">
                           <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[14px] text-[var(--ink)] tracking-[-.01em] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">

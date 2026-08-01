@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Box,
   Typography,
   IconButton,
   Popover,
@@ -8,6 +7,7 @@ import {
   Badge,
   Tooltip,
 } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   AttachMoney,
   ViewCompact,
@@ -21,7 +21,6 @@ import {
   ChannelLegendChips,
   StatusLegendChips,
   InterventionLegendChip,
-  sigButtonSx,
   STATUS_OPTIONS,
   CHANNEL_LEGEND,
 } from './LegendChips';
@@ -68,6 +67,12 @@ const OVERLINE_SX = {
   display: 'block',
 };
 
+/** Equivalent en classes de `sigButtonSx` (= sigChipSx + BUTTON_RESET de
+ *  LegendChips), hors couleurs. `chipClsFor` n'est pas exporte la-bas, d'ou la
+ *  transcription ici. gap: 0.75 = 4.5px (theme.spacing vaut 6, pas 8). */
+const MODAL_CHIP_CLS =
+  'inline-flex items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+
 /** Chip pilule togglable de la modale (langage Signature .pl-chip, même style
  *  que les chips Statuts) : icône optionnelle + libellé, actif = accent-soft. */
 const ModalToggleChip: React.FC<{
@@ -76,14 +81,24 @@ const ModalToggleChip: React.FC<{
   icon?: React.ReactNode;
   onClick: () => void;
 }> = ({ active, label, icon, onClick }) => (
-  <Box component="button" type="button" aria-pressed={active} onClick={onClick} sx={sigButtonSx(active)}>
+  <button
+    type="button"
+    aria-pressed={active}
+    onClick={onClick}
+    className={cn(
+      MODAL_CHIP_CLS,
+      active
+        ? 'text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)]'
+        : 'text-[var(--body)] bg-[var(--card)] border-[var(--line-2)] hover:border-[var(--faint)]',
+    )}
+  >
     {icon && (
       <span className="inline-flex text-inherit">
         {icon}
       </span>
     )}
     {label}
-  </Box>
+  </button>
 );
 
 /**

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Menu, MenuItem, Divider, Popover, InputBase, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import { Menu, MenuItem, Divider, Popover, InputBase, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import {
   Plus, LayoutDashboard, ArrowUp, Search, Home, Layers, Sparkles, Languages, Feather, X,
   ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
@@ -620,9 +620,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         <Menu anchorEl={optionAnchor?.el ?? null} open={!!optionAnchor} onClose={() => setOptionAnchor(null)}>
           {optionAnchor?.id === 'funnel' && BUILTIN_FUNNEL_PRESETS.map((f) => (
             <MenuItem key={f.id} selected={f.id === funnelId} onClick={() => applyFunnel(f.id)} sx={{ fontSize: 13, gap: 1.25, alignItems: 'center' }}>
-              <Box component="span" sx={{ width: 46, height: 32, flexShrink: 0, borderRadius: '5px', bgcolor: 'var(--surface-2, rgba(255,255,255,0.06))', border: '1px solid var(--line, rgba(255,255,255,0.12))', color: 'var(--accent, #5453d6)', display: 'grid', placeItems: 'center', overflow: 'hidden', p: '4px', '& svg': { width: '100%', height: '100%', display: 'block' } }}>
+              <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))] text-[var(--accent,_#5453d6)] grid place-items-center overflow-hidden p-[4px] [&_svg]:w-full [&_svg]:h-full [&_svg]:block">
                 <FunnelArt id={f.id} />
-              </Box>
+              </span>
               {f.label}
             </MenuItem>
           ))}

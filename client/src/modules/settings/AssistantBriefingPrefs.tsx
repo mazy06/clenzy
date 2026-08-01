@@ -177,19 +177,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
     >
       <div className={cn(prefs.enabled ? 'opacity-100' : 'opacity-50', prefs.enabled ? 'pointer-events-auto' : 'pointer-events-none')} style={{ transition: 'opacity 150ms ease' }}>
         {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: '1fr 1fr',
-              md: 'minmax(240px, 2fr) 140px minmax(220px, 1fr)',
-            },
-            gap: 2,
-            alignItems: 'start',
-            mb: 3,
-          }}
-        >
+        <div className="mb-[18px] grid grid-cols-[1fr] items-start gap-3 min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[minmax(240px,_2fr)_140px_minmax(220px,_1fr)]">
           <div>
             <Typography
               variant="overline"
@@ -250,7 +238,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
               FormHelperTextProps={{ sx: { ml: 0, fontSize: '0.7rem' } }}
             />
           </div>
-        </Box>
+        </div>
 
         {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}
         <div>

@@ -1,7 +1,8 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import { Card } from '../../components/ui';
-import { Box, Typography, Button, IconButton, Divider } from '@mui/material';
+import { Typography, Button, IconButton, Divider } from '@mui/material';
 import {
   Add,
   Remove,
@@ -130,18 +131,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Features (kit contents grouped as features for kits) */}
-        <Box
-          sx={{
-            flex: 1,
-            mb: 1.25,
-            ...(isKit && {
-              p: 1,
-              borderRadius: '6px',
-              border: '1px dashed',
-              borderColor: `${tint}33`,
-              backgroundColor: `${tint}08`,
-            }),
-          }}
+        {/* La teinte du kit est calculee (tint) : bordure et fond passent par style inline */}
+        <div
+          className={cn('flex-1 mb-[7.5px]', isKit && 'p-[6px] rounded-[6px] border border-dashed')}
+          style={isKit ? { borderColor: `${tint}33`, backgroundColor: `${tint}08` } : undefined}
         >
           {isKit && (
             <Typography
@@ -172,7 +165,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               +{displayedFeatures.length - 5} {t('shop.perUnit')}
             </p>
           )}
-        </Box>
+        </div>
 
         <Divider sx={{ mb: 1.25, borderColor: 'divider' }} />
 

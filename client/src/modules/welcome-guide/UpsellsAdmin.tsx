@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import type { AlertColor, SxProps, Theme } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -581,7 +581,8 @@ const UpsellsAdmin: React.FC = () => {
                 <div className="gallery">
                   {offer.imageUrl
                     ? [0, 1, 2].map((i) => (
-                        <Box key={i} component="i" sx={{ backgroundImage: `url(${offer.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === 0 ? 1 : 0.55 }} />
+                        // L'URL vient de la donnee : style inline, pas de classe generee.
+                        <i key={i} style={{ backgroundImage: `url(${offer.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === 0 ? 1 : 0.55 }} />
                       ))
                     : [0, 1, 2].map((i) => (
                         <i key={i} style={{ background: 'linear-gradient(150deg,#c7c6ee,#a9a8e0)', opacity: 0.85 }} />
@@ -657,11 +658,10 @@ const UpsellsAdmin: React.FC = () => {
         <DialogContent dividers>
           {previewOffer && (
             <div className="border border-[var(--line)] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
-              <Box sx={{
-                height: 150, bgcolor: 'action.hover',
-                backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none',
-                backgroundSize: 'cover', backgroundPosition: 'center',
-              }} />
+              <div
+                className="h-[150px] bg-[var(--hover)] bg-cover bg-center"
+                style={{ backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none' }}
+              />
               <div className="p-3">
                 <div className="font-semibold">{previewOffer.title}</div>
                 {previewOffer.description ? (

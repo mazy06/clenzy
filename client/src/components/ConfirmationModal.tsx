@@ -1,6 +1,6 @@
 import React from 'react';
 import { Spinner } from './ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
 import {
   Warning as WarningIcon,
   Close as CloseIcon,
@@ -103,18 +103,19 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
       <DialogContent sx={{ pt: '22px !important' }}>
         {/* Alerte pleine largeur — pattern .rm-conflict : -soft + border color-mix 30% */}
-        <Box
-          sx={{
+        {/* Tokens derives de `severityToken` a l'execution : ils restent en style inline,
+            une classe Tailwind ne peut pas naitre d'une variable. */}
+        <div
+          className="rounded-[12px] border border-solid px-4 py-[13px]"
+          style={{
             backgroundColor: `var(--${severityToken}-soft)`,
-            border: `1px solid color-mix(in srgb, var(--${severityToken}) 30%, transparent)`,
-            borderRadius: '12px',
-            padding: '13px 16px',
+            borderColor: `color-mix(in srgb, var(--${severityToken}) 30%, transparent)`,
           }}
         >
           <p className="cn-text-body1 text-[13px] text-[var(--body)]">
             {message}
           </p>
-        </Box>
+        </div>
       </DialogContent>
 
       <DialogActions>

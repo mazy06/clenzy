@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
-import { Box, ButtonBase } from '@mui/material';
+import { ButtonBase } from '@mui/material';
 import { keyframes } from '@mui/system';
 import { FileUp, Loader2, FileText } from 'lucide-react';
 import type { Editor } from 'grapesjs';
@@ -129,13 +129,12 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       </div>
 
       {/* Input fichier masqué, piloté par la zone de dépôt et le bouton. */}
-      <Box
-        component="input"
+      <input
         ref={inputRef}
         type="file"
         accept={ACCEPT}
         onChange={onInputChange}
-        sx={{ display: 'none' }}
+        className="hidden"
       />
 
       {/* Zone de dépôt / sélection cliquable. */}

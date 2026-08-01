@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, ButtonBase, InputBase, Skeleton } from '@mui/material';
+import { ButtonBase, InputBase, Skeleton } from '@mui/material';
 import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText, Languages } from 'lucide-react';
 import { sitesApi, type BlogPost, type BlogPostUpsert } from '../../../../services/api/sitesApi';
 import { useNotification } from '../../../../hooks/useNotification';
@@ -160,7 +160,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1 min-w-0">
                     <div className="text-[var(--text-md)] font-[var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
-                    {p.aiGenerated && <Box component="span" sx={aiChipSx}>IA</Box>}
+                    {p.aiGenerated && <span className="shrink-0 inline-flex items-center px-[4.5px] h-[17px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] font-bold tracking-[.04em]">IA</span>}
                   </div>
                   <div className="flex items-center gap-[3px] mt-[1.5px] text-[var(--text-2xs)]" style={{ color: meta.color }}>
                     <span className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: meta.color }} />
@@ -292,11 +292,15 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
       <div className="flex gap-2">
         <Field label="Chemin (slug)"><InputBase value={draft.slug} onChange={(e) => set('slug', e.target.value)} sx={inputSx} placeholder="auto depuis le titre" /></Field>
         <Field label="Statut">
-          <Box component="select" value={draft.status} onChange={(e) => set('status', (e.target as HTMLSelectElement).value)} sx={selectSx}>
+          <select
+            value={draft.status}
+            onChange={(e) => set('status', e.target.value)}
+            className="w-full h-[38px] px-1.5 text-[var(--text-md)] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer"
+          >
             <option value="DRAFT">Brouillon</option>
             <option value="PENDING_REVIEW">Soumettre à validation</option>
             {draft.status === 'PUBLISHED' && <option value="PUBLISHED">Publié — en ligne</option>}
-          </Box>
+          </select>
         </Field>
         <Field label="Langue"><InputBase value={draft.locale} onChange={(e) => set('locale', e.target.value)} sx={inputSx} placeholder="fr, en… (vide = toutes)" /></Field>
       </div>
@@ -329,11 +333,6 @@ const inputSx = {
   '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
 } as const;
 
-const selectSx = {
-  width: '100%', height: 38, px: 1, fontSize: 'var(--text-md)', color: 'var(--ink)',
-  bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-} as const;
-
 const primaryBtnSx = {
   display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 36, px: 1.75, flexShrink: 0,
   borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
@@ -348,10 +347,4 @@ const ghostBtnSx = {
   fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
   '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.5 },
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
-
-const aiChipSx = {
-  flexShrink: 0, display: 'inline-flex', alignItems: 'center', px: 0.75, height: 17,
-  borderRadius: 999, bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-  fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.04em',
 } as const;

@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { Box, Typography, Button, TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
+import { Typography, Button, TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   CheckCircle,
@@ -461,15 +461,7 @@ function FeatureTogglesSection() {
   return (
     <Card className="mb-6 gap-0 overflow-hidden py-0">
       {/* ── Section header ── */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 2,
-          background: 'var(--surface-2)',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <div className="px-[15px] py-3 bg-[var(--surface-2)] [border-bottom:1px_solid_var(--line)]">
         <div className="flex items-center gap-1.5">
           <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
           <h6 className="cn-text-subtitle1 font-bold text-[var(--ink)]">
@@ -479,7 +471,7 @@ function FeatureTogglesSection() {
         <p className="cn-text-body2 text-muted-foreground mt-0.5 text-[0.8rem]">
           {t('bookingEngine.ai.features.subtitle')}
         </p>
-      </Box>
+      </div>
 
       {/* ── Feature rows ── */}
       {isLoading ? (
@@ -494,34 +486,14 @@ function FeatureTogglesSection() {
           return (
             <React.Fragment key={feat.feature}>
               {index > 0 && <Divider sx={{ mx: 2.5 }} />}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 2.5,
-                  py: 1.5,
-                  transition: 'background-color 0.15s ease',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
+              <div className="flex items-center px-[15px] py-[9px] transition-[background-color] duration-150 hover:bg-[var(--hover)]">
                 {/* Icon */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 36,
-                    height: 36,
-                    borderRadius: 1.5,
-                    bgcolor: alpha(feat.color, isDark ? 0.15 : 0.08),
-                    color: feat.color,
-                    mr: 1.5,
-                    flexShrink: 0,
-                    '& .MuiSvgIcon-root': { fontSize: 20 },
-                  }}
+                <div
+                  className="flex items-center justify-center w-9 h-9 rounded-[12px] me-[9px] shrink-0 [&_.MuiSvgIcon-root]:text-[20px]"
+                  style={{ backgroundColor: alpha(feat.color, isDark ? 0.15 : 0.08), color: feat.color }}
                 >
                   {feat.icon}
-                </Box>
+                </div>
 
                 {/* Name + description */}
                 <div className="flex-1 min-w-0">
@@ -543,7 +515,7 @@ function FeatureTogglesSection() {
                   disabled={isMutating || !canEdit}
                   size="small"
                 />
-              </Box>
+              </div>
             </React.Fragment>
           );
         })

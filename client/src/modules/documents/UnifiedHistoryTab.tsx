@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
 import {
   Download,
   Lock,
@@ -29,6 +29,17 @@ import FilterChipRow from '../../components/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { renderServerEmailPreview } from '../../utils/emailMarkdown';
 import PagePagination from '../../components/PagePagination';
+import { cn } from '../../utils/cn';
+
+// Lien-bouton de fin de ligne (« Apercu », « Telecharger »). L'ancien `all: unset`
+// est rendu par des remises a zero explicites : l'ordre des utilities Tailwind
+// n'etant pas celui du fichier, un `all:unset` pourrait ecraser les declarations
+// suivantes au lieu de les preceder.
+const INLINE_LINK_BTN_CLS =
+  'inline-flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent p-0 '
+  + '[font-family:inherit] text-[12.5px] font-semibold whitespace-nowrap text-[var(--accent)] '
+  + 'hover:text-[var(--accent-deep)] '
+  + 'focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -427,19 +438,16 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 : String(row.messageLog?.id ?? '');
 
               return (
-                <Box
+                <div
                   key={row.id}
                   data-highlight-id={rawId || undefined}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
-                    border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
-                    borderRadius: '12px', bgcolor: isFailed ? 'var(--err-soft)' : 'var(--card)',
-                    transition: 'border-color .14s, box-shadow .14s',
-                    ...(isFailed ? {} : {
-                      '&:hover': { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                    }),
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
+                  className={cn(
+                    'flex items-center gap-3 rounded-[12px] border border-solid px-[15px] py-[13px]',
+                    '[transition:border-color_.14s,box-shadow_.14s] motion-reduce:transition-none',
+                    isFailed
+                      ? 'border-[var(--err)] bg-[var(--err-soft)]'
+                      : 'border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)]',
+                  )}
                 >
                   {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
                   <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
@@ -534,22 +542,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                             </Tooltip>
                           );
                         })()}
-                        <Box
-                          component="button"
+                        <button
                           type="button"
                           onClick={() => setDetailLog(row.messageLog!)}
                           aria-label="Voir les details"
-                          sx={{
-                            all: 'unset', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
-                            whiteSpace: 'nowrap', cursor: 'pointer',
-                            '&:hover': { color: 'var(--accent-deep)' },
-                            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2, borderRadius: '6px' },
-                          }}
+                          className={INLINE_LINK_BTN_CLS}
                         >
                           Aperçu
                           <ArrowRightIcon size={14} strokeWidth={1.75} />
-                        </Box>
+                        </button>
                       </>
                     )}
 
@@ -574,27 +575,20 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           </Tooltip>
                         )}
                         {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
-                          <Box
-                            component="button"
+                          <button
                             type="button"
                             onClick={() => handleDownload(row.documentGeneration!)}
                             aria-label="Telecharger"
-                            sx={{
-                              all: 'unset', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                              fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
-                              whiteSpace: 'nowrap', cursor: 'pointer',
-                              '&:hover': { color: 'var(--accent-deep)' },
-                              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2, borderRadius: '6px' },
-                            }}
+                            className={INLINE_LINK_BTN_CLS}
                           >
                             <Download size={14} strokeWidth={1.75} />
                             Télécharger
-                          </Box>
+                          </button>
                         )}
                       </>
                     )}
                   </div>
-                </Box>
+                </div>
               );
             })}
           </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Collapse, Divider } from '@mui/material';
+import { Typography, Button, Collapse, Divider } from '@mui/material';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -117,13 +117,10 @@ const LaunchSettingsSection: React.FC = () => {
             </p>
           ) : (
             (list ?? []).map((w, i) => (
-              <Box
+              // gap: 1 = 6px et py: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet).
+              <div
                 key={w.id}
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 1, py: 0.75,
-                  borderBottom: '1px solid', borderColor: 'divider',
-                  '&:last-of-type': { borderBottom: 'none' },
-                }}
+                className="flex items-center gap-1.5 py-[4.5px] border-b border-solid border-[var(--line)] last-of-type:border-b-0"
               >
                 <Typography sx={{
                   fontSize: '0.7rem', fontWeight: 600, width: 30, flexShrink: 0,
@@ -143,7 +140,7 @@ const LaunchSettingsSection: React.FC = () => {
                 <p className="cn-text-body1 text-[0.66rem] text-muted-foreground opacity-60 shrink-0 tabular-nums">
                   {fmtDate(w.createdAt)}
                 </p>
-              </Box>
+              </div>
             ))
           )}
         </div>

@@ -1,14 +1,28 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { Box, Typography, TextField, Tooltip } from '@mui/material';
+import { Typography, TextField, Tooltip } from '@mui/material';
 import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, SEG_WRAP_SX, segBtnSx } from './reservationDialogStyles';
+import { SEC_SX, FIELD_SX } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
 }
+
+// Equivalent classes de segBtnSx (reservationDialogStyles) avec les surcharges
+// locales de cet ecran : flex 1, gap 5px, padding uniforme 7px.
+const segTabCls = (on: boolean) =>
+  cn(
+    'inline-flex flex-1 cursor-pointer items-center justify-center gap-[5px] rounded-[7px] border-0 p-[7px]',
+    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap',
+    'transition-[background,color] duration-[140ms]',
+    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+    on
+      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
+      : 'bg-transparent text-[var(--muted)] shadow-none',
+  );
 
 /**
  * Tarification : base /nuit DYNAMIQUE (PriceEngine, lecture seule) + override
@@ -21,14 +35,14 @@ const PricingSection: React.FC<Props> = ({ form }) => {
 
   // Détail par nuit (tooltip) : date → prix.
   const nightBreakdown = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '2px 0' }}>
+    <div className="flex flex-col gap-[2px] py-[2px]">
       {form.nightDates.map((d, i) => (
         <div className="flex justify-between gap-3.5 tabular-nums" key={d}>
           <span>{d}</span>
           <b>{(form.nightlyPrices[i] ?? 0).toFixed(2)} €</b>
         </div>
       ))}
-    </Box>
+    </div>
   );
 
   const baseValue = form.baseNightlyAvg > 0
@@ -46,22 +60,9 @@ const PricingSection: React.FC<Props> = ({ form }) => {
         endAdornment: form.pricingLoading ? (
           <Spinner className="size-3.5 text-[var(--accent)]" />
         ) : form.priceVaries ? (
-          <Box
-            component="span"
-            sx={{
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              color: 'var(--accent)',
-              backgroundColor: 'var(--accent-soft)',
-              borderRadius: '6px',
-              padding: '2px 6px',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className="rounded-[6px] bg-[var(--accent-soft)] px-1.5 py-[2px] text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-[var(--accent)]">
             {t('reservations.dialog.priceVariable')}
-          </Box>
+          </span>
         ) : undefined,
       }}
       InputLabelProps={{ shrink: true }}
@@ -97,39 +98,29 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       </div>
 
       {/* Onglets tarification (.rm-tariftabs) */}
-      <Box sx={{ ...SEG_WRAP_SX, width: '100%', opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => form.selectPricingMode('custom')}
-          sx={{ ...segBtnSx(form.pricingMode === 'custom'), flex: 1, gap: '5px', padding: '7px' }}
-        >
+      <div
+        className={cn(
+          'inline-flex w-full gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]',
+          locked && 'opacity-50 pointer-events-none',
+        )}
+      >
+        <button type="button" onClick={() => form.selectPricingMode('custom')} className={segTabCls(form.pricingMode === 'custom')}>
           <EditIcon size={13} strokeWidth={1.75} />
           {t('reservations.dialog.tabCustom')}
-        </Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => form.selectPricingMode('discount_euro')}
-          sx={{ ...segBtnSx(form.pricingMode === 'discount_euro'), flex: 1, gap: '5px', padding: '7px' }}
-        >
+        </button>
+        <button type="button" onClick={() => form.selectPricingMode('discount_euro')} className={segTabCls(form.pricingMode === 'discount_euro')}>
           <MinusCircleIcon size={13} strokeWidth={1.75} />
           {t('reservations.dialog.tabDiscountEuro')}
-        </Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => form.selectPricingMode('discount_percent')}
-          sx={{ ...segBtnSx(form.pricingMode === 'discount_percent'), flex: 1, gap: '5px', padding: '7px' }}
-        >
+        </button>
+        <button type="button" onClick={() => form.selectPricingMode('discount_percent')} className={segTabCls(form.pricingMode === 'discount_percent')}>
           <Percent size={13} strokeWidth={1.75} />
           {t('reservations.dialog.tabDiscountPercent')}
-        </Box>
-      </Box>
+        </button>
+      </div>
 
       {/* Récap (.rm-recap) */}
       {form.numberOfNights > 0 && (
-        <Box sx={{ backgroundColor: 'var(--accent-soft)', borderRadius: '12px', padding: '14px 16px' }}>
+        <div className="rounded-[12px] bg-[var(--accent-soft)] px-4 py-[14px]">
           <p className="cn-text-body1 text-[13px] text-[var(--body)] tabular-nums">
             {form.nightsText} · {t('reservations.dialog.accommodation')} :{' '}
             <b className="text-[var(--ink)]">{form.baseAccommodationTotal.toFixed(2)} €</b>
@@ -164,7 +155,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
           >
             {t('reservations.dialog.total')} : {form.totalPrice.toFixed(2)} €
           </Typography>
-        </Box>
+        </div>
       )}
     </>
   );

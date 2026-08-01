@@ -3,7 +3,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Button, Alert, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import { Paper, Button, Alert, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   PersonAdd,
@@ -30,20 +31,17 @@ const BRAND_PRIMARY = '#6B8A9A';
  * Reutilise dans l'en-tete de la page pour coherence brand cross-channel.
  */
 function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
-  const fontSize = size === 'lg' ? 26 : 18;
+  // La taille n'a que deux valeurs : les deux classes sont ecrites en dur,
+  // aucune ne derive d'une variable.
   return (
-    <Box
-      sx={{
-        fontSize,
-        fontWeight: 700,
-        letterSpacing: '-0.02em',
-        color: '#0f172a',
-        lineHeight: 1,
-        userSelect: 'none',
-      }}
+    <div
+      className={cn(
+        'font-bold leading-none tracking-[-0.02em] text-[#0f172a] select-none',
+        size === 'lg' ? 'text-[26px]' : 'text-[18px]',
+      )}
     >
       Baitly<span style={{ color: BRAND_PRIMARY }}>.</span>
-    </Box>
+    </div>
   );
 }
 

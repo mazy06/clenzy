@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Popover, useMediaQuery } from '@mui/material';
+import { Button, Popover, useMediaQuery } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -66,22 +66,14 @@ function InfoRow({
       <span className="text-[var(--muted)] shrink-0" style={{ fontSize: ROW_LABEL_FS }}>
         {label}
       </span>
-      <Box
-        component="span"
-        sx={{
-          ml: 'auto',
-          fontSize: ROW_VALUE_FS,
-          fontWeight: 600,
-          color: valueColor ?? 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
+      {/* `ms-auto` (logique) et non `ml-auto` : le `ml` du sx passait par le plugin
+          RTL d'Emotion, pas les classes Tailwind. */}
+      <span
+        className="ms-auto font-semibold tabular-nums min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+        style={{ fontSize: ROW_VALUE_FS, color: valueColor ?? 'var(--ink)' }}
       >
         {value}
-      </Box>
+      </span>
     </div>
   );
 }
@@ -174,7 +166,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       </div>
 
       {/* Lignes séparées hairline (la 1ère est séparée de l'entête) */}
-      <Box sx={{ '& > *': { borderTop: '1px solid var(--line)' } }}>
+      <div className="[&>*]:border-t [&>*]:border-solid [&>*]:border-t-[var(--line)]">
         <InfoRow
           icon={
             <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: statusColor }} />
@@ -216,10 +208,12 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
             valueColor={payment.color}
           />
         )}
-      </Box>
+      </div>
 
       {/* Pied : Message (outlined neutre) + Détail (outlined accent) */}
-      <div className="flex gap-1.5 p-[10px 14px]" style={{ borderTop: '1px solid var(--line)' }}>
+      {/* `p-[10px 14px]` (espace = classe invalide, silencieusement ignoree)
+          remplace par les deux axes. */}
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
         <Button
           size="small"
           variant="outlined"

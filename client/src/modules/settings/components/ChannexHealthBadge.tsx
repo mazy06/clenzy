@@ -20,6 +20,8 @@ import React from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
 import { Cable, AlertCircle, Pause, Clock, CheckCircle2 } from 'lucide-react';
 
+import { cn } from '../../../utils/cn';
+
 import type { ChannexSyncStatus, ChannexMappingDto } from '../../../services/api/channexApi';
 
 interface ChannexHealthBadgeProps {
@@ -105,34 +107,20 @@ export default function ChannexHealthBadge({
     </div>
   );
 
-  return (
-    <Tooltip title={tooltipContent} arrow placement="top">
-      <Box
-        component={onClick ? 'button' : 'span'}
-        onClick={onClick ? (e: React.MouseEvent) => { e.stopPropagation(); onClick(); } : undefined}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.5,
-          padding: 0,
-          border: 'none',
-          background: 'transparent',
-          cursor: onClick ? 'pointer' : 'default',
-          color: meta.color,
-          lineHeight: 0,
-          ...(onClick && {
-            transition: 'transform 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': { transform: 'scale(1.12)' },
-            '&:focus-visible': {
-              outline: `2px solid ${meta.color}`,
-              outlineOffset: 2,
-              borderRadius: '50%',
-            },
-          }),
-        }}
-        aria-label={meta.label}
-      >
-        {variant === 'icon' ? (
+  // Couleur du statut (runtime) : reste en `style` — une classe Tailwind ne peut
+  // pas naitre d'une variable. `outlineColor` est inerte tant que le focus-visible
+  // n'a pas pose la largeur d'outline.
+  const badgeStyle: React.CSSProperties = { color: meta.color, outlineColor: meta.color };
+  const badgeClass = cn(
+    'inline-flex items-center gap-[3px] p-0 border-none bg-transparent leading-[0]',
+    onClick
+      ? 'cursor-pointer transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.12] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:rounded-[50%]'
+      : 'cursor-default',
+  );
+
+  const badgeContent = (
+    <>
+      {variant === 'icon' ? (
           <div className="relative rounded-[50%] inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
             <Cable size={size} strokeWidth={2.2} />
             {/* Dot exposant en bas a droite */}
@@ -173,7 +161,25 @@ export default function ChannexHealthBadge({
             }}
           />
         )}
-      </Box>
+    </>
+  );
+
+  return (
+    <Tooltip title={tooltipContent} arrow placement="top">
+      {onClick ? (
+        <button
+          className={badgeClass}
+          style={badgeStyle}
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onClick(); }}
+          aria-label={meta.label}
+        >
+          {badgeContent}
+        </button>
+      ) : (
+        <span className={badgeClass} style={badgeStyle} aria-label={meta.label}>
+          {badgeContent}
+        </span>
+      )}
     </Tooltip>
   );
 }

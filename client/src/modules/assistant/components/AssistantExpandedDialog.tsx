@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { Card } from '../../../components/ui';
-import { Dialog, Box, Typography, IconButton, Tooltip, Paper, useTheme } from '@mui/material';
+import { Dialog, Typography, IconButton, Tooltip, Paper, useTheme } from '@mui/material';
 import { Close as CloseIcon, FullscreenExit as MinimizeIcon } from '../../../icons';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import { MessageList } from './MessageList';
@@ -188,31 +188,13 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
                 </div>
                 <div className="flex flex-wrap gap-1.5 justify-center max-w-[640px]">
                   {SUGGESTED_PROMPTS.map((prompt) => (
-                    <Box
+                    <button
                       key={prompt}
-                      component="button"
                       onClick={() => sendMessage(prompt)}
-                      sx={{
-                        px: '14px',
-                        py: '8px',
-                        border: 'none',
-                        borderRadius: 999,
-                        bgcolor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        fontFamily: 'inherit',
-                        fontSize: '12.5px',
-                        fontWeight: 600,
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        transition: 'background .15s, color .15s, transform .12s',
-                        '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
-                        '&:active': { transform: 'scale(.97)' },
-                        '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                      }}
+                      className="px-[14px] py-2 border-none rounded-[999px] bg-[var(--accent-soft)] text-[var(--accent)] font-[inherit] text-[12.5px] font-semibold text-left cursor-pointer [transition:background_.15s,color_.15s,transform_.12s] motion-reduce:[transition:none] hover:bg-[var(--accent)] hover:text-[var(--on-accent)] active:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                     >
                       {prompt}
-                    </Box>
+                    </button>
                   ))}
                 </div>
               </div>

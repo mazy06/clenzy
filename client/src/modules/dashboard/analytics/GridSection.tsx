@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -28,22 +28,6 @@ const SUBTITLE_SX = {
   lineHeight: 1.2,
 } as const;
 
-const BADGE_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minWidth: 18,
-  height: 18,
-  borderRadius: 'var(--radius-pill)',
-  bgcolor: 'var(--err)',
-  color: 'var(--on-accent)',
-  fontSize: '0.5625rem',
-  fontWeight: 700,
-  fontVariantNumeric: 'tabular-nums',
-  ml: 0.75,
-  px: 0.5,
-} as const;
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const GridSection: React.FC<GridSectionProps> = React.memo(({
@@ -57,7 +41,7 @@ const GridSection: React.FC<GridSectionProps> = React.memo(({
     <div className="flex items-center mb-1">
       <Typography sx={SECTION_TITLE_SX}>{title}</Typography>
       {badge !== undefined && badge > 0 && (
-        <Box sx={BADGE_SX}>{badge}</Box>
+        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-[var(--radius-pill)] bg-[var(--err)] text-[var(--on-accent)] text-[9px] font-bold tabular-nums ml-[4.5px] px-[3px]">{badge}</span>
       )}
     </div>
     {subtitle && (

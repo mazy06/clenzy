@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Skeleton } from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Skeleton } from '@mui/material';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -12,7 +12,6 @@ import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { SPACING } from '../../theme/spacing';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
 
@@ -144,8 +143,9 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
   };
 
   // ── Render ──────────────────────────────────────────────────────────
+  // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6.
   return (
-    <Box sx={{ p: embedded ? 0 : SPACING.PAGE_PADDING }}>
+    <div className={embedded ? 'p-0' : 'p-3'}>
       {!embedded && (
         <PageHeader
           title="Voyageurs"
@@ -324,7 +324,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
           />
         </Paper>
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -24,7 +24,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Typography, IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
+import { Typography, IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -149,18 +149,11 @@ export default function ChannexPreflightBanner({
   return (
     <div className="rounded-[8px] overflow-hidden" style={{ border: `1px solid ${accent}33`, backgroundColor: `${accent}08` }}>
       {/* Header (toujours visible) */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.25,
-          px: 1.5,
-          py: 1.25,
-          cursor: 'pointer',
-          userSelect: 'none',
-          '&:hover': { bgcolor: `${accent}12` },
-          transition: 'background-color 150ms',
-        }}
+      {/* La teinte de survol depend du verdict (calcule au rendu) : on la passe par
+          variable CSS, une classe Tailwind ne pouvant pas naitre d'une valeur d'execution. */}
+      <div
+        className="flex items-center gap-[7.5px] px-[9px] py-[7.5px] cursor-pointer select-none transition-[background-color] duration-150 hover:bg-[var(--pf-hover)]"
+        style={{ '--pf-hover': `${accent}12` } as React.CSSProperties}
         onClick={() => setCollapsed((c) => !c)}
       >
         <div className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}1A`, color: accent }}>
@@ -227,7 +220,7 @@ export default function ChannexPreflightBanner({
             <ChevronUp size={16} color={accent} strokeWidth={2.2} />
           )}
         </IconButton>
-      </Box>
+      </div>
 
       {/* Corps (deroulable) */}
       <Collapse in={!collapsed}>

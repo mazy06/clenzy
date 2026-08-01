@@ -260,9 +260,9 @@ export default function WhatsAppProviderConfigSection() {
               'Nous recommandons OpenWA uniquement pour les phases de test ou les organisations en trial. ' +
               'Pour la production B2B, utilisez Meta Cloud API officielle.')}
           >
-            <Box component="span" sx={{ display: 'inline-flex', cursor: 'help', color: 'warning.main' }}>
+            <span className="inline-flex cursor-help text-[#D4A574]">
               <InfoOutlined size={15} strokeWidth={1.75} />
-            </Box>
+            </span>
           </Tooltip>
         </Alert>
       )}
@@ -489,19 +489,9 @@ interface ProviderOptionCardProps {
 function FieldInfo({ text }: { text: string }) {
   return (
     <Tooltip arrow title={text}>
-      <Box
-        component="span"
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          cursor: 'help',
-          color: 'text.disabled',
-          transition: 'color 150ms ease-out',
-          '&:hover': { color: 'text.secondary' },
-        }}
-      >
+      <span className="inline-flex items-center cursor-help text-[var(--faint)] [transition:color_150ms_ease-out] hover:text-[var(--muted)]">
         <InfoOutlined size={15} strokeWidth={1.75} />
-      </Box>
+      </span>
     </Tooltip>
   );
 }
@@ -580,7 +570,7 @@ function ProviderOptionCard({
           <Stack spacing={0.5} sx={{ py: 0.5 }}>
             {pros.map((p) => (
               <div className="flex items-start gap-1 text-[0.72rem]" key={p}>
-                <span className="text-[#6BB5A8] font-bold leading-[1.4]">✓</span>
+                <span className="text-[var(--mui-success-l)] font-bold leading-[1.4]">✓</span>
                 <span>{p}</span>
               </div>
             ))}
@@ -593,19 +583,9 @@ function ProviderOptionCard({
           </Stack>
         }
       >
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex',
-            flexShrink: 0,
-            color: 'text.secondary',
-            cursor: 'help',
-            transition: 'color 150ms ease-out',
-            '&:hover': { color: 'text.primary' },
-          }}
-        >
+        <span className="inline-flex shrink-0 cursor-help text-[var(--muted)] [transition:color_150ms_ease-out] hover:text-[var(--ink)]">
           <InfoOutlined size={16} strokeWidth={1.75} />
-        </Box>
+        </span>
       </Tooltip>
     </Box>
   );

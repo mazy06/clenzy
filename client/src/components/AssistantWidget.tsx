@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, IconButton, Popper, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
+import { IconButton, Popper, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
+import { cn } from '../utils/cn';
 import type { PopperPlacementType } from '@mui/material';
 import type { Instance as PopperInstance } from '@popperjs/core';
 import { useLocation } from 'react-router-dom';
@@ -421,13 +422,11 @@ const AssistantWidget: React.FC = () => {
               bulle qui "sort" de lui. Scale applique sur ce wrapper (pas sur le
               IconButton) pour ne pas entrer en conflit avec le translate du drag.
               Easing legerement elastique (overshoot) pour un "pop". */}
-          <Box
-            sx={{
-              display: 'flex',
-              transform: open ? 'scale(0.62)' : 'scale(1)',
-              transition: 'transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+          <div
+            className={cn(
+              'flex transition-transform duration-[260ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none',
+              open ? 'scale-[0.62]' : 'scale-100',
+            )}
           >
             <BaitlyMarkLogo
               variant="mark"
@@ -435,7 +434,7 @@ const AssistantWidget: React.FC = () => {
               idleAnimation={false}
               active
             />
-          </Box>
+          </div>
         </IconButton>
       </Tooltip>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Box, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { VerifiedUser, Replay, HourglassEmpty, Check } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -20,13 +20,7 @@ import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 // Un provider gouvernemental en attente (501) affiche un message clair plutôt
 // qu'une erreur brute.
 
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 const PROVIDER_LABELS: Record<string, string> = {
   CHEKIN: 'Chekin',
@@ -117,9 +111,9 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
         <span className="inline-flex text-[var(--faint)]">
           <VerifiedUser size={13} strokeWidth={1.75} />
         </span>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>
           {t('reservations.compliance.title', 'Fiche de police')}
-        </Box>
+        </span>
       </div>
 
       <div className="flex flex-col gap-1">

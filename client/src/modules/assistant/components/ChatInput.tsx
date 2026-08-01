@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, IconButton, InputBase, Tooltip } from '@mui/material';
+import { IconButton, InputBase, Tooltip } from '@mui/material';
 import {
   Send as SendIcon,
   Close as XIcon,
@@ -167,18 +167,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       {/* Boîte .mg-cbox : champ + outils + envoi */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 1.25,
-          bgcolor: 'var(--field)',
-          border: '1px solid var(--field-line)',
-          borderRadius: '13px',
-          p: '8px 8px 8px 14px',
-          transition: 'border-color .14s',
-          '&:focus-within': { borderColor: 'var(--accent)' },
-        }}
+      <div
+        className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] pt-2 pr-2 pb-2 pl-[14px] focus-within:border-[var(--accent)]"
+        style={{ transition: 'border-color .14s' }}
       >
         <InputBase
           inputRef={inputRef}
@@ -277,7 +268,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <SendIcon size={15} strokeWidth={1.75} />
           </IconButton>
         )}
-      </Box>
+      </div>
       </div>
     </div>
   );

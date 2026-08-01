@@ -185,14 +185,10 @@ export function MapboxPropertyMap({
   }
 
   return (
-    <Box
+    <div
       ref={mapContainerRef}
-      sx={{
-        height,
-        width: '100%',
-        borderRadius: 1,
-        overflow: 'hidden',
-      }}
+      className="w-full rounded-lg overflow-hidden"
+      style={{ height }}
     />
   );
 }

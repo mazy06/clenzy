@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box } from '@mui/material';
 import {
   ResponsiveContainer,
   PieChart,
@@ -108,12 +107,11 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
                   {entry.value}
                 </p>
                 <div className="w-[40px] h-[4px] bg-[var(--hover)] rounded-[2px] overflow-hidden shrink-0">
-                  <Box sx={{
-                    height: '100%', width: `${pct}%`,
-                    bgcolor: entry.color, borderRadius: 2,
-                    transition: 'width 0.4s ease',
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }} />
+                  {/* Largeur et teinte sont calculees par entree : elles passent par `style`. */}
+                  <div
+                    className="h-full rounded-[16px] transition-[width] duration-[400ms] ease-[ease] motion-reduce:transition-none"
+                    style={{ width: `${pct}%`, backgroundColor: entry.color }}
+                  />
                 </div>
                 <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] min-w-[28px] text-end tabular-nums">
                   {pct.toFixed(0)}%

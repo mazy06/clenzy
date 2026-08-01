@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip, Typography } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip, Typography } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -202,11 +202,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             {form.subject || `Formulaire #${form.id}`}
           </Typography>
           {/* .fr-dcontact : email / tél / adresse avec icônes accent */}
-          <Box sx={{
-            display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '7px 16px',
-            mt: '11px', fontSize: '13px', color: 'var(--body)',
-            '& svg': { color: 'var(--accent)', flexShrink: 0 },
-          }}>
+          <div className="flex flex-wrap items-center gap-y-[7px] gap-x-4 mt-[11px] text-[13px] text-[var(--body)] [&_svg]:text-[var(--accent)] [&_svg]:shrink-0">
             {form.email && (
               <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`mailto:${form.email}`}>
                 <MailIcon size={15} strokeWidth={1.75} />
@@ -225,7 +221,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                 {[form.city, form.postalCode].filter(Boolean).join(' ')}
               </span>
             )}
-          </Box>
+          </div>
         </div>
         {/* .fr-dright : pilule statut + date + IP */}
         <div className="ms-auto text-end shrink-0">
@@ -323,33 +319,26 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
       {/* .fr-docs : documents générés */}
       {priorGenerations && priorGenerations.length > 0 && (
         <div className="mt-6">
-          <Box sx={{
-            display: 'flex', alignItems: 'center', gap: '8px', mb: '12px',
-            fontSize: '13px', fontWeight: 700, color: 'var(--ink)',
-            '& svg': { color: 'var(--muted)' },
-          }}>
+          <div className="flex items-center gap-2 mb-3 text-[13px] font-bold text-[var(--ink)] [&_svg]:text-[var(--muted)]">
             <HistoryIcon size={15} strokeWidth={1.75} />
             Documents générés ({priorGenerations.length})
-          </Box>
+          </div>
           <div className="flex flex-col gap-2">
             {priorGenerations.slice(0, 5).map((gen) => {
               const isFailed = gen.status === 'FAILED';
               return (
-                <Box
+                <div
                   key={gen.id}
                   onClick={isFailed
                     ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
                     : () => openPreview(gen)}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
-                    border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
-                    borderRadius: '12px', cursor: 'pointer',
-                    bgcolor: isFailed ? 'var(--err-soft)' : 'transparent',
-                    transition: 'border-color .14s, box-shadow .14s',
-                    '&:hover': isFailed
-                      ? { borderColor: 'var(--err)', boxShadow: '0 8px 22px -16px var(--err)' }
-                      : { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                  }}
+                  className={cn(
+                    'flex items-center gap-3 py-[13px] px-[15px] border border-solid rounded-[12px] cursor-pointer',
+                    'transition-[border-color,box-shadow] duration-[140ms]',
+                    isFailed
+                      ? 'border-[var(--err)] bg-[var(--err-soft)] hover:shadow-[0_8px_22px_-16px_var(--err)]'
+                      : 'border-[var(--line)] bg-transparent hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)]',
+                  )}
                 >
                   <div className="w-[34px] h-[34px] rounded-[9px] bg-[var(--err)] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold">
                     {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
@@ -376,7 +365,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                     {isFailed ? 'Détail' : 'Aperçu'}
                     <ArrowRightIcon size={14} strokeWidth={1.75} />
                   </span>
-                </Box>
+                </div>
               );
             })}
           </div>

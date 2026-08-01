@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card } from '../../components/ui';
-import { Box } from '@mui/material';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
 import PlanningPropertyColumn from './PlanningPropertyColumn';
@@ -186,20 +185,16 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
         onDragEnd={drag.handleDragEnd}
         onDragCancel={drag.handleDragCancel}
       >
-        <Box
-          ref={scrollRef}
+        {/* Jamais de scroll vertical : la grille paginée et l'accordéon (dont la
+            hauteur est calculée pour tenir dans le viewport) ne débordent pas.
+            La barre de défilement est masquée sur les deux moteurs. */}
+        <div
+          // Box typait son `ref` souplement ; un element intrinseque exige un
+          // `RefObject<HTMLDivElement>` strict, la ou le hook expose
+          // `RefObject<HTMLDivElement | null>`. Meme objet, simple variance.
+          ref={scrollRef as React.RefObject<HTMLDivElement>}
           onScroll={onScroll}
-          sx={{
-            flex: 1,
-            overflowX: 'auto',
-            // Jamais de scroll vertical : la grille paginée et l'accordéon (dont la
-            // hauteur est calculée pour tenir dans le viewport) ne débordent pas.
-            overflowY: 'hidden',
-            position: 'relative',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',           // Firefox
-            '&::-webkit-scrollbar': { display: 'none' },  // Chrome/Safari
-          }}
+          className="flex-1 relative overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {/* Scrollable content: headers + rows */}
           <div className="min-w-full" style={{ width: propertyColWidth + totalGridWidth }}>
@@ -280,23 +275,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     {expandedPropertyId === property.id && renderExpanded && (
                       <div className="relative bg-[var(--bg)]" style={{ width: totalGridWidth, height: accordionHeight, borderBottom: '1px solid var(--line)' }}>
                         {/* Panneau calé sur le viewport (sticky-left) + tiré sous la
-                            colonne sticky (ml négatif) → plein largeur, ne défile pas. */}
-                        <Box
-                          sx={{
-                            position: 'sticky',
-                            left: 0,
-                            ml: `-${propertyColWidth}px`,
-                            width: viewport.width || '100%',
-                            height: '100%',
-                            zIndex: 11,
-                            // Pas de padding : le canvas sombre (flush) couvre TOUT
-                            // l'accordéon, sans espace vide autour.
-                            p: 0,
-                            boxSizing: 'border-box',
-                          }}
+                            colonne sticky (ml négatif) → plein largeur, ne défile pas.
+                            Pas de padding : le canvas sombre (flush) couvre TOUT
+                            l'accordéon. Retrait gauche et largeur sont calculés → `style`. */}
+                        <div
+                          className="sticky left-0 h-full z-[11] p-0 box-border"
+                          style={{ marginLeft: `-${propertyColWidth}px`, width: viewport.width || '100%' }}
                         >
                           {renderExpanded(property)}
-                        </Box>
+                        </div>
                       </div>
                     )}
                   </React.Fragment>
@@ -310,7 +297,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               </div>
             </div>
           </div>
-        </Box>
+        </div>
 
         {/* Drag ghost overlay — only for move, resize uses live width on the bar */}
         <DragOverlay dropAnimation={null}>

@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Button, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
+import { Button, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -1077,7 +1077,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             const done = i < step;
             return (
               <Tooltip key={label} title={label} arrow>
-                <Box
+                <div
                   role="button"
                   aria-label={label}
                   aria-current={active ? 'step' : undefined}
@@ -1089,35 +1089,19 @@ const WelcomeGuideAdmin: React.FC = () => {
                       goToStep(i);
                     }
                   }}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    fontVariantNumeric: 'tabular-nums',
-                    userSelect: 'none',
-                    cursor: 'pointer',
-                    bgcolor: active ? 'var(--accent)' : done ? 'var(--accent-soft)' : 'var(--hover)',
-                    color: active ? 'var(--on-accent)' : done ? 'var(--accent)' : 'var(--muted)',
-                    border: '1px solid',
-                    borderColor: active
-                      ? 'var(--accent)'
-                      : done
-                        ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
-                        : 'var(--line)',
-                    transition: 'background-color .18s ease, color .18s ease, border-color .18s ease',
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    '&:hover': !active ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined,
-                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                  }}
+                  className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[13px] font-semibold tabular-nums select-none cursor-pointer border border-solid',
+                    'transition-[background-color,color,border-color] duration-[180ms] ease-[ease] motion-reduce:transition-none',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                    active && 'bg-[var(--accent)] text-[var(--on-accent)] border-[var(--accent)]',
+                    // Le hover n'existait que hors etape active (sx `!active ? … : undefined`).
+                    !active && 'hover:border-[var(--accent)] hover:text-[var(--accent)]',
+                    !active && done && 'bg-[var(--accent-soft)] text-[var(--accent)] border-[color-mix(in_srgb,_var(--accent)_35%,_transparent)]',
+                    !active && !done && 'bg-[var(--hover)] text-[var(--muted)] border-[var(--line)]',
+                  )}
                 >
                   {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
-                </Box>
+                </div>
               </Tooltip>
             );
           })}
@@ -1280,7 +1264,8 @@ const WelcomeGuideAdmin: React.FC = () => {
 
   // ─── Render: form ──────────────────────────────────────────────────────────
   const renderForm = () => (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 392px' }, gap: 3, alignItems: 'start' }}>
+    // Rupture MUI lg = 1200px (breakpoints non configures) ; gap: 3 = 18px.
+    <div className="grid grid-cols-[1fr] min-[1200px]:grid-cols-[minmax(0,_1fr)_392px] gap-[18px] items-start">
       <Stack spacing={2.5}>
       {renderStepper()}
 
@@ -1443,26 +1428,18 @@ const WelcomeGuideAdmin: React.FC = () => {
                   </div>
                 }
               >
-                <Box
+                {/* borderRadius: 1.5 avec theme.shape.borderRadius = 8 => 12px. */}
+                <div
                   role="button"
                   aria-label={t(`welcomeGuide.themes.${th.id}.name`, th.name)}
                   onClick={() => setTheme(th.id)}
-                  sx={{
-                    position: 'relative',
-                    flexShrink: 0,
-                    width: 52,
-                    height: 52,
-                    borderRadius: 1.5,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: on
-                      ? '0 0 0 2px var(--accent), 0 0 0 4px var(--accent-soft)'
-                      : 'inset 0 0 0 1px var(--line-2)',
-                    transition: 'box-shadow .15s',
-                    '&:hover': on ? undefined : { boxShadow: 'inset 0 0 0 1px var(--faint)' },
-                  }}
+                  className={cn(
+                    'relative shrink-0 w-[52px] h-[52px] rounded-[12px] overflow-hidden cursor-pointer flex flex-col',
+                    'transition-shadow duration-150',
+                    on
+                      ? 'shadow-[0_0_0_2px_var(--accent),0_0_0_4px_var(--accent-soft)]'
+                      : 'shadow-[inset_0_0_0_1px_var(--line-2)] hover:shadow-[inset_0_0_0_1px_var(--faint)]',
+                  )}
                 >
                   <div className="flex-1" style={{ backgroundColor: th.swatch.bg }} />
                   <div className="flex-1" style={{ backgroundColor: th.swatch.surface }} />
@@ -1474,7 +1451,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                       </div>
                     </div>
                   ) : null}
-                </Box>
+                </div>
               </Tooltip>
             );
           })}
@@ -1996,7 +1973,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       </Stack>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
-      <Box sx={{ position: { lg: 'sticky' }, top: 12, justifySelf: { xs: 'center', lg: 'start' }, width: '100%' }}>
+      <div className="min-[1200px]:sticky top-3 justify-self-center min-[1200px]:justify-self-start w-full">
         <div className="w-[360px] max-w-full h-[720px] mx-auto rounded-[34px] overflow-hidden border-[10px] border-solid border-[var(--chrome-1)] bg-[var(--chrome-2)]" style={{ boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)' }}>
           <WelcomeBookView
             model={previewModel}
@@ -2008,8 +1985,8 @@ const WelcomeGuideAdmin: React.FC = () => {
             previewFocus={step === 3 ? 'content' : step === 4 ? 'experiences' : 'home'}
           />
         </div>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   return (

@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Button, Alert, Tooltip } from '@mui/material';
+import { Button, Alert, Tooltip } from '@mui/material';
+import { cn } from '../utils/cn';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationOn, DirectionsWalk } from '../icons';
@@ -191,47 +192,26 @@ export function PropertyLocationPicker({
       )}
 
       {/* Map container */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '100%',
-          height,
-          borderRadius: 2,
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: hasCoords ? 'success.main' : 'warning.main',
-        }}
+      {/* `height` est une prop : elle reste en style inline. */}
+      <div
+        className={cn(
+          'relative w-full overflow-hidden rounded-[16px] border border-solid',
+          hasCoords ? 'border-[#4A9B8E]' : 'border-[#D4A574]',
+        )}
+        style={{ height }}
       >
         <div className="w-full h-full" ref={mapContainerRef} />
 
         {/* Floating coordinates badge */}
         {hasCoords && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1.5,
-              px: 1,
-              py: 0.5,
-              fontFamily: 'monospace',
-              fontSize: '0.6875rem',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-            }}
-          >
+          <div className="absolute bottom-[8px] start-[8px] flex items-center gap-[3px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)] px-1.5 py-[3px] text-[0.6875rem] [font-family:monospace] shadow-[0_2px_6px_rgba(0,0,0,0.12)]">
             <span className="inline-flex text-[var(--bui-success-ink)]">
               <LocationOn size={11} strokeWidth={2} />
             </span>
             <p className="cn-text-body1 font-mono text-[0.6875rem] text-foreground">
               {Number(latitude).toFixed(5)}, {Number(longitude).toFixed(5)}
             </p>
-          </Box>
+          </div>
         )}
 
         {/* Floating action buttons */}
@@ -284,7 +264,7 @@ export function PropertyLocationPicker({
             </Tooltip>
           )}
         </div>
-      </Box>
+      </div>
 
       {geoError && (
         <BuiAlert variant="destructive" className="text-[0.75rem] py-0.5">

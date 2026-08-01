@@ -109,29 +109,19 @@ export default function OptionCard({
       </p>
 
       {/* Indicateur radio en haut a droite */}
-      <Box
+      <div
         aria-hidden
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          right: 14,
-          transform: 'translateY(-50%)',
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          border: '1.5px solid',
-          borderColor: selected ? accentColor : 'divider',
-          bgcolor: 'background.paper',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+        className="absolute top-1/2 right-[14px] -translate-y-1/2 w-4 h-4 rounded-[50%] border-[1.5px] border-solid bg-[var(--card)] flex items-center justify-center"
+        style={{
+          // accentColor vient d'une prop / du theme : valeur runtime.
+          borderColor: selected ? accentColor : 'var(--line)',
           transition: 'border-color 150ms ease',
         }}
       >
         {selected && (
           <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
         )}
-      </Box>
+      </div>
     </Box>
   );
 

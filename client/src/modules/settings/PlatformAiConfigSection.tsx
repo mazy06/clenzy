@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Autocomplete, Box, Paper, Typography, TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
+import { Autocomplete, Paper, Typography, TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   Add,
   Edit,
@@ -184,6 +184,10 @@ const subheaderSx = {
   lineHeight: 2.2,
   bgcolor: 'transparent',
 };
+
+// Gabarit de ligne partage par ModelRow et FeatureRow (memes metriques).
+const ROW_CLASS =
+  'flex items-center px-[15px] py-[7.5px] gap-[9px] transition-colors duration-150 hover:bg-[var(--hover)]';
 
 // ─── Model Dialog ──────────────────────────────────────────────────────────
 
@@ -519,7 +523,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
 
           {/* Lien contextuel "Ou trouver ma cle ?" — adapte au provider selectionne */}
           {provider && PROVIDER_API_KEY_URLS[provider] && (
-            <Box sx={{ mt: -1, mb: -0.5 }}>
+            <div className="-mt-1.5 -mb-[3px]">
               <Button
                 component="a"
                 href={keyHelpUrl()}
@@ -543,7 +547,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                   ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
                   : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
               </Button>
-            </Box>
+            </div>
           )}
 
           {/* Base URL */}
@@ -646,17 +650,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
     + (model.availabilityError ? `\n${model.availabilityError}` : '');
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        px: 2.5,
-        py: 1.25,
-        gap: 1.5,
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'action.hover' },
-      }}
-    >
+    <div className={ROW_CLASS}>
       {/* Color dot */}
       <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: providerColor }} />
 
@@ -717,7 +711,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
           {isDeleting ? <Spinner className="size-3.5" /> : <Delete size={16} strokeWidth={1.75} />}
         </IconButton>
       </div>
-    </Box>
+    </div>
   );
 }
 
@@ -881,34 +875,15 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        px: 2.5,
-        py: 1.25,
-        gap: 1.5,
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'action.hover' },
-      }}
-    >
+    <div className={ROW_CLASS}>
       {/* Feature icon */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 34,
-          height: 34,
-          borderRadius: 1.5,
-          bgcolor: alpha(feature.color, isDark ? 0.15 : 0.08),
-          color: feature.color,
-          flexShrink: 0,
-          '& .MuiSvgIcon-root': { fontSize: 18 },
-        }}
+      {/* Couleur derivee de la feature a l'execution : inline, pas de classe. */}
+      <div
+        className="flex items-center justify-center w-[34px] h-[34px] rounded-[12px] shrink-0 [&_.MuiSvgIcon-root]:text-[18px]"
+        style={{ backgroundColor: alpha(feature.color, isDark ? 0.15 : 0.08), color: feature.color }}
       >
         {feature.icon}
-      </Box>
+      </div>
 
       {/* Toggle */}
       <Switch
@@ -1039,7 +1014,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
 
       {/* Loading indicator */}
       {isAssigning && <CircularProgress size={16} sx={{ flexShrink: 0 }} />}
-    </Box>
+    </div>
   );
 }
 
@@ -1226,15 +1201,7 @@ export default function PlatformAiConfigSection() {
           </p>
         </div>
       ) : (
-        <Box
-          sx={{
-            mx: { xs: -2, md: -3 },
-            mb: 2,
-            borderTop: '1px solid',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
+        <div className="-mx-3 min-[900px]:-mx-[18px] mb-3 border-t border-b border-[var(--line)]">
           {modelList.map((model, index) => (
             <React.Fragment key={model.id}>
               {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
@@ -1246,7 +1213,7 @@ export default function PlatformAiConfigSection() {
               />
             </React.Fragment>
           ))}
-        </Box>
+        </div>
       )}
 
       {/* ── Section 2: Feature Assignments ── */}
@@ -1276,14 +1243,7 @@ export default function PlatformAiConfigSection() {
         </BuiAlert>
       )}
 
-      <Box
-        sx={{
-          mx: { xs: -2, md: -3 },
-          borderTop: '1px solid',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <div className="-mx-3 min-[900px]:-mx-[18px] border-t border-b border-[var(--line)]">
         {AI_FEATURES.map((feat, index) => (
           <React.Fragment key={feat.key}>
             {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
@@ -1310,7 +1270,7 @@ export default function PlatformAiConfigSection() {
             />
           </React.Fragment>
         ))}
-      </Box>
+      </div>
 
       {/* ── Section 3: Amorçage des crédits IA ── */}
       <div className="mt-4 mb-1.5">

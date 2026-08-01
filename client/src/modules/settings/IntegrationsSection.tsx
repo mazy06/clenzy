@@ -4,6 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Box, Button, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
 import {
   Link as LinkIcon,
@@ -572,16 +573,11 @@ export default function IntegrationsSection({
       >
       <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* Header */}
-        <Box
-          sx={{
-            px: 2,
-            py: 1.75,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1.5,
-            borderBottom: isConnected ? '1px solid' : undefined,
-            borderColor: 'divider',
-          }}
+        <div
+          className={cn(
+            'px-3 py-[10.5px] flex items-start gap-[9px]',
+            isConnected && 'border-b border-solid border-[var(--line)]',
+          )}
         >
           {/* Brand tile */}
           <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center text-[#fff] font-bold text-[0.85rem] tracking-[0.04em] shrink-0" style={{ backgroundColor: PENNYLANE_BRAND }} aria-hidden="true">
@@ -598,7 +594,7 @@ export default function IntegrationsSection({
           </div>
           {/* Status chip */}
           <div className="shrink-0">{statusChip}</div>
-        </Box>
+        </div>
 
         {/* Body */}
         <div className="p-3">

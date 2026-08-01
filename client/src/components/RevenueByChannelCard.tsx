@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../utils/cn';
 import { Card } from '../components/ui';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { Money } from './Money';
 
 /**
@@ -52,19 +52,19 @@ export default function RevenueByChannelCard({
         {channels.map((c) => {
           const delta = c.comparePct != null ? Math.round((c.pct - c.comparePct) * 10) / 10 : null;
           return (
-            <Box
+            <div
               key={c.name}
-              sx={{
-                display: 'flex', alignItems: 'center', gap: '11px', py: '11px',
-                borderTop: '1px solid var(--line)',
-                '&:first-of-type': { borderTop: 0 },
-              }}
+              className="flex items-center gap-[11px] py-[11px] border-t border-solid border-[var(--line)] first-of-type:border-t-0"
             >
               <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] w-[74px] shrink-0">
                 {c.name}
               </p>
               <div className="flex-1 h-[8px] rounded-[5px] bg-[var(--field)] overflow-hidden">
-                <Box sx={{ height: '100%', borderRadius: '5px', width: `${c.pct}%`, backgroundColor: c.color, transition: 'width .3s var(--ease-out)', '@media (prefers-reduced-motion: reduce)': { transition: 'none' } }} />
+                {/* Largeur et couleur calculees a l'execution : style inline obligatoire. */}
+                <div
+                  className="h-full rounded-[5px] transition-[width] duration-300 ease-[var(--ease-out)] motion-reduce:transition-none"
+                  style={{ width: `${c.pct}%`, backgroundColor: c.color }}
+                />
               </div>
               <div className="shrink-0 text-end min-w-[66px]">
                 {/* Montant (devise) en tête, % + delta en sous-ligne. */}
@@ -86,7 +86,7 @@ export default function RevenueByChannelCard({
                   </div>
                 )}
               </div>
-            </Box>
+            </div>
           );
         })}
       </div>

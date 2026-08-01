@@ -1,6 +1,6 @@
 import React from 'react';
 import { Spinner } from './ui';
-import { Box, Typography, Button } from '@mui/material';
+import { Typography, Button } from '@mui/material';
 import { Refresh, Warning as WarningIcon } from '../icons';
 
 interface LoadingStatesProps {
@@ -56,16 +56,9 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
     <div className="flex flex-col items-center justify-center h-[100vh] gap-3 p-4 bg-[var(--bg)]">
       {state === 'error-loading' ? (
         // Alerte pleine largeur — pattern .rm-conflict : fond -soft + border color-mix 30%
-        <Box
+        <div
           role="alert"
-          sx={{
-            maxWidth: 500,
-            width: '100%',
-            backgroundColor: 'var(--err-soft)',
-            border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-            borderRadius: '12px',
-            padding: '13px 16px',
-          }}
+          className="w-full max-w-[500px] rounded-[12px] px-4 py-[13px] bg-[var(--err-soft)] border border-solid border-[color-mix(in_srgb,var(--err)_30%,transparent)]"
         >
           <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-[var(--ink)]">
             <span className="inline-flex text-[var(--err)]">
@@ -99,7 +92,7 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
               )}
             </div>
           )}
-        </Box>
+        </div>
       ) : (
         <>
           <Spinner className="size-8 text-[var(--accent)]" />

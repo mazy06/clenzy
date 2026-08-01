@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from 'lucide-react';
@@ -505,14 +505,8 @@ const PublicGuide: React.FC = () => {
     };
     return (
       <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: 480,
-            minHeight: '100vh',
-            boxShadow: { xs: 'none', sm: '0 0 80px -20px rgba(35,24,14,0.45)' },
-          }}
-        >
+        {/* sm MUI = 600px, pas le sm=640 de Tailwind */}
+        <div className="w-full max-w-[480px] min-h-[100vh] shadow-none min-[600px]:shadow-[0_0_80px_-20px_rgba(35,24,14,0.45)]">
           <GuideDeclarationForm
             lang={lang}
             labels={L}
@@ -520,7 +514,7 @@ const PublicGuide: React.FC = () => {
             missingFields={dc.missingFields}
             onSubmit={handleDeclarationSubmit}
           />
-        </Box>
+        </div>
       </div>
     );
   }
@@ -617,16 +611,7 @@ const PublicGuide: React.FC = () => {
   return (
     <>
       <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
-        <Box
-          sx={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: 480,
-            height: '100vh',
-            overflow: 'hidden',
-            boxShadow: { xs: 'none', sm: '0 0 80px -20px rgba(35,24,14,0.45)' },
-          }}
-        >
+        <div className="relative w-full max-w-[480px] h-[100vh] overflow-hidden shadow-none min-[600px]:shadow-[0_0_80px_-20px_rgba(35,24,14,0.45)]">
           <WelcomeBookView
             model={model}
             theme={theme}
@@ -738,7 +723,7 @@ const PublicGuide: React.FC = () => {
               </>
             ) : null}
           </WelcomeBookView>
-        </Box>
+        </div>
       </div>
 
       {/* Paiement d'un service additionnel (upsell) — Stripe embedded */}

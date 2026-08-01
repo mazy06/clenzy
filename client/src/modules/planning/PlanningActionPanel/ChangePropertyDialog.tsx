@@ -5,7 +5,7 @@ import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Button, Divider } from '@mui/material';
 import {
   Close,
   Home,
@@ -191,23 +191,17 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                 : '';
 
               return (
-                <Box
+                <div
                   key={property.id}
                   onClick={() => setSelectedPropertyId(property.id)}
-                  sx={{
-                    p: 1.5,
-                    borderRadius: '10px',
-                    border: '1px solid',
-                    borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
-                    backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--card)',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s ease, background-color 0.15s ease',
-                    '&:hover': {
-                      borderColor: isSelected ? 'var(--accent)' : 'var(--faint)',
-                      backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--hover)',
-                    },
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
+                  className={cn(
+                    'p-[9px] rounded-[10px] border border-solid cursor-pointer',
+                    'transition-[border-color,background-color] duration-150 ease-[ease] motion-reduce:transition-none',
+                    // Selectionne : le survol ne change rien, donc pas de variante hover.
+                    isSelected
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                  )}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -227,7 +221,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                     )}
                     <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${property.maxGuests} pers. max`}</Badge>
                   </div>
-                </Box>
+                </div>
               );
             })}
           </div>

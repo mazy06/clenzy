@@ -3,7 +3,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Typography, TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
+import { Typography, TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -38,45 +38,18 @@ function NudgeBadge({ amount, rate }: { amount: number | null; rate: Housekeeper
   const inMarket = amount >= rate.advisoryMin && amount <= rate.advisoryMax;
   if (inMarket) {
     return (
-      <Box
-        component="span"
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          fontSize: '10.5px',
-          fontWeight: 700,
-          color: 'var(--ok, #4A9B8E)',
-          backgroundColor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)',
-          borderRadius: '7px',
-          padding: '2px 7px',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <span className="inline-flex items-center gap-[4px] text-[10.5px] font-bold whitespace-nowrap rounded-[7px] px-[7px] py-[2px] text-[var(--ok,#4A9B8E)] bg-[color-mix(in_srgb,var(--ok,#4A9B8E)_12%,transparent)]">
         <CheckCircle size={11} strokeWidth={2} />
         {t('settings.myRates.inMarket')}
-      </Box>
+      </span>
     );
   }
 
   const deltaPct = Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100);
   return (
-    <Box
-      component="span"
-      sx={{
-        fontSize: '10.5px',
-        fontWeight: 700,
-        color: 'var(--muted)',
-        backgroundColor: 'var(--field)',
-        border: '1px solid var(--field-line)',
-        borderRadius: '7px',
-        padding: '2px 7px',
-        whiteSpace: 'nowrap',
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
+    <span className="text-[10.5px] font-bold whitespace-nowrap tabular-nums rounded-[7px] px-[7px] py-[2px] text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]">
       {deltaPct > 0 ? '+' : ''}{deltaPct} % {t('settings.myRates.vsAdvisory')}
-    </Box>
+    </span>
   );
 }
 
@@ -218,16 +191,11 @@ export default function MyRatesSettings() {
               const raw = flats[property.propertyId] ?? '';
               const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
               return (
-                <Box
+                // Le `& + &` d'origine ne separait que les lignes suivantes :
+                // filet sur toutes, puis annule sur la premiere.
+                <div
                   key={property.propertyId}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    py: 1.25,
-                    flexWrap: 'wrap',
-                    '& + &': { borderTop: '1px solid var(--line)' },
-                  }}
+                  className="flex items-start flex-wrap gap-3 py-[7.5px] border-t border-solid border-t-[var(--line)] first:border-t-0"
                 >
                   <p className="cn-text-body1 flex-1 min-w-[160px] text-[13px] font-semibold text-[var(--ink)] pt-1.5">
                     {property.propertyName}
@@ -255,7 +223,7 @@ export default function MyRatesSettings() {
                       · {t('settings.myRates.advisoryMedian')} <b>{property.advisoryRecommended} €</b>
                     </p>
                   </div>
-                </Box>
+                </div>
               );
             })}
           </div>

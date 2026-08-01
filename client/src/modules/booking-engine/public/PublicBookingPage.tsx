@@ -2,7 +2,6 @@ import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Box } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import BaitlyBooking from '../sdk';
@@ -242,8 +241,8 @@ export default function PublicBookingPage() {
   }
 
   return (
-    <Box style={themeVars(config.primaryColor, config.fontFamily, tokens)}
-      sx={{ minHeight: '100vh', bgcolor: 'var(--card)', color: 'var(--ink)', containerType: 'inline-size' }}>
+    <div style={themeVars(config.primaryColor, config.fontFamily, tokens)}
+      className="min-h-[100vh] bg-[var(--card)] text-[var(--ink)] [container-type:inline-size]">
       {config.customCss && <style>{config.customCss}</style>}
 
       {/* Page composée HOME (GrapesJS) : CSS scopé brut (assaini) + HTML assaini injecté.
@@ -276,7 +275,7 @@ export default function PublicBookingPage() {
 
       {/* Concierge IA (2.13) — bulle flottante, affichée seulement si l'org a activé l'IA. */}
       {apiKey && <PublicConcierge apiKey={apiKey} />}
-    </Box>
+    </div>
   );
 }
 

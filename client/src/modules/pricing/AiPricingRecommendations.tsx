@@ -3,7 +3,7 @@ import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Box, Typography, Paper, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
+import { Typography, Paper, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AutoAwesome,
   TrendingUp,
@@ -36,13 +36,6 @@ const CARD_SX = {
   '&:hover': { borderColor: 'var(--line-2)' },
 } as const;
 
-const HEADER_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  mb: 1.5,
-} as const;
-
 function isAiNotConfiguredError(error: unknown): boolean {
   const apiErr = error as { details?: Record<string, unknown> } | undefined;
   const errorCode = apiErr?.details?.errorCode;
@@ -72,12 +65,12 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     if (isLoading) {
       return (
         <Paper sx={CARD_SX}>
-          <Box sx={HEADER_SX}>
+          <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
-          </Box>
+          </div>
           <div className="flex flex-col gap-1.5">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} variant="rounded" height={48} />
@@ -93,12 +86,12 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
 
       return (
         <Paper sx={CARD_SX}>
-          <Box sx={HEADER_SX}>
+          <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
-          </Box>
+          </div>
           {aiNotConfigured ? (
             <Alert variant="info" className="text-[0.75rem]">
               <Info />
@@ -128,12 +121,12 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     if (!data || data.length === 0) {
       return (
         <Paper sx={CARD_SX}>
-          <Box sx={HEADER_SX}>
+          <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
-          </Box>
+          </div>
           <Typography variant="body2" color="text.secondary" fontSize="0.75rem">
             {t('bookingEngine.ai.pricing.loading')}
           </Typography>
@@ -144,13 +137,13 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     // ── Content ───────────────────────────────────────────────────────
     return (
       <Paper sx={CARD_SX}>
-        <Box sx={HEADER_SX}>
+        <div className="flex items-center gap-1.5 mb-[9px]">
           <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.pricing.title')}
           </Typography>
           <Badge variant="default" className="h-[20px] text-[0.65rem] font-bold">{`${data.length}`}</Badge>
-        </Box>
+        </div>
 
         <div className="flex flex-col gap-1.5">
           {data.map((rec) => (

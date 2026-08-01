@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton, Button } from '@mui/material';
+import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton, Button } from '@mui/material';
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
@@ -580,7 +580,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           {previewQuery.data && (
             <>
               {/* Quotes par type */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 2, '@media (max-width: 700px)': { gridTemplateColumns: '1fr' } }}>
+              <div className="mb-3 grid grid-cols-[repeat(3,_1fr)] gap-[9px] max-[700px]:grid-cols-[1fr]">
                 {MULTIPLIER_KEYS.map((type) => {
                   const q = previewQuery.data.quotes?.[type];
                   if (!q) return null;
@@ -598,7 +598,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                     </div>
                   );
                 })}
-              </Box>
+              </div>
 
               {/* Décomposition minutes */}
               <div className="border border-[var(--line)] rounded-[11px] overflow-hidden max-w-[420px]">

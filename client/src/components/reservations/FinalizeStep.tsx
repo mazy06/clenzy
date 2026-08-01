@@ -1,13 +1,30 @@
 import React from 'react';
-import { Box, Typography, TextField, Tooltip } from '@mui/material';
+import { Typography, TextField, Tooltip } from '@mui/material';
 import { CheckCircle, CreditCard, Mail } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, SEG_WRAP_SX, segBtnSx, FIELD_SX, AdornIcon } from './reservationDialogStyles';
+import { SEC_SX, FIELD_SX, AdornIcon } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
 }
+
+/**
+ * Transcription de `segBtnSx` (reservationDialogStyles) en classes : seuls le fond,
+ * la couleur et l'ombre dependent de l'etat actif. `background: none` du sx d'origine
+ * devient `bg-transparent` — sans lui le bouton reprendrait le fond gris de l'UA.
+ */
+const segBtnClass = (on: boolean) =>
+  cn(
+    'inline-flex flex-1 items-center justify-center gap-[6px] border-0 rounded-[7px] p-[9px]',
+    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap cursor-pointer',
+    'transition-[background-color,color] duration-[140ms]',
+    'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
+    on
+      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
+      : 'bg-transparent text-[var(--muted)] shadow-none',
+  );
 
 /** Étape 4 : intention de paiement + email du lien (si demande de paiement) + récapitulatif. */
 const FinalizeStep: React.FC<Props> = ({ form }) => {
@@ -25,30 +42,28 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
   return (
     <>
       {/* Intention : confirmer maintenant / demander le paiement (déplacé de l'entête) */}
-      <Box sx={{ ...SEG_WRAP_SX, width: '100%' }}>
+      <div className="inline-flex w-full gap-[2px] p-[3px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)]">
         <Tooltip title={t('reservations.dialog.confirmNowHint')} arrow>
-          <Box
-            component="button"
+          <button
             type="button"
             onClick={() => form.setPaymentIntent('confirm_now')}
-            sx={{ ...segBtnSx(form.paymentIntent === 'confirm_now'), flex: 1, padding: '9px' }}
+            className={segBtnClass(form.paymentIntent === 'confirm_now')}
           >
             <CheckCircle size={14} strokeWidth={1.75} />
             {t('reservations.dialog.confirmNow')}
-          </Box>
+          </button>
         </Tooltip>
         <Tooltip title={t('reservations.dialog.requestPaymentHint')} arrow>
-          <Box
-            component="button"
+          <button
             type="button"
             onClick={() => form.setPaymentIntent('request_payment')}
-            sx={{ ...segBtnSx(form.paymentIntent === 'request_payment'), flex: 1, padding: '9px' }}
+            className={segBtnClass(form.paymentIntent === 'request_payment')}
           >
             <CreditCard size={14} strokeWidth={1.75} />
             {t('reservations.dialog.requestPayment')}
-          </Box>
+          </button>
         </Tooltip>
-      </Box>
+      </div>
 
       {/* Email destinataire du lien de paiement (déplacé de GuestSection) */}
       {form.requestPayment && (
@@ -68,7 +83,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
       )}
 
       {/* Récapitulatif lecture seule */}
-      <Box sx={{ borderRadius: '12px', border: '1px solid var(--line)', backgroundColor: 'var(--surface-2)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--surface-2)] px-[18px] py-4">
         <Typography sx={SEC_SX}>{t('reservations.dialog.recapTitle')}</Typography>
         {recapRows.map((row) => (
           <div className="flex items-baseline justify-between gap-3" key={row.label}>
@@ -76,14 +91,14 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
             <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{row.value}</Typography>
           </div>
         ))}
-        <Box sx={{ height: '1px', backgroundColor: 'var(--line)', margin: '2px 0' }} />
+        <div className="h-px my-[2px] bg-[var(--line)]" />
         <div className="flex items-baseline justify-between gap-3">
           <p className="cn-text-body1 text-[12px] font-bold text-[var(--ink)]">{t('reservations.dialog.recapTotal')}</p>
           <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
             {form.totalPrice.toFixed(2)} €
           </p>
         </div>
-      </Box>
+      </div>
     </>
   );
 };

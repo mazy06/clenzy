@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -129,38 +129,21 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
       {/* Drag handle pour redimensionner la colonne (bord droit).
           Hit-area de 6px, visuel discret sauf au hover/drag ; borné aux lignes. */}
       {onColWidthChange && (
-        <Box
+        <div
           onMouseDown={handleResizeMouseDown}
           role="separator"
           aria-label="Redimensionner la colonne logements"
           aria-orientation="vertical"
-          sx={{
-            position: 'absolute',
-            top: 0,
-            right: -3, // chevauche legerement la grille pour faciliter la prise
-            width: 6,
-            height: '100%',
-            cursor: 'col-resize',
-            zIndex: 11,
-            // Ligne verticale visible uniquement au hover ou pendant le drag.
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 2,
-              width: 2,
-              height: '100%',
-              backgroundColor: isResizing
-                ? 'var(--accent)'
-                : 'transparent',
-              transition: 'background-color 150ms ease',
-            },
-            '&:hover::after': {
-              backgroundColor: isResizing
-                ? 'var(--accent)'
-                : 'color-mix(in srgb, var(--accent) 55%, transparent)',
-            },
-          }}
+          // right:-3px = chevauche legerement la grille pour faciliter la prise.
+          // Ligne verticale (::after) visible uniquement au hover ou pendant le drag.
+          className={cn(
+            'absolute top-0 -right-[3px] w-[6px] h-full cursor-col-resize z-[11]',
+            "after:content-[''] after:absolute after:top-0 after:left-[2px] after:w-[2px] after:h-full",
+            'after:[transition:background-color_150ms_ease]',
+            isResizing
+              ? 'after:bg-[var(--accent)]'
+              : 'after:bg-transparent hover:after:bg-[color-mix(in_srgb,var(--accent)_55%,transparent)]',
+          )}
         />
       )}
       {properties.map((property) => {
@@ -182,26 +165,18 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 visible en pastille discrete inline a cote du nom. */}
             <div className="flex-1 min-w-0 flex flex-col gap-[0.75px] px-4">
               <div className="flex items-center gap-1 min-w-0">
-                {/* Box component=span : evite l'heritage du variant body1 du
-                    Typography (le theme MUI a des fontSize responsive en
-                    media-query qui peuvent surcharger sx en breakpoint large). */}
+                {/* span nu (et non Typography) : evite l'heritage du variant
+                    body1, dont les fontSize responsive du theme MUI peuvent
+                    surcharger la taille en breakpoint large. */}
                 {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: density === 'compact' ? '11.5px' : '12.5px',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    lineHeight: 1.25,
-                    letterSpacing: '-0.01em',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    minWidth: 0,
-                  }}
+                <span
+                  className={cn(
+                    'font-semibold text-[var(--ink)] leading-[1.25] tracking-[-0.01em] whitespace-nowrap overflow-hidden text-ellipsis min-w-0',
+                    density === 'compact' ? 'text-[11.5px]' : 'text-[12.5px]',
+                  )}
                 >
                   {property.name}
-                </Box>
+                </span>
                 {/* Reservations en cours / a venir : pastille inline discrete */}
                 {reservationCount > 0 && (
                   <span className="inline-flex items-center gap-0.5 shrink-0 text-[var(--faint)]">
@@ -220,21 +195,14 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               </div>
               {/* Spec .pl-name .ci : 10.5px var(--muted) */}
               {subtitle && (
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: density === 'compact' ? '9.5px' : '10.5px',
-                    fontWeight: 400,
-                    color: 'var(--muted)',
-                    lineHeight: 1.2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    display: 'block',
-                  }}
+                <span
+                  className={cn(
+                    'block font-normal text-[var(--muted)] leading-[1.2] overflow-hidden text-ellipsis whitespace-nowrap',
+                    density === 'compact' ? 'text-[9.5px]' : 'text-[10.5px]',
+                  )}
                 >
                   {subtitle}
-                </Box>
+                </span>
               )}
             </div>
             {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}

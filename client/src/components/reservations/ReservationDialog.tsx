@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import { Dialog, Box, Typography, useMediaQuery } from '@mui/material';
+import { Dialog, Typography, useMediaQuery } from '@mui/material';
 import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useReservationForm } from './useReservationForm';
 import type { ReservationDialogProps, UseReservationFormResult } from './useReservationForm';
-import { BTN_GHOST_SX, BTN_PRIMARY_SX, FOOT_SX } from './reservationDialogStyles';
 import ReservationDialogHeader from './ReservationDialogHeader';
 import ReservationWizardSteps from './ReservationWizardSteps';
 import PropertySelectField from './PropertySelectField';
@@ -29,6 +28,15 @@ export type ReservationDialogEntryMode = 'reservation' | 'block';
 // ÉDITION = écran unique 2 colonnes. Soumission INTERNE : invalide planningKeys.all ET
 // reservationsKeys.all.
 
+// Equivalents en classes de FOOT_SX / BTN_GHOST_SX / BTN_PRIMARY_SX (reservationDialogStyles).
+// Les constantes sx restent exportees pour les autres sous-composants encore en Box.
+const FOOT_CLS =
+  'flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-[var(--line)] bg-[var(--surface-2)] shrink-0';
+const BTN_BASE_CLS =
+  'inline-flex items-center gap-2 h-[38px] px-[17px] rounded-[11px] font-[inherit] text-[12.5px] font-semibold cursor-pointer border border-solid border-transparent [transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] active:enabled:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+const BTN_GHOST_CLS = `${BTN_BASE_CLS} bg-transparent text-[var(--muted)] hover:text-[var(--ink)]`;
+const BTN_PRIMARY_CLS = `${BTN_BASE_CLS} bg-transparent border-[var(--accent)] text-[var(--accent)] hover:enabled:bg-[var(--accent-soft)] disabled:opacity-[.45] disabled:cursor-not-allowed`;
+
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
   const { t } = useTranslation();
@@ -37,23 +45,19 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
   return (
     <>
       <div className={cn('flex-1 overflow-y-auto grid gap-0', stackColumns ? 'grid-cols-[1fr]' : 'grid-cols-[1fr_1fr]')}>
-        <Box
-          sx={{
-            padding: '22px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '18px',
-            borderRight: stackColumns ? 'none' : '1px solid var(--line)',
-            borderBottom: stackColumns ? '1px solid var(--line)' : 'none',
-          }}
+        <div
+          className={cn(
+            'flex flex-col gap-[18px] p-[22px] border-solid border-[var(--line)]',
+            stackColumns ? 'border-b' : 'border-r',
+          )}
         >
           <StaySection form={form} />
           <GuestSection form={form} />
-        </Box>
-        <Box sx={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        </div>
+        <div className="flex flex-col gap-[18px] p-[22px]">
           <PricingSection form={form} />
           <ExtrasSection form={form} />
-        </Box>
+        </div>
 
         <ConflictAlert form={form} fullWidth />
         {form.error && (
@@ -63,15 +67,15 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
         )}
       </div>
 
-      <Box sx={{ ...FOOT_SX, justifyContent: 'flex-end' }}>
-        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
+      <div className={cn(FOOT_CLS, 'justify-end')}>
+        <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
           {t('common.cancel')}
-        </Box>
-        <Box component="button" type="button" onClick={form.handleSubmit} disabled={form.submitDisabled} sx={BTN_PRIMARY_SX}>
+        </button>
+        <button type="button" onClick={form.handleSubmit} disabled={form.submitDisabled} className={BTN_PRIMARY_CLS}>
           <Check size={15} strokeWidth={2} />
           {form.saving ? t('reservations.dialog.submitSaving') : t('common.save')}
-        </Box>
-      </Box>
+        </button>
+      </div>
     </>
   );
 };
@@ -110,7 +114,7 @@ const CreateWizard: React.FC<{
     <>
       <ReservationWizardSteps steps={stepLabels} current={step} reachable={reachable} onStepClick={goStep} />
 
-      <Box sx={{ flex: 1, overflowY: 'auto', padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
         {step === 1 && (
           <>
             {form.showPropertySelector && <PropertySelectField form={form} />}
@@ -130,36 +134,36 @@ const CreateWizard: React.FC<{
         {form.error && (
           <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{form.error}</p>
         )}
-      </Box>
+      </div>
 
-      <Box sx={FOOT_SX}>
-        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
+      <div className={FOOT_CLS}>
+        <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
           {t('common.cancel')}
-        </Box>
-        <Box sx={{ marginInlineStart: 'auto', display: 'flex', gap: '10px' }}>
+        </button>
+        <div className="ms-auto flex gap-2.5">
           {step > 1 && (
-            <Box component="button" type="button" onClick={() => setStep((s) => s - 1)} sx={BTN_GHOST_SX}>
+            <button type="button" onClick={() => setStep((s) => s - 1)} className={BTN_GHOST_CLS}>
               <ArrowBack size={15} strokeWidth={2} />
               {t('reservations.dialog.previous')}
-            </Box>
+            </button>
           )}
           {step < 4 ? (
-            <Box component="button" type="button" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext} sx={BTN_PRIMARY_SX}>
+            <button type="button" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext} className={BTN_PRIMARY_CLS}>
               {t('reservations.dialog.next')}
               <ArrowForward size={15} strokeWidth={2} />
-            </Box>
+            </button>
           ) : (
-            <Box component="button" type="button" onClick={form.handleSubmit} disabled={finalizeDisabled} sx={BTN_PRIMARY_SX}>
+            <button type="button" onClick={form.handleSubmit} disabled={finalizeDisabled} className={BTN_PRIMARY_CLS}>
               <Check size={15} strokeWidth={2} />
               {form.saving
                 ? t('reservations.dialog.submitCreating')
                 : form.requestPayment
                   ? t('reservations.dialog.submitCreatePayment')
                   : t('reservations.dialog.submitCreate')}
-            </Box>
+            </button>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </>
   );
 };

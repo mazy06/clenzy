@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Grid, Card, CardContent, Skeleton, Divider } from '@mui/material';
+import { Typography, Grid, Card, CardContent, Skeleton, Divider } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -139,9 +139,9 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const color = isUp ? 'var(--ok)' : isDown ? 'var(--err)' : 'var(--faint)';
   return (
     <div className="inline-flex items-center gap-0.5 mt-0.5">
-      <Box component="span" sx={{ display: 'inline-flex', color }}>
+      <span className="inline-flex" style={{ color }}>
         <Icon size={12} strokeWidth={1.75} />
-      </Box>
+      </span>
       <Typography sx={{ fontSize: '10.5px', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
         {isUp ? '+' : ''}{value}%
       </Typography>
@@ -161,17 +161,12 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
       ) : (
         <>
           <div className="flex items-center gap-1 mb-1">
-            <Box
-              sx={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 32, height: 32, borderRadius: 1, flexShrink: 0,
-                color: item.iconColor,
-                bgcolor: `color-mix(in srgb, ${item.iconColor} 12%, transparent)`,
-                '& svg': { width: 16, height: 16 },
-              }}
+            <div
+              className="flex items-center justify-center w-8 h-8 rounded-[8px] shrink-0 text-[var(--kpi-icon)] bg-[color-mix(in_srgb,_var(--kpi-icon)_12%,_transparent)] [&_svg]:w-4 [&_svg]:h-4"
+              style={{ '--kpi-icon': item.iconColor } as React.CSSProperties}
             >
               {item.icon}
-            </Box>
+            </div>
             <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] tracking-[0.05em] uppercase">
               {item.title}
             </p>
@@ -193,17 +188,12 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
   <div className="flex items-center gap-2 py-1.5 px-0.5">
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 28, height: 28, borderRadius: 0.75, flexShrink: 0,
-        color: item.iconColor,
-        bgcolor: `color-mix(in srgb, ${item.iconColor} 10%, transparent)`,
-        '& svg': { width: 14, height: 14 },
-      }}
+    <div
+      className="flex items-center justify-center w-7 h-7 rounded-[6px] shrink-0 text-[var(--kpi-icon)] bg-[color-mix(in_srgb,_var(--kpi-icon)_10%,_transparent)] [&_svg]:w-[14px] [&_svg]:h-[14px]"
+      style={{ '--kpi-icon': item.iconColor } as React.CSSProperties}
     >
       {item.icon}
-    </Box>
+    </div>
     <div className="flex-1 min-w-0">
       <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] font-medium leading-[1.2]">
         {item.title}

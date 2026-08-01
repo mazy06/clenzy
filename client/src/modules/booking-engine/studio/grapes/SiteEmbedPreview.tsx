@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { Spinner } from '../../../../components/ui';
-import { Box, ButtonBase } from '@mui/material';
+import { ButtonBase } from '@mui/material';
 import { AlertTriangle, Wand2 } from 'lucide-react';
 import { BaitlyWidget } from '../../sdk/BaitlyWidget';
 import { widgetThemeFromTokens } from '../../widgetTheme';
@@ -139,18 +139,21 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
   } else {
     body = (
       <div className={cn('flex-1 min-w-0 h-full overflow-auto bg-[var(--bg-2,_var(--bg))] flex justify-center', breakpoint === 'desktop' ? 'p-0' : 'p-[18px]')}>
-        <Box
-          component="iframe"
+        {/* `width` vient de FRAME_WIDTH (nombre ou '100%') : valeur d'execution, donc style. */}
+        <iframe
           key={html.length}
           ref={iframeRef}
           title="Aperçu du site cible avec le widget"
           srcDoc={html}
           sandbox="allow-same-origin"
           onLoad={() => { loadedRef.current = true; mountWidget(); }}
-          sx={{
-            width, maxWidth: '100%', height: '100%', border: 'none', bgcolor: '#fff',
-            ...(breakpoint !== 'desktop' && { my: 'auto', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', height: '90%' }),
-          }}
+          className={cn(
+            'max-w-full border-0 bg-white',
+            breakpoint === 'desktop'
+              ? 'h-full'
+              : 'h-[90%] my-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] shadow-[var(--shadow-card)]',
+          )}
+          style={{ width }}
         />
       </div>
     );

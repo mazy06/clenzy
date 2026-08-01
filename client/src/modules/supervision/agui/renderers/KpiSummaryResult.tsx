@@ -9,7 +9,7 @@
    ============================================================ */
 import React from 'react';
 import { cn } from '../../../../utils/cn';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { Overline } from './shared';
 
 interface Kpi {
@@ -43,25 +43,11 @@ function statusColor(status?: string): string {
 }
 
 const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
-  <Box
-    sx={{
-      position: 'relative',
-      px: 1.25,
-      py: 1,
-      borderRadius: '10px',
-      bgcolor: 'var(--card)',
-      border: '1px solid var(--line)',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        width: 6,
-        height: 6,
-        borderRadius: '50%',
-        bgcolor: statusColor(kpi.status),
-      },
-    }}
+  // La pastille de statut est calculee a l'execution : elle passe par une custom
+  // property, la classe qui la consomme reste statique.
+  <div
+    className="relative px-[7.5px] py-1.5 rounded-[10px] bg-[var(--card)] border border-solid border-[var(--line)] before:content-[''] before:absolute before:top-2 before:end-2 before:w-[6px] before:h-[6px] before:rounded-full before:bg-[var(--kpi-dot)]"
+    style={{ '--kpi-dot': statusColor(kpi.status) } as React.CSSProperties}
   >
     <Overline
       sx={{
@@ -82,7 +68,7 @@ const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
         cible {kpi.target}
       </p>
     )}
-  </Box>
+  </div>
 );
 
 export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {

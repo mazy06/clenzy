@@ -3,7 +3,6 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import {
-  Box,
   Typography,
   InputBase,
   FormHelperText,
@@ -375,7 +374,12 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       // relié (séparateur entre la sélection du type et le détail dessous). Le
       // cadre n'est posé qu'avec un slot chiffrage (modale) pour éviter le
       // « card-in-card » du formulaire pleine page (déjà dans un Paper).
-      <Box sx={{ display: 'flex', flexDirection: 'column', ...((framed || pricingSlot) ? { border: '1px solid var(--line)', borderRadius: '14px', p: 2 } : {}) }}>
+      <div
+        className={cn(
+          'flex flex-col',
+          (framed || pricingSlot) && 'border border-solid border-[var(--line)] rounded-[14px] p-3',
+        )}
+      >
         {/* Chiffrage — positionné après « Service type » via l'ordre flex (order: 2). */}
         {pricingSlot && (
           <div className="order-[2px] mt-3">
@@ -592,7 +596,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
 
         {/* Séparateur reliant la sélection du type au chiffrage (modale). */}
         {pricingSlot && <div className="order-[1px] mt-3" style={{ borderTop: '1px solid var(--line)' }} />}
-      </Box>
+      </div>
     );
   }
 );

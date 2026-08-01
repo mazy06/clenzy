@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -335,29 +336,21 @@ const WhatsAppBubblePreview: React.FC<{ body: string; rtl: boolean }> = ({ body,
         minHeight: 80,
       }}
     >
-      <Box
-        sx={{
-          bgcolor: '#dcf8c6',
-          color: '#111',
-          maxWidth: '85%',
-          ml: rtl ? 0 : 'auto',
-          mr: rtl ? 'auto' : 0,
-          px: 1.5,
-          py: 1,
-          borderRadius: 2,
-          borderTopRightRadius: rtl ? 8 : 2,
-          borderTopLeftRadius: rtl ? 2 : 8,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          fontSize: '0.875rem',
-          lineHeight: 1.45,
-          direction: rtl ? 'rtl' : 'ltr',
-        }}
+      {/* px 1.5 = 9px, py 1 = 6px (spacing 6) ; borderRadius 2 = 16px (shape 8),
+          alors que borderTop*Radius n'est PAS un prop systeme MUI : 8/2 = px bruts.
+          fontFamily reste en style : `font-[...]` est ambigu (famille vs graisse). */}
+      <div
+        style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+        className={cn(
+          'bg-[#dcf8c6] text-[#111] max-w-[85%] px-[9px] py-1.5 rounded-[16px]',
+          'shadow-[0_1px_2px_rgba(0,0,0,0.1)] whitespace-pre-wrap break-words text-[0.875rem] leading-[1.45]',
+          rtl
+            ? 'ml-0 mr-auto rounded-tr-[8px] rounded-tl-[2px] [direction:rtl]'
+            : 'ml-auto mr-0 rounded-tr-[2px] rounded-tl-[8px] [direction:ltr]',
+        )}
       >
         {renderedNodes}
-      </Box>
+      </div>
     </Box>
   );
 };

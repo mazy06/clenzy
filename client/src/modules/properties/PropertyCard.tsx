@@ -6,7 +6,6 @@ import {
   CardContent,
   Typography,
   Button,
-  Box,
   IconButton,
   Dialog,
   DialogTitle,
@@ -133,57 +132,6 @@ const styles = {
       '&:hover': { transform: 'none' },
     },
   },
-  // .pr-img — bandeau dégradé déterministe (h118), photo réelle en overlay (fallback),
-  // icône immeuble centrée + pastille statut (top-left) + slot canal/santé (top-right).
-  bannerBox: {
-    position: 'relative',
-    height: 118,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  bannerIcon: {
-    position: 'relative',
-    zIndex: 1,
-    display: 'inline-flex',
-    color: 'rgba(255,255,255,.7)',
-  },
-  // .pr-status — pastille statut top-left (fond translucide + blur, dot coloré + libellé).
-  statusPill: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 2,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.625,
-    fontSize: '10.5px',
-    fontWeight: 700,
-    px: '9px',
-    py: '4px',
-    borderRadius: '20px',
-    bgcolor: 'rgba(255,255,255,.92)',
-    backdropFilter: 'blur(4px)',
-    color: '#2A3942',
-    lineHeight: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
-  // .pr-ch — slot canal/santé top-right.
-  channelSlot: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 2,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-  },
   infoContent: {
     flexGrow: 1,
     p: 1.75,
@@ -210,20 +158,6 @@ const styles = {
     color: 'var(--muted)',
   },
   // .pr-stats — bande de stats hairline (valeurs display tabular-nums)
-  statsBand: {
-    display: 'flex',
-    borderTop: '1px solid var(--line)',
-    borderBottom: '1px solid var(--line)',
-    mb: 1.25,
-  },
-  statCell: {
-    flex: 1,
-    py: '9px',
-    textAlign: 'center',
-    borderRight: '1px solid var(--line)',
-    minWidth: 0,
-    '&:last-child': { borderRight: 0 },
-  },
   statValue: {
     fontFamily: 'var(--font-display)',
     fontSize: '15px',
@@ -240,62 +174,7 @@ const styles = {
     color: 'var(--faint)',
     mt: '1px',
   },
-  // .pr-foot — pied de carte : icône accent + libellé fort + reste muted.
-  footRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.875,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-    minWidth: 0,
-  },
-  footIcon: {
-    display: 'inline-flex',
-    color: 'var(--accent)',
-    flexShrink: 0,
-  },
-  footStrong: {
-    color: 'var(--body)',
-    fontWeight: 600,
-  },
-  actionBar: {
-    px: 1.75,
-    pb: 1.25,
-    pt: 0,
-    display: 'flex',
-    gap: 0.75,
-  },
-
   // ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
-  dialogTitleBox: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dialogIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: '11px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dialogCharacteristicsRow: {
-    display: 'flex',
-    gap: 2,
-    flexWrap: 'wrap',
-  },
-  dialogMetricBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    bgcolor: 'var(--field)',
-    border: '1px solid var(--field-line)',
-    borderRadius: '11px',
-    px: 1.5,
-    py: 1,
-    minWidth: 120,
-  },
   dialogSectionTitle: {
     fontSize: '10.5px',
     fontWeight: 700,
@@ -463,11 +342,12 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         onClick={handleViewDetails}
       >
         {/* ─── .pr-img : bandeau dégradé déterministe + photo réelle en overlay ─── */}
-        <Box
-          sx={{
-            ...styles.bannerBox,
-            // Dégradé déterministe (placeholder) en base ; la vraie photo se
-            // superpose dessus en fallback (couvre le dégradé si dispo).
+        {/* Dégradé déterministe (placeholder) en base ; la vraie photo se superpose
+            dessus en fallback. Tout le fond reste inline : la shorthand `background`
+            reinitialiserait background-size/position poses par des classes. */}
+        <div
+          className="relative h-[118px] flex items-center justify-center overflow-hidden"
+          style={{
             background: `${propertyGradientCss(property.id || property.name)}`,
             backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.32)), url(${getPropertyTypeBannerUrl(property.propertyType)}), ${propertyGradientCss(property.id || property.name)}`,
             backgroundSize: 'cover',
@@ -475,19 +355,19 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           }}
         >
           {/* Icône immeuble centrée (blanc .7) */}
-          <Box sx={styles.bannerIcon}>
+          <div className="relative z-[1] inline-flex text-[rgba(255,255,255,.7)]">
             <Business size={30} strokeWidth={1.75} />
-          </Box>
+          </div>
 
           {/* .pr-status — pastille statut opérationnel top-left (dot coloré + libellé) */}
-          <Box sx={styles.statusPill}>
-            <Box sx={{ ...styles.statusDot, bgcolor: pill.color }} />
+          <div className="absolute top-[10px] left-[10px] z-[2] inline-flex items-center gap-[3.75px] text-[10.5px] font-bold px-[9px] py-[4px] rounded-[20px] bg-[rgba(255,255,255,.92)] backdrop-blur-[4px] text-[#2A3942] leading-none">
+            <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: pill.color }} />
             {pill.label}
-          </Box>
+          </div>
 
           {/* .pr-ch — slot canal/santé top-right (badge santé Channex + contrat) */}
           {(channexMapping || missingContract) && (
-            <Box sx={styles.channelSlot}>
+            <div className="absolute top-[10px] right-[10px] z-[2] flex items-center gap-[3px]">
               {channexMapping && (
                 <ChannexHealthBadge
                   mapping={channexMapping}
@@ -501,9 +381,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   onClick={(e) => { e.stopPropagation(); onMissingContractClick?.(); }}
                 />
               )}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Zone info ─── */}
         <CardContent sx={styles.infoContent}>
@@ -540,22 +420,22 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           </div>
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
-          <Box sx={styles.statsBand}>
+          <div className="flex border-t border-b border-solid border-[var(--line)] mb-[7.5px]">
             {kpiCells.map((metric) => (
-              <Box key={metric.label} sx={styles.statCell}>
+              <div key={metric.label} className="flex-1 py-[9px] text-center border-r border-solid border-[var(--line)] min-w-0 last:border-r-0">
                 <Typography sx={styles.statValue}>{metric.value}</Typography>
                 <Typography sx={styles.statLabel}>{metric.label}</Typography>
-              </Box>
+              </div>
             ))}
-          </Box>
+          </div>
 
           {/* .pr-foot — pied opérationnel : statut dynamique du logement
               (intervention en cours > check-out si occupé > disponible) */}
-          <Box sx={{ ...styles.footRow, minHeight: 18 }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-[5.25px] text-[11.5px] text-[var(--muted)] min-w-0 min-h-[18px]" onClick={(e) => e.stopPropagation()}>
             {ops && (
               <>
-                <Box component="span" sx={{ ...styles.footIcon, color: ops.color }}>{ops.icon}</Box>
-                <Box component="span" sx={styles.footStrong}>{ops.strong}</Box>
+                <span className="inline-flex shrink-0" style={{ color: ops.color }}>{ops.icon}</span>
+                <span className="text-[var(--body)] font-semibold">{ops.strong}</span>
                 {ops.rest && (
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
                     {ops.rest}
@@ -563,11 +443,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 )}
               </>
             )}
-          </Box>
+          </div>
         </CardContent>
 
         {/* ─── Zone actions ─── */}
-        <Box sx={styles.actionBar}>
+        <div className="px-[10.5px] pb-[7.5px] pt-0 flex gap-[4.5px]">
           <Button
             fullWidth
             size="small"
@@ -588,7 +468,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               Modifier
             </Button>
           )}
-        </Box>
+        </div>
       </Card>
 
       {/* ─── Dialog des détails complets ─── */}
@@ -600,16 +480,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         onClick={(e) => e.stopPropagation()}
       >
         <DialogTitle sx={{ pb: 1 }}>
-          <Box sx={styles.dialogTitleBox}>
+          <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Box
-                sx={{
-                  ...styles.dialogIconBox,
-                  bgcolor: 'var(--accent-soft)',
-                }}
-              >
+              <div className="w-10 h-10 rounded-[11px] flex items-center justify-center bg-[var(--accent-soft)]">
                 {getPropertyTypeIcon(property.propertyType, 22)}
-              </Box>
+              </div>
               <div>
                 <h2 className="cn-text-h6 leading-[1.2]">
                   {property.name}
@@ -622,7 +497,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             <IconButton onClick={() => setDetailsOpen(false)} size="small">
               <Close size={18} strokeWidth={1.75} />
             </IconButton>
-          </Box>
+          </div>
         </DialogTitle>
 
         <DialogContent sx={{ pt: 1.5 }}>
@@ -646,25 +521,25 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
                 Caractéristiques
               </Typography>
-              <Box sx={styles.dialogCharacteristicsRow}>
+              <div className="flex gap-3 flex-wrap">
                 {[
                   { icon: <BedIcon size={18} strokeWidth={1.75} />, value: property.bedrooms, label: 'Chambres' },
                   { icon: <BathroomIcon size={18} strokeWidth={1.75} />, value: property.bathrooms, label: 'Salles de bain' },
                   { icon: <SquareFoot size={18} strokeWidth={1.75} />, value: `${property.surfaceArea} m²`, label: 'Surface' },
                   { icon: <PersonIcon size={18} strokeWidth={1.75} />, value: property.maxGuests, label: 'Voyageurs max' },
                 ].map((item) => (
-                  <Box
+                  <div
                     key={item.label}
-                    sx={styles.dialogMetricBox}
+                    className="flex items-center gap-[6px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[11px] px-[9px] py-[6px] min-w-[120px]"
                   >
                     <div className="text-[var(--accent)] flex">{item.icon}</div>
                     <div>
                       <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums">{item.value}</p>
                       <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">{item.label}</p>
                     </div>
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             </Grid>
 
             <Grid item xs={12}>

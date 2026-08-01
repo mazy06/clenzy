@@ -3,8 +3,9 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, MenuItem } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, MenuItem } from '@mui/material';
 import { Close as CloseIcon, Save } from '../../../icons';
+import { cn } from '../../../utils/cn';
 import { accountingApi } from '../../../services/api/accountingApi';
 import type {
   OwnerPayoutConfig,
@@ -394,19 +395,16 @@ export default function PayoutMethodEditDialog({
             sx={{ gap: 0.5 }}
           >
             {METHOD_OPTIONS.map((opt) => (
-              <Box
+              <div
                 key={opt.value}
-                sx={{
-                  border: '1px solid',
-                  borderColor: selectedMethod === opt.value ? 'var(--accent)' : 'divider',
-                  backgroundColor: selectedMethod === opt.value ? 'var(--accent-soft)' : 'transparent',
-                  borderRadius: '8px',
-                  px: 1.5,
-                  py: 1,
-                  cursor: 'pointer',
-                  transition: 'border-color 150ms, background-color 150ms',
-                  '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 53%, transparent)', backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)' },
-                }}
+                className={cn(
+                  'cursor-pointer rounded-[8px] border border-solid px-[9px] py-1.5',
+                  '[transition:border-color_150ms,background-color_150ms]',
+                  'hover:border-[color-mix(in_srgb,var(--accent)_53%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]',
+                  selectedMethod === opt.value
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                    : 'border-[var(--line)] bg-transparent',
+                )}
                 onClick={() => setSelectedMethod(opt.value)}
               >
                 <FormControlLabel
@@ -429,7 +427,7 @@ export default function PayoutMethodEditDialog({
                   }
                   sx={{ alignItems: 'flex-start', m: 0, width: '100%' }}
                 />
-              </Box>
+              </div>
             ))}
           </RadioGroup>
         </FormControl>

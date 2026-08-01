@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Tooltip, ClickAwayListener } from '@mui/material';
+import { Tooltip, ClickAwayListener } from '@mui/material';
 import { Lock as LockIcon } from '../../icons';
 
 interface PlanningBlockedBandProps {
@@ -66,7 +66,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
         disableTouchListener
         slotProps={{ tooltip: { sx: { maxWidth: 240 } } }}
       >
-        <Box
+        <div
           data-blocked-range
           role="button"
           tabIndex={0}
@@ -78,28 +78,22 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
               toggle(e);
             }
           }}
-          sx={{
-            position: 'absolute',
+          className={
+            'absolute top-0 z-[2] cursor-pointer flex items-center justify-center gap-[3px] text-[var(--muted)] ' +
+            // Cellules grisées + hachures diagonales = convention « indisponible ».
+            'bg-[color-mix(in_srgb,var(--muted)_8%,var(--card))] ' +
+            'hover:bg-[color-mix(in_srgb,var(--muted)_14%,var(--card))] ' +
+            'shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--muted)_14%,transparent)] ' +
+            'transition-[background-color] duration-150 ease-out'
+          }
+          style={{
             left,
-            top: 0,
             width,
             height,
-            zIndex: 2,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.5,
-            color: 'var(--muted)',
-            // Cellules grisées + hachures diagonales = convention « indisponible ».
-            backgroundColor: 'color-mix(in srgb, var(--muted) 8%, var(--card))',
+            // Gradient statique laisse en style inline (les dimensions y passent
+            // deja) : plus lisible qu'une classe arbitraire de 100 caracteres.
             backgroundImage:
               'repeating-linear-gradient(45deg, color-mix(in srgb, var(--muted) 16%, transparent) 0 1px, transparent 1px 7px)',
-            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--muted) 14%, transparent)',
-            transition: 'background-color 150ms ease-out',
-            '&:hover': {
-              backgroundColor: 'color-mix(in srgb, var(--muted) 14%, var(--card))',
-            },
           }}
         >
           {showIcon && <LockIcon size={12} strokeWidth={1.75} />}
@@ -108,7 +102,7 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
               Bloqué
             </p>
           )}
-        </Box>
+        </div>
       </Tooltip>
     </ClickAwayListener>
   );

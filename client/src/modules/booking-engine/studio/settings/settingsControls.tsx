@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Box, ButtonBase, InputBase, Switch } from '@mui/material';
+import { ButtonBase, InputBase, Switch } from '@mui/material';
 import { Check } from 'lucide-react';
 
 /**
@@ -30,15 +30,10 @@ export function SettingsPage({ title, description, children, footer, intro }: {
               remplit la largeur + divise ~par 2 le scroll vertical. break-inside
               empêche de couper une carte entre deux colonnes. Titre / intro /
               footer restent pleine largeur. */}
-          <Box
-            sx={{
-              columnCount: { xs: 1, lg: 2 },
-              columnGap: '20px',
-              '& > *': { breakInside: 'avoid' },
-            }}
-          >
+          {/* Rupture MUI lg = 1200px (breakpoints non configures). */}
+          <div className="columns-1 min-[1200px]:columns-2 gap-x-[20px] [&>*]:break-inside-avoid">
             {children}
-          </Box>
+          </div>
         </div>
       </div>
       {footer}
@@ -62,17 +57,13 @@ export function SettingRow({ label, helper, htmlFor, control }: {
   label: string; helper?: string; htmlFor?: string; control: ReactNode;
 }) {
   return (
-    <Box sx={{
-      display: 'flex', alignItems: 'flex-start', gap: 2, py: 1.75,
-      borderBottom: '1px solid var(--line)', '&:last-of-type': { borderBottom: 'none' },
-      flexWrap: { xs: 'wrap', sm: 'nowrap' },
-    }}>
+    <div className="flex items-start gap-3 py-[10.5px] flex-wrap min-[600px]:flex-nowrap border-b border-solid border-[var(--line)] last-of-type:border-b-0">
       <div className="flex-1 min-w-[180px]">
         <label className="text-[var(--text-md)] font-[var(--fw-medium)] text-[var(--ink)] block" htmlFor={htmlFor}>{label}</label>
         {helper && <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 leading-[1.45]">{helper}</div>}
       </div>
       <div className="shrink-0 w-full min-[600px]:w-[260px] flex justify-end">{control}</div>
-    </Box>
+    </div>
   );
 }
 
@@ -154,21 +145,23 @@ export function SelectControl({ id, value, onChange, options }: {
   id?: string; value: string; onChange: (v: string) => void; options: SelectOption[];
 }) {
   return (
-    <Box
-      component="select"
+    // `fieldSx` fusionne ici en classes ; son `&.Mui-focused` est sans objet sur
+    // un <select> natif (la classe MUI n'y a jamais ete posee).
+    <select
       id={id}
       value={value}
-      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
-      sx={{
-        ...fieldSx, appearance: 'none', cursor: 'pointer', height: 36,
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full h-9 px-[7.5px] py-[4.5px] text-[var(--text-md)] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] appearance-none cursor-pointer transition-[border-color] duration-[var(--duration-fast)] ease-[var(--ease-out)] focus-visible:border-[var(--accent)] focus-visible:outline-none focus-visible:shadow-[0_0_0_3px_var(--accent-soft)]"
+      style={{
+        // Chevron dessine en deux degrades : valeurs multiples separees par des
+        // virgules, illisibles/fragiles en classes arbitraires.
         backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%)',
         backgroundPosition: 'calc(100% - 16px) 15px, calc(100% - 11px) 15px',
         backgroundSize: '5px 5px, 5px 5px',
         backgroundRepeat: 'no-repeat',
-        '&:focus-visible': { borderColor: 'var(--accent)', outline: 'none', boxShadow: '0 0 0 3px var(--accent-soft)' },
       }}
     >
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </Box>
+    </select>
   );
 }
