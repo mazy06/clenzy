@@ -218,7 +218,10 @@ describe('PanelPayment', () => {
       });
 
       render(<PanelPayment event={makeEvent()} />);
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // Le Spinner du kit annonce `role="status"` (une attente), la ou le
+      // CircularProgress de MUI annoncait `progressbar` (une progression
+      // mesurable) — ce qu'un chargement indetermine n'est pas.
+      expect(screen.getByRole('status')).toBeInTheDocument();
     });
 
     it('should display payment history records', async () => {
