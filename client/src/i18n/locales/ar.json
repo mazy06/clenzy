@@ -4023,7 +4023,18 @@
       "logoHelp": "اتركه فارغًا لعدم عرض شعار",
       "primaryColor": "لون التمييز (#RRGGBB)",
       "saveError": "تعذر الحفظ"
-    }
+    },
+    "showcase": {
+      "title": "ملاكك يتابعون عقاراتهم دون الاتصال بك",
+      "description": "الإشغال والإيرادات والتحويلات والمستندات، في مساحة مخصصة تفتحها عقارًا بعقار.",
+      "action": "دعوة مالك"
+    },
+    "propertiesCount_zero": "لا عقارات",
+    "propertiesCount_one": "عقار واحد",
+    "propertiesCount_two": "عقاران",
+    "propertiesCount_few": "{{count}} عقارات",
+    "propertiesCount_many": "{{count}} عقارًا",
+    "propertiesCount_other": "{{count}} عقار"
   },
   "ownerConstellation": {
     "subtitle": "مساحة المالك",

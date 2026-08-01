@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
+import StatusChip from '../../components/baitly/StatusChip';
+import StatTile from '../../components/baitly/StatTile';
+import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
+import EmptyState from '../../components/EmptyState';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -8,8 +11,10 @@ import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import {
-  Card,
-  CardContent,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -25,8 +30,12 @@ import {
   Hotel as OccupancyIcon,
   Star as RatingIcon,
   Receipt as StatementIcon,
-  Download as DownloadIcon,
+  Business as BuildingIcon,
+  Payments as PayoutIcon,
+  Percent as PercentIcon,
 } from '../../icons';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -46,9 +55,17 @@ const PANEL_CLASS = 'rounded-[12px] border border-solid border-[var(--line)] bg-
 
 const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
 
+/** Configuration du graphique de la projection : une seule serie, chart-2. */
+const OWNER_REVENUE_CONFIG = {
+  net: { label: 'Net propriétaire', color: 'var(--bui-chart-2)' },
+} satisfies ChartConfig;
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const fmtPercent = (n: number) => `${(n * 100).toFixed(1)}%`;
+// Le serveur renvoie DEJA un pourcentage (bookedDays / daysInPeriod * 100,
+// cf. OwnerPortalService:123) : multiplier encore par 100 affichait 470 %
+// pour 4,7 % — defaut present depuis l'origine de l'ecran, vu au rendu.
+const fmtPercent = (n: number) => `${n.toFixed(1)}%`;
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -57,6 +74,7 @@ const fmtDate = (d: string | null) =>
 
 const OwnerPortalPage: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedOwnerId, setSelectedOwnerId] = useState<number | ''>('');
 
@@ -80,20 +98,37 @@ const OwnerPortalPage: React.FC = () => {
   }, [properties]);
 
   const ownerId = selectedOwnerId === '' ? undefined : selectedOwnerId;
+  const selectedOwner = owners.find((o) => o.id === ownerId);
+  // Nombre de biens du proprietaire selectionne — le sous-titre de la
+  // projection (« Villa Palmeraie · M. Alaoui ») devient « nom · N proprietes ».
+  const ownedCount = useMemo(
+    () => (ownerId === undefined ? 0 : properties.filter((p: Property) => p.ownerId === ownerId).length),
+    [properties, ownerId],
+  );
 
   // SPACING.PAGE_PADDING = 2 unites MUI et theme.spacing = 6 => 12px de padding
   // (le commentaire « 16px » de theme/spacing.ts date d'un theme a 8px).
   return (
-    <div className="p-3">
+    <div className="p-3 flex flex-col gap-3">
       <PageHeader
         title={t('ownerPortal.title', 'Portail Proprietaire')}
-        subtitle={t('ownerPortal.subtitle', 'Dashboard et releves proprietaires')}
+        subtitle={
+          selectedOwner
+            ? `${selectedOwner.name} · ${t('ownerPortal.propertiesCount', { count: ownedCount })}`
+            : t('ownerPortal.subtitle', 'Dashboard et releves proprietaires')
+        }
+        iconBadge={<BuildingIcon />}
         showBackButton={false}
-        backPath="/dashboard"
+        actions={
+          <>
+            {ownerId !== undefined && <ConstellationLinkButton ownerId={ownerId} />}
+            <BrandingButton />
+          </>
+        }
       />
 
       {/* ── Owner selector ── */}
-      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center')}>
+      <div className={cn(PANEL_CLASS, 'p-3 flex gap-3 items-center')}>
         <Field className="w-[240px] shrink-0">
           <FieldLabel htmlFor="owner-portal-owner" className="text-[0.8125rem]">
             {t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
@@ -113,29 +148,40 @@ const OwnerPortalPage: React.FC = () => {
             ))}
           </NativeSelect>
         </Field>
-        {ownerId !== undefined && <ConstellationLinkButton ownerId={ownerId} />}
-        <BrandingButton />
       </div>
 
-      <div className={cn(PANEL_CLASS, 'mb-[9px]')}>
-        <PageTabs
-          options={[
-            { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
-            { label: t('ownerPortal.tabs.statement', 'Releve') },
-          ]}
-          value={activeTab}
-          onChange={setActiveTab}
-          mb={0}
+      {/* Rangee d'onglets nue, comme partout : le panneau qui l'entourait la
+          coupait du reste de la page. */}
+      <PageTabs
+        options={[
+          { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
+          { label: t('ownerPortal.tabs.statement', 'Releve') },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+        mb={0}
+      />
+
+      {owners.length === 0 ? (
+        // Aucun proprietaire dans l'organisation : l'etat vide riche de la
+        // projection, qui explique la feature au lieu de constater le vide.
+        <ShowcaseEmpty
+          eyebrow={{ icon: <BuildingIcon size={14} strokeWidth={1.75} />, label: t('ownerPortal.title', 'Portail Proprietaire') }}
+          title={t('ownerPortal.showcase.title', 'Vos propriétaires suivent leurs biens sans vous appeler')}
+          description={t('ownerPortal.showcase.description', 'Occupation, revenus, reversements et documents, dans un espace dédié que vous ouvrez bien par bien.')}
+          action={
+            <Button onClick={() => navigate('/directory')}>
+              {t('ownerPortal.showcase.action', 'Inviter un propriétaire')}
+            </Button>
+          }
         />
-      </div>
-
-      {!ownerId ? (
-        <div className={cn(PANEL_CLASS, 'p-6 text-center')}>
-          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><HomeIcon size={48} strokeWidth={1.75} /></span>
-          <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
-            {t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
-          </p>
-        </div>
+      ) : !ownerId ? (
+        <EmptyState
+          icon={<BuildingIcon />}
+          title={t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
+          description={t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
+          variant="transparent"
+        />
       ) : (
         <>
           {activeTab === 0 && <DashboardTab ownerId={ownerId} />}
@@ -317,65 +363,62 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
     );
   }
 
-  // La taille de l'icone est posee a la source : l'ancien `cloneElement` injectait
-  // un `sx` que ces icones (lucide) n'ont jamais lu.
+  // Les tuiles de la projection (StatTile) remplacent les cartes aux
+  // couleurs codees en dur : la teinte ne porte plus que sur l'icone, et
+  // seulement la ou elle dit quelque chose (l'argent en succes, la note en
+  // warning) — le reste en encre par defaut.
   const kpis = [
-    { icon: <HomeIcon size={24} />, label: t('ownerPortal.kpi.properties', 'Proprietes'), value: dashboard.totalProperties, color: '#1976d2' },
-    { icon: <ReservationIcon size={24} />, label: t('ownerPortal.kpi.reservations', 'Reservations actives'), value: dashboard.activeReservations, color: '#4A9B8E' },
-    { icon: <RevenueIcon size={24} />, label: t('ownerPortal.kpi.netRevenue', 'Revenu net'), value: fmtCurrency(dashboard.netRevenue), color: '#2e7d32' },
-    { icon: <OccupancyIcon size={24} />, label: t('ownerPortal.kpi.occupancy', 'Occupation moy.'), value: fmtPercent(dashboard.averageOccupancy), color: '#D4A574' },
-    { icon: <RatingIcon size={24} />, label: t('ownerPortal.kpi.rating', 'Note moyenne'), value: dashboard.averageRating.toFixed(1), color: '#f9a825' },
+    { icon: <HomeIcon />, label: t('ownerPortal.kpi.properties', 'Proprietes'), value: dashboard.totalProperties },
+    { icon: <ReservationIcon />, label: t('ownerPortal.kpi.reservations', 'Reservations actives'), value: dashboard.activeReservations },
+    { icon: <RevenueIcon />, label: t('ownerPortal.kpi.netRevenue', 'Revenu net'), value: fmtCurrency(dashboard.netRevenue), iconClassName: 'text-success' },
+    { icon: <OccupancyIcon />, label: t('ownerPortal.kpi.occupancy', 'Occupation moy.'), value: fmtPercent(dashboard.averageOccupancy) },
+    { icon: <RatingIcon />, label: t('ownerPortal.kpi.rating', 'Note moyenne'), value: dashboard.averageRating.toFixed(1), unit: '/5', iconClassName: 'text-warning' },
   ];
+
+  // Le graphique de la projection : une aire lissee, mois abreges en X.
+  const revenueSeries = Object.entries(dashboard.revenueByMonth ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, net]) => ({
+      // Cles « YYYY-MM » → libelle de mois localise (« juil. »).
+      month: new Date(`${month}-01T00:00:00`).toLocaleDateString('fr-FR', { month: 'short' }),
+      net,
+    }));
 
   return (
     <>
-      {/* ── KPI Cards ── */}
-      {/* Au-dela de 900px les 5 KPI tiennent sur une seule rangee (equivalent du
-          `md` auto de l'ancienne grille) : d'ou la grille a 5 colonnes, `flex-1`
-          n'ayant aucun effet sur un enfant de `display: grid`. */}
-      <div className="grid grid-cols-12 min-[900px]:grid-cols-5 gap-[9px] mb-3">
+      {/* ── KPI ── */}
+      <div className="grid grid-cols-2 gap-3 mb-3 min-[900px]:grid-cols-5">
         {kpis.map((kpi) => (
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-1" key={kpi.label}>
-            <Card className="[--card-spacing:12px] rounded-[12px] text-center">
-              <CardContent>
-                <div className="mb-[3px] inline-flex" style={{ color: kpi.color }}>
-                  {kpi.icon}
-                </div>
-                <p className="cn-text-body1 text-[1.25rem] font-bold" style={{ color: kpi.color }}>
-                  {kpi.value}
-                </p>
-                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5">
-                  {kpi.label}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <StatTile
+            key={kpi.label}
+            icon={kpi.icon}
+            label={kpi.label}
+            value={kpi.value}
+            unit={kpi.unit}
+            iconClassName={kpi.iconClassName}
+          />
         ))}
       </div>
 
-      {/* ── Revenue by Month ── */}
-      {dashboard.revenueByMonth && Object.keys(dashboard.revenueByMonth).length > 0 && (
-        <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
-          <p className="cn-text-body1 text-[0.8125rem] font-bold mb-2">
+      {/* ── Revenu net par mois — l'aire de la projection ── */}
+      {revenueSeries.length > 0 && (
+        <div className="rounded-xl border border-solid border-border bg-card p-4 mb-3">
+          <h3 className="m-0 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t('ownerPortal.revenueByMonth', 'Revenu par mois')}
-          </p>
-          <div className="flex gap-0.5 items-end h-[120px]">
-            {Object.entries(dashboard.revenueByMonth).map(([month, revenue]) => {
-              const maxRevenue = Math.max(...Object.values(dashboard.revenueByMonth));
-              const barHeight = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
-              return (
-                <div className="flex-1 flex flex-col items-center" key={month}>
-                  <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground mb-0.5">
-                    {fmtCurrency(revenue)}
-                  </p>
-                  <div className="w-full min-h-[4px] bg-[#4A9B8E] rounded-[4px_4px_0_0]" style={{ height: `${barHeight}%` }} />
-                  <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground mt-0.5">
-                    {month.slice(-2)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+          </h3>
+          <ChartContainer config={OWNER_REVENUE_CONFIG} className="h-44 w-full">
+            <AreaChart accessibilityLayer data={revenueSeries} margin={{ left: 12, right: 12 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+              <Area dataKey="net" type="natural" fill="var(--color-net)" fillOpacity={0.4} stroke="var(--color-net)" />
+            </AreaChart>
+          </ChartContainer>
         </div>
       )}
 
@@ -399,7 +442,14 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                     {fmtCurrency(prop.revenue)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <StatusChip size="sm" tokens={{ color: '#fff', bg: prop.occupancyRate > 0.7 ? '#4A9B8E' : prop.occupancyRate > 0.4 ? '#D4A574' : '#ef5350' }} label={fmtPercent(prop.occupancyRate)} className="h-[20px]" />
+                    <StatusChip
+                      size="sm"
+                      dot
+                      // Echelle 0-100 (cf. fmtPercent) : les anciens seuils
+                      // 0.7 / 0.4 rendaient toute occupation « ok ».
+                      tone={prop.occupancyRate > 70 ? 'ok' : prop.occupancyRate > 40 ? 'warn' : 'err'}
+                      label={fmtPercent(prop.occupancyRate)}
+                    />
                   </TableCell>
                   <TableCell className="text-center">{prop.reservationCount}</TableCell>
                 </TableRow>
@@ -496,56 +546,45 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
       {statement && (
         <>
-          {/* ── Header totals ── */}
-          <div className={cn(PANEL_CLASS, 'p-3 mb-[9px]')}>
+          {/* ── Totaux du releve — les tuiles de la projection, teintes
+                semantiques sur l'icone seule au lieu des hex en dur. ── */}
+          <div className="mb-[9px]">
             <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
               {statement.ownerName} — {fmtDate(statement.periodStart)} → {fmtDate(statement.periodEnd)}
             </p>
-            <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-6 min-[600px]:col-span-3">
-                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
-                  {t('ownerPortal.totalRevenue', 'Revenu total')}
-                </p>
-                <p className="cn-text-body1 text-[1rem] font-bold text-[#1976d2]">
-                  {fmtCurrency(statement.totalRevenue)}
-                </p>
-              </div>
-              <div className="col-span-6 min-[600px]:col-span-3">
-                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
-                  {t('ownerPortal.totalCommissions', 'Commissions')}
-                </p>
-                <p className="cn-text-body1 text-[1rem] font-bold text-[#D4A574]">
-                  {fmtCurrency(statement.totalCommissions)}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+              <StatTile
+                icon={<RevenueIcon />}
+                label={t('ownerPortal.totalRevenue', 'Revenu total')}
+                value={fmtCurrency(statement.totalRevenue)}
+              />
+              <StatTile
+                icon={<PercentIcon />}
+                label={t('ownerPortal.totalCommissions', 'Commissions')}
+                value={fmtCurrency(statement.totalCommissions)}
+              />
               {/* Frais OTA : affiches seulement quand le proprietaire les supporte.
                   A la charge de la conciergerie, ils ne sortent pas de son releve. */}
               {statement.totalOtaFees > 0 && (
-                <div className="col-span-6 min-[600px]:col-span-3">
-                  <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
-                    {t('ownerPortal.totalOtaFees', 'Frais OTA')}
-                  </p>
-                  <p className="cn-text-body1 text-[1rem] font-bold text-[#ef5350]">
-                    {fmtCurrency(statement.totalOtaFees)}
-                  </p>
-                </div>
+                <StatTile
+                  icon={<StatementIcon />}
+                  label={t('ownerPortal.totalOtaFees', 'Frais OTA')}
+                  value={fmtCurrency(statement.totalOtaFees)}
+                  iconClassName="text-warning"
+                />
               )}
-              <div className="col-span-6 min-[600px]:col-span-3">
-                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
-                  {t('ownerPortal.totalExpenses', 'Depenses')}
-                </p>
-                <p className="cn-text-body1 text-[1rem] font-bold text-[#ef5350]">
-                  {fmtCurrency(statement.totalExpenses)}
-                </p>
-              </div>
-              <div className="col-span-6 min-[600px]:col-span-3">
-                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
-                  {t('ownerPortal.netAmount', 'Montant net')}
-                </p>
-                <p className="cn-text-body1 text-[1rem] font-bold text-[#2e7d32]">
-                  {fmtCurrency(statement.netAmount)}
-                </p>
-              </div>
+              <StatTile
+                icon={<StatementIcon />}
+                label={t('ownerPortal.totalExpenses', 'Depenses')}
+                value={fmtCurrency(statement.totalExpenses)}
+                iconClassName="text-warning"
+              />
+              <StatTile
+                icon={<PayoutIcon />}
+                label={t('ownerPortal.netAmount', 'Montant net')}
+                value={fmtCurrency(statement.netAmount)}
+                iconClassName="text-success"
+              />
             </div>
           </div>
 
@@ -576,12 +615,12 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                       <TableCell>
                         <Badge variant="secondary" className="text-[0.625rem] h-[20px] font-semibold">{line.type}</Badge>
                       </TableCell>
-                      <TableCell className="text-end">{fmtCurrency(line.amount)}</TableCell>
+                      <TableCell className="text-end tabular-nums">{fmtCurrency(line.amount)}</TableCell>
                       {statement.totalOtaFees > 0 && (
-                        <TableCell className="text-end">{fmtCurrency(line.otaFee)}</TableCell>
+                        <TableCell className="text-end text-muted-foreground tabular-nums">−{fmtCurrency(line.otaFee)}</TableCell>
                       )}
-                      <TableCell className="text-end">{fmtCurrency(line.commission)}</TableCell>
-                      <TableCell className="text-end font-bold">{fmtCurrency(line.net)}</TableCell>
+                      <TableCell className="text-end text-muted-foreground tabular-nums">−{fmtCurrency(line.commission)}</TableCell>
+                      <TableCell className="text-end font-semibold tabular-nums">{fmtCurrency(line.net)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

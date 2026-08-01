@@ -4020,7 +4020,14 @@
       "logoHelp": "Leave empty to show no logo",
       "primaryColor": "Accent color (#RRGGBB)",
       "saveError": "Could not save"
-    }
+    },
+    "showcase": {
+      "title": "Your owners follow their properties without calling you",
+      "description": "Occupancy, revenue, payouts and documents, in a dedicated space you open property by property.",
+      "action": "Invite an owner"
+    },
+    "propertiesCount_one": "{{count}} property",
+    "propertiesCount_other": "{{count}} properties"
   },
   "ownerConstellation": {
     "subtitle": "Owner area",

@@ -4042,7 +4042,14 @@
       "logoHelp": "Laisser vide pour ne pas afficher de logo",
       "primaryColor": "Couleur d'accent (#RRGGBB)",
       "saveError": "Enregistrement impossible"
-    }
+    },
+    "showcase": {
+      "title": "Vos propriétaires suivent leurs biens sans vous appeler",
+      "description": "Occupation, revenus, reversements et documents, dans un espace dédié que vous ouvrez bien par bien.",
+      "action": "Inviter un propriétaire"
+    },
+    "propertiesCount_one": "{{count}} propriété",
+    "propertiesCount_other": "{{count}} propriétés"
   },
   "ownerConstellation": {
     "subtitle": "Espace propriétaire",
