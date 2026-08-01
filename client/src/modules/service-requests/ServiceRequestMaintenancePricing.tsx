@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
-import { TextField, Chip } from '@mui/material';
+import { TextField } from '@mui/material';
 import { Receipt, Search } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import ServiceRequestQuoteEditor from './ServiceRequestQuoteEditor';
+import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 
 // ─── Chiffrage maintenance ──────────────────────────────────────────────────
 //
@@ -82,27 +83,17 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
           {MODES.map((m) => {
             const isActive = pricingMode === m.value;
             return (
-              <Chip
+              <StatusChip
                 key={m.value}
+                outlined
+                selected={isActive}
+                pressed={isActive}
+                tokens={STATUS_TONES.accent}
                 icon={m.icon}
                 label={m.label}
                 onClick={disabled ? undefined : () => handleModeChange(m.value)}
                 disabled={disabled}
-                aria-pressed={isActive}
-                sx={{
-                  height: 30,
-                  fontSize: '11.5px',
-                  fontWeight: isActive ? 600 : 500,
-                  border: '1px solid',
-                  borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
-                  bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
-                  color: isActive ? 'var(--accent)' : 'var(--body)',
-                  '& .MuiChip-icon': { fontSize: 15, ml: 0.5, color: isActive ? 'var(--accent)' : 'var(--muted)' },
-                  '& .MuiChip-label': { px: 0.75 },
-                  '&:hover': disabled ? {} : { borderColor: 'var(--accent)', bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)' },
-                  cursor: disabled ? 'default' : 'pointer',
-                  transition: 'background-color .15s, border-color .15s, color .15s',
-                }}
+                className={`h-[30px] text-[11.5px] border-solid${isActive ? ' font-semibold' : ''}`}
               />
             );
           })}

@@ -3,7 +3,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel, Chip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel } from '@mui/material';
 import {
   Close,
   Send,
@@ -958,8 +958,14 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                             )}
                           </div>
                         </div>
+                        {/* Fond `--card` et non `--accent-soft` : le panneau qui
+                            porte la puce est deja en accent-soft. */}
                         {selectedForfait && (
-                          <Chip label={selectedForfait.label} size="small" variant="outlined" sx={{ alignSelf: 'flex-start', height: 22, fontSize: '0.625rem', fontWeight: 600, color: 'var(--accent)', borderColor: 'var(--accent)', backgroundColor: 'var(--card)', '& .MuiChip-label': { px: 1 } }} />
+                          <StatusChip
+                            tokens={{ color: 'var(--accent)', bg: 'var(--card)' }}
+                            label={selectedForfait.label}
+                            className="self-start border border-solid border-[var(--accent)] text-[0.625rem]"
+                          />
                         )}
                       </Box>
                     )}

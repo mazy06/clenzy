@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Skeleton, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   PlayArrow,
   CompareArrows,
@@ -29,14 +29,14 @@ const STATUS_OPTIONS: { value: ReconciliationStatus; label: string; color: strin
 ];
 
 // Statuts de run → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  DIVERGENCE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  RUNNING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+const STATUS_TOKEN: Record<string, ToneTokens> = {
+  SUCCESS: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  DIVERGENCE: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  RUNNING: { color: 'var(--info)', bg: 'var(--info-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const formatDuration = (startedAt: string | null, completedAt: string | null): string => {
   if (!startedAt || !completedAt) return '—';
@@ -250,17 +250,13 @@ const ReconciliationTab: React.FC = () => {
                     <TableRow key={run.id}>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.id}</TableCell>
                       <TableCell>
-                        <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={run.channel} />
+                        <StatusChip tokens={NEUTRAL_TOKEN} label={run.channel} />
                       </TableCell>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.propertyId}</TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
+                          tokens={STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN}
                           label={run.status}
-                          size="small"
-                          sx={(() => {
-                            const tk = STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN;
-                            return { color: tk.fg, backgroundColor: tk.bg };
-                          })()}
                         />
                       </TableCell>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.pmsDaysChecked}</TableCell>

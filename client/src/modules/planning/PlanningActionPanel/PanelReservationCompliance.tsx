@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, Chip, Button } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { VerifiedUser, Replay, HourglassEmpty, Check } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -9,7 +9,7 @@ import {
   type DeclarationSummary,
   type DeclarationStatus,
 } from '../../../services/api/complianceConnectionApi';
-import { toneTokensSx, STATUS_TONES } from '../../../components/StatusChip';
+import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 
 // ─── Encart « Fiche de police / conformité » (Baitly) ─────────────────────────
 //
@@ -136,11 +136,13 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
                 <span className="flex-1 min-w-0 text-[0.8125rem] font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {travelerLabel(d, companionIndex)}
                 </span>
-                <Chip
+                <StatusChip
+                  pill
+                  size="sm"
+                  tokens={tokens}
                   icon={submitted ? <Check size={11} strokeWidth={2} /> : undefined}
                   label={statusLabel(d.status)}
-                  size="small"
-                  sx={{ ...toneTokensSx(tokens, 'sm'), borderRadius: 'var(--radius-pill)', flexShrink: 0 }}
+                  className="shrink-0"
                 />
               </div>
 

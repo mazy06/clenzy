@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Chip, Skeleton } from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Skeleton } from '@mui/material';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -298,17 +298,10 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                       )}
                     </TableCell>
                     <TableCell align="center">
-                      <Chip
+                      <StatusChip
+                        tone="accent"
                         label={guest.totalStays ?? 0}
-                        size="small"
-                        sx={{
-                          minWidth: 28,
-                          color: 'var(--accent)',
-                          bgcolor: 'var(--accent-soft)',
-                          border: 'none',
-                          fontFamily: 'var(--font-display)',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
+                        className="min-w-[28px] justify-center font-[var(--font-display)] tabular-nums"
                       />
                     </TableCell>
                     <TableCell align="right">

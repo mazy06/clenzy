@@ -4,7 +4,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -389,13 +390,11 @@ const YieldRulesPanel: React.FC = () => {
                   </TableCell>
                   <TableCell align="right" sx={NUM_SX}>{rule.maxDailyChangePct} %</TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
+                    <StatusChip
+                      tone={rule.active ? 'ok' : 'neutral'}
                       label={rule.active
                         ? t('yieldRules.active', 'Active')
                         : t('yieldRules.inactive', 'Inactive')}
-                      color={rule.active ? 'success' : 'default'}
-                      variant="outlined"
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>

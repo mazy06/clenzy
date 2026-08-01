@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { Card } from '../../../components/ui';
-import { Button, IconButton, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
+import { Button, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
 } from '../../../icons';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
 import { Money } from '../../../components/Money';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 
-const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
-  DRAFT: { label: 'Brouillon', color: 'warning' },
-  CONFIRMED: { label: 'Confirme', color: 'success' },
-  INVOICED: { label: 'Facture', color: 'info' },
+const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: 'Brouillon', tone: 'warn' },
+  CONFIRMED: { label: 'Confirme', tone: 'ok' },
+  INVOICED: { label: 'Facture', tone: 'info' },
 };
 
 const formatDate = (dateStr: string | null) => {
@@ -112,7 +113,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                       <TableCell sx={{ fontWeight: 500 }}>#{quote.id}</TableCell>
                       <TableCell>{formatDate(quote.generatedAt)}</TableCell>
                       <TableCell>
-                        <Chip label={statusConf.label} color={statusConf.color} size="small" variant="outlined" />
+                        <StatusChip tone={statusConf.tone} label={statusConf.label} />
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>
                         <Money value={Number(quote.totalHt)} from={quote.currency ?? 'EUR'} />

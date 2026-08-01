@@ -3,7 +3,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../../components/ui';
-import { Box, Button, Chip } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   OpenInNew as ExternalLinkIcon,
@@ -18,7 +18,6 @@ import {
   getServicesByCategory,
 } from '../../../services/integrations/servicesCatalog';
 import {
-  COMING_SOON_CHIP_SX,
   DISABLED_CARDS_SX,
   blockInteraction,
 } from './disabledIntegration';
@@ -43,6 +42,15 @@ import {
 
 const ACCENT = 'var(--ok)';
 const NEUTRAL = 'var(--muted)';
+
+// Transcription du COMING_SOON_CHIP_SX de disabledIntegration.ts, encore
+// utilise par les puces MUI restantes ailleurs — d'ou la copie plutot que
+// l'ajout d'un export cote constantes.
+const COMING_SOON_TOKENS = {
+  color: NEUTRAL,
+  bg: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
+};
+const COMING_SOON_BORDER = `color-mix(in srgb, ${NEUTRAL} 20%, transparent)`;
 
 interface ServiceCatalogSectionProps {
   category: ServiceCategory;
@@ -105,7 +113,13 @@ export default function ServiceCatalogSection({
             {title}
           </p>
           {disabled && (
-            <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+            <StatusChip
+              size="sm"
+              tokens={COMING_SOON_TOKENS}
+              label="Bientôt disponible"
+              className="rounded-[5px] border border-solid text-[0.62rem] tracking-[0.01em]"
+              sx={{ borderColor: COMING_SOON_BORDER }}
+            />
           )}
         </div>
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">

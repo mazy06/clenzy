@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Chip, Divider, Button, TextField, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Divider, Button, TextField, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   AutoAwesome,
   Handyman,
@@ -196,14 +196,21 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         {intervention.estimatedDurationHours && (
           <StatusChip tokens={{ color: '#0288d1', bg: '#0288d118' }} label={`${intervention.estimatedDurationHours}h`} icon={<Schedule size={12} strokeWidth={1.75} color="#0288d1" />} className="text-[0.5625rem]" />
         )}
-        <Chip
+        {/* Le crayon etait monte en `deleteIcon`, avec un `onDelete` qui basculait
+            le meme panneau que le corps de la puce : une seule action, donc une
+            seule commande — le crayon n'est plus qu'un decor. */}
+        <StatusChip
+          tokens={{ color: '#4A9B8E', bg: '#4A9B8E18' }}
           icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
-          label={<Money value={displayAmount} from="EUR" decimals={0} />}
+          label={
+            <span className="inline-flex items-center gap-0.5">
+              <Money value={displayAmount} from="EUR" decimals={0} />
+              <Edit size={11} strokeWidth={1.75} />
+            </span>
+          }
           onClick={() => setAmountEditOpen((o) => !o)}
-          onDelete={() => setAmountEditOpen((o) => !o)}
-          deleteIcon={<Edit size={11} strokeWidth={1.75} />}
-          size="small"
-          sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', cursor: 'pointer', '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-deleteIcon': { color: '#4A9B8E', fontSize: 12 } }}
+          ariaLabel="Modifier le montant"
+          className="text-[0.5625rem] border border-solid border-[#4A9B8E40]"
         />
       </div>
 
@@ -218,18 +225,14 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             ] as const).map(([mode, label]) => {
               const active = amountMode === mode;
               return (
-                <Chip
+                <StatusChip
                   key={mode}
+                  outlined
+                  selected={active}
+                  tokens={STATUS_TONES.accent}
                   label={label}
                   onClick={() => setAmountMode(mode)}
-                  size="small"
-                  sx={{
-                    height: 24, fontSize: '0.625rem', fontWeight: 600, cursor: 'pointer',
-                    border: '1px solid', borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-                    bgcolor: active ? 'var(--accent-soft)' : 'var(--card)',
-                    color: active ? 'var(--accent)' : 'var(--body)',
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
+                  className="h-6 text-[0.625rem] font-semibold"
                 />
               );
             })}

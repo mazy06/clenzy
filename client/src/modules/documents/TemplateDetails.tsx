@@ -4,7 +4,8 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Chip, Button, Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Box, Button, Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   ArrowBack,
   Edit,
@@ -255,9 +256,6 @@ const TemplateDetails: React.FC = () => {
 
   const error = actionError;
 
-  const statusTone = template.active
-    ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
-    : { color: 'var(--muted)', bgcolor: 'var(--hover)' };
   const replacePending = replaceFileMutation.isPending;
   const reparsePending = reparseMutation.isPending;
 
@@ -270,10 +268,9 @@ const TemplateDetails: React.FC = () => {
         backPath="/documents"
         backLabel="Documents"
         titleAdornment={
-          <Chip
+          <StatusChip
+            tone={template.active ? 'ok' : 'neutral'}
             label={template.active ? 'Actif' : 'Inactif'}
-            size="small"
-            sx={statusTone}
           />
         }
         actions={

@@ -23,7 +23,8 @@ import React, { useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Box, Button, Alert, Checkbox, FormControlLabel, Stack, Chip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Button, Alert, Checkbox, FormControlLabel, Stack } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import {
   AlertCircle,
   CheckCircle2,
@@ -103,15 +104,11 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
             {STEP_LABEL_FR[step.code] ?? step.label}
           </p>
           {step.targetId && (
-            <Chip
-              size="small"
+            <StatusChip
+              size="sm"
+              tone="neutral"
               label={step.targetId.slice(0, 8)}
-              sx={{
-                height: 18,
-                fontSize: '0.65rem',
-                fontFamily: 'monospace',
-                bgcolor: 'var(--hover)',
-              }}
+              className="text-[0.65rem] font-mono"
             />
           )}
         </div>

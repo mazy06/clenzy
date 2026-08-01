@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Autocomplete, Box, Paper, Typography, TextField, Button, Chip, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
+import { Autocomplete, Box, Paper, Typography, TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   Add,
   Edit,
@@ -409,10 +409,11 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                       <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {option.id}
                       </span>
-                      <Chip
-                        size="small"
+                      <StatusChip
+                        size="sm"
+                        tokens={{ color, bg: alpha(color, 0.14) }}
                         label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
-                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, flexShrink: 0, bgcolor: alpha(color, 0.14), color }}
+                        className="text-[0.6rem] shrink-0"
                       />
                     </li>
                   );
@@ -676,14 +677,20 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
         {model.assignedFeatures.map((feat) => {
           const featureConf = AI_FEATURES.find((f) => f.key === feat);
           return (
-            <StatusChip tokens={{ color: featureConf?.color || 'text.secondary', bg: alpha(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
+            // Repli en TOKEN, pas en chemin de theme MUI : ces couleurs partent
+            // desormais en style inline, ou `text.secondary` ne veut rien dire.
+            <StatusChip tokens={{ color: featureConf?.color || 'var(--muted)', bg: alpha(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
           );
         })}
       </div>
 
       {/* Availability (live) — vert / rouge / gris + tooltip (dernier contrôle + erreur) */}
       <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{avTip}</span>}>
-        <StatusChip tokens={{ color: avColor, bg: alpha(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
+        {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+            (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+        <span className="inline-flex">
+          <StatusChip tokens={{ color: avColor, bg: alpha(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
+        </span>
       </Tooltip>
 
       {/* Validated indicator */}

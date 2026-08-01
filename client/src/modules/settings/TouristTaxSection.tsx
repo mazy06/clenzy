@@ -3,8 +3,9 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton, TextField, Tooltip } from '@mui/material';
+import { Button, Table, TableBody, TableCell, TableHead, TableRow, IconButton, TextField, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel, Add, Edit, Delete, Download, Receipt } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -232,10 +233,8 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{rateSummary(config)}</TableCell>
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{surchargeSummary(config)}</TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      color={config.enabled ? 'success' : 'default'}
-                      variant="outlined"
+                    <StatusChip
+                      tone={config.enabled ? 'ok' : 'neutral'}
                       label={
                         config.enabled
                           ? t('touristTax.baremes.active', 'Actif')

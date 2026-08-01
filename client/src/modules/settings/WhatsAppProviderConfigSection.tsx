@@ -3,7 +3,8 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Box, Button, Chip, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
+import { Alert, Box, Button, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -14,6 +15,13 @@ import {
 } from '../../services/api/whatsAppConfigApi';
 import OpenWaQrScanDialog from './components/OpenWaQrScanDialog';
 import MetaEmbeddedSignupButton from './components/MetaEmbeddedSignupButton';
+
+/** Couleur MUI historique du badge des option cards -> ton de la primitive. */
+const BADGE_TONES: Record<'success' | 'warning' | 'info', StatusTone> = {
+  success: 'ok',
+  warning: 'warn',
+  info: 'info',
+};
 
 /**
  * Section Settings > Messagerie > Provider WhatsApp.
@@ -50,7 +58,6 @@ import MetaEmbeddedSignupButton from './components/MetaEmbeddedSignupButton';
  */
 export default function WhatsAppProviderConfigSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   const [config, setConfig] = useState<WhatsAppConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,7 +172,7 @@ export default function WhatsAppProviderConfigSection() {
   const statusChip = !config
     ? null
     : !enabled
-      ? <Chip label="Désactivé" size="small" sx={{ bgcolor: alpha(theme.palette.text.primary, 0.08) }} />
+      ? <StatusChip tone="neutral" label="Désactivé" />
       : isProviderConfigured
         ? <Badge variant="success"><CheckCircle size={14} />Connecté</Badge>
         : <Badge variant="warning"><ErrorOutline size={14} />Configuration incomplète</Badge>;
@@ -567,12 +574,11 @@ function ProviderOptionCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
           <h6 className="cn-text-subtitle2 font-semibold">{title}</h6>
-          <Chip
+          <StatusChip
+            size="sm"
+            tone={BADGE_TONES[badge.color]}
             label={badge.label}
-            size="small"
-            color={badge.color}
-            variant="outlined"
-            sx={{ height: 18, '& .MuiChip-label': { px: 0.75, fontSize: '0.6875rem' } }}
+            className="text-[0.6875rem]"
           />
         </div>
         <span className="cn-text-caption text-muted-foreground block mt-0.5">

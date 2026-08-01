@@ -3,7 +3,8 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import { Box, Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   Save,
   Add,
@@ -406,13 +407,7 @@ const TeamForm: React.FC = () => {
                   </span>
                   <div className="flex gap-0.5 flex-wrap mb-2">
                     {availableRoles.map(role => (
-                      <Chip
-                        key={role.value}
-                        label={role.label}
-                        size="small"
-                        variant="outlined"
-                        sx={{ height: 22, fontSize: '0.68rem', fontWeight: 500, borderWidth: 1.5 }}
-                      />
+                      <StatusChip key={role.value} label={role.label} tone="neutral" />
                     ))}
                   </div>
 

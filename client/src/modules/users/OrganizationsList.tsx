@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Box, Button, Grid, Card, CardContent, CardActions, Chip, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
+import { Box, Button, Grid, Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -380,19 +380,12 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     {/* Type et membres — chips -soft (pilule/typo via thème global MuiChip) */}
                     <div className="flex gap-0.5 mb-2 flex-wrap">
                       <StatusChip tokens={{ color: typeColor, bg: `${typeColor}18` }} label={typeInfo.label} icon={<TypeIcon size={11} strokeWidth={2} />} />
-                      <Chip
+                      <StatusChip
+                        tokens={{ color: MEMBER_CHIP_COLOR, bg: `${MEMBER_CHIP_COLOR}18` }}
                         icon={<People size={11} strokeWidth={2} />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
-                        size="small"
                         onClick={() => setMembersDialogOrg(org)}
-                        sx={{
-                          cursor: 'pointer',
-                          backgroundColor: `${MEMBER_CHIP_COLOR}18`,
-                          color: MEMBER_CHIP_COLOR,
-                          fontVariantNumeric: 'tabular-nums',
-                          '& .MuiChip-icon': { color: MEMBER_CHIP_COLOR, ml: '8px', mr: '-4px' },
-                          '&:hover': { backgroundColor: `${MEMBER_CHIP_COLOR}28` },
-                        }}
+                        className="tabular-nums"
                       />
                     </div>
 

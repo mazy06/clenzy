@@ -1,7 +1,8 @@
 import React from 'react';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
 import {
   People,
   Group,
@@ -16,6 +17,18 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTeamUserAssignment } from './useTeamUserAssignment';
+
+// `getRoleColor` du hook rend un nom de couleur MUI : on le transpose ici, le
+// hook etant partage avec d'autres ecrans.
+const ROLE_TONE: Record<string, StatusTone> = {
+  primary: 'accent',
+  secondary: 'neutral',
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  default: 'neutral',
+};
 
 // ─── Role Icon Helper ────────────────────────────────────────────────────────
 
@@ -162,11 +175,10 @@ const TeamUserAssignmentForm: React.FC = () => {
                       )}
                       <div className="flex gap-1 ms-5 items-center">
                         {team.interventionType && (
-                          <Chip
+                          <StatusChip
+                            tone={team.interventionType === 'CLEANING' ? 'ok' : 'info'}
                             label={team.interventionType}
-                            size="small"
-                            color={team.interventionType === 'CLEANING' ? 'success' : 'info'}
-                            sx={{ height: 20, fontSize: '0.6rem' }}
+                            className="h-[20px] text-[0.6rem]"
                           />
                         )}
                         <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
@@ -276,12 +288,11 @@ const TeamUserAssignmentForm: React.FC = () => {
                           {userItem.email}
                         </span>
                         <div className="ms-5">
-                          <Chip
+                          <StatusChip
+                            tone={ROLE_TONE[getRoleColor(userItem.role)] ?? 'neutral'}
                             label={getRoleLabel(userItem.role)}
-                            size="small"
-                            color={getRoleColor(userItem.role)}
                             icon={getRoleIcon(userItem.role)}
-                            sx={{ height: 22, fontSize: '0.65rem' }}
+                            className="text-[0.65rem]"
                           />
                         </div>
                       </CardContent>

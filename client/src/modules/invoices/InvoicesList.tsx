@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Typography, Button, Chip, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Typography, Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -80,13 +80,6 @@ const STATUS_TOKEN: Record<InvoiceStatus, { fg: string; bg: string }> = {
   CANCELLED: { fg: 'var(--muted)', bg: 'var(--hover)' },
   CREDIT_NOTE: { fg: 'var(--info)', bg: 'var(--info-soft)' },
 };
-
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via th\u00e8me global MuiChip) */
-const chipSoftSx = (fg: string, bg: string) => ({
-  backgroundColor: bg,
-  color: fg,
-  '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-});
 
 /** Montants : display tabular-nums (jamais proportional) */
 const moneySx = {
@@ -406,15 +399,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                           {inv.invoiceNumber}
                         </Typography>
                         {inv.duplicateOfId && (
-                          <Chip
-                            label="DUP"
-                            size="small"
-                            sx={{
-                              height: 18,
-                              ...chipSoftSx('var(--info)', 'var(--info-soft)'),
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
-                          />
+                          <StatusChip tone="info" size="sm" label="DUP" />
                         )}
                       </div>
                     </TableCell>

@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Grid, Button, Chip, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Grid, Button, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add,
   Edit,
@@ -21,6 +21,11 @@ import TeamCard from '../../components/TeamCard';
 import { useTeamsList } from './useTeamsList';
 import PagePagination from '../../components/PagePagination';
 import { useScreenSearch } from '../../components/ScreenChrome';
+import StatusChip from '../../components/StatusChip';
+
+// Teinte d'une puce de filtre choisie — identique pour toutes les catégories,
+// seule la bordure au repos distingue la catégorie.
+const FILTER_SELECTED_TOKENS = { color: 'var(--accent)', bg: 'var(--accent-soft)' };
 
 // Catégories de filtrage pour la liste des équipes
 const TEAM_FILTER_CATEGORIES = [
@@ -124,44 +129,34 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
         {/* Filtres par catégorie de service */}
         <div className="flex gap-1 flex-wrap mb-2">
-          <Chip
+          <StatusChip
             label={t('teams.allTypes')}
+            outlined
+            selected={selectedType === 'all'}
+            pressed={selectedType === 'all'}
             onClick={() => setSelectedType('all')}
-            variant="outlined"
-            size="small"
-            aria-pressed={selectedType === 'all'}
-            sx={{
-              cursor: 'pointer',
-              fontSize: '0.72rem',
-              height: 26,
-              fontWeight: 600,
-              ...(selectedType === 'all'
-                ? { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', borderColor: 'var(--accent)' }
-                : { color: 'var(--body)', borderColor: 'var(--line-2)' }),
-              '&:hover': { backgroundColor: 'var(--hover)' },
-            }}
+            tokens={FILTER_SELECTED_TOKENS}
+            className="h-[26px] border-solid text-[0.72rem] font-semibold"
           />
-          {TEAM_FILTER_CATEGORIES.map((cat) => (
-            <Chip
-              key={cat.value}
-              icon={cat.icon}
-              label={cat.label}
-              onClick={() => setSelectedType(cat.value)}
-              variant="outlined"
-              size="small"
-              aria-pressed={selectedType === cat.value}
-              sx={{
-                cursor: 'pointer',
-                fontSize: '0.72rem',
-                height: 26,
-                fontWeight: selectedType === cat.value ? 600 : 400,
-                ...(selectedType === cat.value
-                  ? { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', borderColor: 'var(--accent)' }
-                  : { color: 'var(--body)', borderColor: cat.borderColor }),
-                '&:hover': { backgroundColor: 'var(--hover)' },
-              }}
-            />
-          ))}
+          {TEAM_FILTER_CATEGORIES.map((cat) => {
+            const actif = selectedType === cat.value;
+            return (
+              <StatusChip
+                key={cat.value}
+                icon={cat.icon}
+                label={cat.label}
+                outlined
+                selected={actif}
+                pressed={actif}
+                onClick={() => setSelectedType(cat.value)}
+                tokens={FILTER_SELECTED_TOKENS}
+                // Au repos la bordure porte l'identite de la categorie : couleur
+                // connue a l'execution seulement, donc style inline.
+                sx={actif ? undefined : { borderColor: cat.borderColor }}
+                className={`h-[26px] border-solid text-[0.72rem] ${actif ? 'font-semibold' : 'font-normal'}`}
+              />
+            );
+          })}
         </div>
 
         {/* Compteur d'équipes */}

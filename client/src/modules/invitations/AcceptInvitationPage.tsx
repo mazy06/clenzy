@@ -3,7 +3,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Button, Alert, Chip, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import { Box, Paper, Button, Alert, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   PersonAdd,
   CheckCircle,
@@ -82,21 +83,21 @@ const getRoleLabel = (role: string) => {
   }
 };
 
-const getRoleColor = (role: string): 'primary' | 'secondary' | 'default' | 'error' | 'info' | 'success' | 'warning' => {
+const getRoleTone = (role: string): StatusTone => {
   switch (role) {
-    case 'OWNER': return 'error';
-    case 'SUPER_ADMIN': return 'error';
-    case 'ADMIN': return 'warning';
-    case 'SUPER_MANAGER': return 'secondary';
+    case 'OWNER': return 'err';
+    case 'SUPER_ADMIN': return 'err';
+    case 'ADMIN': return 'warn';
+    case 'SUPER_MANAGER': return 'neutral';
     case 'MANAGER': return 'info';
     case 'SUPERVISOR': return 'info';
-    case 'TECHNICIAN': return 'primary';
-    case 'HOUSEKEEPER': return 'default';
-    case 'LAUNDRY': return 'default';
-    case 'EXTERIOR_TECH': return 'primary';
-    case 'HOST': return 'success';
-    case 'MEMBER': return 'default';
-    default: return 'default';
+    case 'TECHNICIAN': return 'accent';
+    case 'HOUSEKEEPER': return 'neutral';
+    case 'LAUNDRY': return 'neutral';
+    case 'EXTERIOR_TECH': return 'accent';
+    case 'HOST': return 'ok';
+    case 'MEMBER': return 'neutral';
+    default: return 'neutral';
   }
 };
 
@@ -363,11 +364,9 @@ export default function AcceptInvitationPage() {
               <div className="mb-4 border-t border-[#f1f5f9] border-b border-[#f1f5f9] py-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-1.5">
                   <p className="cn-text-body1 text-[13px] text-[#64748b]">Role</p>
-                  <Chip
+                  <StatusChip
+                    tone={getRoleTone(invitation.roleInvited)}
                     label={getRoleLabel(invitation.roleInvited)}
-                    color={getRoleColor(invitation.roleInvited)}
-                    size="small"
-                    sx={{ height: 22, fontSize: 11, fontWeight: 600, borderRadius: 1 }}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-1.5">

@@ -3,7 +3,8 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, Paper, Typography, TextField, Button, IconButton, Switch, FormControlLabel, Chip, Stack, Tooltip, Divider } from '@mui/material';
+import { Box, Paper, Typography, TextField, Button, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -228,12 +229,15 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </p>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
               {DOW.map((d) => (
-                <Chip
-                  key={d.v} label={d.label} size="small" clickable
-                  variant={form.daysOfWeek.includes(d.v) ? 'filled' : 'outlined'}
-                  color={form.daysOfWeek.includes(d.v) ? 'primary' : 'default'}
+                <StatusChip
+                  key={d.v}
+                  label={d.label}
+                  tone="accent"
+                  outlined
+                  selected={form.daysOfWeek.includes(d.v)}
+                  pressed={form.daysOfWeek.includes(d.v)}
                   onClick={() => toggleDow(d.v)}
-                  sx={{ fontSize: '0.7rem', height: 24 }}
+                  className="border-solid text-[0.7rem] h-6"
                 />
               ))}
             </Stack>

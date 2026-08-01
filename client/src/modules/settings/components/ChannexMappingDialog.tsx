@@ -95,7 +95,11 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
 
   return (
     <Tooltip title={meta.description} placement="top" arrow>
-      <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-[0.7rem]" />
+      {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+          (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+      <span className="inline-flex">
+        <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-[0.7rem]" />
+      </span>
     </Tooltip>
   );
 }

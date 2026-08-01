@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Chip, Collapse } from '@mui/material';
+import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Collapse } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
   Reply as ReplyIcon,
@@ -232,12 +233,11 @@ function ReviewCard({
           <div className="flex items-center gap-1 mb-0.5">
             <p className="cn-text-body1 text-[0.8125rem] font-bold">{review.guestName}</p>
             <Rating value={review.rating} readOnly size="small" precision={0.5} sx={{ fontSize: '0.875rem' }} />
-            <Chip
+            <StatusChip
               label={review.source}
-              size="small"
-              sx={{ fontSize: '0.5625rem', height: 18 }}
-              color={review.source === 'airbnb' ? 'error' : 'default'}
-              variant="outlined"
+              size="sm"
+              tone={review.source === 'airbnb' ? 'err' : 'neutral'}
+              className="text-[0.5625rem]"
             />
           </div>
           <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">

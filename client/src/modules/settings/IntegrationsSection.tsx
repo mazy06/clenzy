@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Button, Chip, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
+import { Box, Button, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -36,7 +36,6 @@ import MarketDataProviderCard from './components/MarketDataProviderCard';
 import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnectionApi';
 import KycProviderCard from './components/KycProviderCard';
 import {
-  COMING_SOON_CHIP_SX,
   DISABLED_CARDS_SX,
   blockInteraction,
 } from './components/disabledIntegration';
@@ -797,7 +796,14 @@ export default function IntegrationsSection({
           <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Comptabilité
           </p>
-          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+          {/* Bordure en style inline : sa teinte est un color-mix calcule, que
+              Tailwind ne pourrait pas emettre depuis une classe. */}
+          <StatusChip
+            size="sm"
+            color={NEUTRAL}
+            label="Bientôt disponible"
+            sx={{ border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)` }}
+          />
         </div>
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez factures et dépenses vers votre logiciel comptable.

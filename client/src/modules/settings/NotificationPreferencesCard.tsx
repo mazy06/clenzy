@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRe
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Chip, Tooltip } from '@mui/material';
+import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   ExpandMore,
   Notifications,
@@ -403,12 +404,10 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                   >
                     {category.label}
                   </Typography>
-                  <Chip
+                  <StatusChip
+                    tone={allEnabled ? 'ok' : noneEnabled ? 'neutral' : 'warn'}
                     label={`${stats.enabled}/${stats.total}`}
-                    size="small"
-                    color={allEnabled ? 'success' : noneEnabled ? 'default' : 'warning'}
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem', height: 22 }}
+                    className="text-[0.7rem]"
                   />
                   <Tooltip title={allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}>
                     <Switch

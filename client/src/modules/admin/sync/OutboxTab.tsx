@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
   Replay,
   InfoOutlined,
@@ -120,13 +121,13 @@ const STATUS_OPTIONS: { value: OutboxStatus; label: string; color: string }[] = 
 ];
 
 // Statuts outbox → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  PENDING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  SENT: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+const STATUS_TOKEN: Record<string, ToneTokens> = {
+  PENDING: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  SENT: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const OutboxTab: React.FC = () => {
   const [events, setEvents] = useState<OutboxEvent[]>([]);
@@ -440,14 +441,15 @@ const OutboxTab: React.FC = () => {
                       <TableCell>{evt.topic}</TableCell>
                       <TableCell>
                         <Tooltip arrow placement="right" title={renderStatusTooltip(evt.status)}>
-                          <Chip
-                            label={evt.status}
-                            size="small"
-                            sx={(() => {
-                              const tk = STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN;
-                              return { color: tk.fg, backgroundColor: tk.bg, cursor: 'help' };
-                            })()}
-                          />
+                          {/* Le span porte la ref que Tooltip pose sur son enfant :
+                              StatusChip est une fonction et n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <StatusChip
+                              tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
+                              label={evt.status}
+                              className="cursor-help"
+                            />
+                          </span>
                         </Tooltip>
                       </TableCell>
                       <TableCell>

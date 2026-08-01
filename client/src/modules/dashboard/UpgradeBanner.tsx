@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Chip, useTheme } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Box, Typography, Button, useTheme } from '@mui/material';
 import {
   CalendarMonth as CalendarIcon,
   TrendingUp as TrendingIcon,
@@ -108,20 +109,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
               <h6 className="cn-text-h6 font-bold text-[1rem] text-foreground leading-[1.3]">
                 Debloquez le Planning & l'import iCal
               </h6>
-              <Chip
-                label="Forfait Essentiel"
-                size="small"
-                variant="outlined"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  height: 22,
-                  borderWidth: 1.5,
-                  borderColor: 'divider',
-                  '& .MuiChip-label': { px: 0.75 },
-                }}
-              />
+              <StatusChip tone="neutral" label="Forfait Essentiel" className="text-[0.7rem]" />
             </div>
             <p className="cn-text-body2 text-muted-foreground text-[0.813rem] leading-[1.6]">
               Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
@@ -165,23 +153,15 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                   }),
                 }}
               >
+                {/* Puce a cheval sur la bordure de la carte : fond OPAQUE
+                    (--card) et bordure d'accent, sinon le trait de la carte
+                    transparait sous le fond doux habituel. */}
                 {highlight && (
-                  <Chip
+                  <StatusChip
+                    tokens={{ color: 'var(--accent)', bg: 'var(--card)' }}
                     label="Recommande"
-                    size="small"
-                    variant="outlined"
-                    color="primary"
-                    sx={{
-                      position: 'absolute',
-                      top: -10,
-                      right: 8,
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      height: 20,
-                      borderWidth: 1.5,
-                      bgcolor: 'background.paper',
-                      '& .MuiChip-label': { px: 1 },
-                    }}
+                    size="sm"
+                    className="absolute -top-2.5 right-2 h-5 border-[1.5px] border-solid border-[var(--accent)] px-1.5 text-[0.65rem] font-bold"
                   />
                 )}
                 <Typography

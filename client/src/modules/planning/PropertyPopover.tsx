@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Button, Chip, LinearProgress, Popover, Typography, useMediaQuery } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Box, Button, LinearProgress, Popover, Typography, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -115,19 +116,11 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       {(property.type || address || property.ownerName) && (
         <Box sx={{ px: '14px', py: '8px', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {property.type && (
-            <Chip
+            <StatusChip
+              tone="accent"
+              size="sm"
               label={property.type}
-              size="small"
-              sx={{
-                alignSelf: 'flex-start',
-                height: 18,
-                fontSize: LABEL_FS,
-                fontWeight: 600,
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                textTransform: 'capitalize',
-                '& .MuiChip-label': { px: 0.625 },
-              }}
+              className="self-start text-[0.5625rem] capitalize"
             />
           )}
           {address && (

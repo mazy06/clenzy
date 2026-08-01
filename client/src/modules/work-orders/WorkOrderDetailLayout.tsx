@@ -1,10 +1,10 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   Box,
   Typography,
   Grid,
-  Chip,
   Paper,
   Divider,
   LinearProgress,
@@ -140,16 +140,18 @@ const METRIC_LABEL_SX = {
   mt: 0.25,
 } as const;
 
-const PROPERTY_TAG_SX = {
-  height: 26,
-  fontSize: '11px',
-  fontWeight: 500,
-  color: 'var(--body)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  '& .MuiChip-icon': { fontSize: 13, ml: 0.5, color: 'var(--accent)' },
-  '& .MuiChip-label': { px: 0.75 },
-} as const;
+/**
+ * Puce « caracteristique du logement » : encre de corps sur fond de champ,
+ * cernee d'une hairline. Ce n'est pas un statut — la bordure vient donc d'une
+ * classe, pas de la recette `-soft` de la primitive.
+ *
+ * `border-solid` est indispensable : le gabarit pose `border-none`
+ * (border-STYLE), que tailwind-merge ne considere pas en conflit avec `border`
+ * (border-WIDTH) — sans lui le lisere reste invisible.
+ */
+const PROPERTY_TAG_TOKENS = { color: 'var(--body)', bg: 'var(--field)' } as const;
+const PROPERTY_TAG_CLASS =
+  'h-[26px] font-medium border border-solid border-[var(--field-line)] [&>svg]:text-[var(--accent)]';
 
 // ─── Type icon helper ────────────────────────────────────────────────────────
 
@@ -596,13 +598,12 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <Divider sx={{ my: 0.75 }} />
                 <div className="flex flex-wrap gap-0.5 mt-0.5">
                   {propertyTags.map((tag) => (
-                    <Chip
+                    <StatusChip
                       key={tag.label}
                       icon={tag.icon}
                       label={tag.label}
-                      size="small"
-                      variant="outlined"
-                      sx={PROPERTY_TAG_SX}
+                      tokens={PROPERTY_TAG_TOKENS}
+                      className={PROPERTY_TAG_CLASS}
                     />
                   ))}
                 </div>
@@ -695,12 +696,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                       <div className="flex items-center gap-1">
                         <Typography sx={INFO_VALUE_SX}>{vm.assignee.name}</Typography>
                         {vm.assignee.typeLabel && (
-                          <Chip
+                          <StatusChip
+                            tone={vm.assignee.type === 'team' ? 'info' : 'neutral'}
                             label={vm.assignee.typeLabel}
-                            size="small"
-                            variant="outlined"
-                            color={vm.assignee.type === 'team' ? 'info' : undefined}
-                            sx={{ height: 20, fontSize: '0.6rem', '& .MuiChip-label': { px: 0.5 } }}
+                            size="sm"
+                            className="h-[20px] text-[0.6rem]"
                           />
                         )}
                       </div>

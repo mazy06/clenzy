@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, Chip, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
 import {
   Download,
   Lock,
@@ -462,16 +462,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         {row.name}
                       </Typography>
                       {row.legalNumber && (
-                        <Chip
+                        <StatusChip
+                          tone={row.locked ? 'warn' : 'neutral'}
                           icon={row.locked ? <Lock size={12} strokeWidth={1.75} /> : undefined}
                           label={row.legalNumber}
-                          size="small"
-                          sx={{
-                            color: row.locked ? 'var(--warn)' : 'var(--muted)',
-                            bgcolor: row.locked ? 'var(--warn-soft)' : 'var(--hover)',
-                            fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-                            '& .MuiChip-icon': { color: row.locked ? 'var(--warn)' : 'var(--muted)' },
-                          }}
+                          className="font-mono"
                         />
                       )}
                     </div>
@@ -483,7 +478,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   {/* Statut -soft + actions */}
                   <div className="flex items-center gap-1 shrink-0">
                     <Tooltip title={row.errorMessage || ''} arrow>
-                      <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                      {/* Le span porte la ref que Tooltip pose sur son enfant :
+                          StatusChip est une fonction et n'en transmet pas. */}
+                      <span className="inline-flex">
+                        <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                      </span>
                     </Tooltip>
 
                     {/* ── Message : « Aperçu → » accent + actions d'échec ── */}

@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo } from 'react';
 import { Badge } from '../../components/ui';
-import { Box, Typography, TextField, IconButton, Chip } from '@mui/material';
+import { Box, Typography, TextField, IconButton } from '@mui/material';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import { useCurrency } from '../../hooks/useCurrency';
+import StatusChip from '../../components/StatusChip';
 
 // ─── Devis structuré (maintenance) ──────────────────────────────────────────
 //
@@ -178,22 +179,15 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
         {/* Ajouts : raccourcis + ligne vierge */}
         {!disabled && (
           <div className="flex items-center gap-1 flex-wrap">
-            <Chip
+            {/* `border-solid` est indispensable : le gabarit de la primitive pose
+                `border-none` (border-STYLE), que `border` (border-WIDTH) ne
+                supplante pas — la bordure resterait invisible. */}
+            <StatusChip
+              tone="accent"
               icon={<Add size={14} strokeWidth={1.75} />}
               label="Ligne"
               onClick={() => addLine()}
-              size="small"
-              sx={{
-                height: 26,
-                fontSize: '11.5px',
-                fontWeight: 600,
-                color: 'var(--accent)',
-                border: '1px solid var(--accent)',
-                bgcolor: 'var(--accent-soft)',
-                '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--accent)' },
-                '&:hover': { bgcolor: 'var(--accent-soft)' },
-                cursor: 'pointer',
-              }}
+              className="h-[26px] text-[11.5px] border border-solid border-[var(--accent)]"
             />
             {PRESETS.map((preset) => (
               <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-[var(--muted)] border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--hover)] cursor-pointer" key={preset} onClick={() => addLine(preset)}>{preset}</Badge>

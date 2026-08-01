@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography, TextField, MenuItem, Chip, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography, TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -432,27 +433,14 @@ export default function PromoCodesPage() {
                       </p>
                     </TableCell>
                     <TableCell>
-                      {/* Chip -soft : actif = accent, sinon neutre muted */}
-                      <Chip
-                        size="small"
+                      {/* Un code expire se lit comme un code eteint : meme ton neutre qu'un code desactive. */}
+                      <StatusChip
+                        tone={promo.active && !expired ? 'accent' : 'neutral'}
                         label={discountLabel(promo)}
                         icon={
                           promo.discountType === 'PERCENTAGE' ? (
                             <Percent size={12} strokeWidth={2} />
                           ) : undefined
-                        }
-                        sx={
-                          promo.active && !expired
-                            ? {
-                                color: 'var(--accent)',
-                                backgroundColor: 'var(--accent-soft)',
-                                '& .MuiChip-icon': { color: 'var(--accent)' },
-                              }
-                            : {
-                                color: 'var(--muted)',
-                                backgroundColor: 'var(--hover)',
-                                '& .MuiChip-icon': { color: 'var(--muted)' },
-                              }
                         }
                       />
                     </TableCell>

@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from '@mui/material';
+import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   Euro,
   ExpandMore,
@@ -329,7 +330,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 {config.surfaceTiers.map((tier, index) => (
                   <TableRow key={tier.label}>
                     <TableCell>
-                      <Chip label={tier.label} size="small" variant="outlined" color={index === config.surfaceTiers.length - 1 ? 'error' : 'default'} />
+                      <StatusChip label={tier.label} tone={index === config.surfaceTiers.length - 1 ? 'err' : 'neutral'} />
                     </TableCell>
                     <TableCell align="center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
                     <TableCell align="right" sx={{ width: 120 }}>

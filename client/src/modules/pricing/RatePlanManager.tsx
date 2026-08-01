@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, IconButton, Chip, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
+import { Box, Paper, Button, IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
 import { Delete as DeleteIcon } from '../../icons';
@@ -108,20 +109,11 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
           >
             {/* Type badge */}
             {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
-            <Chip
+            <StatusChip
+              color={c}
               label={t(`dynamicPricing.ratePlan.types.${plan.type}`)}
-              size="small"
-              sx={{
-                backgroundColor: `${c}18`,
-                color: c,
-                border: `1px solid ${c}40`,
-                borderRadius: '6px',
-                fontWeight: 700,
-                fontSize: '0.625rem',
-                height: 22,
-                minWidth: 80,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
+              className="border border-solid font-bold text-[0.625rem] min-w-20"
+              sx={{ borderColor: `${c}40` }}
             />
             ); })()}
 

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Typography, Grid, Card, CardContent, TextField } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton, Typography, Grid, Card, CardContent, TextField } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 
 type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
@@ -18,26 +19,19 @@ const CHANNEL_OPTIONS: { value: ChannelOption; label: string; color: string }[] 
   { value: 'OTHER',   label: 'Autre',   color: 'var(--muted)' },
 ];
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
-
-const DIRECTION_TOKEN: Record<string, { fg: string; bg: string }> = {
-  INBOUND: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  OUTBOUND: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+const DIRECTION_TOKEN: Record<string, ToneTokens> = {
+  INBOUND: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  OUTBOUND: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
 };
 
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  ERROR: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  PENDING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+const STATUS_TOKEN: Record<string, ToneTokens> = {
+  SUCCESS: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  ERROR: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  PENDING: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 /** Label overline (pattern entête de tuile/section) */
 const OVERLINE_SX = {
@@ -232,26 +226,18 @@ const EventsTab: React.FC = () => {
                       <TableCell>{evt.channel || '—'}</TableCell>
                       <TableCell>
                         {evt.direction ? (
-                          <Chip
+                          <StatusChip
                             label={evt.direction}
-                            size="small"
-                            sx={(() => {
-                              const tk = DIRECTION_TOKEN[evt.direction] ?? NEUTRAL_TOKEN;
-                              return chipSx(tk.fg, tk.bg);
-                            })()}
+                            tokens={DIRECTION_TOKEN[evt.direction] ?? NEUTRAL_TOKEN}
                           />
                         ) : '—'}
                       </TableCell>
                       <TableCell>{evt.eventType}</TableCell>
                       <TableCell>
                         {evt.status ? (
-                          <Chip
+                          <StatusChip
                             label={evt.status}
-                            size="small"
-                            sx={(() => {
-                              const tk = STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN;
-                              return chipSx(tk.fg, tk.bg);
-                            })()}
+                            tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
                           />
                         ) : '—'}
                       </TableCell>

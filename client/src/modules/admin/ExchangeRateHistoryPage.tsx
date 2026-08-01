@@ -236,13 +236,25 @@ export default function ExchangeRateHistoryPage() {
           {stats && (
             <div className="flex gap-1.5 ms-auto">
               <Tooltip title="Minimum sur la periode">
-                <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
+                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                <span className="inline-flex">
+                  <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
+                </span>
               </Tooltip>
               <Tooltip title="Maximum sur la periode">
-                <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
+                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                <span className="inline-flex">
+                  <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
+                </span>
               </Tooltip>
               <Tooltip title="Moyenne sur la periode">
-                <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
+                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                <span className="inline-flex">
+                  <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
+                </span>
               </Tooltip>
             </div>
           )}

@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Button, Chip, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   aiAutonomyApi,
   type AutonomyBudget,
@@ -18,11 +19,11 @@ import {
  * Paramètres > IA > Supervision.
  */
 
-const TRUST_STATUS_COLOR: Record<TrustRule['status'], 'default' | 'success' | 'warning'> = {
-  SUGGESTED: 'warning',
-  ACTIVE: 'success',
-  DISMISSED: 'default',
-  REVOKED: 'default',
+const TRUST_STATUS_TONE: Record<TrustRule['status'], StatusTone> = {
+  SUGGESTED: 'warn',
+  ACTIVE: 'ok',
+  DISMISSED: 'neutral',
+  REVOKED: 'neutral',
 };
 
 // Comportements premium branchés côté serveur (X8-b) — affichés même absents du
@@ -278,10 +279,8 @@ export default function AiAutonomySection() {
                     {rule.toolName}
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      color={TRUST_STATUS_COLOR[rule.status]}
+                    <StatusChip
+                      tone={TRUST_STATUS_TONE[rule.status]}
                       label={t(`aiAutonomy.status.${rule.status}`, rule.status)}
                     />
                   </TableCell>

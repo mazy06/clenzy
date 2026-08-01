@@ -4,7 +4,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
-import { Box, Typography, Button, Chip, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
+import { Box, Typography, Button, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -304,20 +304,12 @@ const TokenMonitoring: React.FC = () => {
               <div className="flex flex-wrap gap-0.5">
                 {currentToken.roles?.length ? (
                   currentToken.roles.map((role) => (
-                    <Chip
+                    <StatusChip
                       key={role}
+                      tone="accent"
+                      size="sm"
                       label={role}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.3,
-                        backgroundColor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
+                      className="h-[20px] uppercase tracking-[0.3px]"
                     />
                   ))
                 ) : (

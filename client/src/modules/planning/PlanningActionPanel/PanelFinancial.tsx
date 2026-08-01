@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
-import { Box, Typography, Button, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
+import { Box, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
 import {
   Payment,
   Add,
@@ -33,7 +33,7 @@ import type { PlanningIntervention } from '../../../services/api';
 import { RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { Money } from '../../../components/Money';
-import StatusChip, { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -110,13 +110,6 @@ const CLOSE_BTN_SX = {
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
   '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
 };
-
-/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }),
-  height: 20,
-  borderRadius: 'var(--radius-pill)',
-});
 
 const STATUS_LABELS: Record<string, string> = {
   PAID: 'Paye',
@@ -1022,11 +1015,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     <p className="cn-text-body1 text-[0.75rem] font-semibold min-w-[50px] text-end tabular-nums">
                       {cost > 0 ? <Money value={cost} from="EUR" decimals={0} /> : '\u2014'}
                     </p>
-                    <Chip
-                      label="A payer"
-                      size="small"
-                      sx={{ ...chipSx('var(--warn-soft)', 'var(--warn)'), height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.75 } }}
-                    />
+                    <StatusChip pill size="sm" tokens={WARN_TOKENS} label="A payer" />
                   </Box>
                 );
               })}

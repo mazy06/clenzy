@@ -1,5 +1,14 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import { Box } from '@mui/material';
+import StatusChip, { type ToneTokens } from './StatusChip';
+
+/**
+ * Actif = teinte accent pleine, inactif = fond transparent + encre discrete.
+ * Pas de `outlined` : le pattern .s-subtab n'a jamais de bordure visible, meme
+ * au repos.
+ */
+const ACTIVE_TOKENS: ToneTokens = { color: 'var(--accent)', bg: 'var(--accent-soft)' };
+const IDLE_TOKENS: ToneTokens = { color: 'var(--muted)', bg: 'transparent' };
 
 /**
  * Un filtre individuel dans FilterChipRow.
@@ -77,8 +86,9 @@ export default function FilterChipRow<T extends string>({
       {items.map((opt) => {
         const active = value === opt.value;
         return (
-          <Chip
+          <StatusChip
             key={opt.value || '__all__'}
+            tokens={active ? ACTIVE_TOKENS : IDLE_TOKENS}
             label={
               <span className="inline-flex items-center gap-0.5">
                 {opt.label}
@@ -100,24 +110,13 @@ export default function FilterChipRow<T extends string>({
                 )}
               </span>
             }
+            pressed={active}
             onClick={() => onChange(active ? '' : (opt.value as T | ''))}
-            size="small"
-            sx={{
-              height: compact ? 22 : 26,
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              fontSize: compact ? '0.6875rem' : '0.75rem',
-              fontWeight: 600,
-              transition: 'background-color .14s, color .14s',
-              backgroundColor: active ? 'var(--accent-soft)' : 'transparent',
-              color: active ? 'var(--accent)' : 'var(--muted)',
-              border: '1px solid transparent',
-              '& .MuiChip-label': { px: compact ? 0.6 : 0.75 },
-              '&:hover': {
-                backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)',
-                color: active ? 'var(--accent)' : 'var(--body)',
-              },
-            }}
+            className={[
+              'transition-colors',
+              compact ? '' : 'h-[26px] text-[0.75rem]',
+              active ? '' : 'hover:bg-[var(--hover)] hover:text-[var(--body)]',
+            ].filter(Boolean).join(' ')}
           />
         );
       })}

@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Typography, Button, Grid, Card, CardContent, Avatar, Chip, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Box, Typography, Button, Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -441,12 +441,13 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                         <Box display="flex" alignItems="center" gap={0.5} ml={0.5} flexWrap="wrap">
                                           <Badge variant="secondary" className="h-[20px] text-[0.6rem]">{property.type}</Badge>
                                           {propertyTeamMap.get(property.id) ? (
-                                            <Chip
+                                            <StatusChip
+                                              tone="ok"
                                               icon={<Group size={13} strokeWidth={1.75} />}
                                               label={propertyTeamMap.get(property.id)!.teamName}
-                                              size="small"
                                               onDelete={() => handleRemoveTeamFromProperty(property.id)}
-                                              sx={{ height: 20, fontSize: '0.6rem', color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', '& .MuiChip-icon': { color: 'var(--ok)' }, '& .MuiChip-deleteIcon': { color: 'var(--ok)' } }}
+                                              deleteLabel={t('portfolios.confirmations.unassignTeamTitle')}
+                                              className="h-[20px] text-[0.6rem]"
                                             />
                                           ) : (
                                             <Badge variant="outline" className="h-[20px] text-[0.6rem] cursor-pointer" onClick={(e) => {

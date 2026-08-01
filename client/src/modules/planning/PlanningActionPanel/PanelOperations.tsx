@@ -4,7 +4,7 @@ import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Button, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
+import { Box, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -1708,22 +1708,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             </span>
                           </div>
                         </div>
-                        <Chip
-                          size="small"
+                        <StatusChip
+                          size="sm"
+                          tokens={member.available ? OK_TOKENS : WARN_TOKENS}
                           label={
                             member.available
                               ? 'Disponible'
                               : `${member.conflictCount} intervention${member.conflictCount > 1 ? 's' : ''}`
                           }
+                          className="h-5 border border-solid font-semibold"
                           sx={{
-                            fontSize: '0.625rem',
-                            height: 20,
-                            fontWeight: 600,
-                            backgroundColor: member.available ? 'success.50' : 'warning.50',
-                            color: member.available ? 'success.dark' : 'warning.dark',
-                            border: '1px solid',
-                            borderColor: member.available ? 'success.200' : 'warning.200',
-                            '& .MuiChip-label': { px: 0.75 },
+                            borderColor: `color-mix(in srgb, ${member.available ? OK_TOKENS.color : WARN_TOKENS.color} 35%, transparent)`,
                           }}
                         />
                       </Box>

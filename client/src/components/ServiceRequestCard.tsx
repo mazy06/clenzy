@@ -5,9 +5,9 @@ import {
   CardContent,
   Typography,
   Button,
-  Chip,
   IconButton,
 } from '@mui/material';
+import StatusChip from './StatusChip';
 import {
   Visibility,
   MoreVert,
@@ -171,15 +171,6 @@ const styles = {
     letterSpacing: '-.01em',
     color: 'var(--ink)',
   },
-  // Chip type (soft, teinté par getInterventionTypeHex).
-  typeChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderRadius: '6px',
-    flexShrink: 0,
-    '& .MuiChip-label': { px: 0.75 },
-  },
   // Ligne localisation (propriété).
   locationRow: {
     display: 'flex',
@@ -246,15 +237,6 @@ const styles = {
     whiteSpace: 'nowrap',
     color: 'var(--body)',
     fontWeight: 600,
-  },
-  // Chip priorité (soft) dans le pied.
-  priorityChip: {
-    height: 20,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderRadius: '6px',
-    flexShrink: 0,
-    '& .MuiChip-label': { px: 0.75 },
   },
   actionBar: {
     px: 1.75,
@@ -340,15 +322,14 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           <Typography sx={{ ...styles.nameText, flex: 1 }} title={request.title}>
             {request.title}
           </Typography>
-          <Chip
+          {/* Bordure teintee a l'execution : une classe Tailwind ne peut pas
+              naitre d'une variable. Le raccourci `border` inline porte aussi le
+              border-style, il l'emporte donc sur le `border-none` du gabarit. */}
+          <StatusChip
+            color={typeHex}
             label={getInterventionTypeLabel(request.type, t)}
-            size="small"
-            sx={{
-              ...styles.typeChip,
-              backgroundColor: `${typeHex}18`,
-              color: typeHex,
-              border: `1px solid ${typeHex}40`,
-            }}
+            className="shrink-0 text-[0.62rem]"
+            sx={{ border: `1px solid ${typeHex}40` }}
           />
         </div>
 
@@ -386,14 +367,10 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           </Box>
           <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
           <div className="flex-1" />
-          <Chip
+          <StatusChip
+            color={priorityHex}
             label={priorityLabel}
-            size="small"
-            sx={{
-              ...styles.priorityChip,
-              backgroundColor: `${priorityHex}18`,
-              color: priorityHex,
-            }}
+            className="h-[20px] shrink-0 text-[0.62rem]"
           />
         </Box>
       </CardContent>

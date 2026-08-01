@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Box as MuiBox } from '@mui/material';
+import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -27,6 +27,7 @@ import { organizationsApi, type OrganizationDto } from '../../services/api/organ
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import { userSchema } from '../../schemas/userSchema';
 import PageHeader from '../../components/PageHeader';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 
 // Keep exported interface for backward compatibility
 export interface UserFormData {
@@ -70,6 +71,16 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
   label: option.label,
   color: option.color
 }));
+
+// La couleur portee par USER_STATUS_OPTIONS reste une cle de palette MUI ;
+// on la lit comme un ton de la primitive.
+const STATUS_TONE: Record<string, StatusTone> = {
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  primary: 'accent',
+};
 
 const UserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -403,13 +414,7 @@ const UserForm: React.FC = () => {
                       >
                         {userStatuses.map((status) => (
                           <MenuItem key={status.value} value={status.value}>
-                              <Chip
-                                label={status.label}
-                                size="small"
-                                color={status.color}
-                                variant="outlined"
-                              sx={{ height: 22, fontSize: '0.7rem' }}
-                              />
+                            <StatusChip tone={STATUS_TONE[status.color] ?? 'neutral'} label={status.label} />
                           </MenuItem>
                         ))}
                       </Select>

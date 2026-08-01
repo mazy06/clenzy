@@ -3,7 +3,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -28,7 +29,6 @@ import ContactTemplates from './ContactTemplates';
 
 type ContactFormInput = z.input<typeof contactSchema>;
 
-import type { ChipColor } from '../../types';
 import type { Recipient } from '../../services/api';
 
 const MAX_FILE_SIZE_MB = 10;
@@ -146,11 +146,11 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   };
 
   // Generer les options avec traductions
-  const priorityOptions: Array<{ value: string; label: string; color: ChipColor }> = [
-    { value: 'LOW', label: t('contact.priorities.low'), color: 'success' },
-    { value: 'MEDIUM', label: t('contact.priorities.medium'), color: 'info' },
-    { value: 'HIGH', label: t('contact.priorities.high'), color: 'warning' },
-    { value: 'URGENT', label: t('contact.priorities.urgent'), color: 'error' }
+  const priorityOptions: Array<{ value: string; label: string; tone: StatusTone }> = [
+    { value: 'LOW', label: t('contact.priorities.low'), tone: 'ok' },
+    { value: 'MEDIUM', label: t('contact.priorities.medium'), tone: 'info' },
+    { value: 'HIGH', label: t('contact.priorities.high'), tone: 'warn' },
+    { value: 'URGENT', label: t('contact.priorities.urgent'), tone: 'err' }
   ];
 
   const categoryOptions = [
@@ -328,12 +328,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       <Select {...field}>
                         {priorityOptions.map((option) => (
                           <MenuItem key={option.value} value={option.value}>
-                            <Chip
+                            <StatusChip
                               label={option.label}
-                              size="small"
-                              variant="outlined"
-                              color={option.color}
-                              sx={{ mr: 1, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                              tone={option.tone}
+                              className="me-1.5"
                             />
                             {option.label}
                           </MenuItem>
@@ -432,13 +430,11 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                         {t('contact.selectedFiles')}
                       </p>
                       {attachments.map((file, index) => (
-                        <Chip
+                        <StatusChip
                           key={index}
                           label={`${file.name} (${formatFileSize(file.size)})`}
                           onDelete={() => removeAttachment(index)}
-                          size="small"
-                          variant="outlined"
-                          sx={{ mr: 1, mb: 1, borderWidth: 1.5 }}
+                          className="me-1.5 mb-1.5"
                         />
                       ))}
                     </div>

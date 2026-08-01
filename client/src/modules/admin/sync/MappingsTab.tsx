@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';
 import PagePagination from '../../../components/PagePagination';
 
@@ -93,15 +94,9 @@ const MappingsTab: React.FC = () => {
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.internalId}</TableCell>
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.externalId}</TableCell>
                   <TableCell>
-                    {/* Chip -soft : actif --ok, désactivé neutre muted */}
-                    <Chip
+                    <StatusChip
+                      tone={m.syncEnabled ? 'ok' : 'neutral'}
                       label={m.syncEnabled ? 'Active' : 'Disabled'}
-                      size="small"
-                      sx={
-                        m.syncEnabled
-                          ? { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }
-                          : { color: 'var(--muted)', backgroundColor: 'var(--hover)' }
-                      }
                     />
                   </TableCell>
                   <TableCell>

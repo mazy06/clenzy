@@ -1,6 +1,7 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { Box, Typography, TextField, MenuItem, Chip, Autocomplete } from '@mui/material';
+import { Box, Typography, TextField, MenuItem, Autocomplete } from '@mui/material';
+import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
@@ -71,21 +72,16 @@ const roField = (label: string, value?: string | null, multiline = false) => (
 const GuestSection: React.FC<Props> = ({ form }) => {
   const { t } = useTranslation();
 
+  // Gabarit plus haut que la puce de statut : ici la puce porte une identite
+  // (le voyageur choisi), pas un etat — d'ou l'encre `--ink` et l'accent reserve
+  // aux deux affordances (icone, croix).
   const guestChip = (
-    <Chip
+    <StatusChip
       icon={<Person size={15} strokeWidth={1.75} />}
       label={form.selectedGuest?.fullName}
       onDelete={form.fieldsLocked ? undefined : form.clearGuest}
-      sx={{
-        height: 32,
-        borderRadius: '10px',
-        backgroundColor: 'var(--accent-soft)',
-        color: 'var(--ink)',
-        fontWeight: 600,
-        fontSize: '12.5px',
-        '& .MuiChip-icon': { color: 'var(--accent)' },
-        '& .MuiChip-deleteIcon': { color: 'var(--accent)', '&:hover': { color: 'var(--accent-deep)' } },
-      }}
+      tokens={{ color: 'var(--ink)', bg: 'var(--accent-soft)' }}
+      className="h-8 rounded-[10px] text-[12.5px] [&>svg]:text-[var(--accent)] [&>button>svg]:text-[var(--accent)]"
     />
   );
 

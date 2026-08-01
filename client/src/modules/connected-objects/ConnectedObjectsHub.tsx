@@ -134,7 +134,11 @@ export default function ConnectedObjectsHub({
               : { color: 'var(--warn)', soft: 'var(--warn-soft)' };
             return (
               <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
-                <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
+                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                <span className="inline-flex">
+                  <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
+                </span>
               </Tooltip>
             );
           })

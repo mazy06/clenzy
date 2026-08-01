@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Box, Button, Grid, Card, CardContent, CardActions, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
+import { Box, Button, Grid, Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -547,22 +547,27 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   {/* Rôles (plateforme + org) et statut — chips -soft */}
                   <div className="flex gap-0.5 mb-2 flex-wrap">
                     <Tooltip title="Rôle sur la plateforme">
-                      <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
+                      {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+                          (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                      <span className="inline-flex">
+                        <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
+                      </span>
                     </Tooltip>
                     {showOrgRole && orgRole && OrgIcon && (
                       <Tooltip title="Rôle dans l'organisation">
-                        <Chip
-                          icon={<OrgIcon size={11} strokeWidth={2} />}
-                          label={orgRole.label}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            backgroundColor: 'transparent',
-                            color: orgRole.hex,
-                            borderColor: `${orgRole.hex}55`,
-                            '& .MuiChip-icon': { color: orgRole.hex, ml: '8px', mr: '-4px' },
-                          }}
-                        />
+                        {/* Tooltip pose une ref sur son enfant, que StatusChip ne
+                            transmet pas : sans ce span l'infobulle ne s'ancre plus. */}
+                        <span className="inline-flex">
+                          {/* Liseré teinté : `border-solid` est indispensable, le
+                              gabarit de la primitive pose `border-none`. */}
+                          <StatusChip
+                            tokens={{ color: orgRole.hex, bg: 'transparent' }}
+                            label={orgRole.label}
+                            icon={<OrgIcon size={11} strokeWidth={2} />}
+                            className="border border-solid"
+                            sx={{ borderColor: `${orgRole.hex}55` }}
+                          />
+                        </span>
                       </Tooltip>
                     )}
                     <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={s.label} />

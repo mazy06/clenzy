@@ -5,7 +5,7 @@ import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
-import { Box, Paper, Typography, TextField, Button, Alert, Chip, IconButton, InputAdornment, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
+import { Box, Paper, Typography, TextField, Button, Alert, IconButton, InputAdornment, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
 import {
   VpnKey as KeyIcon,
   Wifi as WifiIcon,
@@ -130,21 +130,18 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
               {title}
             </p>
             {showProgress && (
-              <Chip
-                size="small"
-                label={`${filledCount}/${totalCount}`}
-                icon={allFilled ? <CheckCircle size={12} strokeWidth={2} color={accentColor} /> : undefined}
-                sx={{
-                  height: 18,
-                  fontSize: '0.625rem',
-                  fontWeight: 600,
-                  bgcolor: allFilled ? `${accentColor}1f` : 'transparent',
-                  color: allFilled ? accentColor : 'text.secondary',
-                  border: '1px solid',
-                  borderColor: allFilled ? `${accentColor}40` : 'divider',
-                  '& .MuiChip-icon': { ml: 0.5, mr: -0.25 },
-                  '& .MuiChip-label': { px: 0.75 },
+              <StatusChip
+                size="sm"
+                tokens={{
+                  color: allFilled ? accentColor : 'var(--muted)',
+                  bg: allFilled ? `${accentColor}1f` : 'transparent',
                 }}
+                icon={allFilled ? <CheckCircle size={12} strokeWidth={2} /> : undefined}
+                label={`${filledCount}/${totalCount}`}
+                // La teinte de bordure derive de `accentColor`, connu a
+                // l'execution : style inline, une classe ne peut pas la porter.
+                sx={{ borderColor: allFilled ? `${accentColor}40` : 'var(--line)' }}
+                className="border border-solid"
               />
             )}
           </div>
@@ -637,11 +634,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                       />
                       {slug ? (
                         <Tooltip title={copiedField === `extraTag${i}` ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.extraCodeTagCopy', 'Copier le tag email')}>
-                          <Chip
-                            size="small" label={`{code_${slug}}`}
-                            onClick={() => handleCopy(`extraTag${i}`, `{code_${slug}}`)}
-                            sx={{ fontFamily: 'monospace', cursor: 'pointer' }}
-                          />
+                          {/* Le span porte la ref que Tooltip pose sur son enfant :
+                              StatusChip est une fonction et n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <StatusChip
+                              tone="neutral"
+                              label={`{code_${slug}}`}
+                              onClick={() => handleCopy(`extraTag${i}`, `{code_${slug}}`)}
+                              className="font-mono"
+                            />
+                          </span>
                         </Tooltip>
                       ) : null}
                       <IconButton size="small" onClick={() => removeExtraCode(i)} aria-label="Supprimer">

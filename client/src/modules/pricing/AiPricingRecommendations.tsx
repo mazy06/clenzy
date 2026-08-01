@@ -1,8 +1,9 @@
 import React from 'react';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Box, Typography, Paper, Chip, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
+import { Box, Typography, Paper, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AutoAwesome,
   TrendingUp,
@@ -48,10 +49,10 @@ function isAiNotConfiguredError(error: unknown): boolean {
   return errorCode === 'AI_NOT_CONFIGURED' || errorCode === 'AI_FEATURE_DISABLED';
 }
 
-function confidenceColor(confidence: number): 'success' | 'warning' | 'error' {
-  if (confidence >= 0.7) return 'success';
-  if (confidence >= 0.4) return 'warning';
-  return 'error';
+function confidenceTone(confidence: number): StatusTone {
+  if (confidence >= 0.7) return 'ok';
+  if (confidence >= 0.4) return 'warn';
+  return 'err';
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -170,12 +171,16 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
 
               {/* Confidence */}
               <Tooltip title={`${t('bookingEngine.ai.pricing.confidence')}: ${(rec.confidence * 100).toFixed(0)}%`}>
-                <Chip
-                  label={`${(rec.confidence * 100).toFixed(0)}%`}
-                  size="small"
-                  color={confidenceColor(rec.confidence)}
-                  sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600 }}
-                />
+                {/* Le `span` porte la ref que Tooltip pose sur son enfant :
+                    StatusChip est une fonction et n'en transmet pas. */}
+                <span className="inline-flex">
+                  <StatusChip
+                    tone={confidenceTone(rec.confidence)}
+                    size="sm"
+                    label={`${(rec.confidence * 100).toFixed(0)}%`}
+                    className="text-[0.6rem]"
+                  />
+                </span>
               </Tooltip>
 
               {/* Explanation */}

@@ -2,35 +2,24 @@ import { useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, Button, TextField, Chip, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Skeleton, Snackbar, Alert } from '@mui/material';
+import { Paper, Button, TextField, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
 
 // Statuts de code : tokens sémantiques désaturés (texte couleur + fond `-soft`) —
 // actif = --ok, utilisé = --info, expiré = neutre, annulé = --err.
-const CODE_STATUS_TOKENS: Record<string, { color: string; soft: string }> = {
-  ACTIVE: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
-  USED: { color: 'var(--info)', soft: 'var(--info-soft)' },
-  EXPIRED: { color: 'var(--muted)', soft: 'var(--hover)' },
-  CANCELLED: { color: 'var(--err)', soft: 'var(--err-soft)' },
+const CODE_STATUS_TOKENS: Record<string, ToneTokens> = {
+  ACTIVE: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  USED: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  EXPIRED: { color: 'var(--muted)', bg: 'var(--hover)' },
+  CANCELLED: { color: 'var(--err)', bg: 'var(--err-soft)' },
 };
-/** Pilule soft : fond doux + texte couleur (pattern chips statut baseline §2). */
-const codeStatusPillSx = (status: string) => {
-  const { color, soft } = CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
-  return {
-    height: 22,
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    backgroundColor: soft,
-    color,
-    border: 'none',
-    borderRadius: 'var(--radius-pill)',
-    '& .MuiChip-label': { px: 1 },
-  } as const;
-};
+const codeStatusTokens = (status: string): ToneTokens =>
+  CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', bg: 'var(--hover)' };
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
@@ -172,7 +161,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                           </TableCell>
                           <TableCell>{c.guestName || '—'}</TableCell>
                           <TableCell>
-                            <Chip size="small" label={c.status} sx={codeStatusPillSx(c.status)} />
+                            <StatusChip tokens={codeStatusTokens(c.status)} label={c.status} pill />
                           </TableCell>
                           <TableCell align="right">
                             {c.status === 'ACTIVE' && (

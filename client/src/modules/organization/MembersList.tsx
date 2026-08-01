@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Avatar } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Avatar } from '@mui/material';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -183,25 +183,24 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   <TableCell sx={CELL_NOWRAP_SX}>
                     <div className="flex gap-0.5 flex-wrap">
                       <Tooltip title="Rôle dans l'organisation">
-                        <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                        {/* Le `span` porte la ref que Tooltip pose sur son enfant :
+                            StatusChip est une fonction et n'en transmet pas. */}
+                        <span className="inline-flex">
+                          <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                        </span>
                       </Tooltip>
                       {member.userRole && member.userRole !== member.roleInOrg && (() => {
                         const pHex = getPlatformRoleHex(member.userRole);
                         const PlatformIcon = getPlatformRoleIcon(member.userRole);
                         return (
                           <Tooltip title="Rôle sur la plateforme">
-                            <Chip
-                              icon={<PlatformIcon size={11} strokeWidth={2} />}
-                              label={getPlatformRoleLabel(member.userRole)}
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                backgroundColor: 'transparent',
-                                color: pHex,
-                                borderColor: `${pHex}55`,
-                                '& .MuiChip-icon': { color: pHex, ml: '6px', mr: '-2px' },
-                              }}
-                            />
+                            <span className="inline-flex">
+                              <StatusChip
+                                color={pHex}
+                                icon={<PlatformIcon size={11} strokeWidth={2} />}
+                                label={getPlatformRoleLabel(member.userRole)}
+                              />
+                            </span>
                           </Tooltip>
                         );
                       })()}

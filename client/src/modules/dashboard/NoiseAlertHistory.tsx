@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Badge as BuiBadge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Chip, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   History,
   CheckCircle,
@@ -27,13 +28,10 @@ function formatDate(iso: string): string {
 function SeverityChip({ severity }: { severity: string }) {
   const isWarning = severity === 'WARNING';
   return (
-    <Chip
+    <StatusChip
       icon={isWarning ? <Warning size={12} strokeWidth={1.75} /> : <ErrorIcon size={12} strokeWidth={1.75} />}
       label={isWarning ? 'Avertissement' : 'Critique'}
-      size="small"
-      color={isWarning ? 'warning' : 'error'}
-      variant="outlined"
-      sx={{ height: 22, fontSize: '0.6875rem', '& .MuiChip-icon': { fontSize: 12 }, '& .MuiChip-label': { px: 0.5 } }}
+      tone={isWarning ? 'warn' : 'err'}
     />
   );
 }

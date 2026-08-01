@@ -1,7 +1,8 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Grid, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar, Chip } from '@mui/material';
+import { Grid, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar } from '@mui/material';
 import {
   Business,
   People,
@@ -161,11 +162,10 @@ const PortfolioStatsTab: React.FC = () => {
                           </div>
                         }
                       />
-                      <Chip
+                      <StatusChip
+                        tone={portfolio.isActive ? 'ok' : 'neutral'}
                         label={portfolio.isActive ? t('portfolios.teamManagement.active') : t('portfolios.teamManagement.inactive')}
-                        size="small"
-                        color={portfolio.isActive ? 'success' : 'default'}
-                        sx={{ height: 20, fontSize: '0.6rem' }}
+                        className="h-[20px] text-[0.6rem]"
                       />
                     </ListItem>
                     {index < stats.portfolioBreakdown.length - 1 && <Divider />}

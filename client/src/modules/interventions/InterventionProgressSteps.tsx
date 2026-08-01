@@ -3,7 +3,8 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as UncheckedIcon,
@@ -88,18 +89,11 @@ interface InterventionProgressStepsProps {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-const roomChipSx = (validated: boolean) => ({
-  height: 32,
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  borderRadius: '16px',
-  transition: 'all 0.15s ease',
-  ...(!validated && {
-    cursor: 'pointer',
-    '&:hover': { transform: 'translateY(-1px)', boxShadow: 'var(--shadow-card)' },
-    '@media (prefers-reduced-motion: reduce)': { transition: 'none', '&:hover': { transform: 'none' } },
-  }),
-});
+const roomChipClass = [
+  'h-8 text-[0.8125rem] font-medium',
+  'transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-card)]',
+  'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+].join(' ');
 
 const noteBoxSx = {
   p: 1.5, bgcolor: 'var(--surface-2)', borderRadius: 1.5,
@@ -411,9 +405,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           {t('interventions.progressSteps.roomValidation')}
         </p>
         {totalRooms > 0 && (
-          <Chip label={`${validatedRooms.size}/${totalRooms}`} size="small"
-            color={allRoomsValidated ? 'success' : 'primary'} variant="outlined"
-            sx={{ height: 24, fontSize: '0.75rem' }}
+          <StatusChip
+            tone={allRoomsValidated ? 'ok' : 'accent'}
+            label={`${validatedRooms.size}/${totalRooms}`}
+            className="h-6 text-[0.75rem]"
           />
         )}
       </Box>
@@ -422,16 +417,27 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       </p>
 
       <div className="flex flex-wrap gap-1 mb-3">
-        {roomNames.map((name, idx) => (
-          <Chip key={name}
-            icon={validatedRooms.has(idx) ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} /> : <RoomIcon size={18} strokeWidth={1.75} />}
-            label={name} size="small"
-            color={validatedRooms.has(idx) ? 'success' : 'primary'}
-            variant={validatedRooms.has(idx) ? 'filled' : 'outlined'}
-            onClick={() => handleRoomValidation(idx)}
-            sx={roomChipSx(false)}
-          />
-        ))}
+        {roomNames.map((name, idx) => {
+          const validated = validatedRooms.has(idx);
+          return (
+            <StatusChip
+              key={name}
+              tone="ok"
+              // La piece se COCHE : puce de selection (bordure au repos, teinte
+              // une fois validee), et non un statut subi.
+              outlined
+              selected={validated}
+              pressed={validated}
+              icon={validated
+                ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
+                : <RoomIcon size={18} strokeWidth={1.75} />}
+              label={name}
+              pill
+              onClick={() => handleRoomValidation(idx)}
+              className={roomChipClass}
+            />
+          );
+        })}
       </div>
 
       {getStepNote('rooms') && (

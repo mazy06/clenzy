@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Spinner } from '../../../components/ui';
+import StatusChip from '../../../components/StatusChip';
 import {
   Alert,
   Box,
-  Chip,
   Stack,
   CircularProgress,
   IconButton,
@@ -307,18 +307,12 @@ export default function ServicesActivitiesPanel({
                       </p>
                     </TableCell>
                     <TableCell>
-                      <Chip
+                      <StatusChip
+                        tokens={{ color: meta.color, bg: meta.soft }}
                         label={t(meta.key, meta.fallback)}
-                        size="small"
+                        className="h-5 border border-solid text-[0.65rem]"
                         sx={{
-                          height: 20,
-                          fontSize: "0.65rem",
-                          fontWeight: 600,
-                          borderRadius: "6px",
-                          backgroundColor: meta.soft,
-                          color: meta.color,
-                          border: `1px solid color-mix(in srgb, ${meta.color} 20%, transparent)`,
-                          "& .MuiChip-label": { px: 0.75 },
+                          borderColor: `color-mix(in srgb, ${meta.color} 20%, transparent)`,
                         }}
                       />
                     </TableCell>

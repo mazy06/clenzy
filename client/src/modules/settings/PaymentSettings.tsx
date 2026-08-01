@@ -885,14 +885,18 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
 
   return (
     <Tooltip title={tooltip[provenance]}>
-      <StatusChip
-        tokens={{ color, bg: soft }}
-        label={label}
-        // La teinte de bordure est calculee : elle passe en style inline, la ou
-        // une classe arbitraire ne peut pas naitre d'une valeur d'execution.
-        sx={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
-        className="h-[20px] border border-solid text-[0.65rem] tracking-[0.01em]"
-      />
+      {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+          (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+      <span className="inline-flex">
+        <StatusChip
+          tokens={{ color, bg: soft }}
+          label={label}
+          // La teinte de bordure est calculee : elle passe en style inline, la ou
+          // une classe arbitraire ne peut pas naitre d'une valeur d'execution.
+          sx={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
+          className="h-[20px] border border-solid text-[0.65rem] tracking-[0.01em]"
+        />
+      </span>
     </Tooltip>
   );
 }

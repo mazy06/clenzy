@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Chip, Skeleton } from '@mui/material';
+import { Box, Typography, Skeleton } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
 import { useWatch } from 'react-hook-form';
 import type { Control, UseFormSetValue } from 'react-hook-form';
@@ -84,10 +85,6 @@ const PRICE_CARD_SELECTED_SX = {
   '&:hover': {
     borderColor: 'var(--accent)',
   },
-} as const;
-
-const CHIP_SX = {
-  '& .MuiChip-label': { px: 1.25 },
 } as const;
 
 /** Prix conseillé (médiane) : l'ancre visuelle, en avant. */
@@ -381,15 +378,13 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                   sx={isSelected ? PRICE_CARD_SELECTED_SX : PRICE_CARD_SX}
                 >
                   {isSelected && <span className="absolute top-[6px] end-[6px] inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>}
-                  <Chip
+                  <StatusChip
                     label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
-                    size="small"
-                    sx={{
-                      ...CHIP_SX,
-                      ...(isSelected
-                        ? { color: 'var(--accent)', bgcolor: 'var(--card)', border: '1px solid var(--accent)' }
-                        : { color: 'var(--muted)', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }),
-                    }}
+                    tokens={isSelected
+                      ? { color: 'var(--accent)', bg: 'var(--card)' }
+                      : { color: 'var(--muted)', bg: 'var(--field)' }}
+                    className="border border-solid"
+                    sx={{ borderColor: isSelected ? 'var(--accent)' : 'var(--field-line)' }}
                   />
                   {/* Médiane = ancre visuelle */}
                   <Typography sx={isSelected ? RECOMMENDED_SX : RECOMMENDED_SECONDARY_SX}>

@@ -3,8 +3,9 @@ import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Typography, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -12,10 +13,10 @@ import { formatDuration } from '../../utils/durationUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<IncidentStatus, { label: string; color: 'error' | 'success' | 'warning' }> = {
-  OPEN: { label: 'Ouvert', color: 'error' },
-  ACKNOWLEDGED: { label: 'Pris en charge', color: 'warning' },
-  RESOLVED: { label: 'Résolu', color: 'success' },
+const STATUS_CONFIG: Record<IncidentStatus, { label: string; tone: StatusTone }> = {
+  OPEN: { label: 'Ouvert', tone: 'err' },
+  ACKNOWLEDGED: { label: 'Pris en charge', tone: 'warn' },
+  RESOLVED: { label: 'Résolu', tone: 'ok' },
 };
 
 const formatDate = (iso: string): string => {
@@ -395,11 +396,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                           </p>
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <StatusChip
                             label={statusConfig.label}
-                            color={statusConfig.color}
-                            size="small"
-                            sx={{ height: 22, fontSize: '0.7rem' }}
+                            tone={statusConfig.tone}
+                            className="text-[0.7rem]"
                           />
                         </TableCell>
                         <TableCell sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>

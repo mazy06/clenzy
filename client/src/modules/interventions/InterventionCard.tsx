@@ -5,9 +5,9 @@ import {
   Typography,
   Button,
   Box,
-  Chip,
   IconButton,
 } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   Visibility,
   Edit,
@@ -158,15 +158,6 @@ const styles = {
     letterSpacing: '-.01em',
     color: 'var(--ink)',
   },
-  // Chip type (soft, teinté par getInterventionTypeHex).
-  typeChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderRadius: '6px',
-    flexShrink: 0,
-    '& .MuiChip-label': { px: 0.75 },
-  },
   // Ligne localisation (propriété).
   locationRow: {
     display: 'flex',
@@ -233,15 +224,6 @@ const styles = {
     whiteSpace: 'nowrap',
     color: 'var(--body)',
     fontWeight: 600,
-  },
-  // Chip priorité (soft) dans le pied.
-  priorityChip: {
-    height: 20,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderRadius: '6px',
-    flexShrink: 0,
-    '& .MuiChip-label': { px: 0.75 },
   },
   actionBar: {
     px: 1.75,
@@ -319,15 +301,12 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           <Typography sx={{ ...styles.nameText, flex: 1 }} title={intervention.title}>
             {intervention.title}
           </Typography>
-          <Chip
+          <StatusChip
+            tokens={{ color: typeHex, bg: `${typeHex}18` }}
             label={getInterventionTypeLabel(intervention.type, t)}
-            size="small"
-            sx={{
-              ...styles.typeChip,
-              backgroundColor: `${typeHex}18`,
-              color: typeHex,
-              border: `1px solid ${typeHex}40`,
-            }}
+            className="shrink-0 text-[0.62rem]"
+            // Le liseré reprend la teinte du type, connue seulement a l'execution.
+            sx={{ border: `1px solid ${typeHex}40` }}
           />
         </div>
 
@@ -365,14 +344,10 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           </Box>
           <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
           <div className="flex-1" />
-          <Chip
+          <StatusChip
+            tokens={priorityTokens}
             label={getInterventionPriorityLabel(intervention.priority, t)}
-            size="small"
-            sx={{
-              ...styles.priorityChip,
-              backgroundColor: priorityTokens.bg,
-              color: priorityTokens.color,
-            }}
+            className="h-5 shrink-0 text-[0.62rem]"
           />
         </Box>
       </CardContent>

@@ -1,6 +1,7 @@
-import { Box, Chip } from '@mui/material';
+import { Box } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import type { CatalogService } from '../../../services/integrations/servicesCatalog';
-import ServiceGridCard, { buildStatusChipSx } from './ServiceGridCard';
+import ServiceGridCard from './ServiceGridCard';
 
 /**
  * Card du catalogue de services (Insurance, Cleaning, Smart Locks, Activités, Avis…).
@@ -52,7 +53,14 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
           {getInitials(service.name)}
         </Box>
       }
-      badge={<Chip label={chip.label} size="small" sx={buildStatusChipSx(chip.color)} />}
+      badge={
+        <StatusChip
+          tokens={{ color: chip.color, bg: `color-mix(in srgb, ${chip.color} 8%, transparent)` }}
+          label={chip.label}
+          className="border border-solid tracking-[0.01em]"
+          sx={{ borderColor: `color-mix(in srgb, ${chip.color} 20%, transparent)` }}
+        />
+      }
     />
   );
 }

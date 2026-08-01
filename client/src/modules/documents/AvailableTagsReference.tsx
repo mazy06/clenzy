@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Chip, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, IconButton, Alert } from '@mui/material';
+import { Box, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, IconButton, Alert } from '@mui/material';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import {
   ExpandMore,
   ContentCopy,
@@ -13,7 +14,7 @@ import {
   GppGood,
   Email,
 } from '../../icons';
-// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+// ─── Tons sémantiques (tokens Signature — pattern TONES) ─────────────────────
 // Remplace l'ancienne palette hex Baitly : bleu doux → info, teal → ok,
 // warm → warn, rouge doux → err, primary/violet → accent, warm-gray → muted.
 
@@ -28,7 +29,8 @@ const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> =
   muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
 };
 
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
+// Le ton local nomme son encre `c` ; la primitive attend `color`.
+const toneTokens = (tone: Tone): ToneTokens => ({ color: tone.c, bg: tone.bg });
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
 
@@ -423,10 +425,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                   {category.description}
                 </span>
               </div>
-              <Chip
+              <StatusChip
+                tokens={toneTokens(category.tone)}
                 label={`${category.tags.length} tags`}
-                size="small"
-                sx={chipSx(category.tone)}
               />
             </div>
           </AccordionSummary>
@@ -475,10 +476,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                         </p>
                       </TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
+                          tokens={toneTokens(TYPE_TONES[tagDef.type])}
                           label={TYPE_LABELS[tagDef.type]}
-                          size="small"
-                          sx={chipSx(TYPE_TONES[tagDef.type])}
                         />
                       </TableCell>
                       <TableCell>

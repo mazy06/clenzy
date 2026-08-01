@@ -2,24 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Skeleton } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({ color: fg, backgroundColor: bg });
-
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 // Statut connexion → tokens sémantiques (ACTIVE = --ok, sinon neutre)
-const statusToken = (status: string) =>
-  status === 'ACTIVE' ? { fg: 'var(--ok)', bg: 'var(--ok-soft)' } : NEUTRAL_TOKEN;
+const statusToken = (status: string): ToneTokens =>
+  status === 'ACTIVE' ? { color: 'var(--ok)', bg: 'var(--ok-soft)' } : NEUTRAL_TOKEN;
 
 // Santé → tokens sémantiques (HEALTHY --ok, DEGRADED --warn, UNHEALTHY --err)
-const HEALTH_TOKEN: Record<string, { fg: string; bg: string }> = {
-  HEALTHY: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  DEGRADED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNHEALTHY: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+const HEALTH_TOKEN: Record<string, ToneTokens> = {
+  HEALTHY: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  DEGRADED: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  UNHEALTHY: { color: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
 const ConnectionsTab: React.FC = () => {
@@ -115,14 +113,7 @@ const ConnectionsTab: React.FC = () => {
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.id}</TableCell>
                   <TableCell>{conn.channel}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={conn.status}
-                      size="small"
-                      sx={(() => {
-                        const tk = statusToken(conn.status);
-                        return chipSx(tk.fg, tk.bg);
-                      })()}
-                    />
+                    <StatusChip label={conn.status} tokens={statusToken(conn.status)} />
                   </TableCell>
                   <TableCell>
                     {conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : '—'}
@@ -134,13 +125,9 @@ const ConnectionsTab: React.FC = () => {
                   </TableCell>
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.mappingCount}</TableCell>
                   <TableCell>
-                    <Chip
+                    <StatusChip
                       label={conn.healthStatus}
-                      size="small"
-                      sx={(() => {
-                        const tk = HEALTH_TOKEN[conn.healthStatus] ?? NEUTRAL_TOKEN;
-                        return chipSx(tk.fg, tk.bg);
-                      })()}
+                      tokens={HEALTH_TOKEN[conn.healthStatus] ?? NEUTRAL_TOKEN}
                     />
                   </TableCell>
                   <TableCell>

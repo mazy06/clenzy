@@ -2,7 +2,8 @@ import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Chip, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import {
   Delete,
   CheckCircle,
@@ -123,12 +124,9 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                 <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                   {t.documentType}
                 </p>
-                <Chip
+                <StatusChip
+                  tone={t.active ? 'ok' : 'neutral'}
                   label={t.active ? 'Actif' : 'Inactif'}
-                  size="small"
-                  sx={t.active
-                    ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
-                    : { color: 'var(--muted)', bgcolor: 'var(--hover)' }}
                 />
               </div>
 

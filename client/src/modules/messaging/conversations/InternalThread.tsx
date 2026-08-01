@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Box, Chip, Tooltip } from '@mui/material';
+import { Box, Tooltip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import {
   Archive as ArchiveIcon,
   AttachFile as AttachFileIcon,
@@ -138,12 +139,11 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
           attachments.length > 0 ? (
             <div className="flex flex-wrap gap-0.5 pb-1.5">
               {attachments.map((file, idx) => (
-                <Chip
+                <StatusChip
                   key={`${file.name}-${idx}`}
                   label={file.name}
-                  size="small"
                   onDelete={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                  sx={{ fontSize: '11px', height: 22 }}
+                  deleteLabel={t('common.remove', 'Retirer')}
                 />
               ))}
             </div>

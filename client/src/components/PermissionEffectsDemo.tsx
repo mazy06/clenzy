@@ -1,7 +1,8 @@
 import React from 'react';
 import { Alert, AlertDescription } from './ui';
 import { Info } from 'lucide-react';
-import { Box, Card, CardContent, Typography, Chip, Grid } from '@mui/material';
+import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
+import StatusChip from './StatusChip';
 import {
   Dashboard as DashboardIcon,
   Home as HomeIcon,
@@ -160,16 +161,10 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                         {menu.description}
                       </p>
                     </div>
-                    <Chip
+                    <StatusChip
+                      tone={status.accessible ? 'ok' : 'err'}
                       label={status.accessible ? 'Accessible' : 'Inaccessible'}
-                      size="small"
-                      color={status.accessible ? 'success' : 'error'}
-                      variant="outlined"
-                      sx={{ 
-                        fontWeight: 500,
-                        borderWidth: 1.5,
-                        minWidth: 80
-                      }}
+                      className="min-w-20 shrink-0 justify-center"
                     />
                   </div>
                   

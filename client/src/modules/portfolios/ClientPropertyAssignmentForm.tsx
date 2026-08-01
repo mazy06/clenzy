@@ -1,8 +1,9 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
 import {
   People,
   Assignment,
@@ -156,14 +157,13 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                   {selectedClients.map(clientId => {
                     const client = hostUsers.find(c => c.id === clientId);
                     return client ? (
-                      <Chip
+                      <StatusChip
                         key={clientId}
+                        tone="accent"
                         label={`${client.firstName} ${client.lastName}`}
                         onDelete={() => handleClientToggle(clientId)}
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                        sx={{ fontSize: '0.75rem', height: 26 }}
+                        deleteLabel={`Retirer ${client.firstName} ${client.lastName}`}
+                        className="h-[26px] text-[0.75rem]"
                       />
                     ) : null;
                   })}
@@ -228,11 +228,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                         <div className="flex gap-1 mt-1 ms-5">
                           <Badge variant="secondary" className="h-[20px] text-[0.6rem]">{property.type}</Badge>
                           {property.status && (
-                            <Chip
+                            <StatusChip
+                              tone={property.status === 'ACTIVE' ? 'ok' : 'neutral'}
                               label={property.status}
-                              size="small"
-                              color={property.status === 'ACTIVE' ? 'success' : 'default'}
-                              sx={{ height: 20, fontSize: '0.6rem' }}
+                              className="h-[20px] text-[0.6rem]"
                             />
                           )}
                         </div>

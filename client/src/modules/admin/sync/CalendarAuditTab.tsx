@@ -1,21 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, TextField } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton, TextField } from '@mui/material';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 
 // Types de commande → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const COMMAND_TOKEN: Record<string, { fg: string; bg: string }> = {
-  BOOK: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  CANCEL: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  BLOCK: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNBLOCK: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  UPDATE_PRICE: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+const COMMAND_TOKEN: Record<string, ToneTokens> = {
+  BOOK: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  CANCEL: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  BLOCK: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  UNBLOCK: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  UPDATE_PRICE: { color: 'var(--accent)', bg: 'var(--accent-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const CalendarAuditTab: React.FC = () => {
   const [commands, setCommands] = useState<CalendarCommand[]>([]);
@@ -169,13 +170,9 @@ const CalendarAuditTab: React.FC = () => {
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.id}</TableCell>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.propertyId}</TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
                           label={cmd.commandType}
-                          size="small"
-                          sx={(() => {
-                            const tk = COMMAND_TOKEN[cmd.commandType] ?? NEUTRAL_TOKEN;
-                            return { color: tk.fg, backgroundColor: tk.bg };
-                          })()}
+                          tokens={COMMAND_TOKEN[cmd.commandType] ?? NEUTRAL_TOKEN}
                         />
                       </TableCell>
                       <TableCell>

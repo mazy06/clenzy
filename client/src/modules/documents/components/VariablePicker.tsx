@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   Box,
-  Chip,
   Divider,
   InputAdornment,
   Stack,
@@ -10,6 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Search } from '../../../icons';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
 
 /**
@@ -17,7 +17,7 @@ import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
  *
  * <h3>Categorisation</h3>
  * Le groupement par categorie facilite la decouverte quand il y a beaucoup de
- * variables. Chaque categorie a son ton semantique (pattern TONES/chipSx) :
+ * variables. Chaque categorie a son ton semantique (tokens StatusChip) :
  * <ul>
  *   <li>IDENTITÉ → info</li>
  *   <li>PROPRIÉTÉ → ok</li>
@@ -33,7 +33,7 @@ import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
  * serveur.</p>
  */
 
-// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+// ─── Tons sémantiques (tokens Signature) ────────────────────────────────────
 
 interface Tone { c: string; bg: string }
 
@@ -46,7 +46,8 @@ const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> =
   muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
 };
 
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
+// Le picker parle son propre vocabulaire de tons {c,bg} ; la primitive attend {color,bg}.
+const toTokens = (tone: Tone): ToneTokens => ({ color: tone.c, bg: tone.bg });
 
 interface CategoryDef {
   id: string;
@@ -157,16 +158,13 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                 title="Contenu HTML généré automatiquement par le serveur. À ne pas supprimer."
                 arrow
               >
-                <Chip
-                  label={`{${key}}`}
-                  size="small"
-                  sx={{
-                    ...chipSx(TONES.err),
-                    fontFamily: 'monospace',
-                    fontSize: '0.72rem',
-                    cursor: 'help',
-                  }}
-                />
+                <span className="inline-flex">
+                  <StatusChip
+                    tokens={toTokens(TONES.err)}
+                    label={`{${key}}`}
+                    className="font-mono text-[0.72rem] cursor-help"
+                  />
+                </span>
               </Tooltip>
             ))}
           </div>
@@ -199,24 +197,24 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                     arrow
                     placement="left"
                   >
-                    <Chip
-                      label={`{${v.key}}`}
-                      size="small"
-                      onClick={() => onInsert(v.key)}
-                      sx={{
-                        ...chipSx(group.def.tone),
-                        fontFamily: 'monospace',
-                        fontSize: '0.72rem',
-                        cursor: 'pointer',
-                        opacity: isUsed ? 1 : 0.85,
-                        fontWeight: isUsed ? 700 : 500,
-                        outline: isUsed ? `1.5px solid ${group.def.tone.c}` : 'none',
-                        outlineOffset: isUsed ? '-1.5px' : 0,
-                        '&:hover': {
-                          opacity: 1,
-                        },
-                      }}
-                    />
+                    <span className="inline-flex">
+                      <StatusChip
+                        tokens={toTokens(group.def.tone)}
+                        label={`{${v.key}}`}
+                        onClick={() => onInsert(v.key)}
+                        className={[
+                          'font-mono text-[0.72rem]',
+                          isUsed
+                            ? 'opacity-100 hover:opacity-100 font-bold'
+                            : 'opacity-[0.85] hover:opacity-100 font-medium',
+                        ].join(' ')}
+                        // Le liseré de « déjà utilisée » est teinté par la catégorie :
+                        // couleur connue seulement a l'execution, donc style inline.
+                        sx={isUsed
+                          ? { outline: `1.5px solid ${group.def.tone.c}`, outlineOffset: '-1.5px' }
+                          : undefined}
+                      />
+                    </span>
                   </Tooltip>
                 );
               })}

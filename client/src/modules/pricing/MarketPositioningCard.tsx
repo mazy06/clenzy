@@ -1,7 +1,8 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Chip, Skeleton, Tooltip, Typography } from '@mui/material';
+import { Box, Skeleton, Tooltip, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Remove as Minus, Info } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -69,17 +70,16 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
           {t('marketPositioning.title', 'Positionnement marché')}
           {data.area ? ` — ${data.area}` : ''}
         </h6>
-        <Chip
-          size="small"
+        {/* Teinte plus sourde que la recette `-soft` de la primitive (8 % au lieu
+            de 12 %), cernee d'une hairline : la puce est un reperage de lecture,
+            pas un statut. `border-solid` est requis, le gabarit posant
+            `border-none`. */}
+        <StatusChip
+          tokens={{ color, bg: `color-mix(in srgb, ${color} 8%, transparent)` }}
           icon={<Icon size={14} />}
           label={label}
-          sx={{
-            color,
-            backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
-            fontWeight: 600,
-            '& .MuiChip-icon': { color: `${color} !important` },
-          }}
+          className="border border-solid"
+          sx={{ borderColor: `color-mix(in srgb, ${color} 22%, transparent)` }}
         />
         {!noMarket && data.source && (
           <Tooltip

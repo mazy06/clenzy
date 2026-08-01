@@ -105,7 +105,12 @@ export function statusChipClasses(tokens: ToneTokens, size: ChipSize = 'md', pil
  */
 export function selectChipClasses(tokens: ToneTokens, selected: boolean, size: ChipSize = 'md', pill = false) {
   return {
-    className: cn(SIZE_CLASS[size], 'border font-medium', pill ? 'rounded-full' : 'rounded-md'),
+    // `border-solid` est indispensable : le Badge de base pose
+    // `border border-transparent` sans jamais fixer le border-STYLE, et le
+    // projet tourne sans preflight Tailwind (coexistence MUI). Sans lui, la
+    // bordure d'une puce de selection a bien une largeur mais un style `none`
+    // — donc invisible.
+    className: cn(SIZE_CLASS[size], 'border border-solid font-medium', pill ? 'rounded-full' : 'rounded-md'),
     style: selected
       ? { backgroundColor: tokens.bg, color: tokens.color, borderColor: tokens.color }
       : { backgroundColor: 'transparent', color: 'var(--muted)', borderColor: 'var(--line-2)' },
