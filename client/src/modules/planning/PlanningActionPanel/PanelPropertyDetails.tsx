@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Box, Typography, Chip, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
 import {
@@ -268,19 +269,12 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         >
           {property.name}
         </Typography>
-        <Chip
+        <StatusChip
+          pill
+          size="sm"
+          tokens={isActive ? STATUS_TONES.ok : STATUS_TONES.neutral}
           label={property.status}
-          size="small"
-          sx={{
-            fontSize: MICRO_FS,
-            height: 18,
-            fontWeight: 600,
-            backgroundColor: isActive ? 'var(--ok-soft)' : 'var(--hover)',
-            color: isActive ? 'var(--ok)' : 'var(--muted)',
-            border: 'none',
-            borderRadius: 'var(--radius-pill)',
-            '& .MuiChip-label': { px: 0.75 },
-          }}
+          className="text-[0.5625rem]"
         />
       </div>
 
@@ -371,21 +365,14 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             {property.amenities.map((a) => {
               const palette = getAmenityChipStyle(a);
               return (
-                <Chip
+                <StatusChip
                   key={a}
+                  tokens={{ color: palette.color, bg: hexToRgbaTuple(palette.color, palette.bgAlpha) }}
                   label={t(`properties.amenities.items.${a}`)}
-                  size="small"
-                  sx={{
-                    backgroundColor: hexToRgbaTuple(palette.color, palette.bgAlpha),
-                    color: palette.color,
-                    border: '1px solid',
-                    borderColor: hexToRgbaTuple(palette.color, palette.borderAlpha),
-                    borderRadius: '6px',
-                    fontWeight: 600,
-                    fontSize: MICRO_FS,
-                    height: 20,
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
+                  // Teinte de bordure derivee de la palette : calculee, donc en
+                  // style inline plutot qu'en classe arbitraire.
+                  sx={{ borderColor: hexToRgbaTuple(palette.color, palette.borderAlpha) }}
+                  className="h-[20px] border border-solid text-[0.5625rem]"
                 />
               );
             })}
@@ -441,23 +428,14 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             {cleaningFeatures.length > 0 && (
               <div className="flex flex-wrap gap-0.5 mt-0.5">
                 {cleaningFeatures.map((f) => (
-                  <Chip
+                  <StatusChip
                     key={f as string}
+                    size="sm"
+                    tokens={{ color: 'var(--body)', bg: 'transparent' }}
                     label={f as string}
-                    size="small"
-                    sx={{
-                      fontSize: MICRO_FS,
-                      height: 18,
-                      fontWeight: 600,
-                      backgroundColor: (th) => th.palette.mode === 'dark'
-                        ? 'rgba(255,255,255,0.06)'
-                        : 'rgba(107,138,154,0.08)',
-                      color: 'text.primary',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: '6px',
-                      '& .MuiChip-label': { px: 0.625 },
-                    }}
+                    // Le fond passait par une fonction du theme MUI ; la variante
+                    // `dark` de Tailwind dit la meme chose sans passer par lui.
+                    className="border border-solid border-border bg-[rgba(107,138,154,0.08)] text-[0.5625rem] dark:bg-[rgba(255,255,255,0.06)]"
                   />
                 ))}
               </div>
@@ -730,20 +708,12 @@ function ListItemCard({
           {meta}
         </Typography>
       </div>
-      <Chip
+      <StatusChip
+        size="sm"
+        tokens={{ color: statusColor, bg: `${statusColor}18` }}
         label={statusLabel}
-        size="small"
-        sx={{
-          fontSize: MICRO_FS,
-          height: 18,
-          fontWeight: 600,
-          backgroundColor: `${statusColor}18`,
-          color: statusColor,
-          border: `1px solid ${statusColor}40`,
-          borderRadius: '6px',
-          flexShrink: 0,
-          '& .MuiChip-label': { px: 0.625 },
-        }}
+        sx={{ borderColor: `${statusColor}40` }}
+        className="shrink-0 border border-solid text-[0.5625rem]"
       />
     </Box>
   );
