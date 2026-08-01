@@ -72,7 +72,7 @@ import {
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
 } from '../../utils/statusUtils';
-import { propertyStatusChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
+import { propertyStatusTokens, FIELD_TOKENS, FIELD_CHIP_CLASS } from './propertiesListConstants';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
@@ -513,11 +513,11 @@ const PropertyDetails: React.FC = () => {
                 {t('properties.addOnServices.title')}
               </Typography>
               {featureChips.map((chip) => (
-                <Chip
+                <StatusChip
                   key={chip.label}
+                  tokens={FIELD_TOKENS}
                   label={chip.label}
-                  size="small"
-                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                  className={FIELD_CHIP_CLASS}
                 />
               ))}
             </div>
@@ -530,11 +530,11 @@ const PropertyDetails: React.FC = () => {
                 {t('properties.amenities.title')}
               </Typography>
               {property.amenities.map((amenity) => (
-                <Chip
+                <StatusChip
                   key={amenity}
+                  tokens={FIELD_TOKENS}
                   label={t(`properties.amenities.items.${amenity}`)}
-                  size="small"
-                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                  className={FIELD_CHIP_CLASS}
                 />
               ))}
             </div>
@@ -666,8 +666,11 @@ const PropertyDetails: React.FC = () => {
                 <Box sx={INFO_ROW_SX}>
                   <div>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
-                    <Chip label={getPropertyStatusLabel(property.status, t)} size="small"
-                      sx={{ mt: 0.5, ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }} />
+                    <StatusChip
+                      tokens={propertyStatusTokens(property.status)}
+                      label={getPropertyStatusLabel(property.status, t)}
+                      className="mt-0.5"
+                    />
                   </div>
                 </Box>
                 {property.ownerName && (
