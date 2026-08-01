@@ -6968,5 +6968,8 @@
   },
   "search": {
     "goToScreen": "Go to a screen…"
+  },
+  "messagingHub": {
+    "viewReservation": "View reservation"
   }
 }

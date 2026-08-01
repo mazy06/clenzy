@@ -6992,5 +6992,8 @@
   },
   "search": {
     "goToScreen": "Aller à un écran…"
+  },
+  "messagingHub": {
+    "viewReservation": "Voir la réservation"
   }
 }

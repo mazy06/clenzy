@@ -6713,5 +6713,8 @@
   },
   "search": {
     "goToScreen": "الانتقال إلى شاشة…"
+  },
+  "messagingHub": {
+    "viewReservation": "عرض الحجز"
   }
 }

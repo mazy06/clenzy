@@ -14,10 +14,12 @@ import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
   Description as TemplateIcon,
+  EventNote as ReservationIcon,
   Link as LinkIcon,
   Person as PersonIcon,
   Send as SendIcon,
 } from '../../../icons';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   useConversationMessages,
@@ -54,6 +56,7 @@ interface ChannelThreadProps {
  */
 export default function ChannelThread({ conv, onArchived, showBack, onBack }: ChannelThreadProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [draft, setDraft] = useState('');
   const [attachOpen, setAttachOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -154,6 +157,14 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       onClick: () => setAttachOpen(true),
     });
   } else {
+    // « Voir la réservation » de la projection : le fil connait son sejour,
+    // l'entete y mene (surlignage deep-link de la liste des reservations).
+    actions.push({
+      key: 'reservation',
+      title: t('messagingHub.viewReservation', 'Voir la réservation'),
+      icon: <ReservationIcon size={16} strokeWidth={1.75} />,
+      onClick: () => navigate(`/reservations?highlight=${conv.reservationId}`),
+    });
     actions.push({
       key: 'template',
       title: t('messagingHub.sendTemplate', 'Envoyer un template WhatsApp'),
