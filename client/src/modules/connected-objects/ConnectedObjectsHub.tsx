@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../hooks/useNotification';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import FilterChipRow from '../../components/FilterChipRow';
 import { useConnectedObjects } from './useConnectedObjects';
@@ -165,13 +165,22 @@ export default function ConnectedObjectsHub({
         </BuiButton>
       </Card>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-[9px]">
-        <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
-        <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)}%` : undefined} />
-        <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
-        <StatTile icon={<Warning />} label="Alertes" value={kpis.alerts} color="#C97A7A" loading={loading} />
-        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
+      {/* KPIs — les tuiles de la projection : la teinte ne porte que sur
+          l'icone, et seulement la ou elle dit quelque chose. */}
+      <div className="grid grid-cols-2 gap-3 mb-[9px] lg:grid-cols-5">
+        <StatTile icon={<Inventory2 />} label="Objets" value={String(kpis.total)} loading={loading} />
+        <StatTile
+          icon={<MonitorHeart />}
+          label="En ligne"
+          value={String(kpis.online)}
+          unit={`/ ${kpis.total}`}
+          iconClassName="text-success"
+          hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)} % du parc` : undefined}
+          loading={loading}
+        />
+        <StatTile icon={<WifiOff />} label="Hors ligne" value={String(kpis.offline)} iconClassName={kpis.offline > 0 ? 'text-destructive' : undefined} loading={loading} />
+        <StatTile icon={<Warning />} label="Alertes" value={String(kpis.alerts)} iconClassName={kpis.alerts > 0 ? 'text-warning' : undefined} loading={loading} />
+        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={String(kpis.lowBattery)} iconClassName={kpis.lowBattery > 0 ? 'text-warning' : undefined} loading={loading} />
       </div>
 
       {/* Filtre par type */}
