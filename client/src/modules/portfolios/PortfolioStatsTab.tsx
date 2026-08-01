@@ -2,7 +2,7 @@ import React from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Grid, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar } from '@mui/material';
+import { List, ListItem, ListItemText, ListItemIcon, Divider, Avatar } from '@mui/material';
 import {
   Business,
   People,
@@ -84,45 +84,45 @@ const PortfolioStatsTab: React.FC = () => {
       </p>
 
       {/* Stat tiles (primitive partagée) */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <div className="grid grid-cols-12 gap-3 mb-[18px]">
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Business />}
             value={stats.totalPortfolios}
             label={t('portfolios.statistics.portfolios')}
             color={STAT_COLORS.portfolios}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<People />}
             value={stats.totalClients}
             label={t('portfolios.statistics.clients')}
             color={STAT_COLORS.clients}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Assignment />}
             value={stats.totalProperties}
             label={t('portfolios.statistics.properties')}
             color={STAT_COLORS.properties}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Group />}
             value={stats.totalTeamMembers}
             label={t('teams.members')}
             color={STAT_COLORS.members}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Detail sections */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {/* Portfolio breakdown */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card className="gap-0 py-0 p-3.5 h-full">
             <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.statistics.title')}
@@ -178,10 +178,10 @@ const PortfolioStatsTab: React.FC = () => {
               </p>
             )}
           </Card>
-        </Grid>
+        </div>
 
         {/* Recent assignments */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card className="gap-0 py-0 p-3.5 h-full">
             <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.fields.associatedOn')}
@@ -239,8 +239,8 @@ const PortfolioStatsTab: React.FC = () => {
               </p>
             )}
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </div>
   );
 };

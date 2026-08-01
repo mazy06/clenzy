@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Grid, Paper, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Paper, Divider } from '@mui/material';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -173,11 +173,11 @@ export default function MessageTemplateEditor({
           </BuiAlert>
         )}
 
-        <Grid container spacing={3}>
+        <div className="grid grid-cols-12 gap-[18px]">
           {/* Formulaire */}
-          <Grid item xs={12} md={7}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+          <div className="col-span-12 min-[900px]:col-span-7">
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   label={t('messaging.templates.editor.name')}
@@ -186,8 +186,8 @@ export default function MessageTemplateEditor({
                   size="small"
                   required
                 />
-              </Grid>
-              <Grid item xs={6} sm={3}>
+              </div>
+              <div className="col-span-6 min-[600px]:col-span-3">
                 <TextField
                   fullWidth
                   select
@@ -202,8 +202,8 @@ export default function MessageTemplateEditor({
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-              <Grid item xs={6} sm={3}>
+              </div>
+              <div className="col-span-6 min-[600px]:col-span-3">
                 <TextField
                   fullWidth
                   select
@@ -218,8 +218,8 @@ export default function MessageTemplateEditor({
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-              <Grid item xs={12}>
+              </div>
+              <div className="col-span-12">
                 <TextField
                   fullWidth
                   label={t('messaging.templates.editor.subject')}
@@ -231,8 +231,8 @@ export default function MessageTemplateEditor({
                   required
                   helperText={t('messaging.templates.editor.subjectHelper')}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </div>
+              <div className="col-span-12">
                 <TextField
                   fullWidth
                   label={t('messaging.templates.editor.body')}
@@ -245,8 +245,8 @@ export default function MessageTemplateEditor({
                   required
                   helperText={t('messaging.templates.editor.bodyHelper')}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Preview */}
             <div className="mt-4">
@@ -268,12 +268,12 @@ export default function MessageTemplateEditor({
                 )}
               </Card>
             </div>
-          </Grid>
+          </div>
 
           {/* Variables sidebar — refactor sur VariablePicker (chips colorees
               par categorie, palette Baitly). Composant partage avec
               SystemTemplateEditDialog pour coherence visuelle. */}
-          <Grid item xs={12} md={5}>
+          <div className="col-span-12 min-[900px]:col-span-5">
             <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
               <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                 {t('messaging.templates.editor.variables')}
@@ -288,8 +288,8 @@ export default function MessageTemplateEditor({
                 showDetails
               />
             </Paper>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5 }}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -54,9 +54,9 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
       title={t('dashboard.analytics.clientAnalysis')}
       subtitle={t('dashboard.analytics.clientAnalysisDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Source distribution donut */}
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -100,10 +100,10 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Top properties by popularity */}
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -128,18 +128,18 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* KPI cards */}
-        <Grid item xs={6} sm={4}>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgStayDuration')}
             value={data ? `${data.avgStayDuration} ${t('dashboard.analytics.nights')}` : '-'}
             icon={<AccessTime color="info" />}
             loading={loading}
           />
-        </Grid>
-        <Grid item xs={6} sm={4}>
+        </div>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgGuestCount')}
             value={data ? `${data.avgGuestCount}` : '-'}
@@ -147,16 +147,16 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
             icon={<People color="primary" />}
             loading={loading}
           />
-        </Grid>
-        <Grid item xs={6} sm={4}>
+        </div>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.totalBookings')}
             value={data ? `${data.totalBookings}` : '-'}
             icon={<Luggage color="success" />}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

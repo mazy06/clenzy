@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from './StatusChip';
 import { Spinner, Button } from './ui';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, Grid, Alert, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
+import { Card, CardContent, Alert, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -190,8 +190,8 @@ const HealthChecks: React.FC = () => {
   return (
     <div>
       {/* Vue d'ensemble — StatTile (carte plate hairline, valeur display) */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6}>
+      <div className="grid grid-cols-12 gap-3 mb-[18px]">
+        <div className="col-span-12 min-[600px]:col-span-6">
           <StatTile
             icon={<HealthAndSafety />}
             label="Statut Global"
@@ -199,8 +199,8 @@ const HealthChecks: React.FC = () => {
             color={statusHex(overallStatus)}
             hint={`${healthChecks.filter(check => check.status === 'UP').length} sur ${healthChecks.length} services opérationnels`}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <StatTile
             icon={<Security />}
             label="Services Critiques"
@@ -208,8 +208,8 @@ const HealthChecks: React.FC = () => {
             color={statusHex(criticalStatus)}
             hint={`${criticalChecks.filter(check => check.status === 'UP').length} sur ${criticalChecks.length} services critiques opérationnels`}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Métriques système — valeurs display tabular-nums + barres tokens */}
       {systemMetrics && (
@@ -218,7 +218,7 @@ const HealthChecks: React.FC = () => {
             <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
               Métriques Système
             </h6>
-            <Grid container spacing={3}>
+            <div className="grid grid-cols-12 gap-[18px]">
               {([
                 { label: 'CPU', value: systemMetrics.cpuUsage, suffix: '%' },
                 { label: `Mémoire (${systemMetrics.heapUsedMb}/${systemMetrics.heapMaxMb} MB)`, value: systemMetrics.memoryUsage, suffix: '%' },
@@ -226,7 +226,7 @@ const HealthChecks: React.FC = () => {
               ] as const).map((metric) => {
                 const barColor = metric.value > 80 ? 'var(--err)' : metric.value > 60 ? 'var(--warn)' : 'var(--accent)';
                 return (
-                  <Grid item xs={12} sm={6} md={2} key={metric.label}>
+                  <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2" key={metric.label}>
                     <div className="text-center">
                       <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
                         {metric.value}{metric.suffix}
@@ -246,10 +246,10 @@ const HealthChecks: React.FC = () => {
                         }}
                       />
                     </div>
-                  </Grid>
+                  </div>
                 );
               })}
-              <Grid item xs={12} sm={6} md={3}>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
                 <div className="text-center">
                   <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ok)]">
                     {formatUptime(systemMetrics.uptimeSeconds)}
@@ -258,8 +258,8 @@ const HealthChecks: React.FC = () => {
                     Uptime JVM
                   </p>
                 </div>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

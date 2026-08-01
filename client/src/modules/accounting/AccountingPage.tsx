@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -1512,9 +1512,9 @@ export const ExportsTab: React.FC = () => {
       )}
 
       {/* Export cards */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {EXPORT_CARDS.map((card) => (
-          <Grid item xs={12} sm={6} md={4} key={card.key}>
+          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={card.key}>
             <Card sx={{ ...CARD_SX, height: '100%' }}>
               <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
                 <div className="flex items-center gap-2 mb-2">
@@ -1554,9 +1554,9 @@ export const ExportsTab: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
 
       <ExportPreviewDialog
         open={previewOpen}

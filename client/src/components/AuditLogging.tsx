@@ -3,7 +3,7 @@ import StatusChip from './StatusChip';
 import { Alert as BuiAlert, AlertDescription, Button } from './ui';
 import { Info as BuiInfo } from 'lucide-react';
 import { Spinner } from './ui';
-import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Grid, Divider, Alert } from '@mui/material';
+import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Divider, Alert } from '@mui/material';
 import {
   Info,
   Warning,
@@ -187,8 +187,8 @@ const AuditLogging: React.FC = () => {
           <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Filtres
           </h6>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <FormControl fullWidth size="small">
                 <InputLabel>Type d'événement</InputLabel>
                 <Select
@@ -206,8 +206,8 @@ const AuditLogging: React.FC = () => {
                   <MenuItem value="SUSPICIOUS_ACTIVITY">Activité suspecte</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <FormControl fullWidth size="small">
                 <InputLabel>Résultat</InputLabel>
                 <Select
@@ -221,8 +221,8 @@ const AuditLogging: React.FC = () => {
                   <MenuItem value="ERROR">Erreur</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <TextField
                 fullWidth
                 size="small"
@@ -230,14 +230,14 @@ const AuditLogging: React.FC = () => {
                 value={filters.actorId}
                 onChange={(e) => handleFilterChange('actorId', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <Button variant="outline" size="sm" onClick={clearFilters}>
                 <Clear size={18} strokeWidth={1.75} />
                 Effacer
               </Button>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

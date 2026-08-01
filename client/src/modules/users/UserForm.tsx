@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Card, CardContent, TextField, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
+import { Card, CardContent, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -149,7 +149,7 @@ const UserForm: React.FC = () => {
       <div className="p-3">
         <Alert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Accès non autorisé
           </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
@@ -248,8 +248,8 @@ const UserForm: React.FC = () => {
               Informations personnelles
             </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <TextField
                   fullWidth
                   size="small"
@@ -262,9 +262,9 @@ const UserForm: React.FC = () => {
                     startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Person size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <TextField
                   fullWidth
                   size="small"
@@ -277,16 +277,16 @@ const UserForm: React.FC = () => {
                     startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Person size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Informations de contact */}
             <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Informations de contact
             </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={8}>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-8">
                 <TextField
                   fullWidth
                   size="small"
@@ -300,9 +300,9 @@ const UserForm: React.FC = () => {
                     startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Email size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={4}>
+              <div className="col-span-12 min-[900px]:col-span-4">
                 <TextField
                   fullWidth
                   size="small"
@@ -315,16 +315,16 @@ const UserForm: React.FC = () => {
                     startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Phone size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Sécurité */}
             <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Sécurité
             </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <TextField
                   fullWidth
                   size="small"
@@ -339,9 +339,9 @@ const UserForm: React.FC = () => {
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
                   helperText={errors.password?.message || 'Le mot de passe doit contenir au moins 8 caractères'}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <TextField
                   fullWidth
                   size="small"
@@ -362,16 +362,16 @@ const UserForm: React.FC = () => {
                         : ''
                   }
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Rôle et statut */}
             <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Rôle et statut
             </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <FormControl fullWidth required size="small" error={!!errors.role}>
                   <InputLabel>Rôle *</InputLabel>
                   <Controller
@@ -397,9 +397,9 @@ const UserForm: React.FC = () => {
                     {errors.role?.message || "Le rôle détermine les permissions de l'utilisateur"}
                   </FormHelperText>
                 </FormControl>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <FormControl fullWidth required size="small" error={!!errors.status}>
                   <InputLabel>Statut *</InputLabel>
                   <Controller
@@ -422,8 +422,8 @@ const UserForm: React.FC = () => {
                     {errors.status?.message || "Le statut détermine si l'utilisateur peut se connecter"}
                   </FormHelperText>
                 </FormControl>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Aperçu du rôle sélectionné */}
             {watchedRole && (
@@ -449,8 +449,8 @@ const UserForm: React.FC = () => {
               Organisation
             </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <FormControl fullWidth size="small" error={!!errors.organizationId}>
                   <InputLabel>Organisation</InputLabel>
                   <Controller
@@ -479,9 +479,9 @@ const UserForm: React.FC = () => {
                     {errors.organizationId?.message || "Optionnel — rattacher l'utilisateur à une organisation"}
                   </FormHelperText>
                 </FormControl>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <FormControl
                   fullWidth
                   size="small"
@@ -520,8 +520,8 @@ const UserForm: React.FC = () => {
                       : "Sélectionnez d'abord une organisation")}
                   </FormHelperText>
                 </FormControl>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </form>
         </CardContent>
       </Card>

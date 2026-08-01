@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Button, Spinner } from '../../components/ui';
-import { Card, CardContent, Switch, FormControlLabel, TextField, Slider, IconButton, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
+import { Card, CardContent, Switch, FormControlLabel, TextField, Slider, IconButton, Divider, FormControl, Select, MenuItem } from '@mui/material';
 import {
   Settings,
   Add,
@@ -332,9 +332,9 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
               <>
                 <Divider sx={{ my: 1.5 }} />
 
-                <Grid container spacing={3}>
+                <div className="grid grid-cols-12 gap-[18px]">
                   {/* ── Colonne gauche : Créneaux horaires ── */}
-                  <Grid item xs={12} md={7}>
+                  <div className="col-span-12 min-[900px]:col-span-7">
                     <div className="flex items-center justify-between mb-1.5">
                       <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em]">
                         Créneaux horaires
@@ -351,7 +351,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     </div>
 
                     {form.timeWindows.map((tw, idx) => (
-                      <div className="p-2 mb-1.5 rounded-[1px] bg-[grey.50] border border-[var(--line)]" key={idx}>
+                      <div className="p-2 mb-1.5 rounded-[1px] bg-[var(--surface-2)] border border-[var(--line)]" key={idx}>
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <TextField
                             size="small"
@@ -389,8 +389,8 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           )}
                         </div>
 
-                        <Grid container spacing={2}>
-                          <Grid item xs={6}>
+                        <div className="grid grid-cols-12 gap-3">
+                          <div className="col-span-6">
                             <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-0.5">
                               Seuil avertissement : {tw.warningThresholdDb} dB
                             </p>
@@ -402,8 +402,8 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               max={100}
                               sx={{ color: '#ED6C02' }}
                             />
-                          </Grid>
-                          <Grid item xs={6}>
+                          </div>
+                          <div className="col-span-6">
                             <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-0.5">
                               Seuil critique : {tw.criticalThresholdDb} dB
                             </p>
@@ -415,14 +415,14 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               max={120}
                               sx={{ color: '#D32F2F' }}
                             />
-                          </Grid>
-                        </Grid>
+                          </div>
+                        </div>
                       </div>
                     ))}
-                  </Grid>
+                  </div>
 
                   {/* ── Colonne droite : Canaux de notification ── */}
-                  <Grid item xs={12} md={5}>
+                  <div className="col-span-12 min-[900px]:col-span-5">
                     <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em] mb-1.5">
                       Canaux de notification
                     </p>
@@ -506,8 +506,8 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         </Select>
                       </FormControl>
                     </div>
-                  </Grid>
-                </Grid>
+                  </div>
+                </div>
 
               </>
             )}

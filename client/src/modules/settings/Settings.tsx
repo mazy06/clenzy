@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, Grid, Alert, Snackbar } from '@mui/material';
+import { TextField, Alert, Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -694,10 +694,10 @@ export default function Settings() {
 
       {/* ─── Onglet Général ─────────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={tabIdx.general}>
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
 
           {/* Mon compte */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
               title="Mon compte"
               icon={Person}
@@ -793,15 +793,15 @@ export default function Settings() {
                 </Field>
               </FieldGroup>
             </SettingsSection>
-          </Grid>
+          </div>
 
           {/* Sécurité (changement de mot de passe via email Keycloak) */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <AccountSecuritySection />
-          </Grid>
+          </div>
 
           {/* Workflow */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
               title="Workflow"
               icon={Storage}
@@ -856,10 +856,10 @@ export default function Settings() {
                 divider={false}
               />
             </SettingsSection>
-          </Grid>
+          </div>
 
           {/* Affichage */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
               title="Affichage"
               icon={Palette}
@@ -925,9 +925,9 @@ export default function Settings() {
                 divider={false}
               />
             </SettingsSection>
-          </Grid>
+          </div>
 
-        </Grid>
+        </div>
       </TabPanel>
 
       {/* ─── Onglet Notifications ───────────────────────────────────────── */}
@@ -1043,20 +1043,20 @@ export default function Settings() {
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
         <TabPanel value={tabValue} index={tabIdx.payouts}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <SepaDebtorSettings
                 ref={sepaRef}
                 onChangeState={() => forceUpdate(n => n + 1)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <PayoutScheduleSettings
                 ref={scheduleRef}
                 onChangeState={() => forceUpdate(n => n + 1)}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
           <div className="mt-3">
             <OwnerPayoutSettings />
           </div>

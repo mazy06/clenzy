@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Box, TextField, Grid, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
+import { Box, TextField, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import {
   VolumeUp,
   Handshake,
@@ -68,12 +68,12 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
       </p>
 
       {/* ─── Two offers side by side ───────────────────────────────────── */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
 
         {/* ════════════════════════════════════════════════════════════════ */}
         {/* MINUT — Abonnement mensuel                                     */}
         {/* ════════════════════════════════════════════════════════════════ */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Paper
             elevation={0}
             sx={{
@@ -172,12 +172,12 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               </ListItem>
             </List>
           </Paper>
-        </Grid>
+        </div>
 
         {/* ════════════════════════════════════════════════════════════════ */}
         {/* CLENZY HARDWARE — Coût unique (Tuya OEM)                       */}
         {/* ════════════════════════════════════════════════════════════════ */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Paper
             elevation={0}
             sx={{
@@ -210,8 +210,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               {t('tarification.monitoring.clenzy.pricingModel')}
             </span>
 
-            <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 1 }}>
-              <Grid item xs={6}>
+            <div className="grid grid-cols-12 gap-[9px] mt-[3px] mb-1.5">
+              <div className="col-span-6">
                 <TextField
                   label={t('tarification.monitoring.clenzy.devicePrice')}
                   type="number"
@@ -223,8 +223,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   helperText={t('tarification.monitoring.clenzy.devicePriceHelp')}
                   InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <TextField
                   label={t('tarification.monitoring.clenzy.installationPrice')}
                   type="number"
@@ -236,8 +236,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   helperText={t('tarification.monitoring.clenzy.installationPriceHelp')}
                   InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <TextField
                   label={t('tarification.monitoring.clenzy.configPrice')}
                   type="number"
@@ -249,8 +249,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   helperText={t('tarification.monitoring.clenzy.configPriceHelp')}
                   InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <TextField
                   label={t('tarification.monitoring.clenzy.supportPrice')}
                   type="number"
@@ -262,8 +262,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   helperText={t('tarification.monitoring.clenzy.supportPriceHelp')}
                   InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Total */}
             <div className="flex items-center justify-between p-2 rounded-[1.5px] bg-[success.50] border border-[success.200] mb-2">
@@ -308,8 +308,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               </ListItem>
             </List>
           </Paper>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </div>
   );
 }

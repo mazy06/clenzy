@@ -4,7 +4,7 @@ import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, Grid, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Card, CardContent, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -428,8 +428,8 @@ const PermissionConfig: React.FC = () => {
                 </h6>
               </div>
               
-              <Grid container spacing={1}>
-                <Grid item xs={3}>
+              <div className="grid grid-cols-12 gap-1.5">
+                <div className="col-span-3">
                   <div className="text-center p-1.5">
                     <h6 className="cn-text-h6 text-[var(--info)] font-semibold mb-[3px]">
                       {allPermissions.length}
@@ -438,9 +438,9 @@ const PermissionConfig: React.FC = () => {
                       Total
                     </span>
                   </div>
-                </Grid>
+                </div>
                 
-                <Grid item xs={3}>
+                <div className="col-span-3">
                   <div className="text-center p-1.5">
                     <h6 className="cn-text-h6 text-[var(--bui-success-ink)] font-semibold mb-0.5">
                       {rolePermissions.permissions.length}
@@ -449,9 +449,9 @@ const PermissionConfig: React.FC = () => {
                       Actives
                     </span>
                   </div>
-                </Grid>
+                </div>
                 
-                <Grid item xs={3}>
+                <div className="col-span-3">
                   <div className="text-center p-1.5">
                     <h6 className="cn-text-h6 text-destructive font-semibold mb-0.5">
                       {allPermissions.filter(p => !rolePermissionSet.has(p)).length}
@@ -460,9 +460,9 @@ const PermissionConfig: React.FC = () => {
                       Inactives
                     </span>
                   </div>
-                </Grid>
+                </div>
 
-                <Grid item xs={3}>
+                <div className="col-span-3">
                   <div className="text-center p-1.5">
                     <h6 className="cn-text-h6 text-[var(--bui-warning-ink)] font-semibold mb-0.5">
                       {Object.keys(permissionsByModule).filter(module => {
@@ -474,8 +474,8 @@ const PermissionConfig: React.FC = () => {
                       Menus accessibles
                     </span>
                   </div>
-                </Grid>
-              </Grid>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -558,7 +558,7 @@ const PermissionConfig: React.FC = () => {
                             },
                           }}
                         >
-                          <div className="p-0.5 bg-[grey.100] rounded-[0.5px] flex items-center justify-center">
+                          <div className="p-0.5 bg-[var(--hover)] rounded-[4px] flex items-center justify-center">
                             {getModuleIcon(moduleName)}
                           </div>
                           <h6 className="cn-text-subtitle2 font-semibold flex-1">

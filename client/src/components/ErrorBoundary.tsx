@@ -73,7 +73,7 @@ class ErrorBoundary extends Component<Props, State> {
               {this.state.error?.message || "Une erreur inattendue s'est produite"}
             </p>
             {import.meta.env.DEV && this.state.errorInfo && (
-              <div className="mt-3 p-3 bg-[grey.100] rounded-[1px] text-[0.75rem] font-mono overflow-auto max-h-[200px]">
+              <div className="mt-3 p-3 bg-[var(--hover)] rounded-[1px] text-[0.75rem] font-mono overflow-auto max-h-[200px]">
                 <pre className="cn-text-caption whitespace-pre-wrap break-words">
                   {this.state.error?.stack}
                 </pre>

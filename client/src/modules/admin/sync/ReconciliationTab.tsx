@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { Skeleton, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Skeleton, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   PlayArrow,
@@ -175,26 +175,26 @@ const ReconciliationTab: React.FC = () => {
     <div>
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={2}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<CompareArrows />} label="Total Runs" value={stats.totalRuns} color="#6B8A9A" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<CheckCircle />} label="Success" value={stats.successRuns} color="#4A9B8E" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failedRuns} color="#C97A7A" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<WarningAmber />} label="Divergence" value={stats.divergenceRuns} color="#D4A574" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<Tune />} label="Discrepancies" value={stats.totalDiscrepancies} color="#7BA3C2" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<AutoFixHigh />} label="Fixes" value={stats.totalFixes} color="#4A9B8E" />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {error && <Alert variant="destructive" className="mb-3">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Paper, Grid, Skeleton, alpha } from '@mui/material';
+import { Paper, Skeleton, alpha } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -118,9 +118,9 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
     // Skeletons : 4 tuiles + panneau historique (cartes hairline plates)
     return (
       <div>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
+        <div className="grid grid-cols-12 gap-3 mt-1.5">
           {[1, 2, 3, 4].map((i) => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={i}>
               <Card className="gap-0 py-0 p-3 border-[var(--line)]">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Skeleton variant="rounded" width={26} height={26} />
@@ -129,9 +129,9 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                 <Skeleton variant="text" width="60%" height={28} />
                 <Skeleton variant="text" width="30%" height={14} />
               </Card>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
         <Card className="gap-0 py-0 mt-4 p-3 border-[var(--line)]">
           <Skeleton variant="text" width="25%" height={20} sx={{ mb: 1.5 }} />
           {Array.from({ length: 5 }).map((_, i) => (
@@ -159,13 +159,13 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
       ) : (
         <>
           {/* Wallet summary cards */}
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <div className="grid grid-cols-12 gap-3 mt-1.5">
             {wallets.map((wallet) => {
               const typeInfo = WALLET_TYPE_LABELS[wallet.walletType] || WALLET_TYPE_LABELS.PLATFORM;
               const isSelected = selectedWallet?.id === wallet.id;
 
               return (
-                <Grid item xs={12} sm={6} md={3} key={wallet.id}>
+                <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={wallet.id}>
                   {/* Tuile sélectionnable : carte hairline plate, sélection = bordure accent + ring accent-soft */}
                   <Paper
                     variant="outlined"
@@ -203,10 +203,10 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                       {wallet.currency}
                     </span>
                   </Paper>
-                </Grid>
+                </div>
               );
             })}
-          </Grid>
+          </div>
 
           {/* Ledger entries table */}
           {selectedWallet && (

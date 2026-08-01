@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, Grid, InputAdornment, Divider } from '@mui/material';
+import { TextField, InputAdornment, Divider } from '@mui/material';
 import { Devices, Computer, People, AutoAwesome } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -30,8 +30,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         {t('tarification.pms.subtitle')}
       </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={6}>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-6">
           <TextField
             label={t('tarification.pms.monthly')}
             type="number"
@@ -46,8 +46,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.pms.monthlyHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={6}>
+        </div>
+        <div className="col-span-6">
           <TextField
             label={t('tarification.pms.sync')}
             type="number"
@@ -62,8 +62,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.pms.syncHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       <Divider sx={{ my: 2.5 }} />
 
@@ -78,8 +78,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         {t('tarification.pms.aiSubtitle')}
       </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={4}>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-4">
           <TextField
             label={t('tarification.pms.aiEssentiel')}
             type="number"
@@ -94,8 +94,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.pms.aiEssentielHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={4}>
+        </div>
+        <div className="col-span-4">
           <TextField
             label={t('tarification.pms.aiConfort')}
             type="number"
@@ -110,8 +110,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.pms.aiConfortHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={4}>
+        </div>
+        <div className="col-span-4">
           <TextField
             label={t('tarification.pms.aiPremium')}
             type="number"
@@ -126,8 +126,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.pms.aiPremiumHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       <Divider sx={{ my: 2.5 }} />
 
@@ -142,8 +142,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         {t('tarification.pms.perSeatSubtitle')}
       </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={6}>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-6">
           <TextField
             label={t('tarification.pms.perSeat')}
             type="number"
@@ -158,8 +158,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.pms.perSeatHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois/utilisateur</InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={6}>
+        </div>
+        <div className="col-span-6">
           <TextField
             label={t('tarification.pms.freeSeats')}
             type="number"
@@ -173,8 +173,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             disabled={!canEdit}
             helperText={t('tarification.pms.freeSeatsHelp')}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       <Divider sx={{ my: 2.5 }} />
 
@@ -189,8 +189,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         {t('tarification.automation.subtitle')}
       </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={6}>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-6">
           <TextField
             label={t('tarification.automation.basic')}
             type="number"
@@ -205,8 +205,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.automation.basicHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
           />
-        </Grid>
-        <Grid item xs={6}>
+        </div>
+        <div className="col-span-6">
           <TextField
             label={t('tarification.automation.full')}
             type="number"
@@ -221,8 +221,8 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             helperText={t('tarification.automation.fullHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </div>
   );
 }

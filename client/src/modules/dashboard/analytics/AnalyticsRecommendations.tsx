@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
 } from '../../../icons';
@@ -53,20 +53,20 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
       subtitle={t('dashboard.analytics.recommendationsDesc')}
       badge={recs.length}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {loading ? (
           // Skeleton placeholders
           Array.from({ length: 3 }).map((_, i) => (
-            <Grid item xs={12} key={i}>
+            <div className="col-span-12" key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   <div className="h-[80px]" />
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         ) : recs.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                 <p className="cn-text-body1 text-[0.75rem] text-muted-foreground text-center py-3">
@@ -74,10 +74,10 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                 </p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ) : (
           recs.map((rec) => (
-            <Grid item xs={12} key={rec.id}>
+            <div className="col-span-12" key={rec.id}>
               <Card sx={CARD_SX}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Header: icon + title */}
@@ -113,10 +113,10 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                   </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         )}
-      </Grid>
+      </div>
     </GridSection>
   );
 });

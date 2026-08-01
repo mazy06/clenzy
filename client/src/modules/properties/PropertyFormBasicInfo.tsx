@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import { Description } from '../../icons';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
@@ -41,8 +41,8 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
           {t('properties.tabs.overview')}
         </p>
 
-        <Grid container spacing={1.5}>
-          <Grid item xs={12} md={8}>
+        <div className="grid grid-cols-12 gap-[9px]">
+          <div className="col-span-12 min-[900px]:col-span-8">
             <Controller
               name="name"
               control={control}
@@ -59,9 +59,9 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <Controller
               name="type"
               control={control}
@@ -79,9 +79,9 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                 </FormControl>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Controller
               name="description"
               control={control}
@@ -115,8 +115,8 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                 </div>
               )}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </div>
     );
   }

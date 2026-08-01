@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
+import { TextField, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
 import { Button, Card } from '../../components/ui';
 import {
   CheckCircle,
@@ -599,8 +599,8 @@ export default function AiSettingsSection() {
       />
 
       {activeTab === 'connection' && (
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-[15px]">
+          <div className="col-span-12 min-[900px]:col-span-6">
             <ProviderCard
               status={openaiStatus || { ...defaultStatus, provider: 'openai' }}
               brand={PROVIDERS.openai}
@@ -608,8 +608,8 @@ export default function AiSettingsSection() {
               onDisconnect={() => deleteMutation.mutate('openai')}
               isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'openai'}
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <ProviderCard
               status={anthropicStatus || { ...defaultStatus, provider: 'anthropic' }}
               brand={PROVIDERS.anthropic}
@@ -617,8 +617,8 @@ export default function AiSettingsSection() {
               onDisconnect={() => deleteMutation.mutate('anthropic')}
               isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'anthropic'}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {activeTab === 'models' && (

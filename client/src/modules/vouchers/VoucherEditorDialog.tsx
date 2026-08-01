@@ -3,7 +3,7 @@ import TagChip from '../../components/TagChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, FormHelperText } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, FormHelperText } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -186,9 +186,9 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
           <AlertDescription>{errorMsg}</AlertDescription>
         </Alert>}
 
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
           {/* Identite */}
-          <Grid item xs={12} md={8}>
+          <div className="col-span-12 min-[900px]:col-span-8">
             <TextField
               fullWidth
               label={t('vouchers.editor.name')}
@@ -197,8 +197,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               required
               helperText={t('vouchers.editor.nameHelper')}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <FormControl fullWidth>
               <InputLabel>{t('vouchers.editor.status')}</InputLabel>
               <Select
@@ -211,9 +211,9 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 <MenuItem value="PAUSED">{t('vouchers.status.PAUSED')}</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </div>
 
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <TextField
               fullWidth
               label={t('vouchers.editor.description')}
@@ -222,10 +222,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               multiline
               rows={2}
             />
-          </Grid>
+          </div>
 
           {/* Type + Code */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <FormControl fullWidth>
               <InputLabel>{t('vouchers.editor.type')}</InputLabel>
               <Select
@@ -241,8 +241,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 {isAuto ? t('vouchers.editor.typeAutoHelper') : t('vouchers.editor.typeManualHelper')}
               </FormHelperText>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
             {!isAuto && (
               <TextField
                 fullWidth
@@ -255,10 +255,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 helperText={t('vouchers.editor.codeHelper')}
               />
             )}
-          </Grid>
+          </div>
 
           {/* Discount */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <FormControl fullWidth>
               <InputLabel>{t('vouchers.editor.discountType')}</InputLabel>
               <Select
@@ -273,8 +273,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 </MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <TextField
               fullWidth
               label={t('vouchers.editor.discountValue')}
@@ -286,8 +286,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               }}
               required
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <FormControl fullWidth>
               <InputLabel>{t('vouchers.editor.channelScope')}</InputLabel>
               <Select
@@ -302,10 +302,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 <MenuItem value="EMAIL">Email</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </div>
 
           {/* Validite */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <TextField
               fullWidth
               label={t('vouchers.editor.validFrom')}
@@ -315,8 +315,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               InputLabelProps={{ shrink: true }}
               helperText={t('vouchers.editor.validFromHelper')}
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <TextField
               fullWidth
               label={t('vouchers.editor.validUntil')}
@@ -326,10 +326,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               InputLabelProps={{ shrink: true }}
               helperText={t('vouchers.editor.validUntilHelper')}
             />
-          </Grid>
+          </div>
 
           {/* Limites usage */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <TextField
               fullWidth
               label={t('vouchers.editor.maxUsesTotal')}
@@ -338,8 +338,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               onChange={(e) => update('maxUsesTotal', e.target.value)}
               helperText={t('vouchers.editor.maxUsesTotalHelper')}
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <TextField
               fullWidth
               label={t('vouchers.editor.maxUsesPerGuest')}
@@ -348,10 +348,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               onChange={(e) => update('maxUsesPerGuest', e.target.value)}
               helperText={t('vouchers.editor.maxUsesPerGuestHelper')}
             />
-          </Grid>
+          </div>
 
           {/* Contraintes sejour */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <TextField
               fullWidth
               label={t('vouchers.editor.minStayNights')}
@@ -359,8 +359,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               value={form.minStayNights}
               onChange={(e) => update('minStayNights', e.target.value)}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <TextField
               fullWidth
               label={t('vouchers.editor.maxStayNights')}
@@ -368,8 +368,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               value={form.maxStayNights}
               onChange={(e) => update('maxStayNights', e.target.value)}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <TextField
               fullWidth
               label={t('vouchers.editor.minTotalAmount')}
@@ -378,10 +378,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
               onChange={(e) => update('minTotalAmount', e.target.value)}
               InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
             />
-          </Grid>
+          </div>
 
           {/* Scope properties */}
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Stack direction="row" spacing={1} alignItems="center">
               <Switch
                 checked={form.applyToAllProperties}
@@ -416,8 +416,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 sx={{ mt: 1 }}
               />
             )}
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </DialogContent>
 
       <DialogActions>

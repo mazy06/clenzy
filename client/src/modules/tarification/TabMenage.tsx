@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton } from '@mui/material';
+import { TextField, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton } from '@mui/material';
 import { Button } from '../../components/ui';
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -284,9 +284,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.baseByBedrooms')}
           </p>
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             {BEDROOM_KEYS.map((key) => (
-              <Grid item xs={6} sm={4} md={2} key={key}>
+              <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={key}>
                 {numberField(
                   key === '5plus' ? t('tarification.cleaning.bedrooms5plus') : t('tarification.cleaning.bedroomsN', { n: key }),
                   cm.baseByBedrooms?.[key],
@@ -294,35 +294,35 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                   (v) => setBedroomBase(key, v),
                   'min',
                 )}
-              </Grid>
+              </div>
             ))}
-          </Grid>
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6} md={3}>
+          </div>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.perExtraBathroom'), cm.perExtraBathroom, ENGINE_DEFAULTS.perExtraBathroom, (v) => setComponent('perExtraBathroom', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.surfaceThreshold'), cm.surfaceThresholdSqm, ENGINE_DEFAULTS.surfaceThresholdSqm, (v) => setComponent('surfaceThresholdSqm', v), 'm²')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.surfaceStep'), cm.perSurfaceStepSqm, ENGINE_DEFAULTS.perSurfaceStepSqm, (v) => setComponent('perSurfaceStepSqm', v), 'm²')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.surfaceStepMinutes'), cm.surfaceStepMinutes, ENGINE_DEFAULTS.surfaceStepMinutes, (v) => setComponent('surfaceStepMinutes', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.perExtraFloor'), cm.perExtraFloor, ENGINE_DEFAULTS.perExtraFloor, (v) => setComponent('perExtraFloor', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.exterior'), cm.exterior, ENGINE_DEFAULTS.exterior, (v) => setComponent('exterior', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.laundry'), cm.laundry, ENGINE_DEFAULTS.laundry, (v) => setComponent('laundry', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.perGuestAbove4'), cm.perGuestAbove4, ENGINE_DEFAULTS.perGuestAbove4, (v) => setComponent('perGuestAbove4', v), 'min')}
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </AccordionDetails>
       </Accordion>
 
@@ -335,20 +335,20 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6} md={3}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.rangePercent'), draft.rangePercent, ENGINE_DEFAULTS.rangePercent, (v) => setRoot('rangePercent', v), '%')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), currencySymbol)}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField(t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </AccordionDetails>
       </Accordion>
 
@@ -361,9 +361,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <Grid container spacing={1.5}>
+          <div className="grid grid-cols-12 gap-[9px]">
             {MULTIPLIER_KEYS.map((key) => (
-              <Grid item xs={12} sm={4} key={key}>
+              <div className="col-span-12 min-[600px]:col-span-4" key={key}>
                 {numberField(
                   t(`properties.priceEstimation.cleaningTypes.${key}`),
                   draft.cleaningTypeMultipliers?.[key],
@@ -372,9 +372,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                   '×',
                   0.05,
                 )}
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
         </AccordionDetails>
       </Accordion>
 

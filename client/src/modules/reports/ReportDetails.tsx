@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Grid, Card, CardContent, Skeleton, Divider } from '@mui/material';
+import { Card, CardContent, Skeleton, Divider } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -320,7 +320,7 @@ const InterventionsReport: React.FC = () => {
       {data ? (
         <div>
           {/* ─── Hero KPIs ───────────────────────────────────────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             {([
               {
                 key: 'total', title: t('reports.kpi.totalInterventions', 'Total interventions'),
@@ -340,15 +340,15 @@ const InterventionsReport: React.FC = () => {
                 value: `${kpis?.avgPerMonth ?? 0}`, icon: <Speed />, iconColor: 'var(--info)',
               },
             ] as KpiItem[]).map((kpi) => (
-              <Grid item xs={6} sm={3} key={kpi.key}>
+              <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
                 <HeroKpiCard item={kpi} loading={false} />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* ─── Secondary KPIs (status breakdown + type breakdown) ── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                   <p className={SECTION_LABEL_CLASS}>
@@ -368,8 +368,8 @@ const InterventionsReport: React.FC = () => {
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                   <p className={SECTION_LABEL_CLASS}>
@@ -389,12 +389,12 @@ const InterventionsReport: React.FC = () => {
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Charts: Status pie + Type bar side by side ─────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px] mb-3">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.interventionsByStatus')}>
                 {data.byStatus.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -420,8 +420,8 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.interventionsByType')}>
                 {data.byType.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -441,12 +441,12 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Chart: Monthly trend (full width area chart) ───── */}
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-[9px] mb-3">
+            <div className="col-span-12">
               <ChartCard title={t('reports.charts.interventionsByMonth')}>
                 {data.byMonth.some((m) => m.total > 0) ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -476,12 +476,12 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Chart: Priority (horizontal bar) ───────────────── */}
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.interventionsByPriority')}>
                 {data.byPriority.length > 0 ? (
                   <ResponsiveContainer width="100%" height={220}>
@@ -501,8 +501,8 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </div>
       ) : (
         <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
@@ -558,7 +558,7 @@ const TeamsReport: React.FC = () => {
       {data ? (
         <div>
           {/* ─── Hero KPIs ───────────────────────────────────────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             {([
               {
                 key: 'teams', title: t('reports.kpi.totalTeams', 'Equipes'),
@@ -577,15 +577,15 @@ const TeamsReport: React.FC = () => {
                 value: `${kpis?.avgTasksPerTeam ?? 0}`, icon: <Speed />, iconColor: 'var(--warn)',
               },
             ] as KpiItem[]).map((kpi) => (
-              <Grid item xs={6} sm={3} key={kpi.key}>
+              <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
                 <HeroKpiCard item={kpi} loading={false} />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* ─── Secondary KPIs (task status + top performer) ────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                   <p className={SECTION_LABEL_CLASS}>
@@ -603,8 +603,8 @@ const TeamsReport: React.FC = () => {
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                   <p className={SECTION_LABEL_CLASS}>
@@ -628,12 +628,12 @@ const TeamsReport: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Charts: Stacked performance + Completion rates ──── */}
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={7}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[900px]:col-span-7">
               <ChartCard title={t('reports.charts.teamPerformance')}>
                 {data.teamPerformance.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -652,8 +652,8 @@ const TeamsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-            <Grid item xs={12} md={5}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-5">
               <ChartCard title={t('reports.kpi.completionRateByTeam', 'Taux de completion par equipe')}>
                 {teamCompletionRates.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -673,8 +673,8 @@ const TeamsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </div>
       ) : (
         <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
@@ -735,7 +735,7 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
       <DataFetchWrapper loading={loading} error={error} onRetry={retry} loadingMessage={t('reports.charts.loadingData')}>
         {data ? (
           <div>
-            <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+            <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
               {([
                 {
                   key: 'properties', title: t('reports.kpi.totalProperties', 'Proprietes'),
@@ -754,15 +754,15 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                   value: convertAndFormat(kpis?.avgCostPerProperty ?? 0, 'EUR'), icon: <EuroIcon />, iconColor: 'var(--ok)',
                 },
               ] as KpiItem[]).map((kpi) => (
-                <Grid item xs={6} sm={3} key={kpi.key}>
+                <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
                   <HeroKpiCard item={kpi} loading={false} />
-                </Grid>
+                </div>
               ))}
-            </Grid>
+            </div>
 
             {/* ─── Secondary KPIs ─── */}
-            <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <Card sx={SECONDARY_CARD_SX}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <p className={SECTION_LABEL_CLASS}>
@@ -779,12 +779,12 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                     ))}
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* ─── Chart: Interventions + cost per property ─────── */}
-            <Grid container spacing={1.5} sx={{ mb: 3 }}>
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-[9px] mb-[18px]">
+              <div className="col-span-12">
                 <ChartCard title={t('reports.charts.interventionsPerProperty')}>
                   {data.propertyStats.length > 0 ? (
                     <ResponsiveContainer width="100%" height={350}>
@@ -803,8 +803,8 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                     <EmptyChartState message={t('reports.charts.noData')} />
                   )}
                 </ChartCard>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </div>
         ) : (
           <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
@@ -817,31 +817,31 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
         {t('reports.charts.analyticsInsights', 'Analyses avancees')}
       </p>
 
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[9px] mb-3">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Occupation">
             <AnalyticsOccupancy data={analytics?.occupancy ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Analyse Clientele">
             <AnalyticsClientAnalysis data={analytics?.clients ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Performance par Logement">
             <AnalyticsPropertyPerformance period={period} />
           </DashboardErrorBoundary>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Benchmark">
             <AnalyticsBenchmark data={analytics?.benchmark ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </>
   );
 };
@@ -882,18 +882,18 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
       </DashboardErrorBoundary>
 
       {/* ─── Alerts & Recommendations side by side ─── */}
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[9px] mb-3">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Alertes Business">
             <AnalyticsAlerts data={analytics?.alerts ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Recommandations">
             <AnalyticsRecommendations data={analytics?.recommendations ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* ─── Revenue & tarifs ─── */}
       <DashboardErrorBoundary widgetName="Revenus">
@@ -905,12 +905,12 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
         <p className={cn(SECTION_LABEL_CLASS, 'mb-[9px]')}>
           {t('reports.charts.pricingAndForecasts', 'Tarifs & Prévisions')}
         </p>
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {/* Left: 3 charts on same line */}
-          <Grid item xs={12} md={8}>
-            <Grid container spacing={1.5}>
+          <div className="col-span-12 min-[900px]:col-span-8">
+            <div className="grid grid-cols-12 gap-[9px]">
               {/* Chart 1: Prix Moyen vs RevPAN */}
-              <Grid item xs={12} sm={4}>
+              <div className="col-span-12 min-[600px]:col-span-4">
                 <Card sx={MINI_CHART_CARD_SX}>
                   <CardContent sx={MINI_CHART_CONTENT_SX}>
                     <p className={MINI_CHART_LABEL_CLASS}>
@@ -934,10 +934,10 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
 
               {/* Chart 2: Prix par Type */}
-              <Grid item xs={12} sm={4}>
+              <div className="col-span-12 min-[600px]:col-span-4">
                 <Card sx={MINI_CHART_CARD_SX}>
                   <CardContent sx={MINI_CHART_CONTENT_SX}>
                     <p className={MINI_CHART_LABEL_CLASS}>
@@ -960,10 +960,10 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
 
               {/* Chart 3: Projection des Revenus */}
-              <Grid item xs={12} sm={4}>
+              <div className="col-span-12 min-[600px]:col-span-4">
                 <Card sx={MINI_CHART_CARD_SX}>
                   <CardContent sx={MINI_CHART_CONTENT_SX}>
                     <p className={MINI_CHART_LABEL_CLASS}>
@@ -990,8 +990,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Scenarios below charts */}
             {analytics?.forecast && !analyticsLoading && (
@@ -1022,12 +1022,12 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                 </CardContent>
               </Card>
             )}
-          </Grid>
+          </div>
 
           {/* Right: 6 KPIs in 2 columns of 3 */}
-          <Grid item xs={12} md={4}>
-            <Grid container spacing={1.5}>
-              <Grid item xs={6}>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <div className="grid grid-cols-12 gap-[9px]">
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast30d')}
                   value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue30d, 'EUR') : '-'}
@@ -1035,8 +1035,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Timeline color="primary" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.optimalPrice')}
                   value={analytics?.pricing ? convertAndFormat(analytics.pricing.optimalPrice, 'EUR') : '-'}
@@ -1044,8 +1044,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<PriceChange color="success" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast90d')}
                   value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue90d, 'EUR') : '-'}
@@ -1053,8 +1053,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Timeline color="info" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.elasticity')}
                   value={analytics?.pricing ? `${analytics.pricing.elasticity.toFixed(2)}` : '-'}
@@ -1062,8 +1062,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<TuneOutlined color="info" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast365d')}
                   value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue365d, 'EUR') : '-'}
@@ -1071,8 +1071,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Timeline color="success" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecastOccupancy', 'Occupation prévisionnelle')}
                   value={analytics?.forecast ? `${analytics.forecast.occupancy30d}%` : '-'}
@@ -1080,10 +1080,10 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Hotel color="warning" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ─── Donnees operationnelles ─── */}
@@ -1099,8 +1099,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
         loadingMessage={t('reports.charts.loadingData')}
       >
         {data ? (
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.revenueByMonth')}>
                 {data.monthlyFinancials.some((m) => m.revenue > 0 || m.expenses > 0) ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -1129,8 +1129,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.costBreakdown')}>
                 {data.costBreakdown.length > 0 && data.costBreakdown.some((c) => c.value > 0) ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -1156,8 +1156,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         ) : (
           <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
         )}

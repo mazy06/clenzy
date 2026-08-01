@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
+import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
 import {
   Person,
   Schedule,
@@ -72,8 +72,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
             {t('properties.configuration')}
           </p>
 
-          <Grid container spacing={1.5}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12">
               <Controller
                 name="ownerId"
                 control={control}
@@ -101,9 +101,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   </FormControl>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="status"
                 control={control}
@@ -121,10 +121,10 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   </FormControl>
                 )}
               />
-            </Grid>
+            </div>
 
             {/* Booking Engine Visibility */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="bookingEngineVisible"
                 control={control}
@@ -148,12 +148,12 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   </div>
                 )}
               />
-            </Grid>
+            </div>
 
             {/* Org Voucher Consent — autorise la conciergerie a creer des
                 vouchers sur ce logement (combine avec organization.has_voucher_contract
                 cote backend). Default false : le host garde le controle. */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="orgCanCreateVouchers"
                 control={control}
@@ -179,9 +179,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   </div>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={6}>
+            <div className="col-span-6">
               <Controller
                 name="defaultCheckInTime"
                 control={control}
@@ -202,9 +202,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={6}>
+            <div className="col-span-6">
               <Controller
                 name="defaultCheckOutTime"
                 control={control}
@@ -225,8 +225,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </div>
 
         <Divider />
@@ -238,8 +238,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
             {t('properties.cleaningPricing')}
           </p>
 
-          <Grid container spacing={1.5}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12">
               <Controller
                 name="cleaningFrequency"
                 control={control}
@@ -257,9 +257,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   </FormControl>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="cleaningBasePrice"
                 control={control}
@@ -281,9 +281,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="numberOfFloors"
                 control={control}
@@ -305,9 +305,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasExterior"
                 control={control}
@@ -328,9 +328,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasLaundry"
                 control={control}
@@ -351,9 +351,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="cleaningNotes"
                 control={control}
@@ -387,8 +387,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   </div>
                 )}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </div>
 
         <Divider />
@@ -400,9 +400,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
             {t('properties.addOnServices.title')}
           </p>
 
-          <Grid container spacing={1.5}>
+          <div className="grid grid-cols-12 gap-[9px]">
             {/* Vitres */}
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="windowCount"
                 control={control}
@@ -421,9 +421,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="frenchDoorCount"
                 control={control}
@@ -442,9 +442,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="slidingDoorCount"
                 control={control}
@@ -463,10 +463,10 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
             {/* Checkboxes prestations */}
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasIroning"
                 control={control}
@@ -487,9 +487,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasDeepKitchen"
                 control={control}
@@ -510,9 +510,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasDisinfection"
                 control={control}
@@ -533,8 +533,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                   />
                 )}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </div>
       </div>
     );

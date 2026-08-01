@@ -4,7 +4,7 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   ArrowBack,
@@ -350,9 +350,9 @@ const TemplateDetails: React.FC = () => {
         </AlertAction>
       </BuiAlert>}
 
-      <Grid container spacing={3} alignItems="flex-start">
+      <div className="grid grid-cols-12 gap-[18px] items-start">
         {/* Colonne gauche : Informations + Apercu PDF empiles */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <div className="flex flex-col gap-4">
             {/* Informations */}
             <Card className="gap-0 py-0 p-3 border-[var(--line)]">
@@ -462,16 +462,16 @@ const TemplateDetails: React.FC = () => {
               </div>
             </Card>
           </div>
-        </Grid>
+        </div>
 
         {/* Colonne droite : Tags detectes (sticky sur grand ecran pour rester
             visible quand on scrolle l'apercu). */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <div className="min-[900px]:sticky min-[900px]:top-[16px]">
             <TemplateTagsViewer tags={template.tags || []} />
           </div>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* ── Menu kebab : actions secondaires du header ─────────────── */}
       <Menu

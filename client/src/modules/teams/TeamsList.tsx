@@ -3,7 +3,7 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Grid, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add,
   Edit,
@@ -177,18 +177,18 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
         />
       ) : (
         <>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-12 gap-3">
             {paginatedTeams.map((team) => (
-              <Grid item xs={12} md={6} lg={4} key={team.id}>
+              <div className="col-span-12 min-[900px]:col-span-6 min-[1200px]:col-span-4" key={team.id}>
                 <TeamCard
                   team={team}
                   onMenuOpen={handleMenuOpen}
                   activeInterventionsCount={teamWorkloadCounts[team.name] || 0}
                   canEdit={canEditTeams}
                 />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (

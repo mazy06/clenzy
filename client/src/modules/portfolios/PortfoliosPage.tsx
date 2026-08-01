@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
 import { Button } from '../../components/ui';
 import {
   Business as BusinessIcon,
@@ -233,9 +233,9 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
               {error}
             </p>
           ) : (
-            <Grid container spacing={3}>
+            <div className="grid grid-cols-12 gap-[18px]">
               {/* Clients */}
-              <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="col-span-12 min-[900px]:col-span-6 flex flex-col">
                 <SectionHeader
                   icon={<Person size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.clients')}
@@ -332,10 +332,10 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                     }
                   />
                 )}
-              </Grid>
+              </div>
 
               {/* Properties grouped by client */}
-              <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="col-span-12 min-[900px]:col-span-6 flex flex-col">
                 <SectionHeader
                   icon={<Home size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.propertiesByClient')}
@@ -472,16 +472,16 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                     message={t('portfolios.fields.noClientAssociated')}
                   />
                 )}
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           )}
         </TabPanel>
 
         {/* ─── Tab 1: Teams & Users ─────────────────────────────────────── */}
         <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-12 gap-[18px]">
             {/* Teams */}
-            <Grid item xs={12} md={6}>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <SectionHeader
                 icon={<Group size={20} strokeWidth={1.75} />}
                 title={t('teams.title')}
@@ -561,10 +561,10 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   }
                 />
               )}
-            </Grid>
+            </div>
 
             {/* Users */}
-            <Grid item xs={12} md={6}>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <SectionHeader
                 icon={<Person size={20} strokeWidth={1.75} />}
                 title={t('users.title')}
@@ -645,8 +645,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   }
                 />
               )}
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </TabPanel>
 
         {/* ─── Tab 2: Statistics ─────────────────────────────────────────── */}

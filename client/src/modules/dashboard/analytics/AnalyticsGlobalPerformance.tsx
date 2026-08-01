@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Box, Card, CardContent, Skeleton } from '@mui/material';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
   CalendarMonth, ShowChart, AccountBalance, Home,
@@ -251,18 +251,18 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
   return (
     <div className="mb-4">
       {/* ─── Hero KPIs ───────────────────────────────────────────── */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+      <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
         {heroKpis.map((kpi) => (
-          <Grid item xs={6} sm={3} key={kpi.key}>
+          <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
             <HeroKpiCard item={kpi} loading={loading} />
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
 
       {/* ─── Secondary KPIs (2 grouped cards) ────────────────────── */}
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Financial group */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card sx={SECONDARY_CARD_SX}>
             <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
               <p className={SECTION_LABEL_CLASS}>
@@ -276,10 +276,10 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
               ))}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Operational group */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card sx={SECONDARY_CARD_SX}>
             <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
               <p className={SECTION_LABEL_CLASS}>
@@ -293,8 +293,8 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
               ))}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </div>
   );
 });

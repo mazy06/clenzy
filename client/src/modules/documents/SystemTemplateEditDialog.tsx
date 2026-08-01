@@ -3,7 +3,7 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, MenuItem, Paper, TextField } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -213,12 +213,12 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
         )}
 
         {group && (
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-12 gap-[18px]">
             {/* ── Formulaire (gauche, 7/12) ── */}
-            <Grid item xs={12} md={7}>
-              <Grid container spacing={2}>
+            <div className="col-span-12 min-[900px]:col-span-7">
+              <div className="grid grid-cols-12 gap-3">
                 {/* Nom du template (readonly — slug systeme immuable) */}
-                <Grid item xs={12} sm={6}>
+                <div className="col-span-12 min-[600px]:col-span-6">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.name')}
@@ -227,9 +227,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     InputProps={{ readOnly: true }}
                     helperText={t('messaging.templates.editor.systemNameHelper')}
                   />
-                </Grid>
+                </div>
                 {/* Type / Destinataire (readonly) */}
-                <Grid item xs={6} sm={3}>
+                <div className="col-span-6 min-[600px]:col-span-3">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.recipient')}
@@ -237,9 +237,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     size="small"
                     InputProps={{ readOnly: true }}
                   />
-                </Grid>
+                </div>
                 {/* Langue (select fr/en/ar) */}
-                <Grid item xs={6} sm={3}>
+                <div className="col-span-6 min-[600px]:col-span-3">
                   <TextField
                     fullWidth
                     select
@@ -261,9 +261,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                       );
                     })}
                   </TextField>
-                </Grid>
+                </div>
                 {/* Subject */}
-                <Grid item xs={12}>
+                <div className="col-span-12">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.subject')}
@@ -275,9 +275,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     required
                     helperText={t('messaging.templates.editor.subjectHelper')}
                   />
-                </Grid>
+                </div>
                 {/* Body multiline */}
-                <Grid item xs={12}>
+                <div className="col-span-12">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.body')}
@@ -293,8 +293,8 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                       sx: language === 'ar' ? { direction: 'rtl' } : undefined,
                     }}
                   />
-                </Grid>
-              </Grid>
+                </div>
+              </div>
 
               {/* ── Preview (apercu plain text avec variables remplacees) ── */}
               <div className="mt-4">
@@ -319,10 +319,10 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                   {t('systemEmailTemplates.dialog.previewNote')}
                 </span>
               </div>
-            </Grid>
+            </div>
 
             {/* ── Sidebar variables (droite, 5/12) ── */}
-            <Grid item xs={12} md={5}>
+            <div className="col-span-12 min-[900px]:col-span-5">
               <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
                 <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
@@ -338,8 +338,8 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                   showDetails
                 />
               </Paper>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         )}
       </DialogContent>
 

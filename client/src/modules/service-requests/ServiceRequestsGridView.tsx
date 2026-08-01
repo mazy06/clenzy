@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid } from '@mui/material';
+
 import type { NavigateFunction } from 'react-router-dom';
 import ServiceRequestCard from '../../components/ServiceRequestCard';
 import type { ServiceRequest } from './serviceRequestsUtils';
@@ -26,9 +26,9 @@ const ServiceRequestsGridView: React.FC<ServiceRequestsGridViewProps> = ({
   typeIcons, statuses, priorities, statusColors, priorityColors,
 }) => (
   <>
-    <Grid container spacing={2}>
+    <div className="grid grid-cols-12 gap-3">
       {serviceRequests.map((request) => (
-        <Grid item xs={12} md={6} lg={4} key={request.id} data-highlight-id={String(request.id)}>
+        <div className="col-span-12 min-[900px]:col-span-6 min-[1200px]:col-span-4" key={request.id} data-highlight-id={String(request.id)}>
           <ServiceRequestCard
             request={request}
             onMenuOpen={onMenuOpen}
@@ -38,9 +38,9 @@ const ServiceRequestsGridView: React.FC<ServiceRequestsGridViewProps> = ({
             statusColors={statusColors}
             priorityColors={priorityColors}
           />
-        </Grid>
+        </div>
       ))}
-    </Grid>
+    </div>
     {totalCount > ITEMS_PER_PAGE && (
       <PagePagination
         count={totalCount}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Card, CardContent, LinearProgress, Grid } from '@mui/material';
+import { Card, CardContent, LinearProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -67,19 +67,19 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
       title={t('dashboard.analytics.propertyPerformance')}
       subtitle={t('dashboard.analytics.propertyPerformanceDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   <div className="h-[120px]" />
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         ) : items.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 }, textAlign: 'center' }}>
                 <p className="cn-text-body1 text-[0.75rem] text-muted-foreground py-3">
@@ -87,10 +87,10 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                 </p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ) : (
           items.map((prop, index) => (
-            <Grid item xs={12} sm={6} md={4} key={prop.propertyId}>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={prop.propertyId}>
               <Card sx={CARD_SX}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Rank + Name */}
@@ -154,10 +154,10 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                   </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         )}
-      </Grid>
+      </div>
     </GridSection>
   );
 });

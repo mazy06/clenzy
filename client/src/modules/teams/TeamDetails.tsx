@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   Group,
   Edit,
@@ -152,60 +152,60 @@ const TeamDetails: React.FC = () => {
             </p>
           </div>
 
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={6} md={3}>
+          <div className="grid grid-cols-12 gap-[18px] mb-[18px]">
+            <div className="col-span-6 min-[900px]:col-span-3">
               <div className="text-center">
                 <span className="inline-flex text-muted-foreground mb-0.5"><Group size={20} strokeWidth={1.75} /></span>
                 <p className="cn-text-body2 font-medium">{team.memberCount}</p>
                 <span className="cn-text-caption text-muted-foreground">Membres</span>
               </div>
-            </Grid>
-            <Grid item xs={6} md={3}>
+            </div>
+            <div className="col-span-6 min-[900px]:col-span-3">
               <div className="text-center">
                 <span className="inline-flex text-muted-foreground mb-0.5"><Build size={20} strokeWidth={1.75} /></span>
                 <p className="cn-text-body2 font-medium">{getInterventionTypeLabel(team.interventionType, t)}</p>
                 <span className="cn-text-caption text-muted-foreground">Spécialité</span>
               </div>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           <div className="p-3 bg-[var(--field)] rounded-[12px] border border-[var(--field-line)]">
             <h6 className="cn-text-subtitle2 mb-1.5 font-semibold text-[var(--accent)]">
               Informations de l'équipe
             </h6>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <div className="flex items-center gap-1.5">
                   <span className="cn-text-caption text-muted-foreground font-medium">Créée le:</span>
                   <span className="cn-text-caption text-foreground">
                     {team.createdAt ? new Date(team.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
                   </span>
                 </div>
-              </Grid>
+              </div>
               {team.updatedAt && (
-                <Grid item xs={12} md={6}>
+                <div className="col-span-12 min-[900px]:col-span-6">
                   <div className="flex items-center gap-1.5">
                     <span className="cn-text-caption text-muted-foreground font-medium">Modifiée le:</span>
                     <span className="cn-text-caption text-foreground">
                       {new Date(team.updatedAt).toLocaleDateString('fr-FR')}
                     </span>
                   </div>
-                </Grid>
+                </div>
               )}
-            </Grid>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Row 2: Workload + Performance */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[18px] mb-[18px]">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <TeamWorkloadCard teamId={team.id} teamName={team.name} />
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <TeamPerformanceChart teamId={team.id} teamName={team.name} />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Row 3: TeamMembersList */}
       <TeamMembersList

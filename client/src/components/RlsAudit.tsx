@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge, Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertTitle, Card, CardContent, Grid, Tooltip } from '@mui/material';
+import { Alert, AlertTitle, Card, CardContent, Tooltip } from '@mui/material';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
@@ -136,8 +136,8 @@ const RlsAudit: React.FC = () => {
         </Alert>
       )}
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <div className="grid grid-cols-12 gap-3 mb-[18px]">
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={ouverts.length === 0 ? <ShieldCheck /> : <ShieldAlert />}
             label="Chemins a traiter"
@@ -152,8 +152,8 @@ const RlsAudit: React.FC = () => {
                   : 'La RLS ne peut pas etre activee'
             }
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Check />}
             label="Chemins traites"
@@ -162,8 +162,8 @@ const RlsAudit: React.FC = () => {
             loading={isLoading}
             hint="Conserves : une reapparition serait visible"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Clock />}
             label="Plus ancien constat"
@@ -172,8 +172,8 @@ const RlsAudit: React.FC = () => {
             loading={isLoading}
             hint="Anciennete du plus vieux chemin ouvert"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Layers />}
             label="En attente d'ecriture"
@@ -182,8 +182,8 @@ const RlsAudit: React.FC = () => {
             loading={isLoading}
             hint="Vidage automatique toutes les 5 min"
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       <Card variant="outlined">
         <CardContent>

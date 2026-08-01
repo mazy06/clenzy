@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { TextField, InputAdornment, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -109,20 +109,20 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          <Grid container spacing={1.5}>
-            <Grid item xs={6}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-6">
               <TextField label={t('tarification.basePrices.essentiel')} type="number" size="small" fullWidth value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-            <Grid item xs={6}>
+            </div>
+            <div className="col-span-6">
               <TextField label={t('tarification.basePrices.confort')} type="number" size="small" fullWidth value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-            <Grid item xs={6}>
+            </div>
+            <div className="col-span-6">
               <TextField label={t('tarification.basePrices.premium')} type="number" size="small" fullWidth value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-            <Grid item xs={6}>
+            </div>
+            <div className="col-span-6">
               <TextField label={t('tarification.basePrices.minPrice')} type="number" size="small" fullWidth value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} helperText={t('tarification.basePrices.minPriceHelp')} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </AccordionDetails>
       </Accordion>
 

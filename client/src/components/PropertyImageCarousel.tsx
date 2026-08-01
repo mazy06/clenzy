@@ -98,7 +98,7 @@ export function PropertyImageCarousel({
         onClick={handleImageClick}
       >
         {showPlaceholder ? (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-[grey.100] text-muted-foreground opacity-60">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-[var(--hover)] text-muted-foreground opacity-60">
             <ImageNotSupported size={alwaysShowNav ? 48 : 24} strokeWidth={1.5} />
             {alwaysShowNav && (
               <p className="cn-text-body1 text-[0.75rem] font-medium">

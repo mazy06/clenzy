@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid, LinearProgress } from '@mui/material';
+import { Card, CardContent, LinearProgress } from '@mui/material';
 import {
   Assignment,
   CheckCircle,
@@ -154,9 +154,9 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
           ); })()}
         </div>
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
           {metrics.map((metric) => (
-            <Grid item xs={4} key={metric.label}>
+            <div className="col-span-4" key={metric.label}>
               <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {metric.icon}
                 <h5 className="cn-text-h5 mt-[3px] font-semibold tabular-nums" style={{ color: metric.color, fontFamily: 'var(--font-display)' }}>
@@ -166,9 +166,9 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
                   {metric.label}
                 </span>
               </div>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
 
         <div className="mb-4">
           <div className="flex justify-between items-center mb-0.5">

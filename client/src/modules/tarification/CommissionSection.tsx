@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, Switch, FormControlLabel, InputAdornment, Grid, Divider } from '@mui/material';
+import { TextField, Switch, FormControlLabel, InputAdornment, Divider } from '@mui/material';
 import { Percent } from '../../icons';
 import type { CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,8 +25,8 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
       <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.commission.subtitle')}
       </p>
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={6}>
+      <div className="grid grid-cols-12 gap-3 items-center">
+        <div className="col-span-6">
           <FormControlLabel
             control={
               <Switch
@@ -38,8 +38,8 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
             }
             label={t('tarification.commission.enable')}
           />
-        </Grid>
-        <Grid item xs={6}>
+        </div>
+        <div className="col-span-6">
           <TextField
             label={t('tarification.commission.rate')}
             type="number"
@@ -56,8 +56,8 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
               endAdornment: <InputAdornment position="end">%</InputAdornment>,
             }}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </>
   );
 }

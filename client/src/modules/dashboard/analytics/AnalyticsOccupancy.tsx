@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -52,9 +52,9 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
       title={t('dashboard.analytics.occupancy')}
       subtitle={t('dashboard.analytics.occupancyDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Stacked bar: occupied vs vacant by month */}
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLS}>
@@ -80,10 +80,10 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* By property horizontal bar */}
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLS}>
@@ -108,10 +108,10 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Gap nights card */}
-        <Grid item xs={12} sm={6} md={3}>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.vacantNights')}
             value={data ? `${data.gapNights}` : '-'}
@@ -119,10 +119,10 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
             icon={<NightsStay color={data && data.gapNights > 20 ? 'error' : 'info'} />}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Heatmap calendar */}
-        <Grid item xs={12} sm={6} md={9}>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-9">
           <Card sx={{ width: '100%' }}>
             <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
               <p className={SECTION_LABEL_CLS}>
@@ -163,8 +163,8 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               </div>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

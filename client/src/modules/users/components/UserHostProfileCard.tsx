@@ -4,7 +4,7 @@ import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { Grid, Switch, FormControlLabel, IconButton, Tooltip, Card, CardContent } from '@mui/material';
+import { Switch, FormControlLabel, IconButton, Tooltip, Card, CardContent } from '@mui/material';
 import {
   Star,
   Payment,
@@ -110,118 +110,118 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   return (
     <Card variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
       <CardContent sx={{ p: 2 }}>
-        <Grid container spacing={2}>
-      <Grid item xs={12}>
+        <div className="grid grid-cols-12 gap-3">
+      <div className="col-span-12">
         <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
           Profil proprietaire
         </h6>
-      </Grid>
+      </div>
 
       {user.companyName && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Entreprise</h6>
           <p className="cn-text-body1 mb-3">{user.companyName}</p>
-        </Grid>
+        </div>
       )}
 
       {user.forfait && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Forfait souscrit</h6>
           <Badge variant="secondary" className="mt-0.5 mb-3 text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Star />{user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}</Badge>
-        </Grid>
+        </div>
       )}
 
       {(user.city || user.postalCode) && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Localisation</h6>
           <p className="cn-text-body1 mb-3">
             {[user.city, user.postalCode].filter(Boolean).join(' - ')}
           </p>
-        </Grid>
+        </div>
       )}
 
       {user.propertyType && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Type de propriete</h6>
           <p className="cn-text-body1 mb-3">
             {PROPERTY_TYPE_LABELS[user.propertyType] || user.propertyType}
           </p>
-        </Grid>
+        </div>
       )}
 
       {user.propertyCount != null && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Nombre de proprietes</h6>
           <p className="cn-text-body1 mb-3">{user.propertyCount}</p>
-        </Grid>
+        </div>
       )}
 
       {user.surface != null && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Surface</h6>
           <p className="cn-text-body1 mb-3">{user.surface} m2</p>
-        </Grid>
+        </div>
       )}
 
       {user.guestCapacity != null && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Capacite d'accueil</h6>
           <p className="cn-text-body1 mb-3">
             {user.guestCapacity} {user.guestCapacity > 1 ? 'personnes' : 'personne'}
           </p>
-        </Grid>
+        </div>
       )}
 
       {user.bookingFrequency && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Frequence de reservation</h6>
           <p className="cn-text-body1 mb-3">
             {BOOKING_FREQUENCY_LABELS[user.bookingFrequency] || user.bookingFrequency}
           </p>
-        </Grid>
+        </div>
       )}
 
       {user.cleaningSchedule && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Planning menage</h6>
           <p className="cn-text-body1 mb-3">
             {CLEANING_SCHEDULE_LABELS[user.cleaningSchedule] || user.cleaningSchedule}
           </p>
-        </Grid>
+        </div>
       )}
 
       {user.calendarSync && (
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Synchronisation calendrier</h6>
           <StatusChip tokens={{ color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg, bg: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg }} label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync} className="mt-0.5 mb-3" />
-        </Grid>
+        </div>
       )}
 
       {user.services && (
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Services forfait</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.services.split(',').map((s) => (
               <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]" key={s}>{SERVICE_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
           </div>
-        </Grid>
+        </div>
       )}
 
       {user.servicesDevis && (
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <h6 className="cn-text-subtitle2 text-muted-foreground">Services sur devis</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.servicesDevis.split(',').map((s) => (
               <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)]" key={s}>{SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
           </div>
-        </Grid>
+        </div>
       )}
 
       {/* Toggle paiement differe (ADMIN/MANAGER uniquement) */}
       {isAdminOrManager && (
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <div className="border border-[var(--line)] rounded-[12px] p-3 mb-1.5">
             <FormControlLabel
               control={
@@ -244,12 +244,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
               }
             />
           </div>
-        </Grid>
+        </div>
       )}
 
       {/* Carte cumul impayes */}
       {isAdminOrManager && (
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <div className="border border-[var(--line)] rounded-[12px] p-3">
             <div className="flex justify-between items-center mb-1.5">
               <div className="flex items-center gap-1.5">
@@ -350,9 +350,9 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
               </p>
             )}
           </div>
-        </Grid>
+        </div>
       )}
-        </Grid>
+        </div>
       </CardContent>
     </Card>
   );

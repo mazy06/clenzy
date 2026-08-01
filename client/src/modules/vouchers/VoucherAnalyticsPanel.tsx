@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Grid, Stack } from '@mui/material';
+import { Stack } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
@@ -94,7 +94,7 @@ export default function VoucherAnalyticsPanel() {
       </Stack>
 
       {/* KPI cards */}
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      <div className="grid grid-cols-12 gap-[9px] mb-3">
         <KpiCard
           label={t('vouchers.analytics.totalUsages')}
           value={data.totalUsages.toString()}
@@ -116,7 +116,7 @@ export default function VoucherAnalyticsPanel() {
           color={TOKEN_OK}
           emphasis
         />
-      </Grid>
+      </div>
 
       {/* Top vouchers */}
       {data.topVouchers.length > 0 && (
@@ -190,7 +190,7 @@ interface KpiCardProps {
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
-  <Grid item xs={6} md={3}>
+  <div className="col-span-6 min-[900px]:col-span-3">
     <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)] transition-colors duration-200 hover:border-[var(--line-2)]">
       <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] leading-[1.2] block">
         {label}
@@ -199,7 +199,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
         {value}
       </h6>
     </Card>
-  </Grid>
+  </div>
 );
 
 function formatPeriod(from: string, to: string, locale: string): string {

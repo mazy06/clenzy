@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Grid, Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
+import { Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -204,13 +204,13 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
             <Skeleton variant="rounded" height={170} sx={{ borderRadius: '14px' }} />
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
     );
   }
 
@@ -266,29 +266,32 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
       {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
       <div className="mb-3">
-        <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md>
+        {/* Les 5 tuiles se partagent la ligne a parts egales des 900px (ancien
+            `<Grid item md>` sans taille) : `flex-1` n'a aucun effet sur un enfant
+            de `display: grid`, d'ou le passage du conteneur en flex a ce palier. */}
+        <div className="grid grid-cols-12 gap-3 min-[900px]:flex">
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:flex-1">
             <StatTile
               icon={<CorporateFare />}
               label="Total organisations"
               value={organizations.length}
               color="#6B8A9A"
             />
-          </Grid>
+          </div>
           {orgTypes.map((typeInfo) => {
             const TypeIcon = typeInfo.Icon;
             return (
-              <Grid item xs={6} sm={4} md key={typeInfo.value}>
+              <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:flex-1" key={typeInfo.value}>
                 <StatTile
                   icon={<TypeIcon />}
                   label={typeInfo.label}
                   value={organizations.filter(o => o.type === typeInfo.value).length}
                   color={typeInfo.hex}
                 />
-              </Grid>
+              </div>
             );
           })}
-        </Grid>
+        </div>
       </div>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
@@ -297,9 +300,9 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         : !embedded && <div className="mb-3">{filtersBar}</div>}
 
       {/* Liste des organisations */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {filteredOrgs.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <EmptyState
               icon={<CorporateFare />}
               title={organizations.length === 0 ? 'Aucune organisation' : 'Aucun résultat'}
@@ -309,14 +312,14 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   : 'Aucune organisation ne correspond aux filtres sélectionnés.'
               }
             />
-          </Grid>
+          </div>
         ) : (
           filteredOrgs.map((org) => {
             const typeInfo = getTypeInfo(org.type);
             const typeColor = typeInfo.hex;
             const TypeIcon = typeInfo.Icon;
             return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={org.id}>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={org.id}>
                 {/* Carte hairline r14 (thème global) — hover lift + shadow-card */}
                 <Card
                   sx={{
@@ -407,11 +410,11 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     </Button>
                   </CardActions>
                 </Card>
-              </Grid>
+              </div>
             );
           })
         )}
-      </Grid>
+      </div>
 
       {/* Menu contextuel */}
       <Menu
@@ -462,8 +465,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           {formMode === 'create' ? 'Nouvelle organisation' : 'Modifier l\'organisation'}
         </DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-3 mt-[3px]">
+            <div className="col-span-12">
               <TextField
                 fullWidth
                 size="small"
@@ -473,8 +476,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                 required
                 autoFocus
               />
-            </Grid>
-            <Grid item xs={12}>
+            </div>
+            <div className="col-span-12">
               <FormControl fullWidth size="small">
                 <InputLabel>Type</InputLabel>
                 <Select
@@ -497,8 +500,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   })}
                 </Select>
               </FormControl>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
           <Button

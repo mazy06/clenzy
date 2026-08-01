@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
   PieChart, Pie, Cell, BarChart, Bar,
@@ -60,9 +60,9 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
       title={t('dashboard.analytics.revenue')}
       subtitle={t('dashboard.analytics.revenueDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Revenue trend area chart */}
-        <Grid item xs={12} sm={4}>
+        <div className="col-span-12 min-[600px]:col-span-4">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -88,10 +88,10 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Channel distribution donut */}
-        <Grid item xs={12} sm={4}>
+        <div className="col-span-12 min-[600px]:col-span-4">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -136,10 +136,10 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Top properties bar chart */}
-        <Grid item xs={12} sm={4}>
+        <div className="col-span-12 min-[600px]:col-span-4">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -164,10 +164,10 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Avg revenue per booking */}
-        <Grid item xs={6} sm={4}>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgPerBooking')}
             value={data ? <Money value={data.avgRevenuePerBooking} from="EUR" /> : '-'}
@@ -176,8 +176,8 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
             tooltip={t('dashboard.analytics.avgPerBookingTooltip')}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

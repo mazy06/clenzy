@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { TextField, MenuItem, Switch, FormControlLabel, Grid, Alert, Snackbar } from '@mui/material';
+import { TextField, MenuItem, Switch, FormControlLabel, Alert, Snackbar } from '@mui/material';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import {
@@ -222,9 +222,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
         </Alert>
       )}
 
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {/* ── Section 1 : Informations fiscales ── */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card className="gap-0 py-0 p-3 h-full">
             <div className="flex items-center gap-1.5 mb-3">
               <span className="inline-flex text-primary"><AccountBalance size={20} strokeWidth={1.75} /></span>
@@ -236,8 +236,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
               )}
             </div>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   select
@@ -251,9 +251,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
                   ))}
                 </TextField>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   select
@@ -267,9 +267,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
                   ))}
                 </TextField>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   select
@@ -282,9 +282,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     <MenuItem key={r.value} value={r.value}>{t(r.labelKey)}</MenuItem>
                   ))}
                 </TextField>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.taxId')}
@@ -293,9 +293,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   size="small"
                   placeholder="FR12345678901"
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.vatNumber')}
@@ -304,9 +304,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   size="small"
                   placeholder="FR 12 345678901"
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   select
@@ -319,9 +319,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     <MenuItem key={f.value} value={f.value}>{t(f.labelKey)}</MenuItem>
                   ))}
                 </TextField>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   select
@@ -334,9 +334,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
                   ))}
                 </TextField>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.invoicePrefix')}
@@ -346,9 +346,9 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   placeholder="FA"
                   helperText="Ex: FA-2026-0001"
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <FormControlLabel
                   control={
                     <Switch
@@ -358,13 +358,13 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   }
                   label={<p className="cn-text-body2">{t('fiscal.profile.vatRegistered')}</p>}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </Card>
-        </Grid>
+        </div>
 
         {/* ── Section 2 : Informations legales ── */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card className="gap-0 py-0 p-3 h-full">
             <div className="flex items-center gap-1.5 mb-3">
               <span className="inline-flex text-[var(--mui-secondary)]"><AccountBalance size={20} strokeWidth={1.75} /></span>
@@ -373,8 +373,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
               </h6>
             </div>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12">
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.legalName')}
@@ -382,8 +382,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   onChange={(e) => handleChange('legalEntityName', e.target.value)}
                   size="small"
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </div>
+              <div className="col-span-12">
                 <AddressAutocomplete
                   value={form.legalAddress ?? ''}
                   label={t('fiscal.profile.legalAddress')}
@@ -392,8 +392,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   onSelect={(address) => handleChange('legalAddress', address.label)}
                   size="small"
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </div>
+              <div className="col-span-12">
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.legalMentions')}
@@ -404,11 +404,11 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   rows={4}
                   placeholder="Mentions legales obligatoires sur les factures"
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       <Snackbar
         open={snackbar.open}

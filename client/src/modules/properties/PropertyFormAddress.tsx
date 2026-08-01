@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { Grid, TextField, MenuItem } from '@mui/material';
+import { TextField, MenuItem } from '@mui/material';
 import { LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
@@ -101,9 +101,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
           {t('properties.address')}
         </p>
 
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {/* Pays en premier — driver de l'autocomplete */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <Controller
               name="countryCode"
               control={control}
@@ -144,9 +144,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 </TextField>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={8}>
+          <div className="col-span-12 min-[900px]:col-span-8">
             <Controller
               name="address"
               control={control}
@@ -165,9 +165,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="city"
               control={control}
@@ -197,9 +197,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="postalCode"
               control={control}
@@ -216,9 +216,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="timezone"
               control={control}
@@ -244,10 +244,10 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 );
               }}
             />
-          </Grid>
+          </div>
 
           {/* ─── Position GPS sur la carte ────────────────────────────── */}
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground mt-0.5 mb-1.5 flex items-center gap-0.5">
               <LocationOn size={14} strokeWidth={1.75} />
               Position GPS
@@ -264,8 +264,8 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               height={260}
               helperText="Aucune coordonnée GPS n'a été trouvée. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </div>
     );
   }

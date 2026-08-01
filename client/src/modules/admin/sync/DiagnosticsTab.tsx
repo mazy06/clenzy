@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Grid, Card, CardContent, Divider } from '@mui/material';
+import { Skeleton, Card, CardContent, Divider } from '@mui/material';
 import {
   Hub,
   CheckCircle,
@@ -54,13 +54,13 @@ const DiagnosticsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Grid item xs={6} sm={4} md={2} key={i}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={i}>
             <Skeleton variant="rounded" height={96} sx={{ borderRadius: '14px' }} />
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
     );
   }
 
@@ -79,23 +79,23 @@ const DiagnosticsTab: React.FC = () => {
           <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Vue d'ensemble
           </h6>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6} sm={4} md={2}>
+          <div className="grid grid-cols-12 gap-3 mb-[18px]">
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<Hub />} label="Total Connexions" value={diagnostics.totalConnections} color="#6B8A9A" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<CheckCircle />} label="Actives" value={diagnostics.activeConnections} color="#4A9B8E" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<HealthAndSafety />} label="Healthy" value={diagnostics.healthyConnections} color="#4A9B8E" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<HourglassEmpty />} label="Outbox Pending" value={diagnostics.pendingOutbox} color="#7BA3C2" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<ErrorOutline />} label="Outbox Failed" value={diagnostics.failedOutbox} color="#C97A7A" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile
                 icon={<Schedule />}
                 label="Oldest Pending"
@@ -106,8 +106,8 @@ const DiagnosticsTab: React.FC = () => {
                 }
                 color="#D4A574"
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* Sync logs by status */}
           {Object.keys(diagnostics.syncLogsByStatus).length > 0 && (
@@ -116,15 +116,15 @@ const DiagnosticsTab: React.FC = () => {
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                   Sync Logs par Status
                 </p>
-                <Grid container spacing={1}>
+                <div className="grid grid-cols-12 gap-1.5">
                   {Object.entries(diagnostics.syncLogsByStatus).map(([status, count]) => (
-                    <Grid item xs={6} sm={3} key={status}>
+                    <div className="col-span-6 min-[600px]:col-span-3" key={status}>
                       <p className="cn-text-body2 tabular-nums">
                         <strong>{status}:</strong> {count}
                       </p>
-                    </Grid>
+                    </div>
                   ))}
-                </Grid>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -139,9 +139,9 @@ const DiagnosticsTab: React.FC = () => {
           <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Metriques
           </h6>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-12 gap-3">
             {/* Latency P95 */}
-            <Grid item xs={12} md={4}>
+            <div className="col-span-12 min-[900px]:col-span-4">
               <Card variant="outlined">
                 <CardContent>
                   <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
@@ -158,10 +158,10 @@ const DiagnosticsTab: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
 
             {/* Success / Failure counts */}
-            <Grid item xs={12} md={4}>
+            <div className="col-span-12 min-[900px]:col-span-4">
               <Card variant="outlined">
                 <CardContent>
                   <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
@@ -185,10 +185,10 @@ const DiagnosticsTab: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
 
             {/* Calendar stats */}
-            <Grid item xs={12} md={4}>
+            <div className="col-span-12 min-[900px]:col-span-4">
               <Card variant="outlined">
                 <CardContent>
                   <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
@@ -202,8 +202,8 @@ const DiagnosticsTab: React.FC = () => {
                   </p>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </>
       )}
     </div>

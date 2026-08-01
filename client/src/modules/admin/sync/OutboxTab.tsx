@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
-import { Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import { Checkbox, Skeleton, Tooltip, TextField } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
@@ -300,36 +300,36 @@ const OutboxTab: React.FC = () => {
     <div>
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={3}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
+          <div className="col-span-6 min-[600px]:col-span-3">
             <Tooltip arrow title="Events qui attendent d'être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.">
               <div>
                 <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
               </div>
             </Tooltip>
-          </Grid>
-          <Grid item xs={6} sm={3}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-3">
             <Tooltip arrow title="Events publiés avec succès dans Kafka. Aucune action requise.">
               <div>
                 <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
               </div>
             </Tooltip>
-          </Grid>
-          <Grid item xs={6} sm={3}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-3">
             <Tooltip arrow title="Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).">
               <div>
                 <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
               </div>
             </Tooltip>
-          </Grid>
-          <Grid item xs={6} sm={3}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-3">
             <Tooltip arrow title="Total cumulé d'events écrits dans l'outbox depuis sa création.">
               <div>
                 <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
               </div>
             </Tooltip>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {error && <Alert variant="destructive" className="mb-3">

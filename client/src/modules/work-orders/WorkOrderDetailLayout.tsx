@@ -2,13 +2,7 @@ import React from 'react';
 import { Badge } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
-import {
-  Grid,
-  Paper,
-  Divider,
-  LinearProgress,
-  Tooltip,
-} from '@mui/material';
+import { Paper, Divider, LinearProgress, Tooltip } from '@mui/material';
 import {
   LocationOn,
   Person,
@@ -404,8 +398,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       </Paper>
 
       {/* ── Key metrics grid ─────────────────────────────────────────── */}
-      <Grid container spacing={1} sx={{ mb: 1.5 }}>
-        <Grid item xs={6} sm={4} md={2}>
+      <div className="grid grid-cols-12 gap-1.5 mb-[9px]">
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
             {getTypeIcon(vm.type)}
             <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
@@ -413,9 +407,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             </p>
             <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('common.type')}</p>
           </div>
-        </Grid>
+        </div>
         {vm.estimatedDurationHours != null && (
-          <Grid item xs={6} sm={4} md={2}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
               <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1')}>
@@ -423,9 +417,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.estimatedDurationLabel')}</p>
             </div>
-          </Grid>
+          </div>
         )}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
             <span className="inline-flex text-[var(--accent)] mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
             <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
@@ -433,9 +427,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             </p>
             <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.dueDateShort')}</p>
           </div>
-        </Grid>
+        </div>
         {vm.estimatedCost != null && (
-          <Grid item xs={6} sm={4} md={2}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
               <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1')}>
@@ -466,10 +460,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 );
               })()}
             </div>
-          </Grid>
+          </div>
         )}
         {vm.actualCost != null && vm.actualCost > 0 && (
-          <Grid item xs={6} sm={4} md={2}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--ok)] mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
               <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[var(--ok)]')}>
@@ -477,10 +471,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.actualCost')}</p>
             </div>
-          </Grid>
+          </div>
         )}
         {vm.createdAt && (
-          <Grid item xs={6} sm={4} md={2}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
               <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
@@ -488,10 +482,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.createdDateShort')}</p>
             </div>
-          </Grid>
+          </div>
         )}
         {vm.extraMetrics?.map((m) => (
-          <Grid item xs={6} sm={4} md={2} key={`extra-metric-${m.label}`}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={`extra-metric-${m.label}`}>
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--accent)' }}>{m.icon}</span>
               {/* `m.tone` est une valeur d'execution : elle ne peut pas donner
@@ -501,9 +495,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{m.label}</p>
             </div>
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
 
       {/* ── Two-column detail layout ────────────────────────────────── */}
       <div className="flex flex-wrap min-[900px]:flex-nowrap gap-[9px] mb-[9px]">

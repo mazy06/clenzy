@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, AlertDescription } from './ui';
 import { Info } from 'lucide-react';
-import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
+import { Box, Card, CardContent, Typography } from '@mui/material';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import {
@@ -127,12 +127,12 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
 
   return (
     <div>
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {menuPermissions.map((menu) => {
           const status = getMenuStatus(menu.name, menu.permissions);
           
           return (
-            <Grid item xs={12} lg={6} key={menu.name}>
+            <div className="col-span-12 min-[1200px]:col-span-6" key={menu.name}>
               <Card 
                 variant="outlined" 
                 sx={{ 
@@ -151,7 +151,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 <CardContent sx={{ p: 2.5 }}>
                   {/* En-tête avec icône et statut */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-1.5 bg-[grey.100] rounded-[1px] flex items-center justify-center text-muted-foreground">
+                    <div className="p-1.5 bg-[var(--hover)] rounded-[1px] flex items-center justify-center text-muted-foreground">
                       {getModuleIcon(menu.name)}
                     </div>
                     <div className="flex-1">
@@ -170,7 +170,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                   </div>
                   
                   {/* Permissions requises */}
-                  <div className="p-2 bg-[grey.50] rounded-[1px] mb-3 border border-[grey.200]">
+                  <div className="p-2 bg-[var(--surface-2)] rounded-[1px] mb-3 border border-[var(--line)]">
                     <span className="cn-text-caption text-muted-foreground font-medium block mb-0.5">
                       Permissions requises
                     </span>
@@ -193,15 +193,15 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                   </Box>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           );
         })}
-      </Grid>
+      </div>
 
       {/* Résumé des accès */}
       <div className="mt-6">
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Card 
               variant="outlined" 
               sx={{ 
@@ -219,9 +219,9 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 Permissions actives
               </p>
             </Card>
-          </Grid>
+          </div>
           
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Card 
               variant="outlined" 
               sx={{ 
@@ -244,8 +244,8 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 {rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
               </p>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
         
       </div>
     </div>

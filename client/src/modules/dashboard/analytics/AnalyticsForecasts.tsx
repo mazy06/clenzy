@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart,
@@ -57,9 +57,9 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
       title={t('dashboard.analytics.forecasts')}
       subtitle={t('dashboard.analytics.forecastsDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Forecast chart with confidence zone — left column */}
-        <Grid item xs={12} md={8}>
+        <div className="col-span-12 min-[900px]:col-span-8">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={cn(SECTION_LABEL_CLASS, 'cn-text-body1')}>
@@ -90,10 +90,10 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Right column — KPI cards + Scenarios */}
-        <Grid item xs={12} md={4}>
+        <div className="col-span-12 min-[900px]:col-span-4">
           <div className="flex flex-col gap-2 h-full">
             {/* Forecast KPI cards stacked */}
             <AnalyticsWidgetCard
@@ -154,8 +154,8 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
               </CardContent>
             </Card>
           </div>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

@@ -390,7 +390,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 <div className="flex flex-col gap-0.5">
                   {guestReservations
                     .flatMap((r) => (r.id !== reservation.id ? [(
-                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[0.75px] px-1.5 py-0.5" key={r.id}>
+                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
                         <div>
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             {r.propertyName}

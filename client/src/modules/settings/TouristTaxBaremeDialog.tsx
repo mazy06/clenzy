@@ -1,16 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Grid,
-  InputAdornment,
-  FormControlLabel,
-  Switch,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, InputAdornment, FormControlLabel, Switch } from '@mui/material';
 import { Button } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Property } from '../../services/api/propertiesApi';
@@ -129,8 +118,8 @@ export default function TouristTaxBaremeDialog({
           : t('touristTax.dialog.createTitle', 'Nouveau barème de taxe de séjour')}
       </DialogTitle>
       <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 0 }}>
-          <Grid item xs={12}>
+        <div className="grid grid-cols-12 gap-3 mt-0">
+          <div className="col-span-12">
             <TextField
               select
               fullWidth
@@ -153,9 +142,9 @@ export default function TouristTaxBaremeDialog({
                 </MenuItem>
               ))}
             </TextField>
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={8}>
+          <div className="col-span-12 min-[600px]:col-span-8">
             <TextField
               fullWidth
               size="small"
@@ -164,8 +153,8 @@ export default function TouristTaxBaremeDialog({
               value={form.communeName}
               onChange={(e) => set('communeName', e.target.value)}
             />
-          </Grid>
-          <Grid item xs={12} sm={4}>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-4">
             <TextField
               fullWidth
               size="small"
@@ -173,9 +162,9 @@ export default function TouristTaxBaremeDialog({
               value={form.communeCode}
               onChange={(e) => set('communeCode', e.target.value)}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <TextField
               select
               fullWidth
@@ -194,10 +183,10 @@ export default function TouristTaxBaremeDialog({
                 {t('touristTax.mode.flatPerNight', 'Forfait / nuit')}
               </MenuItem>
             </TextField>
-          </Grid>
+          </div>
 
           {!isPercentage && (
-            <Grid item xs={12} sm={6}>
+            <div className="col-span-12 min-[600px]:col-span-6">
               <TextField
                 fullWidth
                 size="small"
@@ -211,12 +200,12 @@ export default function TouristTaxBaremeDialog({
                 InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
                 inputProps={{ inputMode: 'decimal' }}
               />
-            </Grid>
+            </div>
           )}
 
           {isPercentage && (
             <>
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   size="small"
@@ -226,8 +215,8 @@ export default function TouristTaxBaremeDialog({
                   InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                   inputProps={{ inputMode: 'decimal' }}
                 />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </div>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <TextField
                   fullWidth
                   size="small"
@@ -237,11 +226,11 @@ export default function TouristTaxBaremeDialog({
                   InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
                   inputProps={{ inputMode: 'decimal' }}
                 />
-              </Grid>
+              </div>
             </>
           )}
 
-          <Grid item xs={12} sm={6}>
+          <div className="col-span-12 min-[600px]:col-span-6">
             <TextField
               fullWidth
               size="small"
@@ -252,8 +241,8 @@ export default function TouristTaxBaremeDialog({
               inputProps={{ inputMode: 'decimal' }}
               helperText={t('touristTax.dialog.departmentalHelp', 'Typiquement 10 %')}
             />
-          </Grid>
-          <Grid item xs={12} sm={6}>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-6">
             <TextField
               fullWidth
               size="small"
@@ -263,9 +252,9 @@ export default function TouristTaxBaremeDialog({
               InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
               inputProps={{ inputMode: 'decimal' }}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
+          <div className="col-span-12 min-[600px]:col-span-6">
             <TextField
               fullWidth
               size="small"
@@ -274,8 +263,8 @@ export default function TouristTaxBaremeDialog({
               onChange={(e) => set('maxNights', e.target.value)}
               inputProps={{ inputMode: 'numeric' }}
             />
-          </Grid>
-          <Grid item xs={12} sm={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-6 flex flex-col">
             <FormControlLabel
               control={
                 <Switch
@@ -296,8 +285,8 @@ export default function TouristTaxBaremeDialog({
               }
               label={t('touristTax.dialog.enabled', 'Barème actif')}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>

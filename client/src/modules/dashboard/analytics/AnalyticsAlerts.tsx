@@ -1,7 +1,7 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { cn } from '../../../utils/cn';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
 } from '../../../icons';
@@ -58,19 +58,19 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
       subtitle={t('dashboard.analytics.alertsDesc')}
       badge={criticalCount}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <Grid item xs={12} key={i}>
+            <div className="col-span-12" key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   <div className="h-[60px]" />
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         ) : alerts.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                 <div className="flex items-center gap-1 py-1.5">
@@ -83,10 +83,10 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                 </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ) : (
           alerts.map((alert) => (
-            <Grid item xs={12} key={alert.id}>
+            <div className="col-span-12" key={alert.id}>
               <Card
                 sx={{
                   ...CARD_SX,
@@ -131,10 +131,10 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                   </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         )}
-      </Grid>
+      </div>
     </GridSection>
   );
 });

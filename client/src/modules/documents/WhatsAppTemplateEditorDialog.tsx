@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -180,12 +180,12 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
         )}
 
         {group && (
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-12 gap-[18px]">
             {/* ── Formulaire (gauche 7/12) ── */}
-            <Grid item xs={12} md={7}>
-              <Grid container spacing={2}>
+            <div className="col-span-12 min-[900px]:col-span-7">
+              <div className="grid grid-cols-12 gap-3">
                 {/* Nom du template (readonly — slug systeme immuable) */}
-                <Grid item xs={12} sm={6}>
+                <div className="col-span-12 min-[600px]:col-span-6">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.name')}
@@ -194,9 +194,9 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                     InputProps={{ readOnly: true }}
                     helperText={t('messaging.templates.editor.systemNameHelper')}
                   />
-                </Grid>
+                </div>
                 {/* Categorie Meta (readonly) */}
-                <Grid item xs={6} sm={3}>
+                <div className="col-span-6 min-[600px]:col-span-3">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.metaCategory')}
@@ -204,9 +204,9 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                     size="small"
                     InputProps={{ readOnly: true }}
                   />
-                </Grid>
+                </div>
                 {/* Selecteur Langue */}
-                <Grid item xs={6} sm={3}>
+                <div className="col-span-6 min-[600px]:col-span-3">
                   <TextField
                     fullWidth
                     select
@@ -228,9 +228,9 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                       );
                     })}
                   </TextField>
-                </Grid>
+                </div>
                 {/* Body multiline (pas de subject pour WhatsApp) */}
-                <Grid item xs={12}>
+                <div className="col-span-12">
                   <TextField
                     fullWidth
                     label={t('messaging.templates.editor.body')}
@@ -250,8 +250,8 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                       sx: language === 'ar_AR' ? { direction: 'rtl' } : undefined,
                     }}
                   />
-                </Grid>
-              </Grid>
+                </div>
+              </div>
 
               {/* ── Preview : SEULE difference visuelle vs SystemTemplate — bulle WhatsApp ── */}
               <div className="mt-4">
@@ -260,10 +260,10 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                 </h6>
                 <WhatsAppBubblePreview body={body} rtl={language === 'ar_AR'} />
               </div>
-            </Grid>
+            </div>
 
             {/* ── Sidebar variables (droite 5/12) ── */}
-            <Grid item xs={12} md={5}>
+            <div className="col-span-12 min-[900px]:col-span-5">
               <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
                 <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
@@ -278,8 +278,8 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                   showDetails
                 />
               </Paper>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         )}
       </DialogContent>
 
@@ -363,7 +363,7 @@ function renderWhatsAppBody(body: string): React.ReactNode {
   return partsWithVars.map((part, idx) => {
     if (/^\{[a-zA-Z][a-zA-Z0-9_]*\}$/.test(part)) {
       return (
-        <span className="font-mono text-[0.85em] bg-[rgba(37,211,102,0.18)] text-[#075E54] px-0.5 rounded-[0.5px]" key={idx}>
+        <span className="font-mono text-[0.85em] bg-[rgba(37,211,102,0.18)] text-[#075E54] px-0.5 rounded-[4px]" key={idx}>
           {part}
         </span>
       );

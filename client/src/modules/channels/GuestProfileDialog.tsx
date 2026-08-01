@@ -203,7 +203,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   </p>
                   <div className="flex flex-col gap-0.5">
                     {guest.reservations.map((r) => (
-                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[0.75px] px-1.5 py-0.5" key={r.id}>
+                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
                         <div>
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">{r.propertyName}</p>
                           <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">

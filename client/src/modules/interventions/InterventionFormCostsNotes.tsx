@@ -21,7 +21,7 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
         {!isHost() && (
           <Card>
             <CardContent sx={{ p: 2 }}>
-              <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
+              <h6 className="cn-text-subtitle1 font-semibold mb-2">
                 {t('interventions.sections.costs')}
               </h6>
 
@@ -49,7 +49,7 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
         {/* Notes et photos */}
         <Card sx={{ mt: isHost() ? 0 : 1.5 }}>
           <CardContent sx={{ p: 2 }}>
-            <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
+            <h6 className="cn-text-subtitle1 font-semibold mb-2">
               {t('interventions.sections.notesPhotos')}
             </h6>
 

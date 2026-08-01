@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import { Alert, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
+import { Alert, Card, CardContent, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -446,8 +446,8 @@ const PropertyDetails: React.FC = () => {
       {tabValue === 0 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-0" aria-labelledby="property-tab-0">
           {/* ── Key metrics grid ──────────────────────────────────────── */}
-          <Grid container spacing={1} sx={{ mb: featureChips.length > 0 ? 1 : 1.5 }}>
-            <Grid item xs={6} sm={4} md={2}>
+          <div className={cn('grid grid-cols-12 gap-1.5', featureChips.length > 0 ? 'mb-1.5' : 'mb-[9px]')}>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
                 <div className={cn(METRIC_CARD_CLASS, 'cursor-help')}>
                   <div className={METRIC_ICON_BADGE_CLASS}><Payments size={16} strokeWidth={1.75} /></div>
@@ -457,36 +457,36 @@ const PropertyDetails: React.FC = () => {
                   <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
                 </div>
               </Tooltip>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bed size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.bedrooms}</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bedrooms')}</p>
               </div>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bathroom size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.bathrooms}</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bathroomCount')}</p>
               </div>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><SquareFoot size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.surfaceArea} m²</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.surface')}</p>
               </div>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Group size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.maxGuests}</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.maxCapacity')}</p>
               </div>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><CleaningServices size={16} strokeWidth={1.75} /></div>
                 {/* leading-[1.2] repose apres la taille : tailwind-merge
@@ -496,8 +496,8 @@ const PropertyDetails: React.FC = () => {
                 </p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
               </div>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ── Prestations à la carte chips ──────────────────────────── */}
           {featureChips.length > 0 && (

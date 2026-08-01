@@ -2,7 +2,7 @@ import React from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Spinner, Button } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
 import {
   People,
   Group,
@@ -137,9 +137,9 @@ const TeamUserAssignmentForm: React.FC = () => {
               {t('portfolios.fields.selectTeamsDescription')}{' '}
               <strong>{t('portfolios.fields.optionalStep')}</strong>
             </p>
-            <Grid container spacing={1.5}>
+            <div className="grid grid-cols-12 gap-[9px]">
               {teams.map((team) => (
-                <Grid item xs={12} sm={6} md={4} key={team.id}>
+                <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={team.id}>
                   <Card
                     variant={selectedTeamsSet.has(team.id) ? 'elevation' : 'outlined'}
                     sx={{
@@ -187,9 +187,9 @@ const TeamUserAssignmentForm: React.FC = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </Grid>
+                </div>
               ))}
-            </Grid>
+            </div>
           </div>
         );
 
@@ -239,9 +239,9 @@ const TeamUserAssignmentForm: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <Grid container spacing={1.5}>
+              <div className="grid grid-cols-12 gap-[9px]">
                 {filteredUsers.map((userItem) => (
-                  <Grid item xs={12} sm={6} md={4} key={userItem.id}>
+                  <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={userItem.id}>
                     <Card
                       variant={selectedUsersSet.has(userItem.id) ? 'elevation' : 'outlined'}
                       sx={{
@@ -297,9 +297,9 @@ const TeamUserAssignmentForm: React.FC = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </div>
                 ))}
-              </Grid>
+              </div>
             )}
           </div>
         );
@@ -339,8 +339,8 @@ const TeamUserAssignmentForm: React.FC = () => {
               </div>
             </BuiCard>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
                   <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <Group size={16} strokeWidth={1.75} />
@@ -370,9 +370,9 @@ const TeamUserAssignmentForm: React.FC = () => {
                     </span>
                   )}
                 </BuiCard>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
                   <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
@@ -402,8 +402,8 @@ const TeamUserAssignmentForm: React.FC = () => {
                     </span>
                   )}
                 </BuiCard>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </div>
         );
       }

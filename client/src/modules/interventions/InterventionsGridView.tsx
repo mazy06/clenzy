@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid } from '@mui/material';
+
 import InterventionCard from './InterventionCard';
 import type { Intervention } from './useInterventionsList';
 import PagePagination from '../../components/PagePagination';
@@ -19,7 +19,7 @@ const InterventionsGridView: React.FC<InterventionsGridViewProps> = ({
   interventions, totalCount, page, itemsPerPage, onPageChange, onMenuOpen, canModifyIntervention,
 }) => (
   <>
-    <Grid container spacing={2}>
+    <div className="grid grid-cols-12 gap-3">
       {interventions
         .flatMap((intervention) => {
           if (
@@ -35,16 +35,16 @@ const InterventionsGridView: React.FC<InterventionsGridViewProps> = ({
             return [];
           }
           return [
-            <Grid item xs={12} md={6} lg={4} key={intervention.id}>
+            <div className="col-span-12 min-[900px]:col-span-6 min-[1200px]:col-span-4" key={intervention.id}>
               <InterventionCard
                 intervention={intervention}
                 onMenuOpen={onMenuOpen}
                 canEdit={canModifyIntervention(intervention)}
               />
-            </Grid>,
+            </div>,
           ];
         })}
-    </Grid>
+    </div>
     {totalCount > itemsPerPage && (
       <PagePagination
         count={totalCount}

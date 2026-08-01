@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
@@ -47,9 +47,9 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
       title={t('dashboard.analytics.pricingIntelligence')}
       subtitle={t('dashboard.analytics.pricingDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Avg Price vs RevPAN dual-axis line chart */}
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -75,10 +75,10 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Price by property type */}
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -103,10 +103,10 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Optimal price card */}
-        <Grid item xs={6} sm={4} md={3}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.optimalPrice')}
             value={data ? <Money value={data.optimalPrice} from="EUR" decimals={0} /> : '-'}
@@ -116,10 +116,10 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
             tooltip={t('dashboard.analytics.optimalPriceTooltip')}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Elasticity card */}
-        <Grid item xs={6} sm={4} md={3}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.elasticity')}
             value={data ? `${data.elasticity.toFixed(2)}` : '-'}
@@ -128,8 +128,8 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
             tooltip={t('dashboard.analytics.elasticityTooltip')}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

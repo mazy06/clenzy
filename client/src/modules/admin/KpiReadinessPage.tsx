@@ -7,7 +7,7 @@ import { TriangleAlert } from 'lucide-react';
 import { Button, Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Grid, Card, CardActionArea, CardContent, Typography, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
+import { Card, CardActionArea, CardContent, Typography, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -414,30 +414,30 @@ const KpiReadinessPage: React.FC = () => {
       {loading ? (
         // Skeletons à la silhouette de la page (gauge + panneau + grille KPI)
         <div className="mt-4">
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+          <div className="grid grid-cols-12 gap-[18px]">
+            <div className="col-span-12 min-[900px]:col-span-4">
               <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
-            </Grid>
-            <Grid item xs={12} md={8}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-8">
               <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
-            </Grid>
-          </Grid>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            </div>
+          </div>
+          <div className="grid grid-cols-12 gap-3 mt-[3px]">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
                 <Skeleton variant="rounded" height={120} sx={{ borderRadius: '14px' }} />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
         </div>
       ) : snapshot ? (
         <>
           {/* Score + Controls */}
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={4}>
+          <div className="grid grid-cols-12 gap-[18px] mt-1.5">
+            <div className="col-span-12 min-[900px]:col-span-4">
               <ScoreGauge score={snapshot.readinessScore} criticalFailed={snapshot.criticalFailed} />
-            </Grid>
-            <Grid item xs={12} md={8}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-8">
               <BuiCard className="gap-0 py-0 p-4 h-full flex flex-col justify-center border-[var(--line)]">
                 <div className="flex justify-between items-center flex-wrap gap-3">
                   <div>
@@ -481,22 +481,22 @@ const KpiReadinessPage: React.FC = () => {
                   })}
                 </div>
               </BuiCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* 12 KPI Cards */}
-          <Grid container spacing={2} sx={{ mt: 2 }}>
+          <div className="grid grid-cols-12 gap-3 mt-3">
             {snapshot.kpis.map((kpi) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={kpi.id}>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={kpi.id}>
                 <KpiCard
                   kpi={kpi}
                   onClick={kpi.id === 'P1_RESOLUTION' ? handleOpenIncidentDialog : undefined}
                   badgeCount={kpi.id === 'P1_RESOLUTION' ? openIncidentCount : undefined}
                   tooltipContent={KPI_TOOLTIPS[kpi.id]}
                 />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* Historical Trend Chart */}
           <BuiCard className="gap-0 py-0 mt-4 p-4 border-[var(--line)]">

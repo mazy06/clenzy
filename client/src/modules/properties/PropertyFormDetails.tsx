@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { Grid, TextField, Checkbox, FormControlLabel } from '@mui/material';
+import { TextField, Checkbox, FormControlLabel } from '@mui/material';
 import {
   Euro,
   Bed,
@@ -74,8 +74,8 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
           {t('properties.characteristics')}
         </p>
 
-        <Grid container spacing={1.5}>
-          <Grid item xs={6} md={4}>
+        <div className="grid grid-cols-12 gap-[9px]">
+          <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="bedroomCount"
               control={control}
@@ -96,9 +96,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={6} md={4}>
+          <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="bathroomCount"
               control={control}
@@ -119,9 +119,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={6} md={4}>
+          <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="squareMeters"
               control={control}
@@ -142,9 +142,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={6} md={6}>
+          <div className="col-span-6 min-[900px]:col-span-6">
             <Controller
               name="maxGuests"
               control={control}
@@ -165,9 +165,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="nightlyPrice"
               control={control}
@@ -189,9 +189,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="minimumNights"
               control={control}
@@ -213,8 +213,8 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                 />
               )}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* ─── Amenities Section ─────────────────────────────────────────── */}
         <div className="mt-4">
@@ -232,11 +232,11 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                     <p className={cn(CATEGORY_TITLE_CLASS, 'cn-text-body1')}>
                       {t(`properties.amenities.categories.${category.key}`)}
                     </p>
-                    <Grid container spacing={0.5}>
+                    <div className="grid grid-cols-12 gap-[3px]">
                       {category.items.map((amenity) => {
                         const checked = field.value?.includes(amenity) || false;
                         return (
-                          <Grid item xs={6} md={4} key={amenity}>
+                          <div className="col-span-6 min-[900px]:col-span-4" key={amenity}>
                             <FormControlLabel
                               control={
                                 <Checkbox
@@ -256,10 +256,10 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                                 </p>
                               }
                             />
-                          </Grid>
+                          </div>
                         );
                       })}
-                    </Grid>
+                    </div>
                   </div>
                 ))}
               </div>

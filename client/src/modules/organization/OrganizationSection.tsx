@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Alert, Autocomplete, TextField, Grid } from '@mui/material';
+import { Alert, Autocomplete, TextField } from '@mui/material';
 import {
   Business,
   PersonAdd,
@@ -132,9 +132,9 @@ export default function OrganizationSection({ organizationId }: Props) {
 
       {subTab === 0 && (
       <>
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
-        <Grid item xs={12} md={5}>
+        <div className="col-span-12 min-[900px]:col-span-5">
           <SettingsSection
             title="Organisations"
             icon={Business}
@@ -217,10 +217,10 @@ export default function OrganizationSection({ organizationId }: Props) {
               </Alert>
             )}
           </SettingsSection>
-        </Grid>
+        </div>
 
         {/* ─── Colonne droite : Facturation + Invitations ─────────── */}
-        <Grid item xs={12} md={7}>
+        <div className="col-span-12 min-[900px]:col-span-7">
           <div className="flex flex-col gap-3">
             {effectiveOrgId ? (
               <BillingSummaryCard
@@ -244,8 +244,8 @@ export default function OrganizationSection({ organizationId }: Props) {
               </SettingsSection>
             )}
           </div>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
       </>
       )}
 

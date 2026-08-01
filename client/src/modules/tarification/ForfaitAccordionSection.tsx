@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import { Badge, Button } from '../../components/ui';
-import { TextField, Grid, InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AutoAwesome,
@@ -179,8 +179,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
         {/* ─── Coefficients ─────────────────────────────────────────────── */}
         <div>
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.priceCoefficients')}</p>
-          <Grid container spacing={1.5}>
-            <Grid item xs={6}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-6">
               <TextField
                 label={t('tarification.forfaitSection.coeffMin')}
                 type="number"
@@ -191,8 +191,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 disabled={!canEdit}
                 inputProps={{ step: 0.05, min: 0.1, max: 5.0 }}
               />
-            </Grid>
-            <Grid item xs={6}>
+            </div>
+            <div className="col-span-6">
               <TextField
                 label={t('tarification.forfaitSection.coeffMax')}
                 type="number"
@@ -203,8 +203,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 disabled={!canEdit}
                 inputProps={{ step: 0.05, min: 0.1, max: 5.0 }}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </div>
 
         {/* ─── Types de service associés ────────────────────────────────── */}
@@ -398,9 +398,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
         {/* ─── Surcharges ───────────────────────────────────────────────── */}
         <div>
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surcharges')}</p>
-          <Grid container spacing={1}>
+          <div className="grid grid-cols-12 gap-1.5">
             {availableSurcharges.map((s) => (
-              <Grid item xs={6} sm={4} key={s.key}>
+              <div className="col-span-6 min-[600px]:col-span-4" key={s.key}>
                 <TextField
                   label={t(`tarification.forfaitSection.surcharge_${s.key}`, s.label)}
                   type="number"
@@ -412,9 +412,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                   inputProps={{ step: 1, min: 0 }}
                   InputProps={{ endAdornment: <InputAdornment position="end">{s.unit}</InputAdornment> }}
                 />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
           {/* Add surcharge button */}
           {canEdit && (
             <div className="mt-1.5">

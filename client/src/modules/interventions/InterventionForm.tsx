@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Grid } from '@mui/material';
+
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -383,7 +383,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       )}
 
       <form onSubmit={rhfHandleSubmit(onSubmit)} id="intervention-form">
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
           {/* Informations principales */}
           <InterventionFormMainInfo
             control={control}
@@ -397,7 +397,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           />
 
           {/* Informations secondaires */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             {/* Propriete et demandeur */}
             <InterventionFormPropertyRequestor
               control={control}
@@ -424,8 +424,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
               errors={errors}
               isHost={isHost}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* Bouton de soumission cache pour le PageHeader */}
         <Button

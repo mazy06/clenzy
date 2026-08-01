@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Grid, Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
+import { Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -310,7 +310,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <div className="p-3">
         <Alert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Accès non autorisé
           </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
@@ -324,13 +324,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
             <Skeleton variant="rounded" height={180} sx={{ borderRadius: '14px' }} />
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
     );
   }
 
@@ -418,40 +418,40 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
       {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
       <div className="mb-3">
-        <Grid container spacing={2}>
-          <Grid item xs={6} md={3}>
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<Person />}
               label="Total utilisateurs"
               value={users.length}
               color="#6B8A9A"
             />
-          </Grid>
-          <Grid item xs={6} md={3}>
+          </div>
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<ManageAccounts />}
               label="Utilisateurs actifs"
               value={users.filter(u => u.status === 'ACTIVE').length}
               color="#4A9B8E"
             />
-          </Grid>
-          <Grid item xs={6} md={3}>
+          </div>
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<AdminPanelSettings />}
               label="Administrateurs"
               value={users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
               color="#C97A7A"
             />
-          </Grid>
-          <Grid item xs={6} md={3}>
+          </div>
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<Build />}
               label="Personnel opérationnel"
               value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
               color="#7BA3C2"
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </div>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
@@ -460,9 +460,9 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         : !embedded && <div className="mb-3">{filtersBar}</div>}
 
       {/* Liste des utilisateurs */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {filteredUsers.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <EmptyState
               icon={<Person />}
               title={users.length === 0 ? 'Aucun utilisateur' : 'Aucun résultat'}
@@ -472,7 +472,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   : 'Aucun utilisateur ne correspond aux filtres sélectionnés.'
               }
             />
-          </Grid>
+          </div>
         ) : (
           filteredUsers.map((user) => {
             const platformRole = getRoleInfo(user.role);
@@ -485,7 +485,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             const PlatformIcon = platformRole.Icon;
             const OrgIcon = orgRole?.Icon;
             return (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={user.id}>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={user.id}>
               {/* Carte hairline r14 (thème global) — hover lift + shadow-card (cliquable) */}
               <Card
                 sx={{
@@ -615,11 +615,11 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </div>
             );
           })
         )}
-      </Grid>
+      </div>
 
       {/* Menu contextuel */}
       <Menu
@@ -681,8 +681,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <Dialog open={editDialogOpen} onClose={() => { setEditDialogOpen(false); setSelectedUser(null); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>Modifier l'utilisateur</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <TextField
                 fullWidth
                 size="small"
@@ -691,8 +691,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
                 required
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <TextField
                 fullWidth
                 size="small"
@@ -701,8 +701,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
                 required
               />
-            </Grid>
-            <Grid item xs={12}>
+            </div>
+            <div className="col-span-12">
               <TextField
                 fullWidth
                 size="small"
@@ -712,8 +712,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
                 required
               />
-            </Grid>
-            <Grid item xs={12}>
+            </div>
+            <div className="col-span-12">
               <TextField
                 fullWidth
                 size="small"
@@ -721,8 +721,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 value={editFormData.phoneNumber || ''}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <FormControl fullWidth size="small">
                 <InputLabel>Rôle</InputLabel>
                 <Select
@@ -745,8 +745,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   })}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <FormControl fullWidth size="small">
                 <InputLabel>Statut</InputLabel>
                 <Select
@@ -761,8 +761,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
           <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} variant="outline" size="sm">Annuler</Button>

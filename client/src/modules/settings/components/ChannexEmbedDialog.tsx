@@ -265,7 +265,7 @@ export default function ChannexEmbedDialog({
                             New {selectedOta.name} Channel
                           </span>
                           {' '}— cliquez sur le <strong>titre</strong>, ou sur{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[0.5px] bg-[var(--field)] text-muted-foreground font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--field)] text-muted-foreground font-semibold text-[0.7rem]">
                             Actions &rsaquo; Edit
                           </span>
                           .
@@ -277,7 +277,7 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Dans le detail, ouvrez l'onglet{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[0.5px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
                             Mapping
                           </span>
                           {' '}— vos listings {selectedOta.name} s'affichent avec le
@@ -295,13 +295,13 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Cliquez sur{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[0.5px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem]">
                             Not mapped
                           </span>
                           {' '}→ un dropdown s'ouvre. Selectionnez une room + un rate
                           plan (le pivot Baitly si vous n'avez encore rien d'autre),
                           puis{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[0.5px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
                             Save
                           </span>
                           . Fermez le wizard et cliquez{' '}
@@ -340,7 +340,7 @@ export default function ChannexEmbedDialog({
               ) : selectedOta ? (
                 <>
                   Cliquez sur{' '}
-                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[0.5px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[4px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
                     + Create
                   </span>{' '}
                   en haut a droite, puis selectionnez{' '}
@@ -352,7 +352,7 @@ export default function ChannexEmbedDialog({
               ) : (
                 <>
                   Si la liste de channels s'affiche vide, cliquez sur{' '}
-                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[0.5px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[4px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
                     + Create
                   </span>{' '}
                   en haut a droite pour choisir un OTA (Airbnb, Booking.com, Vrbo, Expedia).

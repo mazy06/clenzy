@@ -96,7 +96,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
             <div className="relative inline-flex shrink-0" style={{ width: size, height: size, opacity }}>
               {/* Logo officiel OTA (SVG/PNG) ou fallback initiales */}
               {logoSrc ? (
-                <img className="w-full h-full rounded-[0.75px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
+                <img className="w-full h-full rounded-[6px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
               ) : (
                 <div className="w-full h-full rounded-[6px] flex items-center justify-center font-bold tracking-[-0.02em] border border-solid border-[var(--line)]" style={{ backgroundColor: option?.brandColor ?? 'var(--faint)', color: option?.brandColorFg ?? '#FFFFFF', fontSize: size * 0.42 }}>
                   {initials}

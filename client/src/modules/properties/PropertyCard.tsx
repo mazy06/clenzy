@@ -1,17 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
-  Divider,
-} from '@mui/material';
+import { Card, CardContent, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
 import {
   Edit,
   Delete,
@@ -460,23 +450,23 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         </DialogTitle>
 
         <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-12 gap-3">
             {/* Adresse */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Adresse
               </p>
               <p className="cn-text-body2">
                 {property.address}, {property.postalCode} {property.city}, {property.country}
               </p>
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Divider />
-            </Grid>
+            </div>
 
             {/* Caractéristiques */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
                 Caractéristiques
               </p>
@@ -499,14 +489,14 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   </div>
                 ))}
               </div>
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Divider />
-            </Grid>
+            </div>
 
             {/* Estimation ménage + prix nuit */}
-            <Grid item xs={12} md={6}>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <p className={DIALOG_SECTION_TITLE_CLASS}>
                 {t('properties.cleaningEstimate')}
               </p>
@@ -522,8 +512,8 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   <Money value={property.nightlyPrice} from="EUR" decimals={0} /> / {t('properties.perNight')}
                 </p>
               )}
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Nettoyage
               </p>
@@ -531,15 +521,15 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 <span className="inline-flex text-muted-foreground"><BroomFill size={18} /></span>
                 <p className="cn-text-body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
               </div>
-            </Grid>
+            </div>
 
             {/* Commodités */}
             {property.amenities && property.amenities.length > 0 && (
               <>
-                <Grid item xs={12}>
+                <div className="col-span-12">
                   <Divider />
-                </Grid>
-                <Grid item xs={12}>
+                </div>
+                <div className="col-span-12">
                   <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
                     Commodités
                   </p>
@@ -553,15 +543,15 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                       />
                     ))}
                   </div>
-                </Grid>
+                </div>
               </>
             )}
 
             {/* Contact */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Divider />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Contact
               </p>
@@ -571,20 +561,20 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <p className="cn-text-body2 text-muted-foreground">
                 {property.contactEmail || 'Email non renseigné'}
               </p>
-            </Grid>
+            </div>
 
             {/* Description */}
             {property.description && (
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <p className={DIALOG_SECTION_TITLE_CLASS}>
                   Description
                 </p>
                 <p className={DIALOG_DESCRIPTION_CLASS}>
                   {property.description}
                 </p>
-              </Grid>
+              </div>
             )}
-          </Grid>
+          </div>
         </DialogContent>
 
         <DialogActions sx={{ px: 2, pb: 1.5 }}>

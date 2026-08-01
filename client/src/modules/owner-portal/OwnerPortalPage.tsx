@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -310,9 +310,12 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   return (
     <>
       {/* ── KPI Cards ── */}
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      {/* Au-dela de 900px les 5 KPI tiennent sur une seule rangee (equivalent du
+          `md` auto de l'ancienne grille) : d'ou la grille a 5 colonnes, `flex-1`
+          n'ayant aucun effet sur un enfant de `display: grid`. */}
+      <div className="grid grid-cols-12 min-[900px]:grid-cols-5 gap-[9px] mb-3">
         {kpis.map((kpi) => (
-          <Grid item xs={6} sm={4} md key={kpi.label}>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-1" key={kpi.label}>
             <Card sx={KPI_CARD_SX}>
               <CardContent sx={{ p: '12px !important', '&:last-child': { pb: '12px !important' } }}>
                 <div className="mb-[3px]" style={{ color: kpi.color }}>
@@ -326,9 +329,9 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                 </p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
 
       {/* ── Revenue by Month ── */}
       {dashboard.revenueByMonth && Object.keys(dashboard.revenueByMonth).length > 0 && (
@@ -470,52 +473,52 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
             <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
               {statement.ownerName} — {fmtDate(statement.periodStart)} → {fmtDate(statement.periodEnd)}
             </p>
-            <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-6 min-[600px]:col-span-3">
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.totalRevenue', 'Revenu total')}
                 </p>
                 <p className="cn-text-body1 text-[1rem] font-bold text-[#1976d2]">
                   {fmtCurrency(statement.totalRevenue)}
                 </p>
-              </Grid>
-              <Grid item xs={6} sm={3}>
+              </div>
+              <div className="col-span-6 min-[600px]:col-span-3">
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.totalCommissions', 'Commissions')}
                 </p>
                 <p className="cn-text-body1 text-[1rem] font-bold text-[#D4A574]">
                   {fmtCurrency(statement.totalCommissions)}
                 </p>
-              </Grid>
+              </div>
               {/* Frais OTA : affiches seulement quand le proprietaire les supporte.
                   A la charge de la conciergerie, ils ne sortent pas de son releve. */}
               {statement.totalOtaFees > 0 && (
-                <Grid item xs={6} sm={3}>
+                <div className="col-span-6 min-[600px]:col-span-3">
                   <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                     {t('ownerPortal.totalOtaFees', 'Frais OTA')}
                   </p>
                   <p className="cn-text-body1 text-[1rem] font-bold text-[#ef5350]">
                     {fmtCurrency(statement.totalOtaFees)}
                   </p>
-                </Grid>
+                </div>
               )}
-              <Grid item xs={6} sm={3}>
+              <div className="col-span-6 min-[600px]:col-span-3">
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.totalExpenses', 'Depenses')}
                 </p>
                 <p className="cn-text-body1 text-[1rem] font-bold text-[#ef5350]">
                   {fmtCurrency(statement.totalExpenses)}
                 </p>
-              </Grid>
-              <Grid item xs={6} sm={3}>
+              </div>
+              <div className="col-span-6 min-[600px]:col-span-3">
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.netAmount', 'Montant net')}
                 </p>
                 <p className="cn-text-body1 text-[1rem] font-bold text-[#2e7d32]">
                   {fmtCurrency(statement.netAmount)}
                 </p>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </Paper>
 
           {/* ── Statement lines ── */}

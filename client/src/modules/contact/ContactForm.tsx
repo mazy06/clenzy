@@ -3,7 +3,7 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Card, CardContent, TextField, Grid, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
@@ -193,9 +193,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
           )}
 
           <form onSubmit={rhfHandleSubmit(onSubmit)}>
-            <Grid container spacing={3}>
+            <div className="grid grid-cols-12 gap-[18px]">
               {/* Destinataire - Autocomplete */}
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <Controller
                   name="recipientId"
                   control={control}
@@ -295,10 +295,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     />
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Sujet */}
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <Controller
                   name="subject"
                   control={control}
@@ -315,10 +315,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     />
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Priorite et Categorie */}
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="priority"
                   control={control}
@@ -343,9 +343,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     </FormControl>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="category"
                   control={control}
@@ -366,10 +366,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     </FormControl>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Message with template button */}
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <div className="flex justify-end mb-1.5">
                   <ContactTemplates onSelectTemplate={handleSelectTemplate} />
                 </div>
@@ -391,10 +391,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     />
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Pieces jointes */}
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <BuiCard className="gap-0 py-0 p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <h6 className="cn-text-subtitle2">
@@ -440,10 +440,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     </div>
                   )}
                 </BuiCard>
-              </Grid>
+              </div>
 
               {/* Boutons */}
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <div className="flex gap-3 justify-end">
                   {/* `type="button"` explicite : le bouton natif du kit vaut `submit`
                       par defaut dans un <form>, la ou MUI posait `button`. */}
@@ -470,8 +470,8 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     {submitting ? t('contact.sending') : t('contact.send')}
                   </Button>
                 </div>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </form>
         </CardContent>
       </Card>

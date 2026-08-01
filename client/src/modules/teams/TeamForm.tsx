@@ -3,7 +3,7 @@ import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, TextField, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, TextField, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {
@@ -281,18 +281,18 @@ const TeamForm: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
 
           {/* ─── Colonne gauche : Informations de l'équipe ─── */}
-          <Grid item xs={12} md={8}>
+          <div className="col-span-12 min-[900px]:col-span-8">
             <Card>
               <CardContent sx={{ p: 2 }}>
-                <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
+                <h6 className="cn-text-subtitle1 font-semibold mb-2">
                   {t('teams.sections.teamInfo')}
                 </h6>
 
-                <Grid container spacing={1.5}>
-                  <Grid item xs={12}>
+                <div className="grid grid-cols-12 gap-[9px]">
+                  <div className="col-span-12">
                     <Controller
                       name="name"
                       control={control}
@@ -308,9 +308,9 @@ const TeamForm: React.FC = () => {
                         />
                       )}
                     />
-                  </Grid>
+                  </div>
 
-                  <Grid item xs={12}>
+                  <div className="col-span-12">
                     <Controller
                       name="description"
                       control={control}
@@ -329,9 +329,9 @@ const TeamForm: React.FC = () => {
                         />
                       )}
                     />
-                  </Grid>
+                  </div>
 
-                  <Grid item xs={12}>
+                  <div className="col-span-12">
                     <Controller
                       name="interventionType"
                       control={control}
@@ -352,14 +352,14 @@ const TeamForm: React.FC = () => {
                         </FormControl>
                       )}
                     />
-                  </Grid>
-                </Grid>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
           {/* ─── Colonne droite : Aperçu catégorie ─── */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <Card>
               <CardContent sx={{ p: 0 }}>
                 {/* Bandeau catégorie : panneau plat -soft (badge icône + libellés) */}
@@ -407,10 +407,10 @@ const TeamForm: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
           {/* ─── Zones de couverture ─── */}
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Card>
               <CardContent sx={{ p: 2 }}>
                 <div className="flex items-center justify-between mb-2">
@@ -579,10 +579,10 @@ const TeamForm: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </Grid>
+          </div>
 
           {/* ─── Membres de l'équipe (pleine largeur) ─── */}
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Card>
               <CardContent sx={{ p: 2 }}>
                 <div className="flex items-center justify-between mb-2">
@@ -728,8 +728,8 @@ const TeamForm: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* Relais de soumission cible par `[data-submit-team]` depuis le PageHeader :
             jamais visible, d'ou l'absence de variante utile (hidden). */}

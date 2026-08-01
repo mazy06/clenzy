@@ -110,7 +110,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] text-center">
         {/* Icône de verrouillage */}
-        <div className="mb-4 p-3 rounded-[50%] bg-[grey.100] flex items-center justify-center">
+        <div className="mb-4 p-3 rounded-[50%] bg-[var(--hover)] flex items-center justify-center">
           <span className="inline-flex text-muted-foreground"><LockIcon size={32} strokeWidth={1.5} /></span>
         </div>
 

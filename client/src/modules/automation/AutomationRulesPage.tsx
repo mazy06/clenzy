@@ -3,7 +3,7 @@ import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -348,13 +348,13 @@ const AutomationRulesPage: React.FC = () => {
 
       {/* ── Rules list ── */}
       {isLoading ? (
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Grid item xs={12} md={6} key={i}>
+            <div className="col-span-12 min-[900px]:col-span-6" key={i}>
               <Skeleton variant="rounded" height={150} sx={{ borderRadius: 'var(--radius-lg)' }} />
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
       ) : isError ? (
         <Alert variant="destructive" className="text-[0.8125rem]">
           <TriangleAlert />
@@ -375,9 +375,9 @@ const AutomationRulesPage: React.FC = () => {
           }
         />
       ) : viewMode === 'card' ? (
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {sortedRules.map((rule) => (
-            <Grid item xs={12} md={6} key={rule.id}>
+            <div className="col-span-12 min-[900px]:col-span-6" key={rule.id}>
               {/* Carte règle : peau MuiCard du thème (hairline r14, pas d'ombre) */}
               <Card>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
@@ -411,9 +411,9 @@ const AutomationRulesPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
       ) : (
         // ── Vue LISTE (défaut) : lignes denses, chips alignés en colonnes ────
         <Card sx={{ overflowX: 'auto' }}>
@@ -488,9 +488,9 @@ const AutomationRulesPage: React.FC = () => {
           <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-2">
             {t('automation.system.subtitle', 'Automatisations gérées ailleurs dans le produit (hors règles). Affichées ici pour visibilité — leur statut reflète l’état réel.')}
           </p>
-          <Grid container spacing={1.5}>
+          <div className="grid grid-cols-12 gap-[9px]">
             {systemAutomations.map((sa) => (
-              <Grid item xs={12} md={6} key={sa.key}>
+              <div className="col-span-12 min-[900px]:col-span-6" key={sa.key}>
                 <Card sx={{ opacity: 0.94 }}>
                   <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                     <div className="flex items-center gap-1.5 mb-1">
@@ -509,9 +509,9 @@ const AutomationRulesPage: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
         </div>
       )}
 

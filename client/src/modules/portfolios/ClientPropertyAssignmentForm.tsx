@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
 import { Button } from '../../components/ui';
 import {
   People,
@@ -189,9 +189,9 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 <Spinner className="size-7" />
               </div>
             ) : (
-              <Grid container spacing={1.5}>
+              <div className="grid grid-cols-12 gap-[9px]">
                 {properties.map((property) => (
-                  <Grid item xs={12} sm={6} md={4} key={property.id}>
+                  <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={property.id}>
                     <Card
                       variant={selectedPropertiesSet.has(property.id) ? 'elevation' : 'outlined'}
                       sx={{
@@ -238,9 +238,9 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </div>
                 ))}
-              </Grid>
+              </div>
             )}
 
             {properties.length === 0 && selectedClients.length > 0 && !loading && (
@@ -288,8 +288,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               )}
             </BuiCard>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
                   <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
@@ -309,9 +309,9 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                     ))}
                   </List>
                 </BuiCard>
-              </Grid>
+              </div>
 
-              <Grid item xs={12} md={6}>
+              <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
                   <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <Assignment size={16} strokeWidth={1.75} />
@@ -331,8 +331,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                     ))}
                   </List>
                 </BuiCard>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </div>
         );
       }

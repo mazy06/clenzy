@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Grid, Card, CardContent, TextField } from '@mui/material';
+import { Skeleton, Card, CardContent, TextField } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -144,8 +144,8 @@ const EventsTab: React.FC = () => {
     <div>
       {/* Stats Cards — label overline, valeurs display tabular-nums */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={4}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
+          <div className="col-span-12 min-[600px]:col-span-4">
             <Card variant="outlined">
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>Total (24h)</p>
@@ -154,8 +154,8 @@ const EventsTab: React.FC = () => {
                 </h4>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-4">
             <Card variant="outlined">
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Channel</p>
@@ -169,8 +169,8 @@ const EventsTab: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-4">
             <Card variant="outlined">
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Status</p>
@@ -184,8 +184,8 @@ const EventsTab: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {error && <Alert variant="destructive" className="mb-3">

@@ -152,7 +152,7 @@ const UserEdit: React.FC = () => {
       <div className="p-3">
         <BuiAlert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Acces non autorise
           </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.

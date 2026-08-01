@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -54,9 +54,9 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
       title={t('dashboard.analytics.benchmark')}
       subtitle={t('dashboard.analytics.benchmarkDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Radar chart */}
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <p className={SECTION_LABEL_CLASS}>
@@ -96,10 +96,10 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Portfolio average */}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.portfolioAvg')}
             value={data ? <Money value={data.portfolioAvg.revPAN} from="EUR" decimals={2} /> : '-'}
@@ -108,10 +108,10 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             icon={<Compare color="primary" />}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Best property */}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.bestProperty')}
             value={data ? data.bestProperty.name : '-'}
@@ -119,10 +119,10 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             icon={<EmojiEvents color="warning" />}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Std dev */}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.perfDispersion')}
             value={data ? `${data.stdDevPerformance}` : '-'}
@@ -131,8 +131,8 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             tooltip={t('dashboard.analytics.perfDispersionTooltip')}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

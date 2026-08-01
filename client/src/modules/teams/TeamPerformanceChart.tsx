@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import {
   TrendingUp,
   CalendarMonth,
@@ -111,9 +111,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
           {t('teams.performance.title')}
         </h6>
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
           {summaryStats.map((stat) => (
-            <Grid item xs={4} key={stat.label}>
+            <div className="col-span-4" key={stat.label}>
               <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {stat.icon}
                 <h5 className="cn-text-h5 font-bold mt-[3px]" style={{ color: stat.color }}>
@@ -123,9 +123,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
                   {stat.label}
                 </span>
               </div>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
 
         <p className="cn-text-body2 font-medium mb-1.5">
           {t('teams.performance.monthlyTrend')}

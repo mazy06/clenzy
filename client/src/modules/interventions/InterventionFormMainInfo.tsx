@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
+import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -57,15 +57,15 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
     const { t } = useTranslation();
 
     return (
-      <Grid item xs={12} md={8}>
+      <div className="col-span-12 min-[900px]:col-span-8">
         <Card>
           <CardContent sx={{ p: 2 }}>
-            <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
+            <h6 className="cn-text-subtitle1 font-semibold mb-2">
               {t('interventions.sections.mainInfo')}
             </h6>
 
-            <Grid container spacing={1.5}>
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-[9px]">
+              <div className="col-span-12">
                 <Controller
                   name="title"
                   control={control}
@@ -81,9 +81,9 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     />
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <Controller
                   name="description"
                   control={control}
@@ -101,9 +101,9 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     />
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="type"
                   control={control}
@@ -135,9 +135,9 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     </FormControl>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="status"
                   control={control}
@@ -161,9 +161,9 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     </FormControl>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="priority"
                   control={control}
@@ -187,10 +187,10 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     </FormControl>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Date planifiee (date seule) */}
-              <Grid item xs={12} sm={4}>
+              <div className="col-span-12 min-[600px]:col-span-4">
                 <TextField
                   fullWidth
                   label={t('interventions.fields.scheduledDate')}
@@ -201,10 +201,10 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   size="small"
                   InputLabelProps={{ shrink: true }}
                 />
-              </Grid>
+              </div>
 
               {/* Heure de debut */}
-              <Grid item xs={6} sm={4}>
+              <div className="col-span-6 min-[600px]:col-span-4">
                 <TextField
                   fullWidth
                   label="Heure"
@@ -222,10 +222,10 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     })()
                   }
                 />
-              </Grid>
+              </div>
 
               {/* Duree estimee (fractionnaire) */}
-              <Grid item xs={6} sm={4}>
+              <div className="col-span-6 min-[600px]:col-span-4">
                 <Controller
                   name="estimatedDurationHours"
                   control={control}
@@ -244,7 +244,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     />
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Hidden field for react-hook-form scheduledDate */}
               <Controller
@@ -255,7 +255,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                 )}
               />
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="progressPercentage"
                   control={control}
@@ -273,11 +273,11 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                     />
                   )}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
     );
   }
 );
