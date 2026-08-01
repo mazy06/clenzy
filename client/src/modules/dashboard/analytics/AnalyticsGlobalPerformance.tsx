@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
 import { Card, Skeleton } from '../../../components/ui';
+import StatTile from '../../../components/baitly/StatTile';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
   CalendarMonth, ShowChart, AccountBalance, Home,
@@ -31,12 +32,6 @@ interface KpiItem {
 
 // ─── Stable class constants ─────────────────────────────────────────────────
 
-// Le contour de la Card du kit est un `ring`, pas un `border` : le survol
-// teinte donc le ring (et la transition porte sur box-shadow).
-// `p: 2` / `p: 1.5` du CardContent MUI = 12 px / 9 px (theme.spacing vaut 6).
-const HERO_CARD_CLASS =
-  'h-full gap-0 py-0 p-3 transition-[box-shadow,transform] duration-200 hover:ring-[var(--mui-primary)] hover:-translate-y-[2px]';
-
 const SECONDARY_CARD_CLASS =
   'gap-0 py-0 p-[9px] transition-[box-shadow] duration-150 hover:ring-[var(--muted)]';
 
@@ -66,44 +61,25 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
-// ─── Hero KPI Card ──────────────────────────────────────────────────────────
+// ─── Hero — tuiles de la projection ─────────────────────────────────────────
 
-const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Card className={HERO_CARD_CLASS}>
-      {loading ? (
-        <div>
-          <Skeleton className="h-[14px] w-1/2" />
-          <Skeleton className="h-[28px] w-[70%] mt-[3px]" />
-          <Skeleton className="h-[12px] w-2/5 mt-[3px]" />
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center gap-1 mb-1">
-            {/* La regle '& .MuiSvgIcon-root' du sx d'origine ne matchait rien : les icones
-                viennent de src/icons (lucide/iconify), pas de @mui/icons-material. Non reportee. */}
-            <div
-              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px]"
-              style={{ backgroundColor: `${item.iconColor}12` }}
-            >
-              {item.icon}
-            </div>
-            <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground tracking-[0.02em] uppercase">
-              {item.title}
-            </p>
-          </div>
-          <p className="cn-text-body1 text-[1.5rem] font-extrabold leading-[1.1] tracking-[-0.02em] tabular-nums">
-            {item.value}
-          </p>
-          {item.subtitle && (
-            <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground opacity-60 mt-0.5 leading-[1.2]">
-              {item.subtitle}
-            </p>
-          )}
-          {item.trend !== undefined && <TrendBadge value={item.trend} />}
-        </>
-      )}
-  </Card>
-);
+/**
+ * Variation vs periode precedente, en gras dans l'indice de la tuile — le
+ * dessin de la projection (meme forme que le TrendHint du Dashboard).
+ */
+const TrendHint: React.FC<{ growth: number; suffix?: string }> = ({ growth, suffix }) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <b>
+        {growth > 0 ? '+' : ''}
+        {growth} %
+      </b>{' '}
+      {t('dashboard.analytics.vsPreviousPeriod', 'vs période préc.')}
+      {suffix ? ` · ${suffix}` : ''}
+    </>
+  );
+};
 
 // ─── Secondary KPI row item ─────────────────────────────────────────────────
 
@@ -140,44 +116,46 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
 const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading }) => {
   const { t } = useTranslation();
 
-  // Hero KPIs (4 most important)
-  const heroKpis: KpiItem[] = [
+  // Hero — les tuiles de la projection. La teinte ne porte que sur l'icone,
+  // la ou elle dit quelque chose (l'argent en succes) ; les sous-titres
+  // migrent en suffixe de l'indice, rien n'est perdu (le `tooltip` des
+  // anciennes cartes n'etait rendu nulle part).
+  const heroKpis = [
     {
       key: 'revenue',
-      title: t('dashboard.analytics.totalRevenue'),
+      label: t('dashboard.analytics.totalRevenue'),
       value: data ? <Money value={data.totalRevenue.value} from="EUR" /> : '-',
-      trend: data?.totalRevenue.growth,
+      hint: data ? <TrendHint growth={data.totalRevenue.growth} /> : undefined,
       icon: <TrendIcon />,
-      iconColor: '#4A9B8E',
+      iconClassName: 'text-success',
     },
     {
       key: 'occupancy',
-      title: t('dashboard.analytics.occupancyRate'),
+      label: t('dashboard.analytics.occupancyRate'),
       value: data ? `${data.occupancyRate.value}%` : '-',
-      trend: data?.occupancyRate.growth,
+      hint: data ? <TrendHint growth={data.occupancyRate.growth} /> : undefined,
       icon: <Percent />,
-      iconColor: '#4A9B8E',
-      tooltip: t('dashboard.analytics.occupancyTooltip'),
+      iconClassName: undefined,
     },
     {
       key: 'adr',
-      title: 'ADR',
+      label: 'ADR',
       value: data ? <Money value={data.adr.value} from="EUR" decimals={2} /> : '-',
-      subtitle: t('dashboard.analytics.avgDailyRate'),
-      trend: data?.adr.growth,
+      hint: data
+        ? <TrendHint growth={data.adr.growth} suffix={t('dashboard.analytics.avgDailyRate')} />
+        : t('dashboard.analytics.avgDailyRate'),
       icon: <Hotel />,
-      iconColor: '#6B8A9A',
-      tooltip: t('dashboard.analytics.adrTooltip'),
+      iconClassName: undefined,
     },
     {
       key: 'revpan',
-      title: 'RevPAN',
+      label: 'RevPAN',
       value: data ? <Money value={data.revPAN.value} from="EUR" decimals={2} /> : '-',
-      subtitle: t('dashboard.analytics.revenuePerNight'),
-      trend: data?.revPAN.growth,
+      hint: data
+        ? <TrendHint growth={data.revPAN.growth} suffix={t('dashboard.analytics.revenuePerNight')} />
+        : t('dashboard.analytics.revenuePerNight'),
       icon: <Euro />,
-      iconColor: '#7B68A8',
-      tooltip: t('dashboard.analytics.revPANTooltip'),
+      iconClassName: undefined,
     },
   ];
 
@@ -236,12 +214,18 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
 
   return (
     <div className="mb-4">
-      {/* ─── Hero KPIs ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+      {/* ─── Hero — les tuiles de la projection ──────────────────── */}
+      <div className="grid grid-cols-2 gap-3 mb-[15px] lg:grid-cols-4">
         {heroKpis.map((kpi) => (
-          <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
-            <HeroKpiCard item={kpi} loading={loading} />
-          </div>
+          <StatTile
+            key={kpi.key}
+            icon={kpi.icon}
+            label={kpi.label}
+            value={kpi.value}
+            hint={kpi.hint}
+            iconClassName={kpi.iconClassName}
+            loading={loading}
+          />
         ))}
       </div>
 

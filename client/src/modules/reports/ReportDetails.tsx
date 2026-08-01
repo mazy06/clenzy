@@ -57,6 +57,7 @@ import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PeriodSegmented from './PeriodSegmented';
+import StatTile from '../../components/baitly/StatTile';
 import DashboardErrorBoundary from '../dashboard/DashboardErrorBoundary';
 import AnalyticsGlobalPerformance from '../dashboard/analytics/AnalyticsGlobalPerformance';
 import AnalyticsRevenue from '../dashboard/analytics/AnalyticsRevenue';
@@ -154,41 +155,42 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
+/**
+ * Adaptateur : les cartes heros de tous les onglets de rapports rendent
+ * desormais la tuile de la projection (StatTile), sans changer un seul site
+ * d'appel. La teinte hex/var d'icone des appelants est rabattue sur les
+ * classes semantiques de la tuile ; l'indice porte tendance et sous-titre.
+ */
+const KPI_ICON_CLASS: Record<string, string | undefined> = {
+  'var(--ok)': 'text-success',
+  'var(--warn)': 'text-warning',
+  'var(--err)': 'text-destructive',
+  'var(--info)': 'text-info',
+  'var(--accent)': undefined,
+};
+
 const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Card className={HERO_CARD_CLASS}>
-    <CardContent>
-      {loading ? (
-        <div>
-          <Skeleton className="h-[14px] w-1/2 rounded-[4px]" />
-          <Skeleton className="h-[28px] w-[70%] rounded-[4px] mt-[3px]" />
-          <Skeleton className="h-[12px] w-2/5 rounded-[4px] mt-[3px]" />
-        </div>
-      ) : (
+  <StatTile
+    icon={item.icon}
+    label={item.title}
+    value={item.value}
+    iconClassName={KPI_ICON_CLASS[item.iconColor]}
+    loading={loading}
+    className="h-full"
+    hint={
+      item.trend !== undefined ? (
+        // Meme forme textuelle que le TrendHint du Dashboard : le <b> est
+        // style par la tuile elle-meme. TrendBadge rendrait un div dans le
+        // span du hint — HTML invalide.
         <>
-          <div className="flex items-center gap-1 mb-1">
-            <div
-              className="flex items-center justify-center w-8 h-8 rounded-[8px] shrink-0 text-[var(--kpi-icon)] bg-[color-mix(in_srgb,_var(--kpi-icon)_12%,_transparent)] [&_svg]:w-4 [&_svg]:h-4"
-              style={{ '--kpi-icon': item.iconColor } as React.CSSProperties}
-            >
-              {item.icon}
-            </div>
-            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] tracking-[0.05em] uppercase">
-              {item.title}
-            </p>
-          </div>
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.25rem] font-semibold leading-[1.1] tracking-[-0.025em] text-[var(--ink)] tabular-nums">
-            {item.value}
-          </p>
-          {item.subtitle && (
-            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-0.5 leading-[1.2]">
-              {item.subtitle}
-            </p>
-          )}
-          {item.trend !== undefined && <TrendBadge value={item.trend} />}
+          <b>{item.trend > 0 ? '+' : ''}{item.trend} %</b>
+          {item.subtitle ? ` · ${item.subtitle}` : ''}
         </>
-      )}
-    </CardContent>
-  </Card>
+      ) : (
+        item.subtitle
+      )
+    }
+  />
 );
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
