@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Paper, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
+import { Paper, CircularProgress, Skeleton, Tooltip } from '@mui/material';
 import {
   AutoAwesome,
   TrendingUp,
@@ -99,12 +99,11 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               <AlertDescription><p className="cn-text-body2 text-[0.75rem] mb-1.5">
                 {t('bookingEngine.ai.guidance.pricing.text')}
               </p><Button
-                size="small"
-                variant="outlined"
-                startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
+                size="xs"
+                variant="outline"
                 onClick={() => navigate('/settings')}
-                sx={{ textTransform: 'none', fontSize: '0.7rem' }}
               >
+                <SettingsIcon strokeWidth={1.75} />
                 {t('bookingEngine.ai.guidance.pricing.button')}
               </Button></AlertDescription>
             </Alert>

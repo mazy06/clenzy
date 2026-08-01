@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Paper, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Paper, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -242,14 +243,19 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} color="inherit">Annuler</Button>
-        {step > 0 && <Button onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
+        {/* Trois niveaux dans la meme zone : « Annuler » abandonne (ghost),
+            « Retour » navigue dans l'assistant et merite un cadre (outline),
+            l'action de progression reste la seule encre pleine. */}
+        <Button variant="ghost" onClick={handleClose}>Annuler</Button>
+        {step > 0 && <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
         {step < 2 ? (
-          <Button variant="contained" disabled={!canNext} endIcon={<ChevronRight size={16} strokeWidth={2} />} onClick={() => setStep((s) => s + 1)}>
+          <Button variant="default" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>
             Continuer
+            <ChevronRight size={16} strokeWidth={2} />
           </Button>
         ) : (
-          <Button variant="contained" disabled={!canNext || submitting} startIcon={submitting ? <Spinner className="size-3.5" /> : undefined} onClick={submit}>
+          <Button variant="default" disabled={!canNext || submitting} onClick={submit}>
+            {submitting ? <Spinner className="size-3.5" /> : null}
             Ajouter
           </Button>
         )}

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, Snackbar, Alert, Switch, TextField, InputAdornment } from '@mui/material';
+import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
+import { Snackbar, Alert, Switch, TextField, InputAdornment } from '@mui/material';
 import { Save, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -120,13 +120,8 @@ export default function TechnicianTravaux() {
         iconBadge={<Build />}
         backPath="/dashboard"
         actions={
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={saving ? <Spinner className="size-4" /> : <Save />}
-            onClick={handleSave}
-            disabled={saving}
-          >
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? <Spinner className="size-4" /> : <Save />}
             {t('tarification.save', 'Enregistrer')}
           </Button>
         }

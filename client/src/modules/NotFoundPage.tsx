@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, useTheme, alpha } from '@mui/material';
+import { useTheme, alpha } from '@mui/material';
+import { Button } from '../components/ui';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
 
@@ -34,20 +35,12 @@ const NotFoundPage: React.FC = () => {
       </div>
 
       <div className="flex gap-2 mt-1.5">
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeftIcon size={16} />}
-          onClick={() => navigate(-1)}
-          sx={{ cursor: 'pointer' }}
-        >
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          <ArrowLeftIcon size={16} />
           Retour
         </Button>
-        <Button
-          variant="contained"
-          startIcon={<HomeIcon size={16} />}
-          onClick={() => navigate('/dashboard')}
-          sx={{ cursor: 'pointer' }}
-        >
+        <Button onClick={() => navigate('/dashboard')}>
+          <HomeIcon size={16} />
           Aller au dashboard
         </Button>
       </div>

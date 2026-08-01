@@ -2,9 +2,9 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  Button,
   IconButton,
 } from '@mui/material';
+import { Button } from './ui';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import {
@@ -125,10 +125,6 @@ const styles = {
     flexGrow: 1,
     p: 1.75,
     pb: '12px !important',
-  },
-  detailsButton: {
-    fontSize: '0.72rem',
-    py: 0.5,
   },
 } as const;
 
@@ -271,13 +267,12 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
       {/* ─── Zone actions ─── */}
       <div className="flex gap-[4.5px] px-[10.5px] pt-0 pb-[7.5px]">
         <Button
-          fullWidth
-          size="small"
-          startIcon={<Visibility size={15} strokeWidth={1.75} />}
+          className="w-full"
+          size="sm"
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
-          variant="outlined"
-          sx={styles.detailsButton}
+          variant="outline"
         >
+          <Visibility size={15} strokeWidth={1.75} />
           Détails
         </Button>
       </div>

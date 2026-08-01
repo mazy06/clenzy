@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Payment,
@@ -165,18 +165,17 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             <TriangleAlert />
             <AlertDescription>Cette intervention est terminée et attend votre validation.</AlertDescription>
           </Alert>
+          {/* `color="warning"` n'a pas de variante dediee : outline teinte --warn. */}
           <Button
-            variant="contained"
-            color="warning"
-            fullWidth
-            size="small"
-            startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
+            variant="outline"
+            size="sm"
+            className="w-full mb-3 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)] shrink"
             onClick={() => {
               setValidateCost(estimatedCost.toFixed(2));
               setValidateDialogOpen(true);
             }}
-            sx={{ mb: 2 }}
           >
+            <CheckCircle size={14} strokeWidth={1.75} />
             Valider l'intervention
           </Button>
           <Divider sx={{ my: 2 }} />
@@ -254,14 +253,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           </Alert>}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setValidateDialogOpen(false)} size="small">Annuler</Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleValidate}
-            disabled={validating}
-            startIcon={validating ? <Spinner className="size-3.5" /> : undefined}
-          >
+          <Button variant="ghost" size="sm" onClick={() => setValidateDialogOpen(false)}>Annuler</Button>
+          <Button size="sm" onClick={handleValidate} disabled={validating}>
+            {validating && <Spinner className="size-3.5" />}
             Valider
           </Button>
         </DialogActions>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -87,15 +87,11 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading}>
+        <Button variant="ghost" onClick={handleClose} disabled={loading}>
           {t('common.cancel')}
         </Button>
-        <Button
-          variant="contained"
-          onClick={handleApply}
-          disabled={loading || !price}
-          startIcon={loading ? <Spinner className="size-4" /> : undefined}
-        >
+        <Button onClick={handleApply} disabled={loading || !price}>
+          {loading && <Spinner className="size-4" />}
           {t('dynamicPricing.calendar.applyRange')}
         </Button>
       </DialogActions>

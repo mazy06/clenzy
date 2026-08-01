@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface PropertyDeleteDialogProps {
@@ -26,10 +27,10 @@ const PropertyDeleteDialog: React.FC<PropertyDeleteDialogProps> = ({
         </p>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} size="small" variant="text">
+        <Button onClick={onClose} variant="ghost" size="sm">
           {t('common.cancel')}
         </Button>
-        <Button onClick={onConfirm} color="error" variant="contained" size="small">
+        <Button onClick={onConfirm} variant="destructive" size="sm">
           {t('properties.delete')}
         </Button>
       </DialogActions>

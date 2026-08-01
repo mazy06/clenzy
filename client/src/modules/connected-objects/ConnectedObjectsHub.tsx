@@ -7,7 +7,7 @@ import { Info, X } from 'lucide-react';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Skeleton, Paper, Tooltip, alpha, Snackbar } from '@mui/material';
+import { Box, Skeleton, Paper, Tooltip, alpha, Snackbar } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -101,9 +101,10 @@ export default function ConnectedObjectsHub({
   // Action « Ajouter un objet » : rendue dans le PageHeader propre (standalone)
   // ou portee dans le slot actions du parent (embedded, cf. PropertiesPage).
   const headerAction = (
-    <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+    <BuiButton size="sm" onClick={() => setWizardOpen(true)}>
+      <Add size={16} strokeWidth={2} />
       Ajouter un objet
-    </Button>
+    </BuiButton>
   );
 
   return (
@@ -144,14 +145,22 @@ export default function ConnectedObjectsHub({
             );
           })
         )}
+        {/* Action du bandeau, pas de l'ecran : `outline` pour ne pas concurrencer
+            « Ajouter un objet » qui reste l'action principale de la page. */}
         {!netatmoConnected && (
-          <Button variant="contained" size="small" onClick={() => { void connectNetatmo(); }} sx={{ ml: 'auto' }}>
+          <BuiButton variant="outline" size="sm" onClick={() => { void connectNetatmo(); }} className="ms-auto">
             Connecter Netatmo
-          </Button>
+          </BuiButton>
         )}
-        <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings?tab=integrations')} sx={{ ml: netatmoConnected ? 'auto' : 1, color: 'text.secondary' }}>
+        <BuiButton
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/settings?tab=integrations')}
+          className={cn('text-[var(--muted)]', netatmoConnected ? 'ms-auto' : 'ms-1.5')}
+        >
           Gérer les intégrations
-        </Button>
+          <ChevronRight size={14} strokeWidth={1.75} />
+        </BuiButton>
       </Card>
 
       {/* KPIs */}
@@ -197,8 +206,8 @@ export default function ConnectedObjectsHub({
             ? "Vos services sont reliés — ajoutez vos serrures, caméras, capteurs et points de remise : ils apparaîtront ici, regroupés par logement."
             : "Reliez un service (Nuki, Minut, Tuya, KeyNest…) puis ajoutez vos serrures, capteurs et points de remise — ils apparaîtront ici, regroupés par logement."}
           action={hasConnectedService
-            ? <Button variant="contained" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>
-            : <Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => navigate('/settings?tab=integrations')}>Connecter un service</Button>}
+            ? <BuiButton onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />Ajouter un objet</BuiButton>
+            : <BuiButton variant="outline" onClick={() => navigate('/settings?tab=integrations')}><Add size={16} strokeWidth={2} />Connecter un service</BuiButton>}
           tip="Un seul écran pour tout superviser : verrouillage à distance, niveau sonore, batteries et codes de clés."
         />
       ) : (

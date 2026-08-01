@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from './StatusChip';
-import { Spinner } from './ui';
+import { Spinner, Button } from './ui';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, Grid, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
+import { Card, CardContent, Grid, Alert, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -176,7 +176,9 @@ const HealthChecks: React.FC = () => {
   if (error && healthChecks.length === 0) {
     return (
       <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={handleRefresh}>
+        // Action d'appoint dans un bandeau : ghost. `text-current` remplace le
+        // color="inherit" de MUI — le bouton reprend l'encre du bandeau d'erreur.
+        <Button variant="ghost" size="sm" className="text-current" onClick={handleRefresh}>
           Réessayer
         </Button>
       }>

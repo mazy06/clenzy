@@ -3,9 +3,9 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Card } from '../../components/ui';
+import { Card, Button } from '../../components/ui';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
   Hotel, Percent, CleaningServices, Restaurant,
@@ -192,7 +192,7 @@ const TaxRulesSection: React.FC = () => {
         severity="warning"
         icon={<InfoIcon />}
         action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>
+          <Button variant="ghost" size="sm" onClick={() => refetch()}>
             {t('fiscal.taxRules.retry')}
           </Button>
         }
@@ -231,13 +231,8 @@ const TaxRulesSection: React.FC = () => {
 
             {/* Add button (SUPER_ADMIN only) */}
             {isSuperAdmin && (
-              <Button
-                variant="contained"
-                disableElevation
-                startIcon={<Add size={14} strokeWidth={2} />}
-                onClick={openCreateDialog}
-                size="small"
->
+              <Button size="sm" onClick={openCreateDialog}>
+                <Add size={14} strokeWidth={2} />
                 {t('fiscal.taxRules.add')}
               </Button>
             )}
@@ -437,16 +432,15 @@ const TaxRulesSection: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDialog} size="small">
+          <Button variant="ghost" size="sm" onClick={closeDialog}>
             {t('fiscal.taxRules.cancel')}
           </Button>
           <Button
-            variant="contained"
+            size="sm"
             onClick={handleSave}
             disabled={isSaving || !form.taxName || !form.effectiveFrom}
-            size="small"
-            startIcon={isSaving ? <Spinner className="size-4" /> : undefined}
           >
+            {isSaving ? <Spinner className="size-4" /> : null}
             {isSaving ? t('fiscal.taxRules.saving') : t('fiscal.taxRules.save')}
           </Button>
         </DialogActions>
@@ -464,15 +458,14 @@ const TaxRulesSection: React.FC = () => {
           </p>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)} size="small">
+          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
             {t('fiscal.taxRules.cancel')}
           </Button>
           <Button
-            variant="contained"
-            color="error"
+            variant="destructive"
+            size="sm"
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
-            size="small"
           >
             {deleteMutation.isPending ? t('fiscal.taxRules.deleting') : t('fiscal.taxRules.delete')}
           </Button>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Spinner } from '../../components/ui';
-import { Paper, Button, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
+import { Paper, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
+import { Button } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
@@ -104,12 +105,12 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
           <Divider sx={{ mb: 1.5 }} />
           {linkingPropertyId === null ? (
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={<LinkIcon />}
+              size="sm"
+              variant="outline"
               onClick={onStartLink}
-              sx={{ fontSize: '0.75rem' }}
+              className="text-[0.75rem]"
             >
+              <LinkIcon />
               {t('channels.listings.linkProperty')}
             </Button>
           ) : (
@@ -284,15 +285,14 @@ function LinkPropertyForm({
           className={cn(AIRBNB_FIELD_CLS, 'min-w-[200px] flex-1')}
         />
         <Button
-          size="small"
-          variant="contained"
+          size="sm"
           onClick={onSubmit}
           disabled={loading || !form.airbnbListingId}
-          sx={{ fontSize: '0.75rem' }}
+          className="text-[0.75rem]"
         >
           {loading ? <Spinner className="size-3.5" /> : t('channels.listings.link')}
         </Button>
-        <Button size="small" variant="outlined" onClick={onCancel} sx={{ fontSize: '0.75rem' }}>
+        <Button size="sm" variant="outline" onClick={onCancel} className="text-[0.75rem]">
           {t('common.cancel')}
         </Button>
       </div>

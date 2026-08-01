@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Grid, Button } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Grid } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -430,7 +430,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         {/* Bouton de soumission cache pour le PageHeader */}
         <Button
           type="submit"
-          sx={{ display: 'none' }}
+          className="hidden"
           data-submit-intervention
         >
           {t('common.submit')}

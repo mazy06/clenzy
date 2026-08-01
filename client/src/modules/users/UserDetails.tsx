@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Button, Snackbar } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Snackbar } from '@mui/material';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -111,12 +111,10 @@ const UserDetails: React.FC = () => {
         showBackButton={true}
         actions={
           <Button
-            variant="contained"
-            size="small"
-            startIcon={<Edit size={16} strokeWidth={1.75} />}
+            size="sm"
             onClick={() => navigate(`/users/${user.id}/edit`)}
-            sx={{ fontSize: '0.8125rem', textTransform: 'none', fontWeight: 600 }}
           >
+            <Edit size={16} strokeWidth={1.75} />
             Modifier
           </Button>
         }

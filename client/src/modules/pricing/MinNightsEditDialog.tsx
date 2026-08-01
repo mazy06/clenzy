@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { NightsStay } from '../../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -89,15 +89,14 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading}>
+        <Button variant="outline" onClick={handleClose} disabled={loading}>
           Annuler
         </Button>
         <Button
-          variant="contained"
           onClick={handleApply}
           disabled={loading || !minNights}
-          startIcon={loading ? <Spinner className="size-4" /> : undefined}
         >
+          {loading && <Spinner className="size-4" />}
           Appliquer
         </Button>
       </DialogActions>

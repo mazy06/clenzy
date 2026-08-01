@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, TextField, IconButton, Tooltip, Skeleton, Snackbar, Alert } from '@mui/material';
+import { TextField, IconButton, Tooltip, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -125,12 +126,12 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                   sx={{ flex: 1, maxWidth: 320 }}
                 />
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={generate.isPending ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={2} />}
+                  variant="default"
+                  size="sm"
                   onClick={() => generate.mutate()}
                   disabled={generate.isPending}
                 >
+                  {generate.isPending ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={2} />}
                   Générer un code
                 </Button>
               </div>

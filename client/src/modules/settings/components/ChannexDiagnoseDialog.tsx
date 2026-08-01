@@ -23,8 +23,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Button, Alert, Stack, Skeleton } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Dialog, DialogContent, DialogTitle, Alert, Stack, Skeleton } from '@mui/material';
 import {
   CheckCircle2,
   AlertCircle,
@@ -163,13 +163,12 @@ function ActionButton({
           {action.detail}
         </span>
         <Button
-          size="small"
-          variant={isPrimary ? 'contained' : 'outlined'}
-          startIcon={busy ? <Spinner className="size-3.5" /> : <Icon size={14} />}
+          size="sm"
+          variant={isPrimary ? 'default' : 'outline'}
           disabled={busy}
           onClick={onClick}
-          sx={{ textTransform: 'none', fontSize: '0.78rem' }}
         >
+          {busy ? <Spinner className="size-3.5" /> : <Icon size={14} />}
           {busy ? 'En cours…' : action.label}
         </Button>
       </div>
@@ -290,10 +289,12 @@ export default function ChannexDiagnoseDialog({
             </span>
           )}
         </div>
+        {/* Icone seule : taille carree du kit, jamais une taille texte. */}
         <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-[var(--muted)]"
           onClick={onClose}
-          size="small"
-          sx={{ minWidth: 0, p: 0.5, color: 'text.secondary' }}
           aria-label="Fermer"
         >
           <X size={18} />
@@ -311,7 +312,7 @@ export default function ChannexDiagnoseDialog({
 
         {error && !loading && (
           <Alert severity="error" sx={{ mt: 1 }} action={
-            <Button size="small" onClick={() => void fetchReport()} sx={{ textTransform: 'none' }}>
+            <Button variant="outline" size="sm" onClick={() => void fetchReport()}>
               Reessayer
             </Button>
           }>

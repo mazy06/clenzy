@@ -17,10 +17,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { cn } from '../../../utils/cn';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Box, Stack, TextField, InputAdornment, Button, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Stack, TextField, InputAdornment, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Search,
   Plus,
@@ -292,39 +292,30 @@ export default function AmenityMappingPage() {
   const headerActionsPortal = useSettingsHeaderActions(
     <>
       <Tooltip title="Re-scrape Airbnb pour TOUTES vos propriétés importées (récupère nom + commodités fraîches)" arrow>
-        <span>
+        <span className="inline-flex">
+          {/* Teinte violette conservee : elle distingue le re-scrape (appel sortant
+              vers airbnb.com, couteux) du simple re-traitement local juste a cote. */}
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Sparkles size={14} />}
+            variant="outline"
+            size="sm"
             onClick={() => setConfirmRescrape(true)}
             disabled={rescraping}
-            sx={{
-              textTransform: 'none',
-              borderColor: '#8B5CF6',
-              color: '#8B5CF6',
-              '&:hover': { borderColor: '#7C3AED', backgroundColor: 'rgba(139, 92, 246, 0.04)' },
-            }}
+            className="border-[#8B5CF6] text-[#8B5CF6] hover:border-[#7C3AED] hover:bg-[color-mix(in_srgb,#8B5CF6_10%,transparent)] hover:text-[#7C3AED]"
           >
+            <Sparkles size={14} />
             {rescraping ? 'Re-scrape en cours…' : 'Re-scrape OTA'}
           </Button>
         </span>
       </Tooltip>
       <Tooltip title="Applique tous vos aliases + ignored sur les propriétés existantes (utile après modifications)" arrow>
-        <span>
+        <span className="inline-flex">
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RotateCcw size={14} />}
+            variant="outline"
+            size="sm"
             onClick={() => setConfirmReprocess(true)}
             disabled={reprocessing || (aliases.length === 0 && ignored.length === 0)}
-            sx={{
-              textTransform: 'none',
-              borderColor: ACCENT,
-              color: ACCENT,
-              '&:hover': { borderColor: 'var(--accent-deep)', backgroundColor: 'var(--accent-soft)' },
-            }}
           >
+            <RotateCcw size={14} />
             Re-traiter
           </Button>
         </span>
@@ -430,13 +421,12 @@ export default function AmenityMappingPage() {
                   </Select>
                 </FormControl>
                 <Button
-                  variant="contained"
-                  size="small"
+                  variant="default"
+                  size="sm"
                   onClick={handleBulkMap}
                   disabled={!bulkCode || bulkBusy}
-                  startIcon={<Wand2 size={14} />}
-                  sx={{ textTransform: 'none' }}
                 >
+                  <Wand2 size={14} />
                   Appliquer
                 </Button>
               </Stack>
@@ -528,12 +518,11 @@ export default function AmenityMappingPage() {
         <Stack spacing={1}>
           <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
             <Button
-              variant="contained"
-              size="small"
-              startIcon={<Plus size={14} />}
+              variant="default"
+              size="sm"
               onClick={() => setCreateModal({ open: true, prefillRawName: null, prefillAffectedCount: 0 })}
-              sx={{ textTransform: 'none' }}
             >
+              <Plus size={14} />
               Nouvelle commodité
             </Button>
           </Stack>
@@ -796,10 +785,8 @@ export default function AmenityMappingPage() {
           </p>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 1.5 }}>
-          <Button onClick={() => setConfirmReprocess(false)} size="small"
-                  sx={{ textTransform: 'none', color: 'text.secondary' }}>Annuler</Button>
-          <Button variant="contained" size="small" onClick={handleReprocess}
-                  sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" size="sm" onClick={() => setConfirmReprocess(false)}>Annuler</Button>
+          <Button variant="default" size="sm" onClick={handleReprocess}>
             Re-traiter
           </Button>
         </DialogActions>
@@ -822,10 +809,8 @@ export default function AmenityMappingPage() {
           </span>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 1.5 }}>
-          <Button onClick={() => setConfirmRescrape(false)} size="small"
-                  sx={{ textTransform: 'none', color: 'text.secondary' }}>Annuler</Button>
-          <Button variant="contained" size="small" onClick={handleRescrape}
-                  sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" size="sm" onClick={() => setConfirmRescrape(false)}>Annuler</Button>
+          <Button variant="default" size="sm" onClick={handleRescrape}>
             Lancer le re-scrape
           </Button>
         </DialogActions>

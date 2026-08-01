@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, SelectChangeEvent } from '@mui/material';
+import { Box, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, SelectChangeEvent } from '@mui/material';
 import {
   ExpandMore,
   ExpandLess,
@@ -154,13 +154,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
   // ── Action buttons (portal into PageHeader when embedded) ──
   const actionButtons = (
     <div className="flex items-center gap-1.5">
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<CloudUpload />}
-        onClick={() => setImportOpen(true)}
-        sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-      >
+      <Button size="sm" onClick={() => setImportOpen(true)}>
+        <CloudUpload />
         Importer CSV
       </Button>
       <Badge variant="secondary" className="font-semibold text-[0.75rem]">{`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}</Badge>
@@ -247,12 +242,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
           title="Aucun prospect pour le moment"
           description="Importez un fichier CSV depuis Vibe Prospecting pour commencer."
           action={(
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CloudUpload size={16} strokeWidth={1.75} />}
-              onClick={() => setImportOpen(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <CloudUpload size={16} strokeWidth={1.75} />
               Importer des prospects
             </Button>
           )}

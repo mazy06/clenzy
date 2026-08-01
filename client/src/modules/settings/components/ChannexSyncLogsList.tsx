@@ -9,8 +9,8 @@
  * timestamp formate "il y a Xm/Xh", erreur tronquee en monospace si FAIL.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Badge } from '../../../components/ui';
-import { IconButton, Collapse, Stack, Skeleton, Tooltip, Button } from '@mui/material';
+import { Badge, Button } from '../../../components/ui';
+import { IconButton, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
 import {
   History,
   ChevronDown,
@@ -184,7 +184,9 @@ export default function ChannexSyncLogsList({
               <span className="cn-text-caption text-destructive block mb-0.5">
                 {error}
               </span>
-              <Button size="small" onClick={() => void fetchLogs()} sx={{ textTransform: 'none', fontSize: '0.72rem' }}>
+              {/* Outline et non ghost : seule voie de reprise apres une erreur de
+                  chargement, elle doit rester reperable dans ce panneau dense. */}
+              <Button variant="outline" size="sm" onClick={() => void fetchLogs()}>
                 Reessayer
               </Button>
             </div>
@@ -201,9 +203,10 @@ export default function ChannexSyncLogsList({
               ))}
               {hiddenCount > 0 && (
                 <Button
-                  size="small"
+                  variant="ghost"
+                  size="sm"
+                  className="self-start"
                   onClick={() => setShowAll(true)}
-                  sx={{ textTransform: 'none', fontSize: '0.7rem', alignSelf: 'flex-start' }}
                 >
                   Voir {hiddenCount} entree{hiddenCount > 1 ? 's' : ''} de plus
                 </Button>

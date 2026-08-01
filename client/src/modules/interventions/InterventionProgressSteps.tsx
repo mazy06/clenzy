@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   CheckCircle as CheckCircleIcon,
@@ -97,8 +97,6 @@ const roomChipClass = [
 ].join(' ');
 
 const noteBoxClass = 'p-[9px] bg-[var(--surface-2)] rounded-[12px] border border-solid border-[var(--line)]';
-
-const actionBtnSx = { textTransform: 'none', fontSize: '0.8125rem', borderRadius: 1.5 };
 
 // ─── Stepper header ─────────────────────────────────────────────────────────
 
@@ -323,21 +321,19 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       )}
 
       <div className="flex gap-1.5 flex-wrap">
-        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+        <Button variant="outline" size="sm"
           onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}>
+          <PhotoCameraIcon size={18} strokeWidth={1.75} />
           {t('interventions.progressSteps.addPhotos')}
         </Button>
-        <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+        <Button variant="outline" size="sm"
           onClick={() => handleOpenNotesDialog('inspection')}>
+          <CommentIcon size={18} strokeWidth={1.75} />
           {getStepNote('inspection') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
         {!inspectionComplete && beforePhotos.length > 0 && (
-          <Button variant="contained" size="small" startIcon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} sx={{
-            ...actionBtnSx,
-            animation: 'pulse 2s infinite',
-            '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
-            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-          }}
+          // Seule action qui fait AVANCER l'etape : elle domine les deux autres.
+          <Button variant="default" size="sm" className="animate-pulse motion-reduce:animate-none"
           onClick={() => {
             setInspectionComplete(true);
             setCompletedSteps(prev => new Set(prev).add('inspection'));
@@ -351,6 +347,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             handleUpdateProgressValue(newProgress);
             setActiveStep(1);
           }}>
+            <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
             {t('interventions.progressSteps.validateInspection')}
           </Button>
         )}
@@ -411,8 +408,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         </div>
       )}
 
-      <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+      <Button variant="outline" size="sm"
         onClick={() => handleOpenNotesDialog('rooms')}>
+        <CommentIcon size={18} strokeWidth={1.75} />
         {getStepNote('rooms') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
       </Button>
     </div>
@@ -455,12 +453,14 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       )}
 
       <div className="flex gap-1.5 flex-wrap">
-        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+        <Button variant="outline" size="sm"
           onClick={() => { setPhotoType('after'); setPhotosDialogOpen(true); }}>
+          <PhotoCameraIcon size={18} strokeWidth={1.75} />
           {t('interventions.progressSteps.addPhotos')}
         </Button>
-        <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+        <Button variant="outline" size="sm"
           onClick={() => handleOpenNotesDialog('after_photos')}>
+          <CommentIcon size={18} strokeWidth={1.75} />
           {getStepNote('after_photos') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
       </div>
@@ -574,20 +574,14 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                   </div>
                   {hasFile && (
                     <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <Button size="small" variant="outlined" startIcon={<VisibilityIcon size={18} strokeWidth={1.75} />}
-                        onClick={() => handleViewPdf(doc)}
-                        sx={{
-                          textTransform: 'none', fontSize: '0.75rem', minWidth: 0,
-                          borderRadius: 1.5, py: 0.5, px: 1.5,
-                        }}>
+                      <Button size="xs" variant="outline"
+                        onClick={() => handleViewPdf(doc)}>
+                        <VisibilityIcon size={18} strokeWidth={1.75} />
                         {t('interventions.progressSteps.viewPdf')}
                       </Button>
-                      <Button size="small" variant="text" startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
-                        onClick={() => handleDownloadPdf(doc)}
-                        sx={{
-                          textTransform: 'none', fontSize: '0.75rem', minWidth: 0,
-                          borderRadius: 1.5, py: 0.5, px: 1.5, color: 'text.secondary',
-                        }}>
+                      <Button size="xs" variant="ghost" className="text-[var(--muted)]"
+                        onClick={() => handleDownloadPdf(doc)}>
+                        <DownloadIcon size={18} strokeWidth={1.75} />
                         {t('interventions.progressSteps.download')}
                       </Button>
                     </div>
@@ -602,18 +596,15 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {/* Complete intervention button */}
       {intervention.status !== 'COMPLETED' && (
         <div className="mt-5 text-center">
-          <Button variant="contained" color="success" size="large" startIcon={<DoneIcon size={18} strokeWidth={1.75} />}
+          {/* Unique action de la zone et aboutissement du parcours : elle reste en
+              encre pleine (`default`). La teinte `success` de MUI n'est pas reportee —
+              le kit n'a pas de variante succes et l'etat "termine" est deja porte par
+              l'icone et le libelle. */}
+          <Button variant="default" size="lg"
+            className={cn('px-6', areAllStepsCompleted && !completing && 'animate-pulse motion-reduce:animate-none')}
             onClick={handleCompleteIntervention}
-            disabled={!areAllStepsCompleted || completing}
-            sx={{
-              py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
-              fontSize: '0.875rem', borderRadius: 2,
-              ...(areAllStepsCompleted && !completing ? {
-                animation: 'pulse 2s infinite',
-                '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
-                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-              } : {}),
-            }}>
+            disabled={!areAllStepsCompleted || completing}>
+            <DoneIcon size={18} strokeWidth={1.75} />
             {completing ? t('interventions.progressSteps.completing') : t('interventions.progressSteps.complete')}
           </Button>
         </div>
@@ -669,12 +660,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               </p>
             </>
           )}
-          <Button variant="contained" color="primary" startIcon={<PlayArrowIcon size={18} strokeWidth={1.75} />}
-            onClick={handleStartIntervention} disabled={starting || isBeforeScheduledDate}
-            sx={{
-              py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
-              fontSize: '0.875rem', borderRadius: 2,
-            }}>
+          <Button variant="default" size="lg" className="px-6"
+            onClick={handleStartIntervention} disabled={starting || isBeforeScheduledDate}>
+            <PlayArrowIcon size={18} strokeWidth={1.75} />
             {starting ? t('interventions.progressSteps.starting') : t('interventions.progressSteps.startIntervention')}
           </Button>
         </div>
@@ -692,12 +680,12 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                 {t('interventions.progressSteps.completedMessage')}
               </p>
             </div>
-            <Button variant="contained" color="warning" startIcon={<ReplayIcon size={18} strokeWidth={1.75} />}
-              onClick={handleReopenIntervention} disabled={completing}
-              sx={{
-                py: 1.25, px: 3, fontWeight: 600, textTransform: 'none',
-                fontSize: '0.875rem', whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 2,
-              }}>
+            {/* Rouvrir revient en arriere sur une intervention close : action a poids
+                mesure, teintee avertissement plutot qu'encre pleine. */}
+            <Button variant="outline" size="lg"
+              className="shrink-0 whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              onClick={handleReopenIntervention} disabled={completing}>
+              <ReplayIcon size={18} strokeWidth={1.75} />
               {completing ? t('interventions.progressSteps.reopening') : t('interventions.progressSteps.reopen')}
             </Button>
           </div>
@@ -744,9 +732,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                 <p className="cn-text-body2 text-muted-foreground mb-3">
                   {t('interventions.progressSteps.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </p>
-                <Button variant="contained" href={pdfUrl} download={pdfFileName || 'document.pdf'}
-                  startIcon={<DownloadIcon size={18} strokeWidth={1.75} />} sx={{ textTransform: 'none' }}>
-                  {t('interventions.progressSteps.download')}
+                <Button asChild variant="default">
+                  <a href={pdfUrl} download={pdfFileName || 'document.pdf'}>
+                    <DownloadIcon size={18} strokeWidth={1.75} />
+                    {t('interventions.progressSteps.download')}
+                  </a>
                 </Button>
               </div>
             </object>
@@ -760,7 +750,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2, py: 1.5 }}>
-          <Button onClick={handleClosePdfDialog} sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <Button variant="ghost" size="sm" onClick={handleClosePdfDialog}>
             {t('common.close', 'Fermer')}
           </Button>
         </DialogActions>

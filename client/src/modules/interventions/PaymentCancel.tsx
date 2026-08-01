@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Cancel, ArrowBack } from "../../icons";
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -19,12 +20,8 @@ const PaymentCancel: React.FC = () => {
           <p className="cn-text-body1 text-muted-foreground mb-4">
             Le paiement a ete annule. Vous pouvez reessayer depuis la page de facturation.
           </p>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
-            onClick={() => navigate('/billing')}
-          >
+          <Button onClick={() => navigate('/billing')}>
+            <ArrowBack size={18} strokeWidth={1.75} />
             Retour a la facturation
           </Button>
         </CardContent>

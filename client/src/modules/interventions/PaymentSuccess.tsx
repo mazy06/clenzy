@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Button, Card, CardContent, CircularProgress, LinearProgress } from '@mui/material';
+import { Card, CardContent, CircularProgress, LinearProgress } from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -111,11 +111,8 @@ const PaymentSuccess: React.FC = () => {
                 <TriangleAlert />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-              <Button
-                variant="contained"
-                startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
-                onClick={() => navigate('/billing')}
-              >
+              <Button onClick={() => navigate('/billing')}>
+                <ArrowBack size={18} strokeWidth={1.75} />
                 Retour a la facturation
               </Button>
             </>
@@ -128,11 +125,7 @@ const PaymentSuccess: React.FC = () => {
               <p className="cn-text-body1 text-muted-foreground mb-4">
                 Votre paiement a ete traite avec succes. Le statut sera mis a jour automatiquement.
               </p>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate('/billing')}
-              >
+              <Button onClick={() => navigate('/billing')}>
                 Voir la facturation
               </Button>
             </>
@@ -148,11 +141,7 @@ const PaymentSuccess: React.FC = () => {
               <p className="cn-text-body2 text-muted-foreground mb-4">
                 Le statut sera mis a jour automatiquement.
               </p>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate('/billing')}
-              >
+              <Button onClick={() => navigate('/billing')}>
                 Voir la facturation
               </Button>
             </>

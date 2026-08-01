@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from './StatusChip';
-import { Card, CardContent, CardActions, IconButton, Avatar, AvatarGroup, Button } from '@mui/material';
+import { Card, CardContent, CardActions, IconButton, Avatar, AvatarGroup } from '@mui/material';
+import { Button } from './ui';
 import {
   MoreVert,
   Visibility,
@@ -253,51 +254,26 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
 
       {/* Actions */}
       <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
+        {/* Pied de carte : deux actions de meme rang, la carte entiere etant
+            deja cliquable. Le survol teinte a l'accent de categorie disparait
+            au profit du survol du kit — il dependait d'une valeur calculee. */}
         <Button
-          fullWidth
-          size="small"
-          startIcon={<Visibility size={14} strokeWidth={1.75} />}
+          variant="outline"
+          size="sm"
+          className="w-full"
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
-          variant="outlined"
-          sx={{
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            letterSpacing: '0.01em',
-            borderRadius: '6px',
-            borderColor: 'var(--line-2)',
-            color: 'var(--body)',
-            textTransform: 'none',
-            py: 0.625,
-            '&:hover': {
-              borderColor: `${accent}80`,
-              backgroundColor: `${accent}10`,
-            },
-          }}
         >
+          <Visibility strokeWidth={1.75} />
           Détails
         </Button>
         {canEdit && (
           <Button
-            fullWidth
-            size="small"
-            startIcon={<Edit size={14} strokeWidth={1.75} />}
+            variant="outline"
+            size="sm"
+            className="w-full"
             onClick={(e) => { e.stopPropagation(); navigate(`/teams/${team.id}/edit`); }}
-            variant="outlined"
-            sx={{
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              letterSpacing: '0.01em',
-              borderRadius: '6px',
-              borderColor: 'var(--line-2)',
-              color: 'var(--body)',
-              textTransform: 'none',
-              py: 0.625,
-              '&:hover': {
-                borderColor: `${accent}80`,
-                backgroundColor: `${accent}10`,
-              },
-            }}
           >
+            <Edit strokeWidth={1.75} />
             Modifier
           </Button>
         )}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner } from '../../components/ui';
-import { Button, Collapse, Divider } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Collapse, Divider } from '@mui/material';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -98,14 +98,9 @@ const LaunchSettingsSection: React.FC = () => {
             </p>
           </div>
         </div>
-        <Button
-          size="small"
-          variant="text"
-          onClick={() => setShowList((v) => !v)}
-          endIcon={showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          sx={{ textTransform: 'none', fontSize: '0.75rem', flexShrink: 0 }}
-        >
+        <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setShowList((v) => !v)}>
           {showList ? 'Masquer' : 'Voir les inscrits'}
+          {showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </Button>
       </div>
 

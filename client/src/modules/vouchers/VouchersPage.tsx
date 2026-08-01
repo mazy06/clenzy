@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Snackbar, Stack, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Alert, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Snackbar, Stack, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -151,12 +151,8 @@ export default function VouchersPage({
           <Refresh size={18} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<Add size={16} strokeWidth={2} />}
-        onClick={() => setCreating(true)}
-      >
+      <Button size="sm" onClick={() => setCreating(true)}>
+        <Add size={16} strokeWidth={2} />
         {t('vouchers.createButton')}
       </Button>
     </Stack>
@@ -215,7 +211,8 @@ export default function VouchersPage({
             icon={<LocalOffer />}
             title={t('vouchers.empty')}
             action={(
-              <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setCreating(true)}>
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Add size={16} strokeWidth={2} />
                 {t('vouchers.createButton')}
               </Button>
             )}
@@ -279,13 +276,12 @@ export default function VouchersPage({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPendingDelete(null)}>
+          <Button variant="outline" onClick={() => setPendingDelete(null)}>
             {t('common.cancel')}
           </Button>
           <Button
+            variant="destructive"
             onClick={confirmDelete}
-            variant="contained"
-            color="error"
             autoFocus
           >
             {t('common.delete')}

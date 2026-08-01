@@ -3,8 +3,9 @@ import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Paper, Button, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
+import { Paper, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
@@ -249,15 +250,11 @@ const ContractSignPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <SectionLabel className="mb-0">{L.documentTitle}</SectionLabel>
                   {pdfUrl && (
-                    <Button
-                      size="small"
-                      startIcon={<Download size={15} strokeWidth={1.75} />}
-                      component="a"
-                      href={pdfUrl}
-                      download={`Mandat_${view.contractNumber}.pdf`}
-                      sx={{ textTransform: 'none', color: BRAND, fontWeight: 600 }}
-                    >
-                      {L.download}
+                    <Button asChild variant="ghost" size="sm">
+                      <a href={pdfUrl} download={`Mandat_${view.contractNumber}.pdf`}>
+                        <Download size={15} strokeWidth={1.75} />
+                        {L.download}
+                      </a>
                     </Button>
                   )}
                 </div>
@@ -316,26 +313,18 @@ const ContractSignPage: React.FC = () => {
                       <AlertDescription>{signError}</AlertDescription>
                     </Alert>
                   )}
+                  {/* CTA principal de la page : l'aplat accent maison cede la place a
+                      l'encre pleine du kit. `sm` MUI = 600px cote Tailwind. */}
                   <Button
-                    variant="contained"
-                    size="large"
+                    variant="default"
+                    size="lg"
                     onClick={handleSign}
                     disabled={!formValid || signing}
-                    startIcon={signing
+                    className="px-6 min-[600px]:self-start"
+                  >
+                    {signing
                       ? <Spinner className="size-4" />
                       : <CheckCircle size={18} strokeWidth={1.75} />}
-                    sx={{
-                      // Exception page publique : CTA de signature en aplat accent
-                      // (langage propre aux pages publiques, cf. send messagerie).
-                      py: 1.1,
-                      bgcolor: BRAND,
-                      color: 'var(--on-accent)',
-                      borderColor: BRAND,
-                      '&:hover': { bgcolor: 'var(--accent-deep)', borderColor: 'var(--accent-deep)', color: 'var(--on-accent)' },
-                      alignSelf: { sm: 'flex-start' },
-                      px: 4,
-                    }}
-                  >
                     {signing ? L.signing : L.signButton}
                   </Button>
                 </div>

@@ -4,7 +4,7 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   ArrowBack,
@@ -247,9 +247,10 @@ const TemplateDetails: React.FC = () => {
           <TriangleAlert />
           <AlertDescription>Template introuvable</AlertDescription>
         </BuiAlert>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate('/documents')} size="small" sx={{ mt: 2 }}>
+        <BuiButton variant="ghost" size="sm" className="mt-3" onClick={() => navigate('/documents')}>
+          <ArrowBack />
           Retour
-        </Button>
+        </BuiButton>
       </div>
     );
   }
@@ -275,35 +276,36 @@ const TemplateDetails: React.FC = () => {
         }
         actions={
           <div className="flex gap-1.5 items-center">
+            {/* « Activer » etait un contained success : pas de variante dediee au
+                succes dans le kit, on pose la teinte --ok sur un outline. Cela
+                laisse aussi l'unique `default` de la zone a « Sauvegarder ». */}
             {!template.active && (
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
+              <BuiButton
+                variant="outline"
+                size="sm"
+                className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
                 onClick={handleActivate}
-                size="small"
               >
+                <CheckCircle size={14} strokeWidth={1.75} />
                 Activer
-              </Button>
+              </BuiButton>
             )}
             {editing ? (
               <>
-                <Button startIcon={<Save size={14} strokeWidth={1.75} />} variant="contained" onClick={handleSave} size="small">
+                <BuiButton size="sm" onClick={handleSave}>
+                  <Save size={14} strokeWidth={1.75} />
                   Sauvegarder
-                </Button>
-                <Button startIcon={<Cancel size={14} strokeWidth={1.75} />} variant="outlined" onClick={() => setEditing(false)} size="small">
+                </BuiButton>
+                <BuiButton variant="outline" size="sm" onClick={() => setEditing(false)}>
+                  <Cancel size={14} strokeWidth={1.75} />
                   Annuler
-                </Button>
+                </BuiButton>
               </>
             ) : (
-              <Button
-                startIcon={<Edit size={14} strokeWidth={1.75} />}
-                variant="outlined"
-                onClick={() => setEditing(true)}
-                size="small"
-              >
+              <BuiButton variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <Edit size={14} strokeWidth={1.75} />
                 Modifier
-              </Button>
+              </BuiButton>
             )}
             <Tooltip title="Plus d'actions" arrow>
               <IconButton

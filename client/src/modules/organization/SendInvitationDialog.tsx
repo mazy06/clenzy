@@ -5,7 +5,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
 import {
   Send,
   ContentCopy,
@@ -359,33 +359,31 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
       <DialogActions sx={{ px: 3, py: 2 }}>
         {!result && !memberSuccess ? (
           <>
-            <Button onClick={handleClose} disabled={loading || addingMember}>
+            <BuiButton variant="outline" onClick={handleClose} disabled={loading || addingMember}>
               Annuler
-            </Button>
+            </BuiButton>
             {mode === 'email' ? (
-              <Button
-                variant="contained"
+              <BuiButton
                 onClick={handleSend}
                 disabled={loading || !email.trim()}
-                startIcon={loading ? <Spinner className="size-4" /> : <Send />}
               >
+                {loading ? <Spinner className="size-4" /> : <Send />}
                 {loading ? 'Envoi...' : 'Envoyer'}
-              </Button>
+              </BuiButton>
             ) : (
-              <Button
-                variant="contained"
+              <BuiButton
                 onClick={handleAddMember}
                 disabled={addingMember || !selectedUser}
-                startIcon={addingMember ? <Spinner className="size-4" /> : <PersonAdd />}
               >
+                {addingMember ? <Spinner className="size-4" /> : <PersonAdd />}
                 {addingMember ? 'Ajout...' : 'Ajouter'}
-              </Button>
+              </BuiButton>
             )}
           </>
         ) : (
-          <Button variant="contained" onClick={handleClose}>
+          <BuiButton onClick={handleClose}>
             Fermer
-          </Button>
+          </BuiButton>
         )}
       </DialogActions>
     </Dialog>

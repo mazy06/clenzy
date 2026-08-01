@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Avatar, Button } from '@mui/material';
+import { Avatar } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
@@ -144,28 +144,25 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
             onChange={handleSelect}
             style={{ display: 'none' }}
           />
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<Upload size={16} strokeWidth={1.75} />}
+          <BuiButton
+            size="sm"
+            variant="outline"
             disabled={uploading}
             onClick={() => inputRef.current?.click()}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
           >
+            <Upload size={16} strokeWidth={1.75} />
             {photoUrl ? 'Remplacer' : 'Téléverser'}
-          </Button>
+          </BuiButton>
           {photoUrl && (
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<Delete size={16} strokeWidth={1.75} />}
+            <BuiButton
+              size="sm"
+              variant="destructive"
               disabled={uploading}
               onClick={handleDelete}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
             >
+              <Delete size={16} strokeWidth={1.75} />
               Retirer
-            </Button>
+            </BuiButton>
           )}
         </div>
       </div>

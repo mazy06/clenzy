@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Button, TextField, InputAdornment } from '@mui/material';
+import { TextField, InputAdornment } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   ViewList,
   ChatBubbleOutline,
@@ -130,7 +131,8 @@ const DocumentsPage: React.FC = () => {
   const inlineActions = (() => {
     if (activeTab === TAB_CATALOG) {
       return (
-        <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+        <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+          <Refresh size={14} strokeWidth={1.75} />
           {t('common.refresh')}
         </Button>
       );
@@ -138,10 +140,12 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_MSG_TEMPLATES) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
+          <Button variant="ghost" size="sm" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <Button variant="contained" startIcon={<Add size={14} strokeWidth={1.75} />} size="small" onClick={() => msgTemplatesRef.current?.openEditor()}>
+          <Button size="sm" onClick={() => msgTemplatesRef.current?.openEditor()}>
+            <Add size={14} strokeWidth={1.75} />
             {t('messaging.templates.create')}
           </Button>
         </>
@@ -149,11 +153,8 @@ const DocumentsPage: React.FC = () => {
     }
     if (activeTab === TAB_WHATSAPP_TEMPLATES) {
       return (
-        <Button
-          startIcon={<Refresh size={14} strokeWidth={1.75} />}
-          size="small"
-          onClick={() => whatsappTemplatesRef.current?.refresh()}
-        >
+        <Button variant="ghost" size="sm" onClick={() => whatsappTemplatesRef.current?.refresh()}>
+          <Refresh size={14} strokeWidth={1.75} />
           {t('common.refresh')}
         </Button>
       );
@@ -161,10 +162,12 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_DOC_TEMPLATES) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+          <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <Button variant="contained" startIcon={<Add size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.openUpload()}>
+          <Button size="sm" onClick={() => docTemplatesRef.current?.openUpload()}>
+            <Add size={14} strokeWidth={1.75} />
             {t('documents.tabs.newDocTemplate')}
           </Button>
         </>
@@ -173,10 +176,12 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_HISTORY) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => historyRef.current?.refresh()}>
+          <Button variant="ghost" size="sm" onClick={() => historyRef.current?.refresh()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <Button variant="contained" startIcon={<Send size={14} strokeWidth={1.75} />} size="small" onClick={() => historyRef.current?.openGenerate()}>
+          <Button size="sm" onClick={() => historyRef.current?.openGenerate()}>
+            <Send size={14} strokeWidth={1.75} />
             {t('documents.tabs.generateDoc')}
           </Button>
         </>
@@ -203,7 +208,8 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_COMPLIANCE) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => complianceRef.current?.fetchData()}>
+          <Button variant="ghost" size="sm" onClick={() => complianceRef.current?.fetchData()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
           <TextField

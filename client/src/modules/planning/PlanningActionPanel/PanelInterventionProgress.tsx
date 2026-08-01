@@ -2,8 +2,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { LinearProgress, Stepper, Step, StepLabel, StepContent, Checkbox, FormControlLabel } from '@mui/material';
 import {
   PlayArrow,
   CheckCircle,
@@ -142,14 +142,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
       {/* Start button */}
       {!isStarted && (
         <Button
-          variant="contained"
-          fullWidth
-          size="small"
-          startIcon={loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
+          variant="default"
+          size="sm"
+          className="w-full mb-3 shrink"
           onClick={handleStart}
           disabled={loading || !onStartIntervention}
-          sx={{ mb: 2, textTransform: 'none', fontSize: '0.75rem' }}
         >
+          {loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
           Démarrer l'intervention
         </Button>
       )}
@@ -182,13 +181,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               onChange={(e) => handleFileUpload(e, 'before')}
             />
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CameraAlt size={14} strokeWidth={1.75} />}
+              variant="outline"
+              size="xs"
+              className="mb-[3px]"
               onClick={() => beforeInputRef.current?.click()}
               disabled={loading || !onUploadPhotos}
-              sx={{ textTransform: 'none', fontSize: '0.6875rem', mb: 0.5 }}
             >
+              <CameraAlt size={14} strokeWidth={1.75} />
               Photos avant
             </Button>
           </StepContent>
@@ -248,24 +247,24 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
             />
             <div className="flex gap-1.5">
               <Button
-                variant="outlined"
-                size="small"
-                startIcon={<CameraAlt size={14} strokeWidth={1.75} />}
+                variant="outline"
+                size="xs"
                 onClick={() => afterInputRef.current?.click()}
                 disabled={loading || !onUploadPhotos}
-                sx={{ textTransform: 'none', fontSize: '0.6875rem' }}
               >
+                <CameraAlt size={14} strokeWidth={1.75} />
                 Photos après
               </Button>
+              {/* Action qui cloture l'etape : elle garde l'encre pleine face au
+                  bouton photo qui l'accompagne. Le kit n'a pas de variante succes,
+                  la teinte verte de MUI n'est donc pas reportee. */}
               <Button
-                variant="contained"
-                size="small"
-                color="success"
-                startIcon={loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
+                variant="default"
+                size="xs"
                 onClick={handleComplete}
                 disabled={loading || !onCompleteIntervention || isCompleted}
-                sx={{ textTransform: 'none', fontSize: '0.6875rem' }}
               >
+                {loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
                 Terminer
               </Button>
             </div>

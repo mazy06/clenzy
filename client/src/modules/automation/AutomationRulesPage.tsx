@@ -3,8 +3,8 @@ import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Grid, Skeleton } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Add as AddIcon,
@@ -337,12 +337,8 @@ const AutomationRulesPage: React.FC = () => {
               </Tooltip>
             </div>
             {canEdit && (
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<AddIcon size={16} strokeWidth={2} />}
-                onClick={handleOpenCreate}
-              >
+              <Button size="sm" onClick={handleOpenCreate}>
+                <AddIcon size={16} strokeWidth={2} />
                 {t('automation.create', 'Nouvelle regle')}
               </Button>
             )}
@@ -371,12 +367,8 @@ const AutomationRulesPage: React.FC = () => {
           description={t('automation.emptyDesc', "Les regles d'automatisation apparaitront ici.")}
           action={
             canEdit ? (
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<AddIcon size={16} strokeWidth={1.75} />}
-                onClick={handleOpenCreate}
-              >
+              <Button size="sm" onClick={handleOpenCreate}>
+                <AddIcon size={16} strokeWidth={1.75} />
                 {t('automation.create', 'Nouvelle regle')}
               </Button>
             ) : undefined
@@ -671,12 +663,11 @@ const AutomationRulesPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFormOpen(false)} size="small">
+          <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
             {t('common.cancel', 'Annuler')}
           </Button>
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             onClick={handleSubmit}
             disabled={isMutating || !formData.name.trim()}
           >
@@ -780,7 +771,7 @@ const ExecutionsDialog: React.FC<{
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} size="small">
+        <Button variant="ghost" size="sm" onClick={onClose}>
           {t('common.close', 'Fermer')}
         </Button>
       </DialogActions>

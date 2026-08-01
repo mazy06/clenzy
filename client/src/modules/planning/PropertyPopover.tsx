@@ -1,7 +1,8 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Button, LinearProgress, Popover, useMediaQuery } from '@mui/material';
+import { Button } from '../../components/ui';
+import { LinearProgress, Popover, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -256,45 +257,23 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
         </div>
       )}
 
-      {/* Pied : Fermer (outlined neutre) + Voir la fiche (outlined accent) */}
+      {/* Pied : « Voir la fiche » est ce que le popover invite a faire, donc l'action
+          principale (default) ; « Fermer » redescend en secondaire (outline). Les deux
+          etaient outlined en MUI, ce qui mettait la sortie au meme poids que l'entree. */}
       <div className="flex gap-1.5 p-[10px 14px]" style={{ borderTop: '1px solid var(--line)' }}>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<Close size={ICON_SIZE} strokeWidth={1.75} />}
-          onClick={onClose}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--ink)',
-            borderColor: 'var(--line-2)',
-            '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-          }}
-        >
+        <Button size="sm" variant="outline" className="flex-1" onClick={onClose}>
+          <Close size={ICON_SIZE} strokeWidth={1.75} />
           Fermer
         </Button>
         <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<Visibility size={ICON_SIZE} strokeWidth={1.75} />}
+          size="sm"
+          className="flex-1"
           onClick={() => {
             onClose();
             navigate(`/properties/${property.id}`);
           }}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--accent)',
-            borderColor: 'var(--accent)',
-            '&:hover': { borderColor: 'var(--accent-deep)', backgroundColor: 'var(--accent-soft)' },
-          }}
         >
+          <Visibility size={ICON_SIZE} strokeWidth={1.75} />
           Voir la fiche
         </Button>
       </div>

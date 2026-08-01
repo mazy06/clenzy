@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, TextField, Grid, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
@@ -414,13 +414,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     id="file-input"
                   />
                   <label htmlFor="file-input">
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      startIcon={<AttachFileIcon />}
-                      size="small"
-                    >
-                      {t('contact.addFiles')}
+                    {/* `component="span"` MUI : le declencheur doit rester un span pour
+                        que le label pilote l'input file -> asChild sur un span. */}
+                    <Button variant="outline" size="sm" asChild>
+                      <span>
+                        <AttachFileIcon />
+                        {t('contact.addFiles')}
+                      </span>
                     </Button>
                   </label>
 
@@ -445,8 +445,11 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
               {/* Boutons */}
               <Grid item xs={12}>
                 <div className="flex gap-3 justify-end">
+                  {/* `type="button"` explicite : le bouton natif du kit vaut `submit`
+                      par defaut dans un <form>, la ou MUI posait `button`. */}
                   <Button
-                    variant="outlined"
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       if (onCancel) {
                         onCancel();
@@ -461,10 +464,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   </Button>
                   <Button
                     type="submit"
-                    variant="contained"
-                    startIcon={submitting ? <Spinner className="size-5" /> : <SendIcon />}
                     disabled={submitting || loading}
                   >
+                    {submitting ? <Spinner className="size-5" /> : <SendIcon />}
                     {submitting ? t('contact.sending') : t('contact.send')}
                   </Button>
                 </div>

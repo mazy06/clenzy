@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Divider } from '@mui/material';
+import { Button } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
@@ -172,10 +173,10 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} size="small">
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Fermer
         </Button>
-        <Button variant="contained" onClick={handleViewDetails} size="small">
+        <Button size="sm" onClick={handleViewDetails}>
           Voir les details
         </Button>
       </DialogActions>

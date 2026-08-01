@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment } from '@mui/material';
 import { Close as CloseIcon, Visibility, VisibilityOff } from '../../../icons';
 import type {
   PaymentMethodConfig,
@@ -35,7 +35,6 @@ import { PAYMENT_PROVIDER_LABELS } from '../../../types/payment';
  */
 
 const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
 
 interface FieldSpec {
   key: string;
@@ -491,28 +490,15 @@ export default function PaymentProviderConfigDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-        <Button
-          onClick={onClose}
-          disabled={saving}
-          size="small"
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '8px',
-            color: NEUTRAL,
-          }}
-        >
+        <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
           Annuler
         </Button>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleSave}
           disabled={saving || fields.length === 0}
-          startIcon={saving ? <Spinner className="size-3.5" /> : undefined}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {saving && <Spinner className="size-3.5" />}
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </DialogActions>

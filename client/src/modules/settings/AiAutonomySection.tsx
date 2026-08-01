@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, TextField } from '@mui/material';
+import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, TextField } from '@mui/material';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
@@ -206,12 +206,12 @@ export default function AiAutonomySection() {
               </MenuItem>
             </Select>
           </FormControl>
+          {/* Seule action de la carte budget, elle valide la saisie : c'est l'action
+              principale de la zone, d'ou `default` la ou MUI n'avait qu'un outlined. */}
           <Button
-            variant="outlined"
-            size="small"
+            size="sm"
             onClick={handleSaveBudget}
             disabled={saving}
-            sx={{ textTransform: 'none' }}
           >
             {t('aiAutonomy.save', 'Enregistrer')}
           </Button>
@@ -290,20 +290,21 @@ export default function AiAutonomySection() {
                   <TableCell className="text-end">
                     {rule.status === 'SUGGESTED' && (
                       <>
+                        {/* Actions de ligne : « Accepter » garde un cadre pour rester
+                            l'issue attendue, « Ignorer » reste sans cadre. */}
                         <Button
-                          size="small"
+                          variant="outline"
+                          size="sm"
                           disabled={acting === rule.id}
                           onClick={() => handleRuleAction(rule, 'accept')}
-                          sx={{ textTransform: 'none' }}
                         >
                           {t('aiAutonomy.accept', 'Accepter')}
                         </Button>
                         <Button
-                          size="small"
-                          color="inherit"
+                          variant="ghost"
+                          size="sm"
                           disabled={acting === rule.id}
                           onClick={() => handleRuleAction(rule, 'dismiss')}
-                          sx={{ textTransform: 'none' }}
                         >
                           {t('aiAutonomy.dismiss', 'Ignorer')}
                         </Button>
@@ -311,11 +312,10 @@ export default function AiAutonomySection() {
                     )}
                     {rule.status === 'ACTIVE' && (
                       <Button
-                        size="small"
-                        color="inherit"
+                        variant="ghost"
+                        size="sm"
                         disabled={acting === rule.id}
                         onClick={() => handleRuleAction(rule, 'revoke')}
-                        sx={{ textTransform: 'none' }}
                       >
                         {t('aiAutonomy.revoke', 'Révoquer')}
                       </Button>

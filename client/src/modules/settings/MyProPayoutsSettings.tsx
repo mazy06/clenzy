@@ -6,7 +6,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Button, Skeleton } from '@mui/material';
+import { Button } from '../../components/ui';
+import { Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -134,23 +135,23 @@ export default function MyProPayoutsSettings() {
           <div className="ms-auto flex gap-1.5">
             {data?.accountCreated && !data?.onboardingCompleted && (
               <Button
-                size="small"
-                variant="text"
-                startIcon={refreshMutation.isPending ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
+                variant="ghost"
+                size="sm"
                 onClick={() => refreshMutation.mutate()}
                 disabled={refreshMutation.isPending}
               >
+                {refreshMutation.isPending ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
                 {t('settings.myProPayouts.refreshStatus')}
               </Button>
             )}
             {!data?.onboardingCompleted && (
               <Button
-                size="small"
-                variant="contained"
+                variant="default"
+                size="sm"
                 onClick={startOnboarding}
                 disabled={initializing || onboardingOpen}
-                startIcon={initializing ? <Spinner className="size-3.5" /> : undefined}
               >
+                {initializing ? <Spinner className="size-3.5" /> : null}
                 {data?.accountCreated
                   ? t('settings.myProPayouts.resumeOnboarding')
                   : t('settings.myProPayouts.startOnboarding')}

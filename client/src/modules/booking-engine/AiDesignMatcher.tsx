@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, Button, LinearProgress, Alert, Stack } from '@mui/material';
+import { TextField, LinearProgress, Alert, Stack } from '@mui/material';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
 import { SettingsRounded } from '../../icons';
@@ -107,12 +107,12 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           inputProps={{ type: 'url' }}
         />
         <Button
-          variant="contained"
-          startIcon={<AutoFixHighRounded />}
+          size="lg"
+          className="whitespace-nowrap min-w-[180px]"
           onClick={handleAnalyze}
           disabled={isDisabled || isLoading || !url.trim()}
-          sx={{ whiteSpace: 'nowrap', minWidth: 180, height: 40 }}
         >
+          <AutoFixHighRounded />
           {t('bookingEngine.ai.analyzeDesign')}
         </Button>
       </Stack>
@@ -155,10 +155,10 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           sx={{ mt: 2 }}
           action={
             <Button
-              color="warning"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={() => navigate('/settings?tab=ai')}
-              sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
             >
               {t('bookingEngine.ai.goToSettings')}
             </Button>
@@ -181,10 +181,10 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           sx={{ mt: 2 }}
           action={
             <Button
-              color="warning"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={() => navigate('/settings?tab=ai')}
-              sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
             >
               {t('bookingEngine.ai.goToSettings')}
             </Button>

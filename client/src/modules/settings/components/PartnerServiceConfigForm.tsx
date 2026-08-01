@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Alert, Button, TextField } from '@mui/material';
+import { Spinner, Button } from '../../../components/ui';
+import { Alert, TextField } from '@mui/material';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -109,14 +109,8 @@ export default function PartnerServiceConfigForm({
               {connectedServerUrl}
             </span>
           )}
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={handleDisconnect}
-            disabled={submitting}
-            sx={{ ml: 'auto', textTransform: 'none', fontWeight: 600, fontSize: '0.74rem', borderRadius: '8px' }}
-          >
+          {/* Rompre la connexion est l'action irreversible de la ligne : variante destructive. */}
+          <Button variant="destructive" size="sm" className="ms-auto" onClick={handleDisconnect} disabled={submitting}>
             Déconnecter
           </Button>
         </div>
@@ -149,13 +143,11 @@ export default function PartnerServiceConfigForm({
             sx={{ mb: 1 }}
           />
           <Button
-            size="small"
-            variant="contained"
+            size="sm"
             onClick={handleConnect}
             disabled={submitting || !form.serverUrl.trim() || form.apiKey.trim().length < 8}
-            startIcon={submitting ? <Spinner className="size-3.5" /> : undefined}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
           >
+            {submitting ? <Spinner className="size-3.5" /> : null}
             Enregistrer les accès
           </Button>
         </>

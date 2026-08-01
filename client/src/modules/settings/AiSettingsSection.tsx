@@ -5,8 +5,8 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { Button, TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
-import { Card } from '../../components/ui';
+import { TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
+import { Button, Card } from '../../components/ui';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -154,26 +154,25 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
 
         {/* ── Actions : couleurs cohérentes (primary action, error déconnexion) ── */}
         <div className="flex gap-1.5">
+          {/* Cle deja posee -> « Modifier » redevient une action secondaire, la
+              carte n'a plus d'action principale a pousser. Branches litterales :
+              une classe Tailwind ne peut pas naitre d'une expression. */}
           <Button
-            variant={isOrgKey ? 'outlined' : 'contained'}
-            size="small"
-            color="primary"
-            disableElevation
+            variant={isOrgKey ? 'outline' : 'default'}
+            size="sm"
             onClick={onConfigure}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, flex: isOrgKey ? '0 0 auto' : 1 }}
+            className={isOrgKey ? 'shrink-0' : 'flex-1'}
           >
             {isOrgKey ? t('bookingEngine.ai.settings.modify') : t('bookingEngine.ai.settings.connect')}
           </Button>
           {isOrgKey && (
             <Button
-              variant="outlined"
-              size="small"
-              color="error"
-              startIcon={isDisconnecting ? <Spinner className="size-3.5" /> : <LinkOff size={15} strokeWidth={1.75} />}
+              variant="destructive"
+              size="sm"
               onClick={onDisconnect}
               disabled={isDisconnecting}
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
             >
+              {isDisconnecting ? <Spinner className="size-3.5" /> : <LinkOff size={15} strokeWidth={1.75} />}
               {t('bookingEngine.ai.settings.disconnect')}
             </Button>
           )}
@@ -326,11 +325,15 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
                   ...params.InputProps,
                   endAdornment: (
                     <>
+                      {/* `accent` est la couleur de marque du provider, calculee
+                          a l'execution : style inline, jamais une classe. */}
                       <Button
+                        variant="ghost"
                         onClick={loadModels}
                         disabled={!apiKey.trim() || loadingModels}
-                        size="small"
-                        sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 0, color: accent }}
+                        size="sm"
+                        className="min-w-0"
+                        style={{ color: accent }}
                       >
                         {loadingModels ? (
                           <Spinner className="size-4" />
@@ -381,33 +384,33 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={handleClose} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+        <Button variant="ghost" onClick={handleClose}>
           {t('bookingEngine.ai.settings.cancel')}
         </Button>
+        {/* « Tester » reste tertiaire : c'est « Enregistrer » qu'on veut voir
+            cliquer. Teinte de marque du provider -> style inline (valeur
+            calculee a l'execution). */}
         <Button
+          variant="ghost"
           onClick={handleTest}
-          startIcon={testMutation.isPending ? <Spinner className="size-4" /> : <Science />}
           disabled={!apiKey.trim() || testMutation.isPending}
-          sx={{
-            textTransform: 'none',
-            borderRadius: 1.5,
-            color: accent,
-          }}
+          style={{ color: accent }}
         >
+          {testMutation.isPending ? <Spinner className="size-4" /> : <Science />}
           {t('bookingEngine.ai.settings.test')}
         </Button>
+        {/* Fond de marque + son survol : passes en variables CSS inline, les
+            deux valeurs n'existant qu'a l'execution. */}
         <Button
           onClick={handleSave}
-          variant="contained"
-          startIcon={saveMutation.isPending ? <Spinner className="size-4" /> : undefined}
           disabled={!apiKey.trim() || saveMutation.isPending}
-          sx={{
-            textTransform: 'none',
-            borderRadius: 1.5,
-            bgcolor: accent,
-            '&:hover': { bgcolor: alpha(accent, 0.85) },
-          }}
+          className="bg-[var(--provider-accent)] hover:bg-[var(--provider-accent-hover)]"
+          style={{
+            '--provider-accent': accent,
+            '--provider-accent-hover': alpha(accent, 0.85),
+          } as React.CSSProperties}
         >
+          {saveMutation.isPending && <Spinner className="size-4" />}
           {t('bookingEngine.ai.settings.save')}
         </Button>
       </DialogActions>

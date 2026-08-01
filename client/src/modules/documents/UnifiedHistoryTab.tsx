@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
 import {
   Download,
   Lock,
@@ -664,8 +664,9 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         </DialogContent>
         <DialogActions>
           {detailLog?.status === 'FAILED' && detailLog.guestId && (
-            <Button
-              color="warning"
+            <BuiButton
+              variant="outline"
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={() => {
                 setEditEmailLog(detailLog);
                 setEditEmailValue(detailLog.recipient === 'N/A' ? '' : detailLog.recipient);
@@ -673,7 +674,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               }}
             >
               Modifier l&apos;email
-            </Button>
+            </BuiButton>
           )}
           {detailLog?.status === 'FAILED' && detailLog.templateId && (() => {
             const canResend = hasRecipient(detailLog);
@@ -683,8 +684,9 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 disableHoverListener={canResend}
               >
                 <span>
-                  <Button
-                    color="success"
+                  <BuiButton
+                    variant="outline"
+                    className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
                     disabled={!canResend || resendingId === detailLog.id}
                     onClick={() => {
                       if (!canResend) return;
@@ -693,12 +695,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     }}
                   >
                     Renvoyer
-                  </Button>
+                  </BuiButton>
                 </span>
               </Tooltip>
             );
           })()}
-          <Button onClick={() => setDetailLog(null)}>Fermer</Button>
+          <BuiButton variant="ghost" onClick={() => setDetailLog(null)}>Fermer</BuiButton>
         </DialogActions>
       </Dialog>
 
@@ -721,17 +723,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
+          <BuiButton variant="outline" onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
             Annuler
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
+          </BuiButton>
+          <BuiButton
             disabled={!editEmailValue.trim() || editEmailLoading}
             onClick={handleUpdateEmailAndResend}
           >
             {editEmailLoading ? <Spinner className="size-5" /> : 'Enregistrer et renvoyer'}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
 
@@ -755,9 +755,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 <p className="cn-text-body2 text-[var(--muted)] mb-3">
                   {t('documents.history.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </p>
-                <Button variant="contained" href={pdfUrl} download="document.pdf" startIcon={<Download size={16} strokeWidth={1.75} />}>
-                  {t('common.download', 'Telecharger')}
-                </Button>
+                <BuiButton asChild>
+                  <a href={pdfUrl} download="document.pdf">
+                    <Download size={16} strokeWidth={1.75} />
+                    {t('common.download', 'Telecharger')}
+                  </a>
+                </BuiButton>
               </div>
             </object>
           ) : (
@@ -769,7 +772,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClosePdf}>{t('common.close', 'Fermer')}</Button>
+          <BuiButton variant="ghost" onClick={handleClosePdf}>{t('common.close', 'Fermer')}</BuiButton>
         </DialogActions>
       </Dialog>
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '../utils/cn';
-import { Spinner } from './ui';
-import { Button } from '@mui/material';
+import { Button, Spinner } from './ui';
 import { Refresh, Warning as WarningIcon } from '../icons';
 
 interface LoadingStatesProps {
@@ -73,21 +72,13 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
           {(onRetry || onClearError) && (
             <div className="flex gap-1.5 mt-2">
               {onRetry && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={onRetry}
-                  startIcon={<Refresh size={13} strokeWidth={1.75} />}
-                >
+                <Button variant="outline" size="sm" onClick={onRetry}>
+                  <Refresh strokeWidth={1.75} />
                   Réessayer
                 </Button>
               )}
               {onClearError && (
-                <Button
-                  variant="text"
-                  size="small"
-                  onClick={onClearError}
-                >
+                <Button variant="ghost" size="sm" onClick={onClearError}>
                   Ignorer
                 </Button>
               )}

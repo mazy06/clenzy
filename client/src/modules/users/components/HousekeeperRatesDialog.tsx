@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -219,9 +219,8 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose}>{t('common.close', 'Fermer')}</Button>
+        <Button onClick={onClose} variant="ghost">{t('common.close', 'Fermer')}</Button>
         <Button
-          variant="contained"
           onClick={() => saveMutation.mutate()}
           disabled={ratesQuery.isPending || saveMutation.isPending || data == null}
         >

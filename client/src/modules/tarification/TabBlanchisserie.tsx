@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { TextField, InputAdornment, Switch, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { TextField, InputAdornment, Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -131,13 +131,8 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
         <div className="mt-2">
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Add />}
-            onClick={() => setAddDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
-          >
+          <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
+            <Add />
             {t('tarification.addArticle')}
           </Button>
         </div>
@@ -166,8 +161,8 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} variant="contained" disabled={!newItemLabel.trim()}>
+          <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+          <Button onClick={handleAdd} disabled={!newItemLabel.trim()}>
             {t('tarification.add')}
           </Button>
         </DialogActions>

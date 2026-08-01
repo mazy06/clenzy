@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from '../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../components/ui';
 import { Card } from '../components/ui';
-import { TextField, Button } from '@mui/material';
+import { TextField } from '@mui/material';
+import { Button } from '../components/ui';
 import {
   VpnKey,
   CheckCircle,
@@ -131,14 +132,13 @@ const PublicKeyVerification: React.FC = () => {
               }}
               onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
             />
+            {/* mt: 1.5 = 9 px (le spacing MUI de ce projet vaut 6). */}
             <Button
-              variant="contained"
-              fullWidth
               onClick={handleVerify}
               disabled={loading || code.trim().length < 4}
-              startIcon={loading ? <Spinner className="size-4" /> : undefined}
-              sx={{ mt: 1.5, textTransform: 'none', fontWeight: 600 }}
+              className="mt-[9px] w-full shrink"
             >
+              {loading && <Spinner className="size-4" />}
               Vérifier
             </Button>
           </div>
@@ -192,21 +192,17 @@ const PublicKeyVerification: React.FC = () => {
                 {/* Action buttons */}
                 <div className="flex gap-1.5">
                   <Button
-                    variant="contained"
-                    fullWidth
-                    color="primary"
                     onClick={() => handleConfirm('collected')}
                     disabled={loading}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    className="w-full"
                   >
                     Clé remise au voyageur
                   </Button>
                   <Button
-                    variant="outlined"
-                    fullWidth
+                    variant="outline"
                     onClick={() => handleConfirm('returned')}
                     disabled={loading}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    className="w-full"
                   >
                     Clé récupérée
                   </Button>
@@ -232,14 +228,13 @@ const PublicKeyVerification: React.FC = () => {
               Le mouvement de clé a été enregistré avec succès.
             </p>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={() => {
                 setCode('');
                 setVerifyResult(null);
                 setConfirmed(false);
                 setError(null);
               }}
-              sx={{ textTransform: 'none' }}
             >
               Vérifier un autre code
             </Button>

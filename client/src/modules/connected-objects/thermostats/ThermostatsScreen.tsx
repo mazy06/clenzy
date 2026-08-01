@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Skeleton } from '@mui/material';
+import { Skeleton } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Thermostat, Add, Home } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
@@ -68,7 +69,8 @@ export default function ThermostatsScreen() {
   }, [thermostats]);
 
   const addButton = (
-    <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+    <Button size="sm" onClick={() => setWizardOpen(true)}>
+      <Add size={16} strokeWidth={2} />
       Ajouter un thermostat
     </Button>
   );

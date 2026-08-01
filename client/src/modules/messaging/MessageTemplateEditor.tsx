@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Grid, Paper, Divider } from '@mui/material';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -293,15 +293,14 @@ export default function MessageTemplateEditor({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button
-          variant="contained"
-          startIcon={saving ? <Spinner className="size-4" /> : <Save />}
+        <BuiButton variant="ghost" onClick={onClose}>{t('common.cancel')}</BuiButton>
+        <BuiButton
           onClick={handleSave}
           disabled={saving || !name.trim() || !subject.trim() || !body.trim()}
         >
+          {saving ? <Spinner className="size-4" /> : <Save />}
           {saving ? t('common.processing') : t('common.save')}
-        </Button>
+        </BuiButton>
       </DialogActions>
     </Dialog>
   );

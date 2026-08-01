@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, MenuItem, Divider, Popover, InputBase, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import { Menu, MenuItem, Divider, Popover, InputBase, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Button } from '../../../components/ui';
 import {
   Plus, LayoutDashboard, ArrowUp, Search, Home, Layers, Sparkles, Languages, Feather, X,
   ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
@@ -914,8 +915,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmDelete(null)} disabled={deleting} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
-          <Button onClick={handleDelete} disabled={deleting} color="error" variant="contained" disableElevation startIcon={<Trash2 size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" onClick={() => setConfirmDelete(null)} disabled={deleting}>Annuler</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Trash2 size={16} strokeWidth={2} />
             {deleting ? 'Suppression…' : 'Supprimer'}
           </Button>
         </DialogActions>

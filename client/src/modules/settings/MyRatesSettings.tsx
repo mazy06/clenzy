@@ -3,8 +3,8 @@ import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
-import { TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
+import { Card, Button } from '../../components/ui';
+import { TextField, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -236,13 +236,8 @@ export default function MyRatesSettings() {
 
       {/* ── Enregistrer ──────────────────────────────────────────────────── */}
       <div className="flex justify-end">
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={saveMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
-          onClick={handleSave}
-          disabled={saveMutation.isPending}
-        >
+        <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
+          {saveMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
           {t('settings.myRates.save')}
         </Button>
       </div>

@@ -17,7 +17,8 @@
 
 import React, { useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Button, Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
+import { Button } from '../../components/ui';
+import { Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -193,21 +194,22 @@ const ConstellationAutoRulesSection: React.FC = () => {
                         { count: rule.consecutiveApprovals })} className="tabular-nums" />
                     {canEdit && (
                       <>
+                        {/* Micro-actions accolees a une pastille dans une ligne dense :
+                            ghost xs, « Ignorer » en sourdine pour ne pas peser autant. */}
                         <Button
-                          size="small"
-                          variant="text"
+                          variant="ghost"
+                          size="xs"
                           onClick={() => saveRule(rule, { enabled: true })}
                           disabled={cappedToSuggest || updateMutation.isPending || dismissSuggestionMutation.isPending}
-                          sx={{ minWidth: 0, px: 0.75, fontSize: '0.6875rem', fontWeight: 700, textTransform: 'none' }}
                         >
                           {t('automation.constellation.enableSuggestion', 'Activer')}
                         </Button>
                         <Button
-                          size="small"
-                          variant="text"
+                          variant="ghost"
+                          size="xs"
+                          className="text-[var(--muted)]"
                           onClick={() => dismissSuggestionMutation.mutate(rule.actionType)}
                           disabled={updateMutation.isPending || dismissSuggestionMutation.isPending}
-                          sx={{ minWidth: 0, px: 0.75, fontSize: '0.6875rem', fontWeight: 600, textTransform: 'none', color: 'var(--muted)' }}
                         >
                           {t('automation.constellation.ignoreSuggestion', 'Ignorer')}
                         </Button>

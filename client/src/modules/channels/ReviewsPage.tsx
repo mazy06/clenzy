@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Paper, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Collapse } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Paper, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Collapse } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
@@ -277,15 +277,15 @@ function ReviewCard({
                 sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
               />
               <div className="flex gap-0.5 justify-end">
-                <Button size="small" variant="outlined" onClick={onCancelReply} sx={{ fontSize: '0.6875rem' }}>
+                {/* Barre d'action de carte, tres dense : taille xs du kit plutot
+                    que sm — le sx d'origine rapetissait deja la typo. */}
+                <Button size="xs" variant="outline" onClick={onCancelReply}>
                   {t('common.cancel')}
                 </Button>
                 <Button
-                  size="small"
-                  variant="contained"
+                  size="xs"
                   onClick={onSubmitReply}
                   disabled={replyLoading || !replyText.trim()}
-                  sx={{ fontSize: '0.6875rem' }}
                 >
                   {replyLoading ? <Spinner className="size-3" /> : t('channels.reviews.sendReply')}
                 </Button>
@@ -294,11 +294,12 @@ function ReviewCard({
           </Collapse>
           {!isReplying && (
             <Button
-              size="small"
-              startIcon={<ReplyIcon size={'0.75rem'} strokeWidth={1.75} />}
+              size="xs"
+              variant="ghost"
               onClick={onStartReply}
-              sx={{ fontSize: '0.6875rem', mt: 0.25 }}
+              className="mt-0.5"
             >
+              <ReplyIcon size={'0.75rem'} strokeWidth={1.75} />
               {t('channels.reviews.reply')}
             </Button>
           )}

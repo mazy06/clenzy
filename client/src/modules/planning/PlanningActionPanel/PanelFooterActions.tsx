@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';
@@ -17,18 +18,6 @@ import { useSendTemplateForReservation } from '../../../hooks/useConversations';
 // historiques de l'onglet Infos — mêmes dialogs, aucune action nouvelle.
 
 type ActionResult = { success: boolean; error: string | null };
-
-const FOOTER_BUTTON_SX = {
-  textTransform: 'none',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  borderRadius: 'var(--radius-sm)',
-  justifyContent: 'center',
-  color: 'var(--ink)',
-  borderColor: 'var(--line-2)',
-  transition: 'border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-} as const;
 
 interface PanelFooterActionsProps {
   event: PlanningEvent;
@@ -85,48 +74,28 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
   return (
     <div className="shrink-0 bg-[var(--card)] p-[12px 16px] grid grid-cols-[1fr_1fr] gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
       {canChangeProperty && (
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<SwapHoriz size={13} strokeWidth={1.75} />}
-          onClick={() => setChangePropertyOpen(true)}
-          sx={FOOTER_BUTTON_SX}
-        >
+        <Button variant="outline" size="sm" onClick={() => setChangePropertyOpen(true)}>
+          <SwapHoriz size={13} strokeWidth={1.75} />
           Changer logement
         </Button>
       )}
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
-        onClick={() => setGuestCardOpen(true)}
-        sx={FOOTER_BUTTON_SX}
-      >
+      <Button variant="outline" size="sm" onClick={() => setGuestCardOpen(true)}>
+        <OpenInNew size={13} strokeWidth={1.75} />
         Fiche client
       </Button>
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<WhatsApp size={13} strokeWidth={1.75} />}
-        onClick={() => setTemplateOpen(true)}
-        sx={FOOTER_BUTTON_SX}
-      >
+      <Button variant="outline" size="sm" onClick={() => setTemplateOpen(true)}>
+        <WhatsApp size={13} strokeWidth={1.75} />
         WhatsApp
       </Button>
+      {/* `destructive` et non `outline` : annuler une reservation est irreversible —
+          la teinte --err portait deja cette intention dans l'ancien sx. */}
       <Button
-        size="small"
-        variant="outlined"
-        startIcon={<Cancel size={13} strokeWidth={1.75} />}
+        variant="destructive"
+        size="sm"
         onClick={() => setCancelDialogOpen(true)}
         disabled={reservation.status === 'cancelled' || !onCancelReservation}
-        sx={{
-          ...FOOTER_BUTTON_SX,
-          color: 'var(--err)',
-          borderColor: 'var(--err)',
-          '&:hover': { borderColor: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-          '&.Mui-disabled': { borderColor: 'var(--line)', color: 'var(--faint)' },
-        }}
       >
+        <Cancel size={13} strokeWidth={1.75} />
         Annuler
       </Button>
 
@@ -205,9 +174,9 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { setCancelDialogOpen(false); setCancelError(null); }}
-            size="small"
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Retour
           </Button>
@@ -224,13 +193,11 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
                 setCancelError(result.error);
               }
             }}
-            variant="contained"
-            color="error"
-            size="small"
+            variant="destructive"
+            size="sm"
             disabled={cancelLoading || !onCancelReservation}
-            startIcon={cancelLoading ? <Spinner className="size-3.5" /> : <Cancel size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
+            {cancelLoading ? <Spinner className="size-3.5" /> : <Cancel size={16} strokeWidth={1.75} />}
             Confirmer l'annulation
           </Button>
         </DialogActions>

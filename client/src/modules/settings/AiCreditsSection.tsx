@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Button, Skeleton, useTheme } from '@mui/material';
+import { Skeleton, useTheme } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -144,13 +144,14 @@ export default function AiCreditsSection() {
         </h6>
         <div className="flex gap-1.5 flex-wrap">
           {packs.map((pack) => (
+            // Tous les packs se valent : aucun ne prend l'encre pleine.
             <Button
               key={pack.key}
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="tabular-nums"
               disabled={buying !== null}
               onClick={() => handleBuy(pack.key)}
-              sx={{ fontVariantNumeric: 'tabular-nums', textTransform: 'none' }}
             >
               {toCredits(pack.millicredits)} {t('aiCredits.credits', 'crédits')} —{' '}
               {(pack.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'EUR' })}

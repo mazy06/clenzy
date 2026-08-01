@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Paper, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Add as AddIcon,
@@ -181,26 +181,20 @@ const ChannelPromotionsPage: React.FC = () => {
         actions={
           <div className="flex gap-1.5">
             {propertyId && (
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={syncMutation.isPending ? <Spinner className="size-3.5" /> : <SyncIcon />}
+              <BuiButton
+                size="sm"
+                variant="outline"
                 onClick={handleSync}
                 disabled={syncMutation.isPending}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
               >
+                {syncMutation.isPending ? <Spinner className="size-3.5" /> : <SyncIcon />}
                 {t('common.sync', 'Synchroniser')}
-              </Button>
+              </BuiButton>
             )}
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreate}
-              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-            >
+            <BuiButton size="sm" onClick={handleOpenCreate}>
+              <AddIcon />
               {t('promotions.create', 'Nouvelle promotion')}
-            </Button>
+            </BuiButton>
           </div>
         }
       />
@@ -258,15 +252,15 @@ const ChannelPromotionsPage: React.FC = () => {
           <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
             {t('promotions.empty', 'Aucune promotion configuree')}
           </p>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AddIcon />}
+          <BuiButton
+            size="sm"
+            variant="outline"
+            className="mt-[9px]"
             onClick={handleOpenCreate}
-            sx={{ mt: 1.5, textTransform: 'none', fontSize: '0.75rem' }}
           >
+            <AddIcon />
             {t('promotions.create', 'Nouvelle promotion')}
-          </Button>
+          </BuiButton>
         </Paper>
       ) : (
         <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
@@ -440,18 +434,16 @@ const ChannelPromotionsPage: React.FC = () => {
           </div>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setFormOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <BuiButton variant="outline" size="sm" onClick={() => setFormOpen(false)}>
             {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
+          </BuiButton>
+          <BuiButton
+            size="sm"
             onClick={handleSubmit}
             disabled={isMutating || !formData.propertyId}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {isMutating ? <Spinner className="size-4" /> : editingPromo ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Cancel, Save } from "../../icons";
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
@@ -29,23 +29,22 @@ const ServiceRequestEdit: React.FC = () => {
           actions={
             <div className="flex gap-1">
               <Button
-                variant="outlined"
+                variant="outline"
+                size="sm"
                 onClick={handleClose}
-                startIcon={<Cancel size={18} strokeWidth={1.75} />}
-                size="small"
                 disabled={loading}
                 title={t('common.cancel')}
               >
+                <Cancel size={18} strokeWidth={1.75} />
                 {t('common.cancel')}
               </Button>
               <Button
-                variant="contained"
+                size="sm"
                 onClick={() => submitRef.current?.()}
-                startIcon={<Save size={18} strokeWidth={1.75} />}
-                size="small"
                 disabled={loading}
                 title={t('serviceRequests.update')}
               >
+                <Save size={18} strokeWidth={1.75} />
                 {loading ? t('serviceRequests.updating') : t('serviceRequests.update')}
               </Button>
             </div>

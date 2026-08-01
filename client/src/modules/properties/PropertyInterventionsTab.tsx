@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Card } from '../../components/ui';
+import { Button, Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Paper, IconButton, Tooltip, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Paper, IconButton, Tooltip, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -279,11 +279,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
         <div className="flex items-center gap-1.5">
           {view === 'calendar' && (
             <>
-              <Button
-                size="small"
-                onClick={goToToday}
-                sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500 }}
-              >
+              <Button variant="ghost" size="sm" onClick={goToToday}>
                 Aujourd'hui
               </Button>
               <IconButton size="small" onClick={prevMonth}>

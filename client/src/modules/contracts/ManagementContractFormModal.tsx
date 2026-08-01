@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
+import { Spinner, Button } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Tooltip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip } from '@mui/material';
 import { Handshake, Check, Close } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -195,15 +195,14 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        <Button onClick={onClose} disabled={saving}>
+        <Button onClick={onClose} variant="ghost" disabled={saving}>
           {t('contracts.cancel', 'Annuler')}
         </Button>
         <Button
-          variant="contained"
           onClick={handleSubmit}
           disabled={!formValid || saving}
-          startIcon={saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
         >
+          {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
           {saving
             ? t('contracts.required.saving', 'Enregistrement…')
             : isEdit

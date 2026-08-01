@@ -1,8 +1,8 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
-import { Card } from '../../components/ui';
-import { Button, IconButton, Divider } from '@mui/material';
+import { Button, Card } from '../../components/ui';
+import { IconButton, Divider } from '@mui/material';
 import {
   Add,
   Remove,
@@ -154,12 +154,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Add to cart / quantity controls */}
         {quantity === 0 ? (
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<ShoppingCartOutlined size={14} strokeWidth={2} />}
-            onClick={onAddToCart}
-          >
+          <Button className="w-full shrink" onClick={onAddToCart}>
+            <ShoppingCartOutlined size={14} strokeWidth={2} />
             {t('shop.addToCart')}
           </Button>
         ) : (

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Button, IconButton, Tooltip, TextField, Alert, Snackbar, Stack } from '@mui/material';
+import { Button } from '../../components/ui';
+import { IconButton, Tooltip, TextField, Alert, Snackbar, Stack } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -280,12 +281,11 @@ const ManagementContractsPage: React.FC = () => {
           tip="Crée un contrat ici pour appliquer une commission spécifique à un bien (au lieu de la répartition globale)."
           action={(
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={openCreateModal}
-              sx={{ textTransform: 'none' }}
             >
+              <Add size={16} strokeWidth={1.75} />
               {t('contracts.createTitle', 'Créer un contrat de gestion')}
             </Button>
           )}
@@ -451,19 +451,18 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                         />
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           <Button
-                            size="small"
-                            variant="outlined"
+                            size="sm"
+                            variant="outline"
                             onClick={onTerminateCancel}
                           >
                             {t('contracts.cancel')}
                           </Button>
                           <Button
-                            size="small"
-                            variant="contained"
-                            color="error"
+                            size="sm"
+                            variant="destructive"
                             onClick={onTerminateConfirm}
-                            startIcon={<Cancel size={14} strokeWidth={1.75} />}
                           >
+                            <Cancel size={14} strokeWidth={1.75} />
                             {t('contracts.confirmTerminate')}
                           </Button>
                         </Stack>

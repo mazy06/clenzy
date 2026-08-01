@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Button, Alert } from '@mui/material';
+import { Paper, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { Property } from '../../services/api';
@@ -179,7 +179,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         )}
 
         {/* Hidden submit button for PageHeader trigger */}
-        <Button type="submit" sx={{ display: 'none' }} data-submit-property disabled={isSubmitting}>
+        <Button type="submit" className="hidden" data-submit-property disabled={isSubmitting}>
           Soumettre
         </Button>
       </form>

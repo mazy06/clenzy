@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
@@ -122,8 +122,8 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
         </div>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ cursor: 'pointer' }}>Annuler</Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving} sx={{ cursor: 'pointer' }}>
+        <Button variant="ghost" onClick={onClose} disabled={saving}>Annuler</Button>
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </DialogActions>

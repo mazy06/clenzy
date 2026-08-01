@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Spinner } from '../../components/ui';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
 import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
@@ -140,21 +140,20 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
       <DialogActions sx={{ px: 3, pb: 2.5, gap: 1, justifyContent: 'flex-end' }}>
         <Button
           onClick={handleClose}
-          variant="outlined"
-          size="small"
+          variant="outline"
+          size="sm"
           disabled={loading}
-          sx={{ minWidth: 90, fontSize: '0.82rem' }}
+          className="min-w-[90px]"
         >
           {t('common.cancel')}
         </Button>
         <Button
           onClick={handleSubmit}
-          variant="contained"
-          size="small"
+          size="sm"
           disabled={!selectedManagerId || loading}
-          startIcon={loading ? <Spinner className="size-3.5" /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
-          sx={{ minWidth: 120, fontSize: '0.82rem' }}
+          className="min-w-[120px]"
         >
+          {loading ? <Spinner className="size-3.5" /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
           {loading ? t('portfolios.dialogs.reassigning') : t('portfolios.dialogs.reassign')}
         </Button>
       </DialogActions>

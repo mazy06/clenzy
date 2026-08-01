@@ -5,7 +5,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
-import { Button, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
+import { Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -130,33 +130,30 @@ const TokenMonitoring: React.FC = () => {
   useEffect(() => {
     setHeaderActions(
       <Stack direction="row" spacing={1}>
-        <Button
-          variant="outlined"
-          size="small"
+        <BuiButton
+          variant="outline"
+          size="sm"
           onClick={loadTokenStats}
           disabled={isLoading}
-          startIcon={
-            isLoading ? (
-              <Spinner className="size-3.5" />
-            ) : (
-              <Refresh size={16} strokeWidth={1.75} />
-            )
-          }
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {isLoading ? (
+            <Spinner className="size-3.5" />
+          ) : (
+            <Refresh size={16} strokeWidth={1.75} />
+          )}
           Actualiser
-        </Button>
-        <Button
-          variant="outlined"
-          color="warning"
-          size="small"
+        </BuiButton>
+        {/* color="warning" n'a pas de variante dediee : outline + teinte --warn. */}
+        <BuiButton
+          variant="outline"
+          size="sm"
           onClick={cleanupTokens}
           disabled={isLoading}
-          startIcon={<Delete size={16} strokeWidth={1.75} />}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
+          className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
         >
+          <Delete size={16} strokeWidth={1.75} />
           Nettoyer expirés
-        </Button>
+        </BuiButton>
       </Stack>,
     );
     return () => setHeaderActions(null);

@@ -1,8 +1,8 @@
 import React from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
-import { Spinner } from '../../components/ui';
+import { Spinner, Button } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
 import {
   People,
   Group,
@@ -442,37 +442,24 @@ const TeamUserAssignmentForm: React.FC = () => {
         </div>
 
         <div className="flex justify-between">
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            startIcon={<ArrowBack size={16} strokeWidth={1.75} />}
-            size="small"
-            sx={{ fontSize: '0.82rem' }}
-          >
+          <Button variant="ghost" size="sm" disabled={activeStep === 0} onClick={handleBack}>
+            <ArrowBack size={16} strokeWidth={1.75} />
             {t('portfolios.forms.back')}
           </Button>
 
           {activeStep === steps.length - 1 ? (
             <Button
-              variant="contained"
+              size="sm"
               onClick={handleSubmit}
               disabled={submitting || !selectedManager || (selectedTeams.length === 0 && selectedUsers.length === 0)}
-              startIcon={submitting ? <Spinner className="size-4" /> : <CheckCircle size={16} strokeWidth={1.75} />}
-              size="small"
-              sx={{ fontSize: '0.82rem' }}
             >
+              {submitting ? <Spinner className="size-4" /> : <CheckCircle size={16} strokeWidth={1.75} />}
               {submitting ? t('portfolios.forms.assigning') : t('portfolios.forms.confirmAssignments')}
             </Button>
           ) : (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              disabled={!canGoNext}
-              endIcon={<ArrowForward size={16} strokeWidth={1.75} />}
-              size="small"
-              sx={{ fontSize: '0.82rem' }}
-            >
+            <Button size="sm" onClick={handleNext} disabled={!canGoNext}>
               {t('portfolios.forms.next')}
+              <ArrowForward size={16} strokeWidth={1.75} />
             </Button>
           )}
         </div>

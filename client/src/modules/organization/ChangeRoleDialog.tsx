@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -79,15 +79,14 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
         </TextField>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+        <Button onClick={onClose} variant="ghost" disabled={loading}>
           Annuler
         </Button>
         <Button
-          variant="contained"
           onClick={handleSubmit}
           disabled={loading || !role || role === member?.roleInOrg}
-          startIcon={loading ? <Spinner className="size-4" /> : undefined}
         >
+          {loading && <Spinner className="size-4" />}
           {loading ? 'Modification...' : 'Modifier'}
         </Button>
       </DialogActions>

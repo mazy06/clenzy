@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card } from '../../components/ui';
-import { Skeleton, FormControl, InputLabel, Select, MenuItem, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
+import { Card, Button } from '../../components/ui';
+import { Skeleton, FormControl, InputLabel, Select, MenuItem, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import './calendarSignature.css';
@@ -243,7 +243,8 @@ export default function CalendarPage() {
       </FormControl>
 
       {hasActiveFilters && (
-        <Button size="small" startIcon={<FilterAltOffIcon size={14} strokeWidth={1.75} />} onClick={clearFilters}>
+        <Button size="sm" variant="ghost" onClick={clearFilters}>
+          <FilterAltOffIcon size={14} strokeWidth={1.75} />
           Effacer les filtres
         </Button>
       )}

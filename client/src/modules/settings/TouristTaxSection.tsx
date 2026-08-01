@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, IconButton, TextField, Tooltip } from '@mui/material';
+import { IconButton, TextField, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
@@ -173,17 +173,17 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         </h6>
         <div className="flex-1" />
         {canEdit && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<Add size={16} strokeWidth={1.75} />}
+          <BuiButton
+            size="sm"
+            variant="outline"
             onClick={() => {
               setEditing(null);
               setDialogOpen(true);
             }}
           >
+            <Add strokeWidth={1.75} />
             {t('touristTax.baremes.add', 'Ajouter un barème')}
-          </Button>
+          </BuiButton>
         )}
       </div>
       <p className="cn-text-body2 text-muted-foreground mb-3">
@@ -307,18 +307,18 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
           onChange={(e) => setTo(e.target.value)}
           InputLabelProps={{ shrink: true }}
         />
-        <Button size="small" variant="contained" onClick={loadReport} disabled={!validRange || reportLoading}>
+        <BuiButton size="sm" onClick={loadReport} disabled={!validRange || reportLoading}>
           {reportLoading ? <Spinner className="size-4" /> : t('touristTax.report.generate', 'Générer')}
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<Download size={16} strokeWidth={1.75} />}
+        </BuiButton>
+        <BuiButton
+          size="sm"
+          variant="outline"
           onClick={exportCsv}
           disabled={!validRange || exporting}
         >
+          <Download strokeWidth={1.75} />
           {t('touristTax.report.exportCsv', 'Exporter CSV')}
-        </Button>
+        </BuiButton>
       </div>
 
       {report && (

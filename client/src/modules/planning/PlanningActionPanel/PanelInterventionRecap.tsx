@@ -3,7 +3,8 @@ import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Accordion, AccordionSummary, AccordionDetails, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Button } from '../../../components/ui';
 import {
   ExpandMore,
   Notes,
@@ -202,11 +203,12 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           Signalements ({signalements.length})
         </p>
         <Button
-          size="small"
-          startIcon={<Add size={14} strokeWidth={1.75} />}
+          variant="ghost"
+          size="sm"
           onClick={() => setAddDialogOpen(true)}
-          sx={{ textTransform: 'none', fontSize: '0.625rem' }}
+          className="text-[0.625rem]"
         >
+          <Add size={14} strokeWidth={1.75} />
           Ajouter
         </Button>
       </div>
@@ -261,10 +263,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)} size="small">Annuler</Button>
+          <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">Annuler</Button>
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             disabled={!newDescription.trim()}
             onClick={() => {
               // Would append [SIGNALEMENT:severity] description to notes

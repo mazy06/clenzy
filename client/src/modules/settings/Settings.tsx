@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, TextField, Grid, Alert, Snackbar } from '@mui/material';
+import { TextField, Grid, Alert, Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -533,96 +533,65 @@ export default function Settings() {
 
   // ─── Actions dynamiques selon l'onglet ────────────────────────────────────
 
-  // Boutons du header : styles 100 % hérités du thème global Signature
-  // (contained = contour accent, outlined = carte hairline) — aucun override local.
-  const refinedOutlinedSx = undefined;
-  const refinedContainedSx = undefined;
-
+  // Boutons du header : la sauvegarde est l'action principale de l'onglet
+  // (default), « Réinitialiser » reste une secondaire a poids egal (outline).
   const headerActions = tabValue === tabIdx.general ? (
     <>
-      <Button
-        variant="outlined"
-        startIcon={<Refresh size={14} strokeWidth={1.75} />}
-        onClick={handleReset}
-        size="small"
-        title="Réinitialiser"
-        sx={refinedOutlinedSx}
-      >
+      <UiButton variant="outline" size="sm" onClick={handleReset} title="Réinitialiser">
+        <Refresh size={14} strokeWidth={1.75} />
         Réinitialiser
-      </Button>
-      <Button
-        variant="contained"
-        disableElevation
-        startIcon={<Save size={14} strokeWidth={1.75} />}
-        onClick={handleSave}
-        size="small"
-        title="Sauvegarder"
-        sx={refinedContainedSx}
-      >
+      </UiButton>
+      <UiButton size="sm" onClick={handleSave} title="Sauvegarder">
+        <Save size={14} strokeWidth={1.75} />
         Sauvegarder
-      </Button>
+      </UiButton>
     </>
   ) : tabValue === tabIdx.notifications && notifRef.current?.hasChanges() ? (
-    <Button
-      variant="contained"
-      disableElevation
-      startIcon={
-        notifRef.current?.isSaving ? (
-          <Spinner className="size-3.5" />
-        ) : (
-          <Save size={14} strokeWidth={1.75} />
-        )
-      }
+    <UiButton
+      size="sm"
       onClick={handleNotifSave}
       disabled={notifRef.current?.isSaving}
-      size="small"
       title="Sauvegarder"
-      sx={refinedContainedSx}
     >
+      {notifRef.current?.isSaving ? (
+        <Spinner className="size-3.5" />
+      ) : (
+        <Save size={14} strokeWidth={1.75} />
+      )}
       {notifRef.current?.isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-    </Button>
+    </UiButton>
   ) : tabValue === tabIdx.fiscal && hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) ? (
-    <Button
-      variant="contained"
-      disableElevation
-      startIcon={
-        fiscalRef.current?.isSaving ? (
-          <Spinner className="size-3.5" />
-        ) : (
-          <Save size={14} strokeWidth={1.75} />
-        )
-      }
+    <UiButton
+      size="sm"
       onClick={handleFiscalSave}
       disabled={fiscalRef.current?.isSaving || !fiscalRef.current?.hasChanges()}
-      size="small"
       title={t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
-      sx={refinedContainedSx}
     >
+      {fiscalRef.current?.isSaving ? (
+        <Spinner className="size-3.5" />
+      ) : (
+        <Save size={14} strokeWidth={1.75} />
+      )}
       {fiscalRef.current?.isSaving
         ? t('fiscal.profile.saving', 'Enregistrement...')
         : t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
-    </Button>
+    </UiButton>
   ) : tabValue === tabIdx.payouts && hasAnyRole(['SUPER_ADMIN']) ? (
-    <Button
-      variant="contained"
-      disableElevation
-      startIcon={
-        reversementsIsSaving ? (
-          <Spinner className="size-3.5" />
-        ) : (
-          <Save size={14} strokeWidth={1.75} />
-        )
-      }
+    <UiButton
+      size="sm"
       onClick={handleReversementsSave}
       disabled={reversementsIsSaving || !reversementsHasChanges || !reversementsIsValid}
-      size="small"
       title={t('settings.reversements.save', 'Enregistrer les paramètres')}
-      sx={refinedContainedSx}
     >
+      {reversementsIsSaving ? (
+        <Spinner className="size-3.5" />
+      ) : (
+        <Save size={14} strokeWidth={1.75} />
+      )}
       {reversementsIsSaving
         ? t('settings.reversements.saving', 'Enregistrement...')
         : t('settings.reversements.save', 'Enregistrer les paramètres')}
-    </Button>
+    </UiButton>
   ) : undefined;
 
   // settingsTabs + visibleSettingsTabs + tabValue sont definis plus haut (avant leur 1ere

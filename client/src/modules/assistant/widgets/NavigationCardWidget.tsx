@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowForward as ArrowRightIcon,
@@ -79,17 +79,15 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
           )}
         </div>
 
-        {/* Bouton fleche (cosmetic — toute la carte est cliquable) */}
+        {/* Bouton fleche (cosmetic — toute la carte est cliquable).
+            Icone seule -> taille icon-sm. Pas d'aria-label : le bouton reste
+            aria-hidden, c'est la carte qui porte le libelle accessible.
+            Hover neutralise : c'est la carte entiere qui reagit au survol. */}
         <Button
-          variant="text"
-          size="small"
+          variant="ghost"
+          size="icon-sm"
           onClick={(e) => { e.stopPropagation(); handleClick(); }}
-          sx={{
-            minWidth: 'auto',
-            color: 'var(--accent)',
-            cursor: 'pointer',
-            '&:hover': { bgcolor: 'transparent' },
-          }}
+          className="text-[var(--accent)] hover:bg-transparent hover:text-[var(--accent)]"
           aria-hidden="true"
         >
           <ArrowRightIcon size={18} strokeWidth={2} />

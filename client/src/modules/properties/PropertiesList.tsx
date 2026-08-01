@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Tooltip, IconButton, Fab } from '@mui/material';
+import { Alert, Tooltip, IconButton, Fab } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Add, Home } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -371,14 +372,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             bgcolor: 'var(--warn-soft)', color: 'var(--body)',
             border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
             '& .MuiAlert-message': { fontSize: '12.5px' },
-            '& .MuiAlert-action .MuiButton-root': { color: 'var(--warn)' },
           }}
           action={
+            /* CTA d'un bandeau d'avertissement : la teinte --warn est portee par
+               le bouton lui-meme, l'ancienne regle sx ciblait .MuiButton-root. */
             <Button
-              color="inherit"
-              size="small"
+              variant="outline"
+              size="sm"
               onClick={() => openContractModal([...missingContractIds][0] ?? null)}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               {t('contracts.gate.cta', 'Établir les contrats')}
             </Button>
@@ -400,11 +402,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           } — ${t('properties.propertiesDescription')}`}
           action={(isAdmin() || isManager() || isHost()) && (
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/properties/new')}
             >
+              <Add size={16} strokeWidth={1.75} />
               {t('properties.createFirst')}
             </Button>
           )}

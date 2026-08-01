@@ -11,10 +11,10 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -133,9 +133,12 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
             {invoice.reservationId != null
               && row(
                 t('supervision.invoiceModal.reservation', 'Réservation'),
+                // Rendu au sein d'une ligne cle/valeur : c'est un lien dans une
+                // phrase, pas un bouton — variante `link`, sans gabarit.
                 <Button
-                  size="small"
-                  sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                  variant="link"
+                  size="xs"
+                  className="h-auto p-0 font-semibold"
                   onClick={() => { onClose(); navigate(`/reservations?highlight=${invoice.reservationId}`); }}
                 >
                   {`#${invoice.reservationId}`}
@@ -145,8 +148,9 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
               && row(
                 t('supervision.invoiceModal.intervention', 'Prestation'),
                 <Button
-                  size="small"
-                  sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                  variant="link"
+                  size="xs"
+                  className="h-auto p-0 font-semibold"
                   onClick={() => { onClose(); navigate(`/interventions/${invoice.interventionId}`); }}
                 >
                   {`#${invoice.interventionId}`}
@@ -178,30 +182,28 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+        {/* Pied de modale : une seule action principale (Payer). Les autres
+            descendent d'un cran. Taille unique pour aligner la rangee. */}
         <Button
-          size="small"
+          variant="ghost"
           onClick={() => { onClose(); navigate(`/billing?highlight=${invoiceId}`); }}
         >
           {t('supervision.invoiceModal.openBilling', 'Ouvrir dans Facturation')}
         </Button>
         <div className="flex-1" />
-        <Button onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
+        <Button variant="ghost" onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
         {payable && (
           <>
             <Button
-              variant="outlined"
+              variant="outline"
               disabled={sending || sentTo != null}
               onClick={handleSendLink}
-              startIcon={sending ? <Spinner className="size-3.5" /> : undefined}
             >
+              {sending && <Spinner className="size-3.5" />}
               {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
             </Button>
-            <Button
-              variant="contained"
-              disabled={paying}
-              onClick={handlePay}
-              startIcon={paying ? <Spinner className="size-3.5" /> : undefined}
-            >
+            <Button disabled={paying} onClick={handlePay}>
+              {paying && <Spinner className="size-3.5" />}
               {t('supervision.invoiceModal.pay', 'Payer')}
             </Button>
           </>

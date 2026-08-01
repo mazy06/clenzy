@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
+import { Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
@@ -127,26 +127,26 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
       {/* Action rapide contextualisée */}
       <div className="flex items-center gap-1 mt-auto pt-0.5">
         {device.kind === 'lock' ? (
-          <Button
-            size="small"
-            variant="outlined"
+          <BuiButton
+            size="sm"
+            variant="outline"
             disabled={acting || !device.online}
-            startIcon={acting ? <Spinner className="size-[13px]" /> : locked ? <LockOpen size={14} strokeWidth={1.75} /> : <Lock size={14} strokeWidth={1.75} />}
             onClick={() => onAction?.(device.uid, locked ? 'unlock' : 'lock')}
-            sx={{ flex: 1, justifyContent: 'flex-start' }}
+            className="flex-1 justify-start"
           >
+            {acting ? <Spinner className="size-[13px]" /> : locked ? <LockOpen strokeWidth={1.75} /> : <Lock strokeWidth={1.75} />}
             {locked ? 'Déverrouiller' : 'Verrouiller'}
-          </Button>
+          </BuiButton>
         ) : (
-          <Button
-            size="small"
-            variant="text"
-            endIcon={<ChevronRight size={14} strokeWidth={1.75} />}
+          <BuiButton
+            size="sm"
+            variant="ghost"
             onClick={() => onAction?.(device.uid, 'view')}
-            sx={{ flex: 1, justifyContent: 'space-between', color: 'text.secondary' }}
+            className="flex-1 justify-between text-[var(--muted)]"
           >
             Gérer
-          </Button>
+            <ChevronRight strokeWidth={1.75} />
+          </BuiButton>
         )}
 
         {/* Menu d'options (⋮) — actions secondaires dont la suppression. */}
@@ -194,18 +194,17 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={removing}>
+          <BuiButton variant="outline" onClick={() => setConfirmOpen(false)} disabled={removing}>
             Annuler
-          </Button>
-          <Button
+          </BuiButton>
+          <BuiButton
             onClick={() => { void handleConfirmDelete(); }}
-            color="error"
-            variant="contained"
+            variant="destructive"
             disabled={removing}
-            startIcon={removing ? <Spinner className="size-3.5" /> : <Delete size={16} strokeWidth={1.75} />}
           >
+            {removing ? <Spinner className="size-3.5" /> : <Delete strokeWidth={1.75} />}
             Supprimer
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
 

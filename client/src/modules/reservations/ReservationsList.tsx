@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner } from '../../components/ui';
+import { Button, Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, Paper, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -186,12 +186,8 @@ const ReservationsList: React.FC = () => {
   ], [t]);
 
   const actionButtons = (
-    <Button
-      variant="contained"
-      size="small"
-      startIcon={<AddIcon size={16} strokeWidth={2} />}
-      onClick={handleCreate}
-    >
+    <Button size="sm" onClick={handleCreate}>
+      <AddIcon strokeWidth={2} />
       {t('reservations.create')}
     </Button>
   );
@@ -257,7 +253,8 @@ const ReservationsList: React.FC = () => {
           title={t('reservations.noReservations')}
           description="Ajoutez votre première réservation manuellement, ou laissez Baitly importer vos calendriers Airbnb / Booking automatiquement."
           action={(
-            <Button variant="outlined" size="small" startIcon={<AddIcon size={16} strokeWidth={1.75} />} onClick={handleCreate}>
+            <Button variant="outline" size="sm" onClick={handleCreate}>
+              <AddIcon strokeWidth={1.75} />
               {t('reservations.create')}
             </Button>
           )}
@@ -403,20 +400,20 @@ const ReservationsList: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setCancelDialogOpen(false)}
-            size="small"
             disabled={isCancelling}
           >
             Non
           </Button>
           <Button
+            variant="destructive"
+            size="sm"
             onClick={handleConfirmCancel}
-            color="error"
-            variant="contained"
-            size="small"
             disabled={isCancelling}
           >
-            {isCancelling ? <Spinner className="size-[18px] me-1.5" /> : null}
+            {isCancelling ? <Spinner className="size-[18px]" /> : null}
             Oui, annuler
           </Button>
         </DialogActions>

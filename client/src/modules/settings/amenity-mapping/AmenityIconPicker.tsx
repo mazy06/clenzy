@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment, IconButton, Button, Tooltip, Stack } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment, IconButton, Tooltip, Stack } from '@mui/material';
 import { Search, X, RotateCcw } from 'lucide-react';
+import { Button } from '../../../components/ui';
 import { ICON_CATALOG, ICON_REGISTRY, type IconGroup } from './amenityIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -285,25 +286,21 @@ export default function AmenityIconPicker({
         <div className="flex items-center gap-1.5">
           {isOverridden && (
             <Button
-              size="small"
-              startIcon={<RotateCcw size={13} />}
+              variant="ghost"
+              size="sm"
               onClick={() => { onReset(); onClose(); }}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.78rem',
-                color: NEUTRAL,
-                cursor: 'pointer',
-                '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
-              }}
             >
+              <RotateCcw size={13} />
               {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
             </Button>
           )}
         </div>
+        {/* Le choix se fait au clic sur une icone (qui ferme le dialog) : ce
+            bouton n'est que le congediement de la modale, d'ou outline. */}
         <Button
+          variant="outline"
           onClick={handleClose}
-          size="small"
-          sx={{ textTransform: 'none', fontSize: '0.78rem', cursor: 'pointer' }}
+          size="sm"
         >
           {t('common.close', 'Fermer')}
         </Button>

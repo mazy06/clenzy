@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
@@ -158,8 +158,9 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                     placeholder={t('agentReplay.whatIf.placeholder', 'Ex. : avec un tarif nuit à 95 € au lieu de 120 €')}
                   />
                   <Button
-                    variant="outlined"
-                    size="small"
+                    variant="outline"
+                    size="sm"
+                    className="whitespace-nowrap"
                     disabled={whatIfStatus === 'busy' || !hypothesis.trim()}
                     onClick={async () => {
                       setWhatIfStatus('busy');
@@ -173,7 +174,6 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                         setTimeout(() => setWhatIfStatus('idle'), 4000);
                       }
                     }}
-                    sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
                   >
                     {whatIfStatus === 'copied'
                       ? t('agentReplay.whatIf.copied', 'Copié !')

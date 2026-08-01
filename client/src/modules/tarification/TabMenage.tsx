@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton, Button } from '@mui/material';
+import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton } from '@mui/material';
+import { Button } from '../../components/ui';
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
@@ -462,7 +463,8 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             </p>
           )}
           {canEdit && (
-            <Button size="small" variant="text" startIcon={<Add size={15} strokeWidth={1.75} />} onClick={addSeasonalModifier}>
+            <Button size="sm" variant="ghost" onClick={addSeasonalModifier}>
+              <Add size={15} strokeWidth={1.75} />
               {t('tarification.cleaning.seasonal.add')}
             </Button>
           )}

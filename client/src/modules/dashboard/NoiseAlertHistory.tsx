@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge as BuiBadge } from '../../components/ui';
-import { Spinner } from '../../components/ui';
-import { Card, CardContent, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Card, CardContent, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -206,18 +206,16 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
           </DialogContent>
           <DialogActions>
             <Button
-              size="small"
+              size="sm"
+              variant="outline"
               onClick={() => setAckDialog({ open: false, alertId: null })}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
             >
               Annuler
             </Button>
             <Button
-              size="small"
-              variant="contained"
+              size="sm"
               onClick={handleAcknowledge}
               disabled={ackMutation.isPending}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
             >
               {ackMutation.isPending ? 'Acquittement...' : 'Acquitter'}
             </Button>

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -286,24 +286,24 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
       <DialogActions sx={{ px: 3, py: 1.5 }}>
         {isOverride && (
           <Button
-            startIcon={<Replay size={16} strokeWidth={1.75} />}
+            variant="outline"
+            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             onClick={handleResetToSystem}
             disabled={saving}
-            color="warning"
           >
+            <Replay size={16} strokeWidth={1.75} />
             {t('whatsappTemplates.dialog.resetToSystem')}
           </Button>
         )}
         <div className="flex-1" />
-        <Button onClick={onClose} disabled={saving}>
+        <Button variant="ghost" onClick={onClose} disabled={saving}>
           {t('common.cancel')}
         </Button>
         <Button
-          variant="contained"
-          startIcon={saving ? <Spinner className="size-4" /> : <Save />}
           onClick={handleSave}
           disabled={saving || !touched || !body.trim() || isOverLimit}
         >
+          {saving ? <Spinner className="size-4" /> : <Save />}
           {saving ? t('common.processing') : t('common.save')}
         </Button>
       </DialogActions>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import type { OtaChannel } from '../../services/channels/otaChannels';
 
 interface ChannelDisconnectDialogProps {
@@ -41,10 +41,10 @@ const ChannelDisconnectDialog: React.FC<ChannelDisconnectDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions sx={{ px: 2.5, pb: 2 }}>
-        <Button size="small" onClick={onClose} sx={{ textTransform: 'none' }}>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button size="small" variant="contained" color="error" onClick={onConfirm} sx={{ textTransform: 'none' }}>
+        <Button variant="destructive" size="sm" onClick={onConfirm}>
           {t('channels.airbnb.disconnect')}
         </Button>
       </DialogActions>

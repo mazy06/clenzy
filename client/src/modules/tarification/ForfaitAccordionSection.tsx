@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
-import { Badge } from '../../components/ui';
-import { TextField, Grid, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Badge, Button } from '../../components/ui';
+import { TextField, Grid, InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AutoAwesome,
@@ -284,13 +284,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           {/* Add prestation button */}
           {canEdit && (
             <div className="mt-1.5">
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Add />}
-                onClick={() => setAddPrestationOpen(true)}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
+              <Button variant="outline" size="sm" onClick={() => setAddPrestationOpen(true)}>
+                <Add />
                 {t('tarification.addPrestation')}
               </Button>
             </div>
@@ -423,13 +418,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           {/* Add surcharge button */}
           {canEdit && (
             <div className="mt-1.5">
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Add />}
-                onClick={() => setAddSurchargeOpen(true)}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
+              <Button variant="outline" size="sm" onClick={() => setAddSurchargeOpen(true)}>
+                <Add />
                 {t('tarification.addSurcharge')}
               </Button>
             </div>
@@ -458,8 +448,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
-            <Button onClick={handleAddPrestation} variant="contained" disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
+            <Button variant="ghost" onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAddPrestation} disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
               {t('tarification.add')}
             </Button>
           </DialogActions>
@@ -487,8 +477,8 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
-            <Button onClick={handleAddSurcharge} variant="contained" disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
+            <Button variant="ghost" onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAddSurcharge} disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
               {t('tarification.add')}
             </Button>
           </DialogActions>

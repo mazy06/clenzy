@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
@@ -642,9 +642,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   );
                 })}
               </Stack>
-              <Button size="small" onClick={addExtraCode} sx={{ mt: 1, textTransform: 'none' }}>
+              <BuiButton variant="ghost" size="sm" onClick={addExtraCode} className="mt-1.5">
                 + {t('channels.checkIn.extraCodeAdd', 'Ajouter un code')}
-              </Button>
+              </BuiButton>
               <span className="cn-text-caption text-muted-foreground block mt-0.5">
                 {t('channels.checkIn.extraCodesHint', 'Affichés dans le livret. Chaque code fournit un tag à coller dans vos emails.')}
               </span>
@@ -902,20 +902,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             </p>
           )}
         </div>
-        <Button
-          variant="contained"
-          startIcon={saving ? <Spinner className="size-3.5" /> : <SaveIcon size={16} strokeWidth={1.75} />}
+        {/* Largeur plancher conservee : evite que la barre sursaute entre
+            « Enregistrement… » et « Enregistrer ». */}
+        <BuiButton
           onClick={handleSave}
           disabled={saving || !dirty}
-          sx={{
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            textTransform: 'none',
-            minWidth: 140,
-          }}
+          className="min-w-[140px]"
         >
+          {saving ? <Spinner className="size-3.5" /> : <SaveIcon strokeWidth={1.75} />}
           {saving ? 'Enregistrement…' : t('common.save')}
-        </Button>
+        </BuiButton>
       </Box>
 
       <AccessCodeGeneratorDialog

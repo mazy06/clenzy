@@ -2,9 +2,9 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  Button,
   IconButton,
 } from '@mui/material';
+import { Button } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -111,10 +111,6 @@ const styles = {
     flexGrow: 1,
     p: 1.75,
     pb: '12px !important',
-  },
-  detailsButton: {
-    fontSize: '0.72rem',
-    py: 0.5,
   },
 } as const;
 
@@ -248,25 +244,22 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       {/* ─── Zone actions ─── */}
       <div className="flex gap-[4.5px] px-[10.5px] pt-0 pb-[7.5px]">
         <Button
-          fullWidth
-          size="small"
-          startIcon={<Visibility size={15} strokeWidth={1.75} />}
+          className="w-full shrink"
+          size="sm"
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
-          variant="outlined"
-          sx={styles.detailsButton}
+          variant="outline"
         >
+          <Visibility size={15} strokeWidth={1.75} />
           Détails
         </Button>
         {canEdit && (
           <Button
-            fullWidth
-            size="small"
-            startIcon={<Edit size={15} strokeWidth={1.75} />}
+            className="w-full shrink"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}/edit`); }}
-            variant="outlined"
-            color="primary"
-            sx={styles.detailsButton}
+            variant="outline"
           >
+            <Edit size={15} strokeWidth={1.75} />
             Modifier
           </Button>
         )}

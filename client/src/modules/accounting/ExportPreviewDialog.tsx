@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from 'react-i18next';
 
@@ -189,7 +189,8 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} size="small">
+        {/* Apercu en lecture seule : la fermeture reste une action tertiaire. */}
+        <Button variant="ghost" size="sm" onClick={onClose}>
           {t('common.close')}
         </Button>
       </DialogActions>

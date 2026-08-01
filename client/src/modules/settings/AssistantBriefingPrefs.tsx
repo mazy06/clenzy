@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Box, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Button, Divider } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Box, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Divider } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -287,18 +287,15 @@ export const AssistantBriefingPrefs: React.FC = () => {
       <Divider sx={{ my: 3 }} />
       <div className="flex gap-1.5 justify-end flex-wrap">
         <Button
-          variant="outlined"
+          variant="outline"
           onClick={triggerTest}
           disabled={triggering || !prefs.enabled}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           {triggering ? 'Envoi en cours...' : 'Envoyer un test'}
         </Button>
         <Button
-          variant="contained"
           onClick={save}
           disabled={saving || loading}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           {saving ? 'Enregistrement...' : 'Enregistrer'}
         </Button>

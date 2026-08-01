@@ -4,8 +4,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
+import { Spinner, Button } from '../../../components/ui';
+import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -973,34 +973,33 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               Demandes de service
             </span>
             <div className="flex flex-col gap-1">
+              {/* Trois raccourcis de meme poids : outline pour tous, aucun ne
+                  doit dominer les deux autres. */}
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<CleaningServices size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleCleaningRequestClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <CleaningServices size={14} strokeWidth={1.75} />
                 Demande de menage
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Handyman size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleMaintenanceRequestClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <Handyman size={14} strokeWidth={1.75} />
                 Demande de maintenance
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Add size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleNewServiceRequestClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <Add size={14} strokeWidth={1.75} />
                 Nouvelle demande de service
               </Button>
             </div>
@@ -1072,20 +1071,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       <div className="flex gap-0.5 mt-0.5 flex-wrap">
                         {/* PENDING sans assigné: Bouton assignation manuelle (admin/manager) ou message d'attente */}
                         {isPending && !assigneeName && canEditIntervention && (
+                          /* Seule action attendue sur une demande non assignee :
+                             elle porte l'encre pleine dans sa ligne. */
                           <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
+                            size="xs"
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenSrAssignDialog(sr);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <PersonAdd size={14} strokeWidth={1.75} />
                             Assigner
                           </Button>
                         )}
@@ -1128,56 +1124,46 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {/* PENDING avec assigné: bouton Reassigner (admin/manager) */}
                         {isPending && assigneeName && canEditIntervention && (
                           <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
+                            size="xs"
+                            variant="outline"
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenSrAssignDialog(sr);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <PersonAdd size={14} strokeWidth={1.75} />
                             Réassigner
                           </Button>
                         )}
                         {/* AWAITING_PAYMENT: bouton Reassigner (admin/manager) */}
                         {sr.status === 'AWAITING_PAYMENT' && canEditIntervention && (
                           <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
+                            size="xs"
+                            variant="outline"
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenSrAssignDialog(sr);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <PersonAdd size={14} strokeWidth={1.75} />
                             Réassigner
                           </Button>
                         )}
                         {/* Éditer la demande (admin/manager) — rouvre le modal pré-rempli */}
                         {canEditIntervention && sr.status !== 'COMPLETED' && sr.status !== 'PAID' && (
+                          /* Action tertiaire de la ligne, derriere « Reassigner » :
+                             ghost pour ne pas aligner trois contours identiques. */
                           <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<Edit size={14} strokeWidth={1.75} />}
+                            size="xs"
+                            variant="ghost"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEditServiceRequest(sr.id);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <Edit size={14} strokeWidth={1.75} />
                             Éditer
                           </Button>
                         )}
@@ -1309,18 +1295,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       {/* Action: Assign button if not assigned */}
                       {!isAssigned && canEditIntervention && (
                         <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<PersonAdd size={12} strokeWidth={1.75} />}
+                          size="xs"
+                          variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAssignFromCard(li);
                           }}
-                          sx={{
-                            fontSize: '0.6875rem', textTransform: 'none', mt: 0.5,
-                            py: 0.25, px: 1.5, borderRadius: 1,
-                          }}
+                          className="mt-0.5"
                         >
+                          <PersonAdd size={12} strokeWidth={1.75} />
                           Assigner un prestataire
                         </Button>
                       )}
@@ -1359,23 +1342,21 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </p>
             <div className="flex flex-col gap-1">
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Groups size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleAssignClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <Groups size={14} strokeWidth={1.75} />
                 Assigner equipe / prestataire
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<PriorityHigh size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handlePriorityClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <PriorityHigh size={14} strokeWidth={1.75} />
                 Definir priorite
               </Button>
             </div>
@@ -1390,10 +1371,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </p>
             <div className="flex flex-col gap-1">
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<CheckCircleOutline size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
+                className="w-full justify-start shrink"
                 onClick={() => {
                   if (!targetIntervention) {
                     showSnackbar('Aucune intervention.', 'error');
@@ -1412,15 +1392,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   }
                   setChecklistOpen(true);
                 }}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
               >
+                <CheckCircleOutline size={14} strokeWidth={1.75} />
                 Ajouter checklist operationnelle
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<NotificationsActive size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
+                className="w-full justify-start shrink"
                 onClick={() => {
                   if (!targetIntervention) {
                     showSnackbar('Aucune intervention.', 'error');
@@ -1431,8 +1410,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   setAlertMessage('');
                   setAlertDialogOpen(true);
                 }}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
               >
+                <NotificationsActive size={14} strokeWidth={1.75} />
                 Ajouter alerte / rappel
               </Button>
             </div>
@@ -1695,17 +1674,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setAssignDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
             Annuler
           </Button>
           <Button
+            size="sm"
             onClick={handleAssignConfirm}
-            variant="contained"
-            size="small"
             disabled={!assignValue || assignLoading}
-            startIcon={assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
+            {assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
             Confirmer
           </Button>
         </DialogActions>
@@ -1738,23 +1715,24 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
           <div className="flex flex-col gap-1.5 mt-1.5">
             {PRIORITY_OPTIONS.map((opt) => (
+              /* Segmente de choix : la teinte vient de la donnee (STATUS_TONES),
+                 donc `style` — une classe Tailwind ne peut pas naitre d'une
+                 variable. Contour dans les deux etats, l'etat retenu se lit au
+                 fond soft et a la graisse. */
               <Button
                 key={opt.value}
-                variant={priorityValue === opt.value ? 'contained' : 'outlined'}
-                size="small"
-                fullWidth
+                variant="outline"
+                size="sm"
                 onClick={() => setPriorityValue(opt.value)}
-                sx={{
-                  fontSize: '0.8125rem',
-                  textTransform: 'none',
-                  justifyContent: 'flex-start',
+                aria-pressed={priorityValue === opt.value}
+                className={cn(
+                  'w-full justify-start',
+                  priorityValue === opt.value ? 'font-semibold' : 'font-medium',
+                )}
+                style={{
                   borderColor: opt.tokens.color,
                   color: opt.tokens.color,
                   backgroundColor: priorityValue === opt.value ? opt.tokens.bg : 'transparent',
-                  '&:hover': {
-                    backgroundColor: opt.tokens.bg,
-                    borderColor: opt.tokens.color,
-                  },
                 }}
               >
                 {opt.label}
@@ -1769,17 +1747,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setPriorityDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button variant="outline" size="sm" onClick={() => setPriorityDialogOpen(false)}>
             Annuler
           </Button>
           <Button
+            size="sm"
             onClick={handlePriorityConfirm}
-            variant="contained"
-            size="small"
             disabled={priorityLoading}
-            startIcon={priorityLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
+            {priorityLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
             Confirmer
           </Button>
         </DialogActions>
@@ -1835,17 +1811,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           </List>
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setChecklistOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button variant="outline" size="sm" onClick={() => setChecklistOpen(false)}>
             Fermer
           </Button>
           <Button
+            size="sm"
             onClick={handleChecklistSave}
-            variant="contained"
-            size="small"
             disabled={checklistSaving}
-            startIcon={checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
+            {checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
             Enregistrer
           </Button>
         </DialogActions>
@@ -1906,17 +1880,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           />
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setAlertDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+          <Button variant="outline" size="sm" onClick={() => setAlertDialogOpen(false)}>
             Annuler
           </Button>
           <Button
+            size="sm"
             onClick={handleAlertSave}
-            variant="contained"
-            size="small"
             disabled={!alertDate || !alertMessage.trim() || alertSaving}
-            startIcon={alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
+            {alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
             Ajouter rappel
           </Button>
         </DialogActions>
@@ -1938,18 +1910,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         </DialogContent>
         <DialogActions>
           <Button
+            variant="outline"
             onClick={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
             disabled={deleteSrLoading}
           >
             Annuler
           </Button>
           <Button
-            variant="contained"
-            color="error"
+            variant="destructive"
             onClick={handleDeleteSr}
             disabled={deleteSrLoading}
-            startIcon={deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
           >
+            {deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
             Supprimer
           </Button>
         </DialogActions>

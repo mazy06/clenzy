@@ -17,9 +17,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Button, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
 import {
   X,
   TrendingDown,
@@ -120,34 +120,25 @@ function DriftRow({
           const isBusy = busyResolution === r;
           const anyBusy = busyResolution !== null;
           return (
+            // Trois arbitrages de meme poids (l'ancien `contained` etait deja
+            // neutralise en contour par son sx) : outline pour les trois, la
+            // teinte de chaque resolution etant choisie a l'execution -> inline.
             <Button
               key={r}
-              size="small"
-              variant={r === 'KEEP_CLENZY' ? 'contained' : 'outlined'}
+              size="sm"
+              variant="outline"
               disabled={anyBusy}
               onClick={() => onResolve(r)}
-              startIcon={
-                isBusy ? (
-                  <Spinner className="size-3" />
-                ) : r === 'KEEP_CLENZY' || r === 'KEEP_OTA' ? (
-                  <CheckCircle2 size={12} />
-                ) : (
-                  <X size={12} />
-                )
-              }
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.72rem',
-                flex: 1,
-                borderColor: RESOLUTION_COLOR[r],
-                color: RESOLUTION_COLOR[r],
-                ...(r === 'KEEP_CLENZY' && {
-                  bgcolor: 'transparent',
-                  border: '1px solid',
-                  '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: RESOLUTION_COLOR[r] },
-                }),
-              }}
+              className="flex-1 text-[0.72rem]"
+              style={{ borderColor: RESOLUTION_COLOR[r], color: RESOLUTION_COLOR[r] }}
             >
+              {isBusy ? (
+                <Spinner className="size-3" />
+              ) : r === 'KEEP_CLENZY' || r === 'KEEP_OTA' ? (
+                <CheckCircle2 size={12} />
+              ) : (
+                <X size={12} />
+              )}
               {RESOLUTION_LABEL[r]}
             </Button>
           );
@@ -270,7 +261,7 @@ export default function ChannexPriceDriftsDialog({
 
         {error && (
           <Alert severity="error" sx={{ mb: 1.5 }} action={
-            <Button size="small" onClick={() => void fetchDrifts()} sx={{ textTransform: 'none' }}>
+            <Button variant="ghost" size="sm" onClick={() => void fetchDrifts()}>
               Reessayer
             </Button>
           }>

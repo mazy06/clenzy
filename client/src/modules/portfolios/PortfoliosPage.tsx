@@ -5,7 +5,8 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Button, Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -168,24 +169,24 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
 
   const actionButtons = (
     <div className="flex gap-1.5">
+      {/* Deux associations de meme poids dans l'en-tete : outline des deux
+          cotes, aucune n'est l'action attendue par defaut. */}
       <Button
-        variant="outlined"
-        size="small"
-        startIcon={<AssignmentIcon size={16} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
         onClick={handleClientAssignment}
-        sx={{ fontSize: '0.8rem' }}
         title={t('portfolios.associateClientsProperties')}
       >
+        <AssignmentIcon strokeWidth={1.75} />
         {t('portfolios.associateClientsProperties')}
       </Button>
       <Button
-        variant="outlined"
-        size="small"
-        startIcon={<PeopleIcon size={16} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
         onClick={handleTeamAssignment}
-        sx={{ fontSize: '0.8rem' }}
         title={t('portfolios.associateTeamsUsers')}
       >
+        <PeopleIcon strokeWidth={1.75} />
         {t('portfolios.associateTeamsUsers')}
       </Button>
     </div>
@@ -321,12 +322,11 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                     message={t('portfolios.fields.noClientAssociated')}
                     action={
                       <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<AssignmentIcon size={14} strokeWidth={1.75} />}
+                        variant="outline"
+                        size="sm"
                         onClick={handleClientAssignment}
-                        sx={{ fontSize: '0.78rem' }}
                       >
+                        <AssignmentIcon strokeWidth={1.75} />
                         {t('portfolios.associateClientsProperties')}
                       </Button>
                     }
@@ -551,12 +551,11 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   message={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<PeopleIcon size={14} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
                       onClick={handleTeamAssignment}
-                      sx={{ fontSize: '0.78rem' }}
                     >
+                      <PeopleIcon strokeWidth={1.75} />
                       {t('portfolios.associateTeamsUsers')}
                     </Button>
                   }
@@ -636,12 +635,11 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   message={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<PeopleIcon size={14} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
                       onClick={handleTeamAssignment}
-                      sx={{ fontSize: '0.78rem' }}
                     >
+                      <PeopleIcon strokeWidth={1.75} />
                       {t('portfolios.associateTeamsUsers')}
                     </Button>
                   }

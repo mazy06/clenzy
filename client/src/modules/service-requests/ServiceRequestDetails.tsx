@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Button } from '@mui/material';
+import { Skeleton } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Edit,
   Assignment,
@@ -161,12 +162,12 @@ const ServiceRequestDetails: React.FC = () => {
           actions={
             canEdit ? (
               <Button
-                variant="outlined"
-                startIcon={<Edit size={18} strokeWidth={1.75} />}
+                variant="outline"
                 onClick={() => navigate(`/service-requests/${id}/edit`)}
-                size="small"
+                size="sm"
                 title={t('serviceRequests.modify')}
               >
+                <Edit size={18} strokeWidth={1.75} />
                 {t('serviceRequests.modify')}
               </Button>
             ) : undefined
@@ -178,10 +179,13 @@ const ServiceRequestDetails: React.FC = () => {
       <WorkOrderDetailLayout
         vm={vm}
         propertyAction={
+          // Taille xs (h24) et non sm : le `sx` d'origine bridait deja le
+          // bouton a 24 px de haut — c'est le gabarit que le kit nomme xs.
           <Button
-            size="small"
+            variant="ghost"
+            size="xs"
             onClick={() => navigate(`/properties/${sr.propertyId}`)}
-            sx={{ fontSize: '0.6875rem', textTransform: 'none', py: 0, minHeight: 24 }}
+            className="text-[0.6875rem]"
           >
             {t('serviceRequests.details.viewProperty')}
           </Button>

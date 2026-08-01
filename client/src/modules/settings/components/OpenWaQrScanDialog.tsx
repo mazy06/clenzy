@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Alert, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, Close, Refresh } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -193,7 +193,8 @@ export default function OpenWaQrScanDialog({
           <Alert severity="error" icon={<ErrorOutline size={20} />}>
             {error}
           </Alert>
-          <Button variant="outlined" startIcon={<Refresh size={14} />} onClick={handleRetry} size="small">
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            <Refresh size={14} />
             {t('common.retry', 'Réessayer')}
           </Button>
         </Stack>
@@ -227,7 +228,8 @@ export default function OpenWaQrScanDialog({
             {t('settings.whatsapp.qr.failed',
               "L'authentification WhatsApp a échoué. Le compte est peut-être banni ou nécessite une vérification 2FA.")}
           </Alert>
-          <Button variant="outlined" startIcon={<Refresh size={14} />} onClick={handleRetry} size="small">
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            <Refresh size={14} />
             {t('common.retry', 'Réessayer')}
           </Button>
         </Stack>
@@ -283,7 +285,7 @@ export default function OpenWaQrScanDialog({
       </DialogContent>
       {status !== 'connected' && (
         <DialogActions>
-          <Button onClick={onClose}>{t('common.close', 'Fermer')}</Button>
+          <Button variant="ghost" onClick={onClose}>{t('common.close', 'Fermer')}</Button>
         </DialogActions>
       )}
     </Dialog>

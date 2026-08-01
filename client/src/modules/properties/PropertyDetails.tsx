@@ -3,9 +3,9 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
+import { Spinner, Button } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import { Alert, Button, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
+import { Alert, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -400,23 +400,22 @@ const PropertyDetails: React.FC = () => {
             <div className="flex items-center gap-1">
               {canEdit && (
                 <Button
-                  variant="outlined"
-                  startIcon={<Send size={16} strokeWidth={1.75} />}
+                  variant="outline"
                   onClick={() => setCleaningQuoteDialogOpen(true)}
-                  size="small"
+                  size="sm"
                   title={t('properties.cleaningQuote.button')}
                 >
+                  <Send size={16} strokeWidth={1.75} />
                   {t('properties.cleaningQuote.button')}
                 </Button>
               )}
               {canEdit && (
                 <Button
-                  variant="contained"
-                  startIcon={<Edit size={16} strokeWidth={1.75} />}
                   onClick={() => navigate(`/properties/${id}/edit`)}
-                  size="small"
+                  size="sm"
                   title={t('properties.modify')}
                 >
+                  <Edit size={16} strokeWidth={1.75} />
                   {t('properties.modify')}
                 </Button>
               )}
@@ -792,14 +791,14 @@ const PropertyDetails: React.FC = () => {
                       <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                         {t('channels.checkIn.title')}
                       </p>
+                      {/* Raccourci discret en tete de carte : `xs` remplace le gabarit 26 px du sx. */}
                       <Button
-                        size="small"
-                        endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
+                        size="xs"
+                        variant="ghost"
                         onClick={() => setTabValue(3)}
-                        variant="text"
-                        sx={{ minWidth: 0, px: 1, py: 0.25, height: 26, fontSize: '11.5px' }}
                       >
                         {t('properties.modify')}
+                        <OpenInNew size={12} strokeWidth={1.75} />
                       </Button>
                     </div>
 
@@ -879,7 +878,8 @@ const PropertyDetails: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
+                <Button size="sm" variant="outline" onClick={() => navigate('/channels')}>
+                  <Hub size={14} strokeWidth={1.75} />
                   {t('channels.listings.linkProperty')}
                 </Button>
               )}
@@ -900,7 +900,8 @@ const PropertyDetails: React.FC = () => {
                   <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>{ch.name}</p>
                   <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={t('channels.notConnected')} className="ms-auto h-[20px]" />
                 </div>
-                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
+                <Button size="sm" variant="outline" onClick={() => navigate('/channels')}>
+                  <Hub size={14} strokeWidth={1.75} />
                   {t('channels.listings.linkProperty')}
                 </Button>
               </Paper>
@@ -937,16 +938,15 @@ const PropertyDetails: React.FC = () => {
           <p className="cn-text-body2">{t('properties.cleaningQuote.confirmBody')}</p>
         </DialogContent>
         <DialogActions>
-          <Button size="small" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
+          <Button size="sm" variant="ghost" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
             {t('common.cancel')}
           </Button>
           <Button
-            size="small"
-            variant="contained"
+            size="sm"
             onClick={handleSendCleaningQuote}
             disabled={cleaningQuoteSending}
-            startIcon={cleaningQuoteSending ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
           >
+            {cleaningQuoteSending ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
             {t('properties.cleaningQuote.confirmSend')}
           </Button>
         </DialogActions>

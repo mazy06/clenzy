@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Paper, Button, Alert, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import { Paper, Alert, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
@@ -391,10 +391,9 @@ export default function AcceptInvitationPage() {
                         invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
                         Deconnectez-vous pour creer un compte avec le bon email.
                       </Alert>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        fullWidth
+                      <BuiButton
+                        size="lg"
+                        className="w-full"
                         onClick={async () => {
                           sessionStorage.setItem('pending_invitation_token', token!);
                           // ⚠️ Le logout Keycloak seul ne suffit PAS : keycloak.ts
@@ -415,46 +414,43 @@ export default function AcceptInvitationPage() {
                           const redirectUri = `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`;
                           window.location.href = keycloak.createLogoutUrl({ redirectUri });
                         }}
-                        sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                       >
                         Se deconnecter et creer un compte
-                      </Button>
+                      </BuiButton>
                     </div>
                   ) : (
-                    <Button
-                      variant="contained"
-                      size="large"
-                      fullWidth
-                      startIcon={<PersonAdd />}
+                    <BuiButton
+                      size="lg"
+                      className="w-full"
                       onClick={handleAccept}
-                      sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                     >
+                      <PersonAdd />
                       Accepter l'invitation
-                    </Button>
+                    </BuiButton>
                   );
                 })()
               ) : (
                 <div className="flex flex-col gap-2">
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    fullWidth
-                    startIcon={<PersonAdd />}
+                  {/* MUI donnait "outlined" aux deux actions du meme poids ; dans cette zone
+                      creer le compte EST l'action principale, "J'ai deja un compte" n'est
+                      qu'un renvoi — d'ou default + ghost plutot que outline + ghost. */}
+                  <BuiButton
+                    size="lg"
+                    className="w-full"
                     onClick={handleRegisterAndAccept}
-                    sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                   >
+                    <PersonAdd />
                     Creer un compte et accepter
-                  </Button>
-                  <Button
-                    variant="text"
-                    size="small"
-                    fullWidth
-                    startIcon={<LoginIcon />}
+                  </BuiButton>
+                  <BuiButton
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
                     onClick={handleLoginAndAccept}
-                    sx={{ fontWeight: 500 }}
                   >
+                    <LoginIcon />
                     J'ai deja un compte
-                  </Button>
+                  </BuiButton>
                 </div>
               )}
             </>
@@ -581,27 +577,24 @@ export default function AcceptInvitationPage() {
                   }
                 />
 
-                <Button
-                  variant="contained"
-                  size="large"
-                  fullWidth
+                <BuiButton
+                  size="lg"
+                  className="w-full"
                   onClick={handleSubmitRegister}
                   disabled={registering}
-                  startIcon={registering ? <Spinner className="size-4" /> : <PersonAdd />}
-                  sx={{ py: 1.3, fontWeight: 600, borderRadius: 2 }}
                 >
+                  {registering ? <Spinner className="size-4" /> : <PersonAdd />}
                   {registering ? 'Creation en cours...' : 'Creer mon compte et accepter'}
-                </Button>
+                </BuiButton>
 
-                <Button
-                  variant="text"
-                  size="small"
+                <BuiButton
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setState('info')}
                   disabled={registering}
-                  sx={{ fontWeight: 500 }}
                 >
                   Retour
-                </Button>
+                </BuiButton>
               </Stack>
             </div>
           )}
@@ -664,15 +657,13 @@ export default function AcceptInvitationPage() {
               </div>
 
               <div className="flex gap-2 mt-4">
-                <Button
-                  variant="contained"
-                  fullWidth
+                <BuiButton
+                  className="w-full"
                   onClick={handleCompleteProfile}
                   disabled={savingProfile}
-                  sx={{ py: 1.2, fontWeight: 600, borderRadius: 2 }}
                 >
                   {savingProfile ? <Spinner className="size-5" /> : 'Continuer'}
-                </Button>
+                </BuiButton>
               </div>
             </div>
           )}
@@ -703,13 +694,13 @@ export default function AcceptInvitationPage() {
               <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
                 {error}
               </Alert>
-              <Button
-                variant="outlined"
-                sx={{ mt: 3 }}
+              <BuiButton
+                variant="outline"
+                className="mt-[18px]"
                 onClick={() => navigate('/login', { replace: true })}
               >
                 Retour a la connexion
-              </Button>
+              </BuiButton>
             </div>
           )}
         </Paper>

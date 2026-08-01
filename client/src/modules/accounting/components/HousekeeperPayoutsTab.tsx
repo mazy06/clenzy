@@ -14,7 +14,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Paper, Button, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Skeleton } from '@mui/material';
+import { Paper, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
@@ -301,18 +301,19 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setRetryTarget(null)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <BuiButton variant="ghost" size="sm" onClick={() => setRetryTarget(null)}>
             {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="warning"
+          </BuiButton>
+          {/* Relance d'un versement (money-path) : le `color="warning"` d'origine
+              se reporte en outline teinte --warn, faute de variante dediee. */}
+          <BuiButton
+            variant="outline"
+            size="sm"
+            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             onClick={handleConfirmRetry}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {t('accounting.housekeeperPayouts.retryConfirmBtn', 'Relancer')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
     </>

@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip } from '@mui/material';
+import { Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -708,12 +708,13 @@ const WelcomeGuideAdmin: React.FC = () => {
   const headerActions = usePageHeaderActions(
     view === 'list' ? (
       isStaff ? (
-        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => openCreate()}>
+        <Button size="sm" onClick={() => openCreate()}>
+          <Add size={14} strokeWidth={1.75} />
           {t('welcomeGuide.actions.new', 'Nouveau livret')}
         </Button>
       ) : null
     ) : (
-      <Button variant="text" size="small" onClick={closeForm}>
+      <Button variant="ghost" size="sm" onClick={closeForm}>
         {t('welcomeGuide.actions.cancel', 'Annuler')}
       </Button>
     ),
@@ -866,7 +867,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                 title={t('welcomeGuide.list.emptyTitle', 'Aucun livret pour le moment')}
                 description={t('welcomeGuide.list.emptyDescription', "Créez un livret d'accueil pour partager le wifi, le digicode et vos bons plans avec vos voyageurs.")}
                 action={isStaff ? (
-                  <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={() => openCreate()}>
+                  <Button onClick={() => openCreate()}>
+                    <Add size={16} strokeWidth={1.75} />
                     {t('welcomeGuide.actions.new', 'Nouveau livret')}
                   </Button>
                 ) : undefined}
@@ -1068,7 +1070,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       </div>
       {/* Précédent | numéros d'étape (centrés, cliquables → saut direct) | Suivant/Enregistrer */}
       <div className="flex items-center gap-1.5">
-        <Button variant="outlined" size="small" onClick={goBack} disabled={step === 0} sx={{ flexShrink: 0 }}>
+        <Button variant="outline" size="sm" className="shrink-0" onClick={goBack} disabled={step === 0}>
           {t('welcomeGuide.wizard.previous', 'Précédent')}
         </Button>
         <div className="flex-1 flex items-center justify-center gap-1 flex-wrap">
@@ -1107,7 +1109,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           })}
         </div>
         {step < LAST_STEP ? (
-          <Button variant="contained" size="small" onClick={goNext} sx={{ flexShrink: 0 }}>
+          <Button size="sm" className="shrink-0" onClick={goNext}>
             {t('welcomeGuide.wizard.next', 'Suivant')}
           </Button>
         ) : (
@@ -1127,13 +1129,8 @@ const WelcomeGuideAdmin: React.FC = () => {
             }
           >
             <span style={{ flexShrink: 0 }}>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => handleSave()}
-                disabled={saving || !canCreate}
-                startIcon={saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
-              >
+              <Button size="sm" onClick={() => handleSave()} disabled={saving || !canCreate}>
+                {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
                 {t('welcomeGuide.actions.save', 'Enregistrer')}
               </Button>
             </span>
@@ -1373,13 +1370,8 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.welcomeNote.guestLabel', 'Voyageur (chargé depuis la réservation)')} :
             </span>
             <Badge variant="secondary" className="h-[24px] px-1.5 text-[12.5px] font-semibold">{loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}</Badge>
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<Tag size={14} strokeWidth={1.9} />}
-              onClick={insertGuestFirstNameTag}
-              sx={{ textTransform: 'none' }}
-            >
+            <Button variant="ghost" size="sm" onClick={insertGuestFirstNameTag}>
+              <Tag size={14} strokeWidth={1.9} />
               {t('welcomeGuide.welcomeNote.insertFirstName', 'Insérer le prénom dans le message')}
             </Button>
           </div>
@@ -1464,7 +1456,8 @@ const WelcomeGuideAdmin: React.FC = () => {
           actions={
             propertyPhotos.length > 0 ? (
               <Button
-                size="small"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setHeroTouched(true);
                   setHeroPhotoIds(
@@ -1523,7 +1516,8 @@ const WelcomeGuideAdmin: React.FC = () => {
           icon={<FileText size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.form.sectionsTitle', 'Sections du livret')}
           actions={
-            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addSection}>
+            <Button variant="ghost" size="sm" onClick={addSection}>
+              <Add size={14} strokeWidth={1.75} />
               {t('welcomeGuide.actions.addSection', 'Ajouter une section')}
             </Button>
           }
@@ -1623,7 +1617,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                           </IconButton>
                         </div>
                       ))}
-                      <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => addSectionItem(idx)}>
+                      <Button variant="ghost" size="sm" onClick={() => addSectionItem(idx)}>
+                        <Add size={14} strokeWidth={1.75} />
                         {t('welcomeGuide.sectionItems.add', 'Ajouter un élément')}
                       </Button>
                     </div>
@@ -1641,10 +1636,12 @@ const WelcomeGuideAdmin: React.FC = () => {
           title={t('welcomeGuide.pois.title', 'Autour de moi')}
           actions={
             <>
-              <Button size="small" startIcon={<Sparkles size={14} strokeWidth={1.75} />} onClick={openSuggest}>
+              <Button variant="ghost" size="sm" onClick={openSuggest}>
+                <Sparkles size={14} strokeWidth={1.75} />
                 {t('welcomeGuide.pois.suggest', 'Suggérer')}
               </Button>
-              <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
+              <Button variant="ghost" size="sm" onClick={addPoi}>
+                <Add size={14} strokeWidth={1.75} />
                 {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
               </Button>
             </>
@@ -1754,7 +1751,8 @@ const WelcomeGuideAdmin: React.FC = () => {
           icon={<Ticket size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.curation.title', 'Activités à proposer')}
           actions={
-            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addActivity}>
+            <Button variant="ghost" size="sm" onClick={addActivity}>
+              <Add size={14} strokeWidth={1.75} />
               {t('welcomeGuide.curation.add', 'Ajouter une activité')}
             </Button>
           }
@@ -2011,26 +2009,24 @@ const WelcomeGuideAdmin: React.FC = () => {
           {linkDialog.qrCode ? (
             <div className="flex flex-col items-center mt-3 gap-1.5">
               <img className="w-[200px] h-[200px]" src={linkDialog.qrCode} alt="QR code" />
-              <Button size="small" href={linkDialog.qrCode} download="livret-qr.png">
-                {t('welcomeGuide.link.downloadQr', 'Télécharger le QR')}
+              {/* `href` : le kit ne rend pas d'ancre, on delegue via asChild. */}
+              <Button variant="ghost" size="sm" asChild>
+                <a href={linkDialog.qrCode} download="livret-qr.png">
+                  {t('welcomeGuide.link.downloadQr', 'Télécharger le QR')}
+                </a>
               </Button>
             </div>
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button
-            href={linkDialog.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            startIcon={<OpenInNew size={16} strokeWidth={1.75} />}
-          >
-            {t('welcomeGuide.link.open', 'Ouvrir')}
+          <Button variant="ghost" asChild>
+            <a href={linkDialog.link} target="_blank" rel="noopener noreferrer">
+              <OpenInNew size={16} strokeWidth={1.75} />
+              {t('welcomeGuide.link.open', 'Ouvrir')}
+            </a>
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<ContentCopy size={16} strokeWidth={1.75} />}
-            onClick={copyLink}
-          >
+          <Button onClick={copyLink}>
+            <ContentCopy size={16} strokeWidth={1.75} />
             {copied ? t('welcomeGuide.link.copied', 'Copié !') : t('welcomeGuide.link.copy', 'Copier')}
           </Button>
         </DialogActions>
@@ -2118,7 +2114,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setGuestbook((s) => ({ ...s, open: false }))}>
+          <Button variant="ghost" onClick={() => setGuestbook((s) => ({ ...s, open: false }))}>
             {t('welcomeGuide.actions.close', 'Fermer')}
           </Button>
         </DialogActions>
@@ -2203,7 +2199,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStats((s) => ({ ...s, open: false }))}>
+          <Button variant="ghost" onClick={() => setStats((s) => ({ ...s, open: false }))}>
             {t('welcomeGuide.actions.close', 'Fermer')}
           </Button>
         </DialogActions>
@@ -2253,10 +2249,10 @@ const WelcomeGuideAdmin: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
+          <Button variant="ghost" onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
             {t('welcomeGuide.actions.close', 'Fermer')}
           </Button>
-          <Button variant="contained" disabled={suggest.selected.size === 0} onClick={addSuggested}>
+          <Button disabled={suggest.selected.size === 0} onClick={addSuggested}>
             {t('welcomeGuide.pois.suggestAdd', 'Ajouter')} ({suggest.selected.size})
           </Button>
         </DialogActions>

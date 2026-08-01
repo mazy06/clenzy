@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, TextField, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {
@@ -243,16 +243,16 @@ const TeamForm: React.FC = () => {
         actions={
           <div className="flex gap-1.5">
             <Button
-              variant="contained"
+              variant="default"
+              size="sm"
               onClick={() => {
                 const submitButton = document.querySelector('[data-submit-team]') as HTMLButtonElement;
                 if (submitButton) submitButton.click();
               }}
-              startIcon={createMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               disabled={createMutation.isPending || filteredUsers.length === 0}
-              size="small"
               title={t('teams.createTeam')}
             >
+              {createMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               {createMutation.isPending ? t('teams.creating') : t('teams.createTeam')}
             </Button>
           </div>
@@ -422,11 +422,11 @@ const TeamForm: React.FC = () => {
                     )}
                   </h6>
                   <Button
-                    variant="outlined"
-                    startIcon={<Add size={16} strokeWidth={1.75} />}
+                    variant="outline"
+                    size="sm"
                     onClick={() => appendZone({ country: 'FR', department: '', arrondissement: null, city: null })}
-                    size="small"
                   >
+                    <Add size={16} strokeWidth={1.75} />
                     {t('teams.addCoverageZone')}
                   </Button>
                 </div>
@@ -594,11 +594,11 @@ const TeamForm: React.FC = () => {
                   </h6>
                   {filteredUsers.length > fields.length && (
                     <Button
-                      variant="outlined"
-                      startIcon={<Add size={16} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
                       onClick={handleAddMember}
-                      size="small"
                     >
+                      <Add size={16} strokeWidth={1.75} />
                       {t('teams.fields.addMember')}
                     </Button>
                   )}
@@ -611,12 +611,12 @@ const TeamForm: React.FC = () => {
                       {t('teams.fields.noMemberAdded')}
                     </p>
                     <Button
-                      variant="outlined"
-                      startIcon={<Add size={16} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
                       onClick={handleAddMember}
                       disabled={filteredUsers.length === 0}
-                      size="small"
                     >
+                      <Add size={16} strokeWidth={1.75} />
                       {filteredUsers.length === 0 ? t('teams.fields.noUserAvailable') : t('teams.fields.addFirstMember')}
                     </Button>
                   </div>
@@ -731,7 +731,9 @@ const TeamForm: React.FC = () => {
           </Grid>
         </Grid>
 
-        <Button type="submit" sx={{ display: 'none' }} data-submit-team>
+        {/* Relais de soumission cible par `[data-submit-team]` depuis le PageHeader :
+            jamais visible, d'ou l'absence de variante utile (hidden). */}
+        <Button type="submit" className="hidden" data-submit-team>
           Soumettre
         </Button>
       </form>

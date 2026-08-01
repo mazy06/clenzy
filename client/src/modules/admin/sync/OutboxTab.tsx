@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
+import { Spinner, Button } from '../../../components/ui';
+import { Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
@@ -252,8 +252,8 @@ const OutboxTab: React.FC = () => {
           arrow
           title="Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot d'événements après avoir corrigé la cause (topic créé, broker remonté, etc.)."
         >
-          <span>
-            <Button size="small" variant="outlined" onClick={handleSelectAllFailed}>
+          <span className="inline-flex">
+            <Button size="sm" variant="outline" onClick={handleSelectAllFailed}>
               Select All Failed
             </Button>
           </span>
@@ -266,15 +266,16 @@ const OutboxTab: React.FC = () => {
               : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."
           }
         >
-          <span>
+          <span className="inline-flex">
+            {/* Teinte warn posee en classes : le kit n'a pas de variante « warning ». */}
             <Button
-              size="small"
-              variant="contained"
-              color="warning"
-              startIcon={retrying ? <Spinner className="size-4" /> : <Replay />}
+              size="sm"
+              variant="outline"
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={handleRetry}
               disabled={selectedIds.size === 0 || retrying}
             >
+              {retrying ? <Spinner className="size-4" /> : <Replay />}
               Retry Selected ({selectedIds.size})
             </Button>
           </span>

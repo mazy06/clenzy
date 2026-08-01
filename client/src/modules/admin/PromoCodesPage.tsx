@@ -4,7 +4,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
+import { TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
@@ -232,17 +232,13 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={createMutation.isPending}>
+        <BuiButton variant="ghost" onClick={handleClose} disabled={createMutation.isPending}>
           Annuler
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={createMutation.isPending}
-          startIcon={createMutation.isPending ? <Spinner className="size-4" /> : <Add size={16} />}
-        >
+        </BuiButton>
+        <BuiButton onClick={handleSubmit} disabled={createMutation.isPending}>
+          {createMutation.isPending ? <Spinner className="size-4" /> : <Add />}
           Créer
-        </Button>
+        </BuiButton>
       </DialogActions>
     </Dialog>
   );
@@ -326,21 +322,18 @@ export default function PromoCodesPage() {
         showBackButton={false}
         actions={
           <div className="flex gap-1.5">
-            <Button
-              variant="outlined"
-              startIcon={<Refresh size={16} />}
+            <BuiButton
+              variant="outline"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['promoCodes', 'list'] })}
               disabled={isLoading}
             >
+              <Refresh />
               Rafraîchir
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add size={16} />}
-              onClick={() => setCreateOpen(true)}
-            >
+            </BuiButton>
+            <BuiButton onClick={() => setCreateOpen(true)}>
+              <Add />
               Créer un code
-            </Button>
+            </BuiButton>
           </div>
         }
       />

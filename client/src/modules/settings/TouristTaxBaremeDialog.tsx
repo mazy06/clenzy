@@ -4,7 +4,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
   MenuItem,
   Grid,
@@ -12,6 +11,7 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
+import { Button } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Property } from '../../services/api/propertiesApi';
 import type {
@@ -300,8 +300,8 @@ export default function TouristTaxBaremeDialog({
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>
-        <Button variant="contained" onClick={handleSave} disabled={!canSubmit}>
+        <Button variant="ghost" onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>
+        <Button onClick={handleSave} disabled={!canSubmit}>
           {t('common.save', 'Enregistrer')}
         </Button>
       </DialogActions>

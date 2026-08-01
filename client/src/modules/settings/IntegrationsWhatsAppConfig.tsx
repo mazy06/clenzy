@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Spinner } from '../../components/ui';
+import { Spinner, Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '../../icons';
 import ServiceGridCard from './components/ServiceGridCard';
@@ -184,15 +184,13 @@ export default function IntegrationsWhatsAppConfig() {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDisconnectOpen(false)} disabled={disconnect.isPending} sx={{ textTransform: 'none' }}>
+          <Button onClick={() => setDisconnectOpen(false)} variant="ghost" disabled={disconnect.isPending}>
             Annuler
           </Button>
           <Button
             onClick={() => disconnect.mutate()}
-            color="error"
-            variant="contained"
+            variant="destructive"
             disabled={disconnect.isPending}
-            sx={{ textTransform: 'none', boxShadow: 'none' }}
           >
             {disconnect.isPending ? <Spinner className="size-3.5" /> : 'Déconnecter'}
           </Button>

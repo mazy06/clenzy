@@ -16,11 +16,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Button, ButtonBase, TextField, Alert, Stack, Divider, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, ButtonBase, TextField, Alert, Stack, Divider, Tooltip } from '@mui/material';
 import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -557,16 +557,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   alors qu'il n'y en a pas. Affiche le count en suffixe quand > 0. */}
               {!guided && activeDriftsCount > 0 && (
                 <div className="flex justify-end">
+                  {/* Alerte discrete au-dessus du contenu : ghost teinte --warn plutot
+                      que default — ce n'est pas l'action principale de l'ecran. */}
                   <Button
-                    size="small"
-                    startIcon={<AlertCircle size={14} />}
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setPriceDriftsOpen(true)}
-                    sx={{
-                      textTransform: 'none',
-                      fontSize: '0.78rem',
-                      color: 'var(--warn)',
-                    }}
+                    className="text-[var(--warn)] hover:bg-[var(--warn-soft)]"
                   >
+                    <AlertCircle />
                     Voir les conflits de prix Baitly ↔ OTA ({activeDriftsCount})
                   </Button>
                 </div>
@@ -658,17 +657,12 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   jete a l'utilisateur final). Le banner reste replie au mount. */}
               {guided && (
                 <div className="flex justify-center pt-0.5">
+                  {/* Toggle discret, volontairement efface : ghost xs en encre --muted. */}
                   <Button
-                    size="small"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => setShowTechStatus((v) => !v)}
-                    sx={{
-                      textTransform: 'none',
-                      fontSize: '0.72rem',
-                      fontWeight: 500,
-                      color: 'text.secondary',
-                      cursor: 'pointer',
-                      '&:hover': { color: 'var(--accent)', backgroundColor: 'transparent' },
-                    }}
+                    className="text-[var(--muted)] hover:bg-transparent hover:text-[var(--accent)]"
                   >
                     {showTechStatus
                       ? t('channexGuided.techToggleHide', 'Masquer l\'etat technique')
@@ -719,10 +713,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     "Importer une propriete deja en ligne".
                   </span>
                   <Button
-                    size="small"
+                    size="sm"
                     onClick={() => setView('CHOICE')}
-                    variant="outlined"
-                    sx={{ textTransform: 'none' }}
+                    variant="outline"
                   >
                     Retour au choix
                   </Button>
@@ -825,13 +818,11 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     <Stack direction="row" spacing={1} alignItems="center">
                       {!mapping ? (
                         <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<Plus size={14} />}
+                          size="sm"
                           disabled={isBusy}
                           onClick={() => handleConnectClick(property)}
-                          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
                         >
+                          <Plus />
                           Connecter
                         </Button>
                       ) : (
@@ -1112,23 +1103,19 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
 
           <div className="flex justify-end gap-1.5 mt-3">
             <Button
-              size="small"
+              variant="outline"
+              size="sm"
               onClick={() => setConnectForm(initialConnectForm)}
               disabled={connectForm.submitting}
-              sx={{ textTransform: 'none' }}
             >
               Annuler
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={handleConnectSubmit}
               disabled={connectForm.submitting}
-              startIcon={
-                connectForm.submitting ? <Spinner className="size-3" /> : null
-              }
-              sx={{ textTransform: 'none' }}
             >
+              {connectForm.submitting ? <Spinner className="size-3" /> : null}
               {connectForm.submitting ? 'Connexion...' : 'Connecter'}
             </Button>
           </div>
@@ -1291,17 +1278,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         <div className="flex justify-end gap-1.5 px-4 pb-3">
           <Button
             onClick={() => setDisconnectOtaConfirm(null)}
-            size="small"
-            sx={{ textTransform: 'none', color: 'text.secondary' }}
+            size="sm"
+            variant="outline"
           >
             Annuler
           </Button>
           <Button
             onClick={handleDisconnectOta}
-            size="small"
-            variant="contained"
-            color="error"
-            sx={{ textTransform: 'none' }}
+            size="sm"
+            variant="destructive"
           >
             Deconnecter
           </Button>

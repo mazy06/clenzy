@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X, CircleCheck, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider } from '@mui/material';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -177,15 +177,14 @@ export default function SendMessageDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button
-          variant="contained"
-          startIcon={sending ? <Spinner className="size-4" /> : <Send />}
+        <BuiButton variant="outline" onClick={onClose}>{t('common.cancel')}</BuiButton>
+        <BuiButton
           onClick={handleSend}
           disabled={sending || !selectedTemplateId || success}
         >
+          {sending ? <Spinner className="size-4" /> : <Send />}
           {sending ? t('common.processing') : t('messaging.send.send')}
-        </Button>
+        </BuiButton>
       </DialogActions>
     </Dialog>
   );

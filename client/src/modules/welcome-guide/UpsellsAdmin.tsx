@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
-import { Spinner } from '../../components/ui';
+import { Spinner, Button } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
-import type { AlertColor, SxProps, Theme } from '@mui/material';
+import { Alert, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
   Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
@@ -44,37 +44,9 @@ const TYPES = Object.keys(TYPE_FALLBACK);
 const DEFAULT_CURRENCY = 'EUR';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-// Actions d'en-tête uniformes (même hauteur / rayon / typo). Deux secondaires
-// « ghost » (Commissions, Ventes) + une primaire pleine (Nouveau service).
-const HEADER_ACTION_BASE = {
-  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
-  borderRadius: '10px', px: 1.75, whiteSpace: 'nowrap',
-  '& .MuiButton-startIcon': { mr: 0.625 },
-} satisfies SxProps<Theme>;
-const headerSecondarySx: SxProps<Theme> = {
-  ...HEADER_ACTION_BASE,
-  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
-  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
-};
-const headerPrimarySx: SxProps<Theme> = {
-  ...HEADER_ACTION_BASE,
-  boxShadow: 'none',
-  '&:hover': { boxShadow: 'none' },
-};
-// Filtres dans le PageHeader (Canal / Catégorie) : boutons étiquetés (icône en
-// enfant, PAS startIcon → non repliés en icon-only par PageHeaderActions).
-const headerFilterSx = {
-  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
-  borderRadius: '10px', px: 1.5, gap: 0.75, whiteSpace: 'nowrap',
-  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
-  '& svg': { color: 'var(--muted)' },
-  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
-} satisfies SxProps<Theme>;
-const headerFilterActiveSx: SxProps<Theme> = {
-  ...headerFilterSx,
-  color: 'var(--accent)', borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)',
-  '& svg': { color: 'var(--accent)' },
-};
+// Filtre du PageHeader actif (Canal / Catégorie) : seule la teinte accent reste
+// a porter, le gabarit (hauteur, rayon, graisse) vient du bouton du kit.
+const HEADER_FILTER_ACTIVE = 'text-[var(--accent)] border-[var(--accent)] bg-[var(--accent-soft)]';
 
 // Icône lucide par type de service.
 const TYPE_ICON: Record<string, typeof Tag> = {
@@ -451,13 +423,16 @@ const UpsellsAdmin: React.FC = () => {
   // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
   const headerActions = usePageHeaderActions(
     <>
-      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Percent size={15} strokeWidth={2} />} onClick={() => setCommissionsOpen(true)}>
+      <Button variant="outline" onClick={() => setCommissionsOpen(true)}>
+        <Percent size={15} strokeWidth={2} />
         {t('upsells.actions.commissions', 'Commissions')}
       </Button>
-      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Receipt size={15} strokeWidth={2} />} onClick={() => setOrdersOpen(true)}>
+      <Button variant="outline" onClick={() => setOrdersOpen(true)}>
+        <Receipt size={15} strokeWidth={2} />
         {t('upsells.actions.orders', 'Ventes')}
       </Button>
-      <Button variant="contained" disableElevation sx={headerPrimarySx} startIcon={<Add size={15} strokeWidth={2} />} onClick={() => openCreate()}>
+      <Button onClick={() => openCreate()}>
+        <Add size={15} strokeWidth={2} />
         {t('upsells.actions.new', 'Nouveau service')}
       </Button>
     </>,
@@ -468,10 +443,10 @@ const UpsellsAdmin: React.FC = () => {
   const headerFilters = usePageHeaderFilters(
     selected ? null : (
       <>
-        <Button variant="outlined" size="small" sx={canalFilter !== 'all' ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCanalAnchor(e.currentTarget)}>
+        <Button variant="outline" className={canalFilter !== 'all' ? HEADER_FILTER_ACTIVE : undefined} onClick={(e) => setCanalAnchor(e.currentTarget)}>
           <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
         </Button>
-        <Button variant="outlined" size="small" sx={catFilter ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCatAnchor(e.currentTarget)}>
+        <Button variant="outline" className={catFilter ? HEADER_FILTER_ACTIVE : undefined} onClick={(e) => setCatAnchor(e.currentTarget)}>
           <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
         </Button>
       </>
@@ -567,7 +542,8 @@ const UpsellsAdmin: React.FC = () => {
             </div>
             <div className="dhead__act">
               <button type="button" className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
-              <Button variant="contained" size="small" startIcon={<Edit size={16} strokeWidth={2} />} onClick={() => openEdit(offer)}>
+              <Button size="sm" onClick={() => openEdit(offer)}>
+                <Edit size={16} strokeWidth={2} />
                 {t('upsells.detail.edit', 'Modifier')}
               </Button>
             </div>
@@ -668,7 +644,7 @@ const UpsellsAdmin: React.FC = () => {
                   <div className="text-[14px] text-muted-foreground mt-0.5">{previewOffer.description}</div>
                 ) : null}
                 <div className="font-bold mt-1.5"><Money value={previewOffer.price} from={previewOffer.currency} /></div>
-                <Button variant="contained" fullWidth sx={{ mt: 1.5 }} disabled>
+                <Button className="w-full mt-[9px] shrink" disabled>
                   {t('upsells.preview.add', 'Ajouter')}
                 </Button>
               </div>
@@ -676,7 +652,7 @@ const UpsellsAdmin: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
+          <Button variant="ghost" onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -721,7 +697,7 @@ const UpsellsAdmin: React.FC = () => {
       </UiAlert>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+          <Button variant="ghost" onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -853,12 +829,17 @@ const UpsellsAdmin: React.FC = () => {
                 {edit.imageUrl ? (
                   <img className="w-[72px] h-[72px] rounded-[1.5px] object-cover block border border-[var(--line)]" src={edit.imageUrl} alt="" />
                 ) : null}
-                <Button component="label" variant="outlined" size="small" startIcon={<ImagePlus size={15} strokeWidth={1.75} />}>
-                  {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
-                  <input type="file" accept="image/*" hidden onChange={onImageFile} />
+                {/* asChild : le declencheur reste un <label> pour ouvrir l'input fichier masque.
+                    cursor-pointer explicite : la regle globale du kit ne vise que button/[role=button]. */}
+                <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                  <label>
+                    <ImagePlus size={15} strokeWidth={1.75} />
+                    {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
+                    <input type="file" accept="image/*" hidden onChange={onImageFile} />
+                  </label>
                 </Button>
                 {edit.imageUrl ? (
-                  <Button size="small" color="error" onClick={() => setEdit((s) => ({ ...s, imageUrl: '' }))}>
+                  <Button variant="destructive" size="sm" onClick={() => setEdit((s) => ({ ...s, imageUrl: '' }))}>
                     {t('upsells.fields.imageRemove', 'Retirer')}
                   </Button>
                 ) : null}
@@ -872,18 +853,15 @@ const UpsellsAdmin: React.FC = () => {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between' }}>
           {editingOffer ? (
-            <Button color="error" startIcon={<Delete size={15} strokeWidth={1.75} />} onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
+            <Button variant="destructive" onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
+              <Delete size={15} strokeWidth={1.75} />
               {t('upsells.actions.delete', 'Supprimer')}
             </Button>
           ) : <span />}
           <div className="flex gap-1.5">
-            <Button onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
-            <Button
-              variant="contained"
-              startIcon={saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
-              onClick={handleSave}
-              disabled={saving}
-            >
+            <Button variant="ghost" onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
               {t('upsells.actions.save', 'Enregistrer')}
             </Button>
           </div>
@@ -933,7 +911,7 @@ const UpsellsAdmin: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+          <Button variant="ghost" onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
         </DialogActions>
       </Dialog>
 

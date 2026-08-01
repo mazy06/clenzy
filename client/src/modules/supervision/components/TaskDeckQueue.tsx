@@ -16,7 +16,8 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Button, Collapse, IconButton } from '@mui/material';
+import { Box, Collapse, IconButton } from '@mui/material';
+import { Button } from '../../../components/ui';
 import {
   Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
 } from '../../../icons';
@@ -124,16 +125,11 @@ function TaskCard({
       {/* Pied : action primaire / secondaire / chevron « Pourquoi ? » */}
       <div className="flex gap-1.5 mt-2">
         <Button
-          size="small" variant="contained" disableElevation
+          size="sm"
+          className="flex-1"
           onClick={priceAdjust ? () => onAdjustPrice!(action) : () => onValidate(action.id)}
-          startIcon={payment ? <CreditCard size={14} /> : guestCard ? <OpenInNew size={14} /> : <Check size={14} />}
-          sx={{
-            flex: 1, textTransform: 'none', fontWeight: 500, fontSize: 11.5, borderRadius: '10px', boxShadow: 'none',
-            bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-            '& .MuiButton-startIcon': { ml: 0, mr: 0.75 },
-            '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
-          }}
         >
+          {payment ? <CreditCard size={14} /> : guestCard ? <OpenInNew size={14} /> : <Check size={14} />}
           {priceAdjust ? (
             t('supervision.price.adjustCta', 'Ajuster les tarifs')
           ) : payment ? (
@@ -147,13 +143,12 @@ function TaskCard({
           ) : guestCard ? t('supervision.guestCard.cta', 'Compléter la fiche client')
             : reminder ? t('supervision.reminder.ack', 'Info reçue') : t('supervision.hitl.validate')}
         </Button>
+        {/* « Ignorer » (dismiss assumé) pour toute carte non-paiement/non-rappel — jamais
+            « Modifier » (aucun éditeur câblé ; laissait croire à une édition). */}
         <Button
-          size="small" variant="outlined" color="inherit" onClick={() => onEdit(action.id)}
-          startIcon={payment ? <Schedule size={13} /> : <VisibilityOff size={13} />}
-          sx={{ textTransform: 'none', fontWeight: 500, fontSize: 11.5, borderRadius: '10px', color: 'var(--muted)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
+          variant="outline" size="sm" onClick={() => onEdit(action.id)}
         >
-          {/* « Ignorer » (dismiss assumé) pour toute carte non-paiement/non-rappel — jamais
-              « Modifier » (aucun éditeur câblé ; laissait croire à une édition). */}
+          {payment ? <Schedule size={13} /> : <VisibilityOff size={13} />}
           {payment ? t('supervision.payment.later', 'Plus tard') : reminder ? t('supervision.reminder.mute', 'Ne plus afficher') : t('supervision.apply.dismiss', 'Ignorer')}
         </Button>
         <IconButton
@@ -206,18 +201,14 @@ function TaskStack({
             {t('supervision.deck.count', { count: n })}
             {total > 0 && <> · <Money value={total} from="EUR" /></>}
           </div>
-          <Button
-            size="small" variant="text" onClick={onToggleSort}
-            sx={{ textTransform: 'none', fontSize: 11, fontWeight: 500, color: 'var(--muted)', minWidth: 0, px: 1, borderRadius: '999px', border: '1px solid var(--line-2)' }}
-          >
+          {/* Bascule de tri : controle repete d'une barre d'en-tete → ghost, pour
+              laisser « Tout traiter » seule action pleine de la pile. */}
+          <Button variant="ghost" size="sm" onClick={onToggleSort}>
             {sort === 'due' ? t('supervision.deck.sortDue', 'Échéance') : t('supervision.deck.sortAmount', 'Montant')}
           </Button>
           {!hasPayment && (
-            <Button
-              size="small" variant="contained" disableElevation onClick={onBulk}
-              startIcon={<AgentIcon token={meta.icon} size={13} />}
-              sx={{ textTransform: 'none', fontSize: 11, fontWeight: 500, borderRadius: '999px', boxShadow: 'none', bgcolor: 'var(--accent)', color: 'var(--on-accent)', '& .MuiButton-startIcon': { ml: 0, mr: 0.5 }, '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' } }}
-            >
+            <Button size="sm" onClick={onBulk}>
+              <AgentIcon token={meta.icon} size={13} />
               {t('supervision.deck.bulk', 'Tout traiter')}
             </Button>
           )}
@@ -401,10 +392,13 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
         <div className="fixed bottom-[26px] start-[50%] z-[1400] flex items-center gap-[9px] px-3 py-[7.5px] rounded-[12px] bg-[var(--ink)] text-[#fff]" style={{ transform: 'translateX(-50%)', boxShadow: 'var(--shadow-lg, 0 10px 30px rgba(0,0,0,.25))', animation: 'deckCascadeIn .3s ease both' }}>
           <Check size={15} style={{ color: 'var(--ok)' }} />
           <div className="text-[12px] font-medium">{undo.label}</div>
+          {/* Toast a fond encre : l'encre du ghost s'y perdrait, on garde la teinte
+              accent d'origine pour rester lisible sur ce fond sombre. */}
           <Button
-            size="small" variant="text" onClick={doUndo} startIcon={<Undo size={13} />}
-            sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--accent)', minWidth: 0, '& .MuiButton-startIcon': { mr: 0.5 } }}
+            variant="ghost" size="sm" onClick={doUndo}
+            className="text-[var(--accent)] hover:text-[var(--accent)]"
           >
+            <Undo size={13} />
             {t('supervision.deck.undo', 'Annuler')}
           </Button>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
-import { Button, Snackbar } from '@mui/material';
+import { Snackbar } from '@mui/material';
 import {
   Link as LinkIcon,
   Refresh as RefreshIcon,
@@ -228,22 +228,14 @@ const ChannelsPage: React.FC = () => {
         filters={filterBar}
         actions={
           <div className="flex gap-1.5 items-center">
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<StarIcon size={16} strokeWidth={1.75} />}
-              onClick={() => navigate('/channels/reviews')}
-            >
+            <BuiButton variant="outline" size="sm" onClick={() => navigate('/channels/reviews')}>
+              <StarIcon size={16} strokeWidth={1.75} />
               {t('channels.reviews.title')}
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => { refetchStatus(); refetchListings(); }}
-            >
+            </BuiButton>
+            <BuiButton variant="outline" size="sm" onClick={() => { refetchStatus(); refetchListings(); }}>
+              <RefreshIcon />
               {t('common.refresh')}
-            </Button>
+            </BuiButton>
           </div>
         }
       />

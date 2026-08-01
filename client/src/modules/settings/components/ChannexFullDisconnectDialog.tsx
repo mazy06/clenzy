@@ -21,10 +21,10 @@
  */
 import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Button, Alert, Checkbox, FormControlLabel, Stack } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Alert, Checkbox, FormControlLabel, Stack } from '@mui/material';
 import StatusChip from '../../../components/StatusChip';
 import {
   AlertCircle,
@@ -255,21 +255,11 @@ export default function ChannexFullDisconnectDialog({
           </DialogContent>
 
           <div className="flex justify-end gap-1.5 px-4 pb-3">
-            <Button
-              onClick={handleClose}
-              size="small"
-              sx={{ textTransform: 'none', color: 'text.secondary' }}
-            >
+            <Button variant="ghost" size="sm" onClick={handleClose}>
               Annuler
             </Button>
-            <Button
-              onClick={handleConfirm}
-              size="small"
-              variant="contained"
-              startIcon={<Sparkles size={16} />}
-              color="error"
-              sx={{ textTransform: 'none' }}
-            >
+            <Button variant="destructive" size="sm" onClick={handleConfirm}>
+              <Sparkles size={16} />
               {deletePivot ? 'Reset complet' : 'Deconnecter'}
             </Button>
           </div>
@@ -342,13 +332,9 @@ export default function ChannexFullDisconnectDialog({
           </DialogContent>
 
           <div className="flex justify-end gap-1.5 px-4 pb-3">
-            <Button
-              onClick={handleClose}
-              size="small"
-              variant="contained"
-              color={result.overallSuccess ? 'success' : 'inherit'}
-              sx={{ textTransform: 'none' }}
-            >
+            {/* Seule action de la phase RESULT → `default`. L'issue (succes / partiel)
+                est deja portee par l'icone et le titre, pas par la couleur du bouton. */}
+            <Button size="sm" onClick={handleClose}>
               Fermer
             </Button>
           </div>

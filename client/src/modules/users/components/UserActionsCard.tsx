@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Button } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
 
@@ -42,15 +42,22 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
               </span>
             </div>
           </div>
+          {/* Debloquer n'est pas destructif (c'est le remede) : outline teinte comme la carte,
+              err si le compte est bloque, warn s'il n'y a que des tentatives echouees.
+              Branches litterales — une classe Tailwind ne peut pas naitre d'une variable. */}
           <Button
-            variant="contained"
-            size="small"
-            startIcon={<LockOpen size={16} strokeWidth={1.75} />}
+            variant="outline"
+            size="sm"
             onClick={onUnlockUser}
             disabled={unlocking}
-            color={lockoutStatus.isLocked ? 'error' : 'warning'}
-            sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            className={cn(
+              'whitespace-nowrap',
+              lockoutStatus.isLocked
+                ? 'text-[var(--err)] border-[var(--err)] hover:bg-[var(--err-soft)]'
+                : 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]',
+            )}
           >
+            <LockOpen size={16} strokeWidth={1.75} />
             {unlocking ? 'Deblocage...' : 'Debloquer'}
           </Button>
         </div>

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
+import { TextField, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -163,13 +163,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
                 if (e.key === 'Enter') saveKey();
               }}
             />
-            <Button
-              variant="contained"
-              disableElevation
-              onClick={saveKey}
-              disabled={!keyInput.trim() || setApiKey.isPending}
-              sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
+            <Button onClick={saveKey} disabled={!keyInput.trim() || setApiKey.isPending}>
               {setApiKey.isPending ? <Spinner className="size-4" /> : 'Enregistrer'}
             </Button>
           </div>
@@ -181,13 +175,12 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
         {/* Test connexion */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             onClick={() => test.mutate()}
             disabled={!data.configured || test.isPending}
-            startIcon={test.isPending ? <Spinner className="size-3.5" /> : <LinkIcon size={14} strokeWidth={2} />}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
           >
+            {test.isPending ? <Spinner className="size-3.5" /> : <LinkIcon size={14} strokeWidth={2} />}
             Tester la connexion
           </Button>
           {data.lastTestedAt && (

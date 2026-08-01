@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, InputBase, Alert, Link, Stepper, Step, StepLabel } from '@mui/material';
 import {
   Close,
   Send,
@@ -1124,43 +1124,33 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
       {/* ── Actions ── */}
       <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5, justifyContent: 'space-between' }}>
-        <Button onClick={onClose} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Annuler
         </Button>
 
         <div className="flex gap-1.5">
           {activeStep > 0 && (
-            <Button
-              onClick={handleBack}
-              size="small"
-              startIcon={<ArrowBack size={14} strokeWidth={1.75} />}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-            >
+            <Button variant="ghost" size="sm" onClick={handleBack}>
+              <ArrowBack size={14} strokeWidth={1.75} />
               Retour
             </Button>
           )}
 
           {activeStep < STEPS.length - 1 ? (
-            <Button
-              onClick={handleNext}
-              variant="contained"
-              size="small"
-              disabled={!canGoNext()}
-              endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-            >
+            <Button size="sm" onClick={handleNext} disabled={!canGoNext()}>
               Suivant
+              <ArrowForward size={14} strokeWidth={1.75} />
             </Button>
           ) : (
+            // Le bouton bascule en `destructive` quand un conflit bloque l'envoi :
+            // c'est le report du `color="error"` d'origine.
             <Button
+              variant={hasConflict ? 'destructive' : 'default'}
+              size="sm"
               onClick={handleConfirm}
-              variant="contained"
-              size="small"
               disabled={saving || hasConflict || conflictLoading || loadingEdit}
-              startIcon={saving ? <Spinner className="size-3.5" /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
-              color={hasConflict ? 'error' : 'primary'}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
+              {saving ? <Spinner className="size-3.5" /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               {hasConflict ? 'Conflit détecté' : isEditMode ? 'Enregistrer' : 'Créer la demande'}
             </Button>
           )}

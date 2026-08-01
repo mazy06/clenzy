@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Stack, Alert, IconButton, InputAdornment, Link } from '@mui/material';
+import { TextField, Stack, Alert, IconButton, InputAdornment, Link } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -265,30 +265,14 @@ export default function Login() {
             </div>
           )}
 
+          {/* Action principale de l'ecran : `default`. Le gabarit (rayon, graisse,
+              casse, ombre, etat disabled, transition) est porte par le kit — l'ancien
+              `sx` ne faisait que le redire, il est supprime. */}
           <Button
             type="submit"
-            variant="contained"
-            size="large"
+            size="lg"
+            className="w-full shrink"
             disabled={loading || isLocked || (captchaRequired && !captchaToken)}
-            sx={{
-              py: 1.5,
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              borderRadius: 1.5,
-              boxShadow: 'none',
-              // Hover identique aux champs : remplissage soft-indigo (var(--accent-soft)
-              // herite du theme containedPrimary), pas de fond indigo fonce qui
-              // rendait le texte indigo illisible.
-              '&:hover': {
-                boxShadow: 'none',
-              },
-              '&:disabled': {
-                bgcolor: 'action.disabledBackground',
-                color: 'action.disabled',
-              },
-              transition: 'background-color 150ms ease, border-color 150ms ease',
-            }}
           >
             {loading ? <Spinner className="size-[22px]" /> : t('auth.login.submit', 'Se connecter')}
           </Button>

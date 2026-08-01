@@ -3,8 +3,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Card } from '../../../components/ui';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
+import { Button, Card } from '../../../components/ui';
+import { Alert, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -49,7 +49,6 @@ import ProviderLogo, { type ProviderId } from './ProviderLogos';
  */
 
 const ACCENT = 'var(--ok)';
-const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 
 
@@ -236,23 +235,10 @@ export default function ApiKeyConnectionCard<P extends string>({
                 <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.status}</p>
               </div>
             </div>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<LinkOffIcon size={14} strokeWidth={2} />}
-              onClick={() => setDisconnectOpen(true)}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                borderRadius: '8px',
-                py: 0.625,
-                px: 1.5,
-                borderColor: 'divider',
-                color: 'text.primary',
-                '&:hover': { borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)', backgroundColor: 'var(--err-soft)', color: DANGER },
-              }}
-            >
+            {/* `outline` et non `destructive` : ce bouton n'efface rien, il ouvre la
+                confirmation — c'est le bouton du dialog qui porte le poids destructif. */}
+            <Button variant="outline" size="sm" onClick={() => setDisconnectOpen(true)}>
+              <LinkOffIcon size={14} strokeWidth={2} />
               Déconnecter {meta.label}
             </Button>
           </div>
@@ -298,14 +284,8 @@ export default function ApiKeyConnectionCard<P extends string>({
               inputProps={{ minLength: 8 }}
             />
             <div>
-              <Button
-                type="submit"
-                variant="contained"
-                size="small"
-                disabled={submitting}
-                startIcon={submitting ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
+              <Button type="submit" size="sm" disabled={submitting}>
+                {submitting ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}
               </Button>
             </div>
@@ -336,8 +316,8 @@ export default function ApiKeyConnectionCard<P extends string>({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDisconnectOpen(false)}>Annuler</Button>
-          <Button onClick={handleDisconnect} color="error" variant="contained">Déconnecter</Button>
+          <Button variant="ghost" onClick={() => setDisconnectOpen(false)}>Annuler</Button>
+          <Button variant="destructive" onClick={handleDisconnect}>Déconnecter</Button>
         </DialogActions>
       </Dialog>
     </Card>

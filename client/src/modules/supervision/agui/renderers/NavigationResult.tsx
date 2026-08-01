@@ -5,7 +5,7 @@
    → carte cliquable qui route vers la page suggérée (react-router).
    ============================================================ */
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../../../components/ui';
 import { ArrowForward } from '../../../../icons';
 import { SurfaceCard, Overline } from './shared';
 
@@ -32,13 +32,12 @@ export const NavigationResult: React.FC<{
     {data.path && onNavigate && (
       <div className="mt-2">
         <Button
-          size="small"
-          variant="outlined"
-          endIcon={<ArrowForward size={15} strokeWidth={1.85} />}
+          size="sm"
+          variant="outline"
           onClick={() => onNavigate(data.path as string)}
-          sx={{ textTransform: 'none', borderRadius: '8px', fontWeight: 600 }}
         >
           {data.label ? `Ouvrir ${data.label}` : 'Y aller'}
+          <ArrowForward size={15} strokeWidth={1.85} />
         </Button>
       </div>
     )}

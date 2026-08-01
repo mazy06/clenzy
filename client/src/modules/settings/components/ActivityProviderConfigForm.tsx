@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { Alert, Button, FormControlLabel, Snackbar, Switch, TextField } from '@mui/material';
+import { Spinner, Button } from '../../../components/ui';
+import { Alert, FormControlLabel, Snackbar, Switch, TextField } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activitiesApi, type ActivityProvider } from '../../../services/api/activitiesApi';
@@ -101,12 +101,11 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
         sx={{ mb: 1 }}
       />
       <Button
-        size="small"
-        variant="contained"
+        size="sm"
         onClick={handleSave}
         disabled={saving}
-        startIcon={saving ? <Spinner className="size-3.5" /> : undefined}
       >
+        {saving ? <Spinner className="size-3.5" /> : null}
         {t('welcomeGuide.actions.save', 'Enregistrer')}
       </Button>
       <Snackbar

@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Button, IconButton, Tooltip } from '@mui/material';
+import { Card, CardContent, IconButton, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Payment as PaymentIcon,
@@ -165,16 +165,10 @@ const InterventionsPendingPayment: React.FC = () => {
         backPath="/dashboard"
         showBackButton={true}
         actions={
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
-            onClick={loadInterventions}
-            title={t('common.refresh')}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
+          <BuiButton variant="outline" size="sm" onClick={loadInterventions} title={t('common.refresh')}>
+            <RefreshIcon size={16} strokeWidth={1.75} />
             {t('common.refresh')}
-          </Button>
+          </BuiButton>
         }
       />
 
@@ -283,22 +277,16 @@ const InterventionsPendingPayment: React.FC = () => {
                           <VisibilityIcon size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={processingPayment === intervention.id ? <Spinner className="size-3.5" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
+                      {/* « Payer » est repete par ligne mais reste l'action meme de l'ecran :
+                          on garde la variante pleine plutot qu'une action de ligne discrete. */}
+                      <BuiButton
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); handlePay(intervention); }}
                         disabled={processingPayment === intervention.id || !intervention.estimatedCost}
-                        sx={{
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          px: 1.5,
-                          py: 0.5,
-                        }}
                       >
+                        {processingPayment === intervention.id ? <Spinner className="size-3.5" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
                         {processingPayment === intervention.id ? 'Chargement...' : 'Payer'}
-                      </Button>
+                      </BuiButton>
                     </div>
                   </TableCell>
                 </TableRow>

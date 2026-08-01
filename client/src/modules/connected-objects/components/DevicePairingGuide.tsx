@@ -1,4 +1,4 @@
-import { Button } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Smartphone, Refresh } from '../../../icons';
 import { BAITLY_APP } from '../baitlyApp';
 
@@ -49,24 +49,25 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
         {BAITLY_APP.available ? (
           <>
             {BAITLY_APP.pairingDeepLink && (
-              <Button
-                size="small"
-                variant="contained"
-                component="a"
-                href={BAITLY_APP.pairingDeepLink}
-                startIcon={<Smartphone size={15} strokeWidth={2} />}
-              >
-                Ouvrir l'app {BAITLY_APP.name}
+              <Button size="sm" asChild>
+                <a href={BAITLY_APP.pairingDeepLink}>
+                  <Smartphone size={15} strokeWidth={2} />
+                  Ouvrir l'app {BAITLY_APP.name}
+                </a>
               </Button>
             )}
             {BAITLY_APP.iosStoreUrl && (
-              <Button size="small" variant="text" component="a" href={BAITLY_APP.iosStoreUrl} target="_blank" rel="noopener noreferrer">
-                App Store
+              <Button size="sm" variant="ghost" asChild>
+                <a href={BAITLY_APP.iosStoreUrl} target="_blank" rel="noopener noreferrer">
+                  App Store
+                </a>
               </Button>
             )}
             {BAITLY_APP.androidStoreUrl && (
-              <Button size="small" variant="text" component="a" href={BAITLY_APP.androidStoreUrl} target="_blank" rel="noopener noreferrer">
-                Play Store
+              <Button size="sm" variant="ghost" asChild>
+                <a href={BAITLY_APP.androidStoreUrl} target="_blank" rel="noopener noreferrer">
+                  Play Store
+                </a>
               </Button>
             )}
           </>
@@ -78,13 +79,13 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
 
         {onRefresh && (
           <Button
-            size="small"
-            variant="outlined"
+            size="sm"
+            variant="outline"
             onClick={onRefresh}
             disabled={refreshing}
-            startIcon={<Refresh size={15} strokeWidth={2} />}
-            sx={{ ml: 'auto' }}
+            className="ms-auto"
           >
+            <Refresh size={15} strokeWidth={2} />
             {refreshing ? 'Recherche…' : "J'ai appairé — rafraîchir"}
           </Button>
         )}

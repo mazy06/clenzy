@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
-import { Button, Alert, Tooltip } from '@mui/material';
+import { Alert, Tooltip } from '@mui/material';
 import { cn } from '../utils/cn';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -216,51 +216,40 @@ export function PropertyLocationPicker({
 
         {/* Floating action buttons */}
         <div className="absolute top-[8px] start-[8px] flex flex-col gap-0.5">
+          {/* Commandes flottantes de la carte : outline (cadre sur surface) plutot
+              que default — ce sont des outils, pas l'action de l'ecran. Le span
+              porte la ref que Tooltip pose sur son enfant (Button = fonction). */}
           <Tooltip title="Utiliser ma position actuelle" placement="right">
-            <Button
-              onClick={handleGeolocate}
-              disabled={geoLoading}
-              size="small"
-              variant="contained"
-              sx={{
-                minWidth: 0,
-                px: 1,
-                py: 0.75,
-                bgcolor: 'background.paper',
-                color: 'primary.main',
-                border: '1px solid',
-                borderColor: 'divider',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                '&:hover': { bgcolor: 'action.hover' },
-              }}
-            >
-              {geoLoading ? (
-                <Spinner className="size-4" />
-              ) : (
-                <DirectionsWalk size={16} strokeWidth={1.75} />
-              )}
-            </Button>
+            <span className="inline-flex">
+              <BuiButton
+                variant="outline"
+                size="icon-sm"
+                aria-label="Utiliser ma position actuelle"
+                onClick={handleGeolocate}
+                disabled={geoLoading}
+                className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+              >
+                {geoLoading ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <DirectionsWalk size={16} strokeWidth={1.75} />
+                )}
+              </BuiButton>
+            </span>
           </Tooltip>
           {hasCoords && (
             <Tooltip title="Centrer sur le marqueur" placement="right">
-              <Button
-                onClick={handleRecenter}
-                size="small"
-                variant="contained"
-                sx={{
-                  minWidth: 0,
-                  px: 1,
-                  py: 0.75,
-                  bgcolor: 'background.paper',
-                  color: 'primary.main',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
-                <LocationOn size={16} strokeWidth={1.75} />
-              </Button>
+              <span className="inline-flex">
+                <BuiButton
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Centrer sur le marqueur"
+                  onClick={handleRecenter}
+                  className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+                >
+                  <LocationOn size={16} strokeWidth={1.75} />
+                </BuiButton>
+              </span>
             </Tooltip>
           )}
         </div>

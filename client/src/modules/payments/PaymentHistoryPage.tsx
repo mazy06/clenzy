@@ -4,7 +4,8 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { IconButton, Tooltip, TextField, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -688,16 +689,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         </DialogContent>
         <DialogActions>
           <Button
+            variant="ghost"
             onClick={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
-            size="small"
+            size="sm"
           >
             Annuler
           </Button>
           <Button
             onClick={handleRefundConfirm}
-            variant="contained"
-            color="error"
-            size="small"
+            variant="destructive"
+            size="sm"
             disabled={refundingPayment !== null}
           >
             {refundingPayment !== null ? <Spinner className="size-[18px]" /> : 'Rembourser'}
@@ -735,15 +736,15 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         </DialogContent>
         <DialogActions>
           <Button
+            variant="ghost"
             onClick={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
-            size="small"
+            size="sm"
           >
             Annuler
           </Button>
           <Button
             onClick={handleEmailDialogConfirm}
-            variant="contained"
-            size="small"
+            size="sm"
             disabled={sendingPaymentLink !== null}
           >
             {sendingPaymentLink !== null ? <Spinner className="size-[18px]" /> : 'Envoyer'}

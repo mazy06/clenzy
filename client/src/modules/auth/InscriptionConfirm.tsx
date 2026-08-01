@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
+import { Spinner, Button } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Paper, TextField, Button, Stack, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, TextField, Stack, ThemeProvider, CssBaseline } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -247,28 +247,12 @@ export default function InscriptionConfirm() {
                 />
 
                 <Button
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  startIcon={
-                    status === 'submitting' ? (
-                      <Spinner className="size-[18px]" />
-                    ) : (
-                      <LockIcon />
-                    )
-                  }
+                  size="lg"
+                  className="w-full shrink"
                   onClick={handleSubmit}
                   disabled={!isPasswordValid || status === 'submitting'}
-                  sx={{
-                    py: 1.25,
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    backgroundColor: 'primary.main',
-                    '&:hover': { backgroundColor: 'primary.dark' },
-                    borderRadius: 2,
-                    boxShadow: '0 4px 12px rgba(107,138,154,0.3)',
-                  }}
                 >
+                  {status === 'submitting' ? <Spinner className="size-[18px]" /> : <LockIcon />}
                   {status === 'submitting'
                     ? t('auth.inscriptionConfirm.submitting', 'Creation en cours...')
                     : t('auth.inscriptionConfirm.submit', 'Creer mon mot de passe')}
@@ -316,18 +300,8 @@ export default function InscriptionConfirm() {
               <p className="cn-text-body2 text-muted-foreground mb-4">
                 {t('auth.inscriptionConfirm.alreadyCompletedBody', 'Votre compte a deja ete cree. Vous pouvez vous connecter avec vos identifiants.')}
               </p>
-              <Button
-                variant="contained"
-                startIcon={<LoginIcon />}
-                onClick={() => navigate('/login')}
-                sx={{
-                  px: 4,
-                  fontWeight: 600,
-                  backgroundColor: 'primary.main',
-                  '&:hover': { backgroundColor: 'primary.dark' },
-                  borderRadius: 2,
-                }}
-              >
+              <Button className="px-6" onClick={() => navigate('/login')}>
+                <LoginIcon />
                 {t('auth.inscriptionConfirm.loginButton', 'Se connecter')}
               </Button>
             </div>
@@ -343,15 +317,7 @@ export default function InscriptionConfirm() {
               <p className="cn-text-body2 text-muted-foreground mb-4">
                 {t('auth.inscriptionConfirm.expiredBody', 'Le lien de confirmation a expire. Veuillez contacter le support pour obtenir un nouveau lien.')}
               </p>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/login')}
-                sx={{
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
-                }}
-              >
+              <Button variant="outline" onClick={() => navigate('/login')}>
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
             </div>
@@ -367,15 +333,7 @@ export default function InscriptionConfirm() {
               <p className="cn-text-body2 text-muted-foreground mb-4">
                 {error || t('auth.inscriptionConfirm.errorBody', 'Le lien de confirmation est invalide. Veuillez contacter le support.')}
               </p>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/login')}
-                sx={{
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
-                }}
-              >
+              <Button variant="outline" onClick={() => navigate('/login')}>
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
             </div>

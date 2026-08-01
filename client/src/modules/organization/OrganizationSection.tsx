@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Button, Alert, Autocomplete, TextField, Grid } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Alert, Autocomplete, TextField, Grid } from '@mui/material';
 import {
   Business,
   PersonAdd,
@@ -112,13 +112,8 @@ export default function OrganizationSection({ organizationId }: Props) {
   }
 
   const inviteAction = effectiveOrgId ? (
-    <Button
-      variant="contained"
-      size="small"
-      startIcon={<PersonAdd size={14} strokeWidth={2} />}
-      onClick={() => setDialogOpen(true)}
-      sx={{ '& .MuiButton-startIcon': { mr: 0.75 } }}
-    >
+    <Button size="sm" onClick={() => setDialogOpen(true)}>
+      <PersonAdd size={14} strokeWidth={2} />
       Inviter
     </Button>
   ) : undefined;

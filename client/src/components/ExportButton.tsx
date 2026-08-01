@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Button,
   IconButton,
   Menu,
   MenuItem,
@@ -14,6 +13,7 @@ import {
   Download as DownloadIcon,
   Description as CsvIcon,
 } from '../icons';
+import { Button } from './ui';
 import { exportToCSV, type ExportColumn } from '../utils/exportUtils';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -126,14 +126,14 @@ export default function ExportButton({
     return (
       <>
         <Tooltip title={tooltipTitle}>
-          <span>
+          <span className="inline-flex">
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<DownloadIcon size={13} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={handleMenuOpen}
               disabled={isDisabled}
             >
+              <DownloadIcon size={13} strokeWidth={1.75} />
               {t('export.button')}
             </Button>
           </span>
@@ -161,15 +161,15 @@ export default function ExportButton({
   return (
     <>
       <Tooltip title={tooltipTitle}>
-        <span>
+        <span className="inline-flex">
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<DownloadIcon size={13} strokeWidth={1.75} />}
+            variant="outline"
+            size="sm"
             onClick={handleExportCSV}
             disabled={isDisabled}
             title={t('export.button')}
           >
+            <DownloadIcon size={13} strokeWidth={1.75} />
             {t('export.button')}
           </Button>
         </span>

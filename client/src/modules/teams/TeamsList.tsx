@@ -1,9 +1,9 @@
 import React from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Grid, Button, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Grid, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add,
   Edit,
@@ -88,14 +88,8 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
   const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE);
 
   const actionButtons = canCreateTeams ? (
-    <Button
-      variant="contained"
-      color="primary"
-      startIcon={<Add />}
-      onClick={() => navigate('/teams/new')}
-      size="small"
-      title={t('teams.create')}
-    >
+    <Button size="sm" onClick={() => navigate('/teams/new')} title={t('teams.create')}>
+      <Add />
       {t('teams.create')}
     </Button>
   ) : null;
@@ -175,12 +169,8 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           title={t('teams.noTeamFound')}
           description={t('teams.noTeamCreated')}
           action={canCreateTeams && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
-              onClick={() => navigate('/teams/new')}
-            >
+            <Button variant="outline" size="sm" onClick={() => navigate('/teams/new')}>
+              <Add size={16} strokeWidth={1.75} />
               {t('teams.createFirst')}
             </Button>
           )}
@@ -254,8 +244,8 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           </p>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={handleCloseDeleteDialog} size="small">{t('teams.cancel')}</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
+          <Button variant="ghost" size="sm" onClick={handleCloseDeleteDialog}>{t('teams.cancel')}</Button>
+          <Button variant="destructive" size="sm" onClick={confirmDelete}>
             {t('teams.delete')}
           </Button>
         </DialogActions>

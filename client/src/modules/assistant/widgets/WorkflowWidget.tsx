@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Stepper, Step, StepLabel, Button } from '@mui/material';
+import { Stepper, Step, StepLabel } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
 
 interface StepDef {
@@ -164,18 +165,18 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
           {expectsBool ? (
             <div className="flex gap-1.5 mt-2 flex-wrap">
               <Button
-                variant="contained"
-                size="small"
+                variant="default"
+                size="sm"
+                className="min-w-[80px]"
                 onClick={() => dispatchQuickReply('Oui')}
-                sx={{ textTransform: 'none', minWidth: 80, cursor: 'pointer' }}
               >
                 Oui
               </Button>
               <Button
-                variant="outlined"
-                size="small"
+                variant="outline"
+                size="sm"
+                className="min-w-[80px]"
                 onClick={() => dispatchQuickReply('Non')}
-                sx={{ textTransform: 'none', minWidth: 80, cursor: 'pointer' }}
               >
                 Non
               </Button>

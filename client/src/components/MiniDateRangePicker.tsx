@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Typography, IconButton, Button, alpha } from '@mui/material';
+import { Box, Typography, IconButton, alpha } from '@mui/material';
+import { Button } from './ui';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '../icons';
 
 // ─── Calendar Helpers ───────────────────────────────────────────────────────
@@ -270,14 +271,15 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
       {/* Clear button */}
       {(startDate || endDate) && (
         <div className="text-end mt-0.5">
+          {/* Reinitialisation discrete sous le calendrier : tertiaire. */}
           <Button
-            size="small"
+            variant="ghost"
+            size="xs"
             onClick={() => {
               onChangeStart('');
               onChangeEnd('');
               setSelectingField('start');
             }}
-            sx={{ fontSize: '0.625rem', textTransform: 'none', p: 0, minWidth: 0 }}
           >
             {isFrench ? 'Effacer' : 'Clear'}
           </Button>

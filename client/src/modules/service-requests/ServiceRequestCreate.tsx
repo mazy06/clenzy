@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Cancel, Save } from "../../icons";
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
@@ -8,7 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Component ──────────────────────────────────────────────────────────────
-// Boutons d'action : géométrie/typo héritées du thème global (.s-btn small).
+// Boutons d'action : geometrie et typo portees par le kit Baitly UI.
 
 const ServiceRequestCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -45,23 +45,22 @@ const ServiceRequestCreate: React.FC = () => {
           actions={
             <div className="flex gap-1">
               <Button
-                variant="outlined"
+                variant="outline"
+                size="sm"
                 onClick={handleClose}
-                startIcon={<Cancel size={18} strokeWidth={1.75} />}
-                size="small"
                 disabled={loading}
                 title={t('common.cancel')}
               >
+                <Cancel strokeWidth={1.75} />
                 {t('common.cancel')}
               </Button>
               <Button
-                variant="contained"
+                size="sm"
                 onClick={() => submitRef.current?.()}
-                startIcon={<Save size={18} strokeWidth={1.75} />}
-                size="small"
                 disabled={loading}
                 title={t('serviceRequests.createRequest')}
               >
+                <Save strokeWidth={1.75} />
                 {loading ? t('serviceRequests.creating') : t('serviceRequests.createRequest')}
               </Button>
             </div>

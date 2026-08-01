@@ -4,7 +4,7 @@ import { CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Stack, TextField, Tooltip } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Stack, TextField, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -220,14 +220,10 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           <Refresh fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<Add />}
-        onClick={openCreate}
-      >
+      <BuiButton size="sm" onClick={openCreate}>
+        <Add />
         {t('issues.create.button', 'Signaler une anomalie')}
-      </Button>
+      </BuiButton>
     </>
   );
 
@@ -389,16 +385,15 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setCreateOpen(false)} disabled={creating}>
+          <BuiButton variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
             {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
+          </BuiButton>
+          <BuiButton
             onClick={handleCreate}
-            variant="contained"
             disabled={creating || createPropertyId === '' || createTitle.trim() === ''}
           >
             {t('issues.create.submit', 'Signaler')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
 
@@ -453,15 +448,15 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 </div>
 
                 {selected.status === 'CONVERTED' && selected.convertedServiceRequestId != null && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<OpenInNew />}
+                  <BuiButton
+                    variant="outline"
+                    size="sm"
                     onClick={() => navigate(`/service-requests/${selected.convertedServiceRequestId}`)}
-                    sx={{ alignSelf: 'flex-start' }}
+                    className="self-start"
                   >
+                    <OpenInNew />
                     {t('issues.openServiceRequest', 'Voir la demande de maintenance')}
-                  </Button>
+                  </BuiButton>
                 )}
 
                 {canManage && isActionable && (
@@ -531,25 +526,27 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-              <Button onClick={() => setSelected(null)} disabled={saving}>
+              <BuiButton variant="ghost" onClick={() => setSelected(null)} disabled={saving}>
                 {t('common.close', 'Fermer')}
-              </Button>
+              </BuiButton>
               {canManage && isActionable && (
                 <>
-                  <Button onClick={handleDismiss} disabled={saving} color="inherit">
+                  {/* « Rejeter » reste tertiaire (ghost) : c'est l'issue de secours,
+                      pas une suppression — la conversion est l'action attendue. */}
+                  <BuiButton variant="ghost" onClick={handleDismiss} disabled={saving}>
                     {t('issues.actions.dismiss', 'Rejeter')}
-                  </Button>
-                  <Button onClick={handleQualify} disabled={saving} variant="outlined">
+                  </BuiButton>
+                  <BuiButton variant="outline" onClick={handleQualify} disabled={saving}>
                     {t('issues.actions.qualify', 'Qualifier')}
-                  </Button>
+                  </BuiButton>
                   {confirmConvert ? (
-                    <Button onClick={handleConvert} disabled={saving} variant="contained">
+                    <BuiButton onClick={handleConvert} disabled={saving}>
                       {t('issues.actions.confirmConvert', 'Confirmer la conversion')}
-                    </Button>
+                    </BuiButton>
                   ) : (
-                    <Button onClick={() => setConfirmConvert(true)} disabled={saving} variant="contained">
+                    <BuiButton onClick={() => setConfirmConvert(true)} disabled={saving}>
                       {t('issues.actions.convert', 'Convertir en maintenance')}
-                    </Button>
+                    </BuiButton>
                   )}
                 </>
               )}

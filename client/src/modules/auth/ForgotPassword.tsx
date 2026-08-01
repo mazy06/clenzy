@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Stack, Link } from '@mui/material';
+import { TextField, Stack, Link } from '@mui/material';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 
@@ -73,22 +73,10 @@ export default function ForgotPassword() {
               )}
             </p></AlertDescription>
           </Alert>
-          <Button
-            component={RouterLink}
-            to="/login"
-            variant="contained"
-            size="large"
-            sx={{
-              py: 1.5,
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              borderRadius: 1.5,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
-            }}
-          >
-            {t('auth.forgotPassword.backToLogin', 'Retour à la connexion')}
+          <Button size="lg" className="w-full shrink" asChild>
+            <RouterLink to="/login">
+              {t('auth.forgotPassword.backToLogin', 'Retour à la connexion')}
+            </RouterLink>
           </Button>
         </Stack>
       ) : (
@@ -122,23 +110,9 @@ export default function ForgotPassword() {
 
             <Button
               type="submit"
-              variant="contained"
-              size="large"
+              size="lg"
               disabled={loading}
-              sx={{
-                py: 1.5,
-                fontSize: '0.9375rem',
-                fontWeight: 600,
-                textTransform: 'none',
-                borderRadius: 1.5,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
-                '&:disabled': {
-                  bgcolor: 'action.disabledBackground',
-                  color: 'action.disabled',
-                },
-                transition: 'background-color 150ms ease, border-color 150ms ease',
-              }}
+              className="w-full shrink"
             >
               {loading
                 ? <Spinner className="size-[22px]" />

@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { cn } from '../utils/cn';
-import { Spinner } from './ui';
-import { Dialog, DialogContent, Button, IconButton } from '@mui/material';
+import { Button, Spinner } from './ui';
+import { Dialog, DialogContent, IconButton } from '@mui/material';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 
@@ -118,12 +118,11 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         )}
 
         <div className="flex justify-end gap-1.5 pt-0.5">
-          <Button onClick={handleClose} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
-          <Button variant="contained" disableElevation onClick={handleBuy} disabled={!selected || busy}
-            startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
-            endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined}
-            sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" onClick={handleClose} disabled={busy} className="text-[var(--muted)]">Annuler</Button>
+          <Button onClick={handleBuy} disabled={!selected || busy}>
+            {busy ? <Spinner className="size-[15px]" /> : <Sparkles strokeWidth={2} />}
             {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}
+            {!busy && <ArrowRight strokeWidth={2} />}
           </Button>
         </div>
       </DialogContent>

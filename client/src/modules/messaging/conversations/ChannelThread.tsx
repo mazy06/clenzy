@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Alert, Button, Tooltip } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Alert, Tooltip } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
@@ -223,30 +224,25 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                     {aiDraft}
                   </p>
                   <div className="flex gap-1.5">
+                    {/* Le brouillon n'a qu'un but : etre envoye. Editer et rejeter
+                        sont des sorties de secours -> tertiaires. */}
                     <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<SendIcon size={14} strokeWidth={1.75} />}
+                      size="sm"
                       onClick={handleSendDraft}
                       disabled={sendAiDraftMutation.isPending || whatsappWindowExpired}
-                      sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
                     >
+                      <SendIcon size={14} strokeWidth={1.75} />
                       {t('common.send', 'Envoyer')}
                     </Button>
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={handleEditDraft}
-                      sx={{ textTransform: 'none', fontWeight: 600 }}
-                    >
+                    <Button variant="ghost" size="sm" onClick={handleEditDraft}>
                       {t('common.edit', 'Éditer')}
                     </Button>
                     <Button
-                      size="small"
-                      variant="text"
+                      variant="ghost"
+                      size="sm"
                       onClick={handleDismissDraft}
                       disabled={dismissAiDraftMutation.isPending}
-                      sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+                      className="text-[var(--muted)]"
                     >
                       {t('common.reject', 'Rejeter')}
                     </Button>
@@ -259,12 +255,9 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                   sx={{ borderRadius: 0, fontSize: '0.72rem', py: 0.25, alignItems: 'center' }}
                   action={
                     conv.reservationId ? (
-                      <Button
-                        color="inherit"
-                        size="small"
-                        onClick={() => setTemplateOpen(true)}
-                        sx={{ textTransform: 'none', fontWeight: 600 }}
-                      >
+                      // `color="inherit"` : la teinte vient de l'alerte hote, donc
+                      // aucune couleur posee ici — ghost herite du contexte.
+                      <Button variant="ghost" size="sm" onClick={() => setTemplateOpen(true)}>
                         {t('messagingHub.sendTemplateShort', 'Envoyer un template')}
                       </Button>
                     ) : undefined

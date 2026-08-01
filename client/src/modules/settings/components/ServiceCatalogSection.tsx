@@ -3,7 +3,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../../components/ui';
-import { Box, Button } from '@mui/material';
+import { Box } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   OpenInNew as ExternalLinkIcon,
@@ -191,24 +192,15 @@ export default function ServiceCatalogSection({
                   {configNode}
                   {openService.websiteUrl && (
                     <Button
-                      variant="outlined"
-                      size="small"
-                      endIcon={<ExternalLinkIcon size={14} strokeWidth={2} />}
-                      component="a"
-                      href={openService.websiteUrl}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      sx={{
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        fontSize: '0.78rem',
-                        borderRadius: '8px',
-                        borderColor: 'divider',
-                        color: 'text.primary',
-                        '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-                      }}
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="hover:border-[color-mix(in_srgb,var(--ok)_40%,transparent)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
                     >
-                      En savoir plus
+                      <a href={openService.websiteUrl} target="_blank" rel="noreferrer noopener">
+                        En savoir plus
+                        <ExternalLinkIcon size={14} strokeWidth={2} />
+                      </a>
                     </Button>
                   )}
                 </div>
@@ -224,42 +216,29 @@ export default function ServiceCatalogSection({
               <div className="flex gap-1.5 flex-wrap">
                 {/* Bouton primaire : Configurer (internal) ou Visiter le site (external) */}
                 <Button
-                  variant="contained"
-                  size="small"
-                  endIcon={
-                    openService.internalRoute
-                      ? <ArrowRightIcon size={14} strokeWidth={2} />
-                      : <ExternalLinkIcon size={14} strokeWidth={2} />
-                  }
+                  size="sm"
                   onClick={() => handleAction(openService)}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
                   {openService.internalRoute
                     ? `Configurer ${openService.name}`
                     : `Visiter ${openService.name}`}
+                  {openService.internalRoute
+                    ? <ArrowRightIcon size={14} strokeWidth={2} />
+                    : <ExternalLinkIcon size={14} strokeWidth={2} />}
                 </Button>
 
                 {/* Bouton secondaire : si internal, ajouter aussi le lien vers le site officiel */}
                 {openService.internalRoute && openService.websiteUrl && (
                   <Button
-                    variant="outlined"
-                    size="small"
-                    endIcon={<ExternalLinkIcon size={14} strokeWidth={2} />}
-                    component="a"
-                    href={openService.websiteUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      borderRadius: '8px',
-                      borderColor: 'divider',
-                      color: 'text.primary',
-                      '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-                    }}
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="hover:border-[color-mix(in_srgb,var(--ok)_40%,transparent)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
                   >
-                    En savoir plus
+                    <a href={openService.websiteUrl} target="_blank" rel="noreferrer noopener">
+                      En savoir plus
+                      <ExternalLinkIcon size={14} strokeWidth={2} />
+                    </a>
                   </Button>
                 )}
               </div>

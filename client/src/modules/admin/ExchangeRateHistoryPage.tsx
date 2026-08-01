@@ -5,7 +5,7 @@ import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
+import { Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -143,14 +143,13 @@ export default function ExchangeRateHistoryPage() {
         iconBadge={<CurrencyExchange />}
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            startIcon={refreshMutation.isPending ? <Spinner className="size-4" /> : <Refresh />}
+          <BuiButton
             onClick={() => refreshMutation.mutate()}
             disabled={refreshMutation.isPending}
           >
+            {refreshMutation.isPending ? <Spinner className="size-4" /> : <Refresh />}
             Actualiser les taux
-          </Button>
+          </BuiButton>
         }
       />
 

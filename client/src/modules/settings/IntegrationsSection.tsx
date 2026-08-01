@@ -3,9 +3,10 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Box, Button, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
+import { Box, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -82,48 +83,12 @@ import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 // ─── Style helpers (Baitly palette) ─────────────────────────────────────────
 
 const ACCENT = 'var(--ok)';
-const PRIMARY = 'var(--accent)';
-const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 const WARM = 'var(--warn)';
 
 // Channex est la seule integration fonctionnelle pour l'instant ; toutes les
 // autres sections affichent l'etat "Bientot disponible" via les utilitaires
 // partages dans disabledIntegration.ts.
-
-const refinedContainedSx = (color: string) => ({
-  bgcolor: 'transparent',
-  color,
-  border: '1px solid',
-  borderColor: color,
-  boxShadow: 'none',
-  '&:hover': {
-    bgcolor: `color-mix(in srgb, ${color} 10%, transparent)`,
-    borderColor: color,
-    boxShadow: 'none',
-  },
-});
-
-const refinedOutlinedSx = (hoverColor: string) => ({
-  textTransform: 'none' as const,
-  fontWeight: 600,
-  fontSize: '0.78rem',
-  letterSpacing: '0.01em',
-  borderRadius: '8px',
-  py: 0.625,
-  px: 1.5,
-  borderColor: 'divider',
-  color: 'text.primary',
-  transition:
-    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-  '&:hover': {
-    borderColor: `color-mix(in srgb, ${hoverColor} 40%, transparent)`,
-    backgroundColor: `color-mix(in srgb, ${hoverColor} 10%, transparent)`,
-    color: hoverColor,
-  },
-  '&:focus-visible': { outline: `2px solid ${hoverColor}`, outlineOffset: 2 },
-});
-
 
 // ─── Integration metadata ──────────────────────────────────────────────────
 
@@ -635,64 +600,56 @@ export default function IntegrationsSection({
               {/* Sync actions */}
               <div className="flex gap-1 flex-wrap items-center">
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={
-                    syncing ? (
-                      <Spinner className="size-3.5" />
-                    ) : (
-                      <ReceiptIcon size={14} strokeWidth={1.75} />
-                    )
-                  }
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleSync('invoices')}
                   disabled={syncing}
-                  sx={refinedOutlinedSx(PRIMARY)}
                 >
+                  {syncing ? (
+                    <Spinner className="size-3.5" />
+                  ) : (
+                    <ReceiptIcon size={14} strokeWidth={1.75} />
+                  )}
                   {t('settings.integrations.pennylane.syncInvoices')}
                 </Button>
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={
-                    syncing ? (
-                      <Spinner className="size-3.5" />
-                    ) : (
-                      <ShoppingCartIcon size={14} strokeWidth={1.75} />
-                    )
-                  }
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleSync('expenses')}
                   disabled={syncing}
-                  sx={refinedOutlinedSx(PRIMARY)}
                 >
+                  {syncing ? (
+                    <Spinner className="size-3.5" />
+                  ) : (
+                    <ShoppingCartIcon size={14} strokeWidth={1.75} />
+                  )}
                   {t('settings.integrations.pennylane.syncExpenses')}
                 </Button>
+                {/* « Tout synchroniser » est l'action principale du panneau : seule
+                    encre pleine de la rangee, les deux syncs ciblees restent en outline. */}
                 <Button
-                  variant="contained"
-                  disableElevation
-                  size="small"
-                  startIcon={
-                    syncing ? (
-                      <Spinner className="size-3.5" />
-                    ) : (
-                      <SyncIcon size={14} strokeWidth={2} />
-                    )
-                  }
+                  variant="default"
+                  size="sm"
                   onClick={() => handleSync('all')}
                   disabled={syncing}
-                  sx={refinedContainedSx(ACCENT)}
                 >
+                  {syncing ? (
+                    <Spinner className="size-3.5" />
+                  ) : (
+                    <SyncIcon size={14} strokeWidth={2} />
+                  )}
                   {syncing
                     ? t('settings.integrations.pennylane.syncing')
                     : t('settings.integrations.pennylane.syncAll')}
                 </Button>
                 <div className="grow" />
+                {/* Deconnexion = rupture du lien comptable : variante destructive. */}
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<LinkOffIcon size={14} strokeWidth={1.75} />}
+                  variant="destructive"
+                  size="sm"
                   onClick={() => setDisconnectDialogOpen(true)}
-                  sx={refinedOutlinedSx(DANGER)}
                 >
+                  <LinkOffIcon size={14} strokeWidth={1.75} />
                   {t('settings.integrations.pennylane.disconnect')}
                 </Button>
               </div>
@@ -715,13 +672,11 @@ export default function IntegrationsSection({
             </Alert>
           ) : (
             <Button
-              variant="contained"
-              disableElevation
-              size="small"
-              startIcon={<LinkIcon size={14} strokeWidth={2} />}
+              variant="default"
+              size="sm"
               onClick={handleConnect}
-              sx={refinedContainedSx(PRIMARY)}
             >
+              <LinkIcon size={14} strokeWidth={2} />
               {t('settings.integrations.pennylane.connect')}
             </Button>
           )}
@@ -1230,34 +1185,24 @@ export default function IntegrationsSection({
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setDisconnectDialogOpen(false)}
             disabled={disconnecting}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '8px',
-              color: 'text.secondary',
-            }}
           >
             {t('common.cancel')}
           </Button>
           <Button
-            variant="contained"
-            disableElevation
-            size="small"
+            variant="destructive"
+            size="sm"
             onClick={handleDisconnect}
             disabled={disconnecting}
-            startIcon={
-              disconnecting ? (
-                <Spinner className="size-3.5" />
-              ) : (
-                <LinkOffIcon size={14} strokeWidth={1.75} />
-              )
-            }
-            sx={refinedContainedSx(DANGER)}
           >
+            {disconnecting ? (
+              <Spinner className="size-3.5" />
+            ) : (
+              <LinkOffIcon size={14} strokeWidth={1.75} />
+            )}
             {t('settings.integrations.pennylane.disconnect')}
           </Button>
         </DialogActions>

@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Autocomplete, Paper, TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
+import { Autocomplete, Paper, TextField, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   Add,
   Edit,
@@ -460,23 +460,26 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             )}
 
             {/* Charge le catalogue live → le sélecteur ci-dessus bascule dessus. */}
-            <Button
-              size="small"
-              variant="outlined"
+            {/* Action auxiliaire d'un champ, pas l'action de la modale : outline.
+                La teinte du provider n'est connue qu'a l'execution -> style inline. */}
+            <BuiButton
+              size="sm"
+              variant="outline"
               disabled={!provider || catalogMutation.isPending}
-              startIcon={catalogMutation.isPending
-                ? <Spinner className="size-3.5" />
-                : <Refresh size={16} strokeWidth={1.75} />}
               onClick={() => catalogMutation.mutate(
                 { provider, apiKey: apiKey.trim() || undefined, baseUrl: baseUrl.trim() || undefined },
                 { onSuccess: (ids) => setCatalog(ids) },
               )}
-              sx={{ alignSelf: 'flex-start', textTransform: 'none', borderColor: accent, color: accent }}
+              className="self-start"
+              style={{ borderColor: accent, color: accent }}
             >
+              {catalogMutation.isPending
+                ? <Spinner className="size-3.5" />
+                : <Refresh size={16} strokeWidth={1.75} />}
               {catalog.length > 0
                 ? t('settings.ai.platform.reloadCatalog', 'Recharger le catalogue du provider')
                 : t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
-            </Button>
+            </BuiButton>
             {catalogMutation.isError && (
               <span className="cn-text-caption text-destructive">
                 {(catalogMutation.error as Error)?.message
@@ -524,29 +527,16 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           {/* Lien contextuel "Ou trouver ma cle ?" — adapte au provider selectionne */}
           {provider && PROVIDER_API_KEY_URLS[provider] && (
             <div className="-mt-1.5 -mb-[3px]">
-              <Button
-                component="a"
-                href={keyHelpUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                size="small"
-                endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.72rem',
-                  fontWeight: 500,
-                  color: 'text.secondary',
-                  px: 0.75,
-                  py: 0.25,
-                  minWidth: 0,
-                  cursor: 'pointer',
-                  '&:hover': { color: accent, backgroundColor: alpha(accent, 0.06) },
-                }}
-              >
-                {provider === 'nvidia' && modelId
-                  ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
-                  : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
-              </Button>
+              {/* Aide contextuelle discrete : action tertiaire -> ghost.
+                  Le survol teinte provider laisse place au survol du kit. */}
+              <BuiButton asChild variant="ghost" size="xs" className="text-[0.72rem] font-medium text-[var(--muted)]">
+                <a href={keyHelpUrl()} target="_blank" rel="noopener noreferrer">
+                  {provider === 'nvidia' && modelId
+                    ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
+                    : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
+                  <OpenInNew size={12} strokeWidth={1.75} />
+                </a>
+              </BuiButton>
             </div>
           )}
 
@@ -586,34 +576,30 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+        <BuiButton variant="ghost" size="sm" onClick={onClose}>
           {t('common.cancel')}
-        </Button>
-        <Button
+        </BuiButton>
+        {/* « Tester » est un preambule au vrai but de la modale : action secondaire. */}
+        <BuiButton
+          variant="ghost"
+          size="sm"
           onClick={handleTest}
-          startIcon={testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
           disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
-          size="small"
-          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, color: accent }}
+          style={{ color: accent }}
         >
+          {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
           {t('settings.ai.platform.test')}
-        </Button>
-        <Button
+        </BuiButton>
+        {/* Action principale de la modale. La teinte provider est abandonnee ici :
+            un fond pose en inline ecraserait aussi l'etat de survol du kit. */}
+        <BuiButton
+          size="sm"
           onClick={handleSave}
-          variant="contained"
-          startIcon={saveMutation.isPending ? <Spinner className="size-3.5" /> : undefined}
           disabled={!canSave || saveMutation.isPending}
-          size="small"
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: 1.5,
-            bgcolor: accent,
-            '&:hover': { bgcolor: alpha(accent, 0.85) },
-          }}
         >
+          {saveMutation.isPending && <Spinner className="size-3.5" />}
           {t('settings.ai.platform.saveActivate')}
-        </Button>
+        </BuiButton>
       </DialogActions>
     </Dialog>
   );
@@ -1163,20 +1149,10 @@ export default function PlatformAiConfigSection() {
       title={t('settings.ai.platform.title')}
       subtitle={t('settings.ai.platform.subtitle')}
       action={
-        <Button
-          size="small"
-          startIcon={<Add />}
-          onClick={handleOpenAdd}
-          variant="outlined"
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: 1.5,
-            fontSize: '0.8125rem',
-          }}
-        >
+        <BuiButton size="sm" variant="outline" onClick={handleOpenAdd}>
+          <Add />
           {t('settings.ai.platform.addModel')}
-        </Button>
+        </BuiButton>
       }
     >
       {/* ── Section 1: Configured Models ── */}
@@ -1270,16 +1246,16 @@ export default function PlatformAiConfigSection() {
             'Dote toutes les organisations existantes de leur poche de crédits initiale. Action idempotente : une organisation déjà pourvue est ignorée. Les abonnés sont ensuite auto-provisionnés à l’usage et rechargés chaque mois.',
           )}
         </p>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={granting ? <Spinner className="size-3.5" /> : <AttachMoney />}
+        <BuiButton
+          size="sm"
+          variant="outline"
           onClick={handleGrantInitial}
           disabled={granting}
-          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: '0.8125rem', flexShrink: 0 }}
+          className="shrink-0"
         >
+          {granting ? <Spinner className="size-3.5" /> : <AttachMoney />}
           {t('settings.ai.platform.grantInitial', 'Doter les organisations')}
-        </Button>
+        </BuiButton>
       </div>
 
       {grantResult && (
@@ -1339,21 +1315,20 @@ export default function PlatformAiConfigSection() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmDeleteId(null)} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+          <BuiButton variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)}>
             {t('common.cancel')}
-          </Button>
-          <Button
+          </BuiButton>
+          <BuiButton
+            variant="destructive"
+            size="sm"
             onClick={confirmDeleteModel}
-            variant="contained"
-            color="error"
             disabled={deleteMutation.isPending}
-            startIcon={deleteMutation.isPending
+          >
+            {deleteMutation.isPending
               ? <Spinner className="size-3.5" />
               : <Delete size={16} strokeWidth={1.75} />}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
-          >
             {t('settings.ai.platform.delete', 'Supprimer')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
     </AiSettingsCard>

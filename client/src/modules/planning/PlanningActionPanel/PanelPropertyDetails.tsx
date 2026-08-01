@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Divider, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
 import {
   Apartment,
   Bed,
@@ -567,21 +568,12 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
       {/* ─── CTA : page complète ──────────────────────────────────── */}
       <Button
-        variant="outlined"
-        size="small"
-        fullWidth
-        startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
+        className="w-full shrink"
         onClick={() => navigate(`/properties/${propertyId}`)}
-        sx={{
-          textTransform: 'none',
-          fontSize: BODY_FS,
-          fontWeight: 600,
-          borderRadius: 'var(--radius-sm)',
-          color: 'var(--ink)',
-          borderColor: 'var(--line-2)',
-          '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-        }}
       >
+        <OpenInNew size={13} strokeWidth={1.75} />
         Ouvrir la fiche logement
       </Button>
     </div>
@@ -677,19 +669,13 @@ function ListItemCard({
 function FooterLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
     <Button
-      size="small"
-      endIcon={<ArrowForward size={12} strokeWidth={1.75} />}
+      variant="ghost"
+      size="sm"
       onClick={onClick}
-      sx={{
-        fontSize: LABEL_FS,
-        textTransform: 'none',
-        alignSelf: 'center',
-        mt: 0.25,
-        color: 'text.secondary',
-        '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-      }}
+      className="self-center mt-[1.5px]"
     >
       {children}
+      <ArrowForward size={12} strokeWidth={1.75} />
     </Button>
   );
 }

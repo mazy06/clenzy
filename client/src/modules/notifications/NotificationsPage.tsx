@@ -2,10 +2,10 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import {
   Box,
-  Button,
   IconButton,
   Tooltip,
 } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Build,
   Description,
@@ -209,13 +209,12 @@ export default function NotificationsPage() {
         actions={
           unreadCount > 0 ? (
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<DoneAll size={18} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={handleMarkAllRead}
-              sx={{ fontSize: '0.8125rem', py: 0.5 }}
               title={t('notifications.markAllRead')}
             >
+              <DoneAll size={18} strokeWidth={1.75} />
               {t('notifications.markAllRead')}
             </Button>
           ) : undefined

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link, MenuItem, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link, MenuItem, TextField } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 
@@ -214,10 +214,10 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         </div>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ cursor: 'pointer' }}>
+        <Button onClick={onClose} variant="ghost" disabled={saving}>
           Annuler
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving} sx={{ cursor: 'pointer' }}>
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </DialogActions>

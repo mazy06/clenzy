@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert, IconButton } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, IconButton } from '@mui/material';
 import { Close, CheckCircle, Science } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useConnectChannel, useTestChannelConnection } from '../../hooks/useChannelConnections';
@@ -175,25 +175,25 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
       {/* ─── Actions ─────────────────────────────────────────────── */}
       <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
         <Button
-          variant="outlined"
-          size="small"
-          startIcon={testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
+          variant="outline"
+          size="sm"
           onClick={handleTest}
           disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
         >
+          {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
           {t('channels.connect.testConnection')}
         </Button>
         <div className="flex-1" />
         <Button
+          variant="ghost"
+          size="sm"
           onClick={handleClose}
-          size="small"
           disabled={connectMutation.isPending}
         >
           {t('common.cancel')}
         </Button>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleConnect}
           disabled={!isFormValid || connectMutation.isPending}
         >

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Switch } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, FormControlLabel, Switch } from '@mui/material';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
@@ -145,14 +145,13 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading} size="small">Annuler</Button>
+        <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleSubmit}
           disabled={loading || !documentType || !referenceId}
-          startIcon={loading ? <Spinner className="size-4" /> : <Send />}
         >
+          {loading ? <Spinner className="size-4" /> : <Send />}
           {loading ? 'Génération...' : 'Générer'}
         </Button>
       </DialogActions>

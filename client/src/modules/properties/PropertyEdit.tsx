@@ -1,23 +1,10 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, CircularProgress } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Cancel, Save } from '../../icons';
 import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-
-// ─── Stable sx constants ────────────────────────────────────────────────────
-
-const ACTION_BUTTON_SX = {
-  textTransform: 'none',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  height: 28,
-  px: 1.5,
-  '& .MuiButton-startIcon': { mr: 0.5 },
-  '& .MuiSvgIcon-root': { fontSize: 14 },
-} as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -38,26 +25,24 @@ const PropertyEdit: React.FC = () => {
           actions={
             <div className="flex gap-1">
               <Button
-                variant="outlined"
+                variant="outline"
+                size="sm"
                 onClick={() => navigate(`/properties/${id}`)}
-                startIcon={<Cancel size={18} strokeWidth={1.75} />}
-                size="small"
-                sx={ACTION_BUTTON_SX}
                 title={t('common.cancel')}
               >
+                <Cancel size={18} strokeWidth={1.75} />
                 {t('common.cancel')}
               </Button>
               <Button
-                variant="contained"
+                variant="default"
+                size="sm"
                 onClick={() => {
                   const submitButton = document.querySelector('[data-submit-property]') as HTMLButtonElement;
                   if (submitButton) submitButton.click();
                 }}
-                startIcon={<Save size={18} strokeWidth={1.75} />}
-                size="small"
-                sx={ACTION_BUTTON_SX}
                 title={t('common.save')}
               >
+                <Save size={18} strokeWidth={1.75} />
                 {t('common.save')}
               </Button>
             </div>

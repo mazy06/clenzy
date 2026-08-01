@@ -1,9 +1,9 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Button, Grid, Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
+import { Grid, Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -341,27 +341,24 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         columns={exportColumns}
         fileName="utilisateurs"
       />
+      {/* Barre d'actions du header : « Nouvel utilisateur » est l'action principale,
+          la synchro reste secondaire a poids egal -> outline. */}
       <Button
-        variant="outlined"
-        color="secondary"
-        size="small"
-        startIcon={<Sync size={18} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
         onClick={handleSyncUsers}
         disabled={syncing}
-        sx={{ fontSize: '0.8125rem' }}
         title="Synchroniser"
       >
+        <Sync strokeWidth={1.75} />
         {syncing ? 'Sync...' : 'Synchroniser'}
       </Button>
       <Button
-        variant="contained"
-        color="primary"
-        size="small"
-        startIcon={<Add size={18} strokeWidth={1.75} />}
+        size="sm"
         onClick={() => navigate('/users/new')}
-        sx={{ fontSize: '0.8125rem' }}
         title="Nouvel utilisateur"
       >
+        <Add strokeWidth={1.75} />
         Nouvel utilisateur
       </Button>
     </div>
@@ -606,14 +603,14 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
                 {/* Actions */}
                 <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5 }}>
-                  {/* Bouton secondaire : peau .s-btn--g du thème global */}
+                  {/* Action de pied de carte, repetee sur chaque fiche : poids secondaire. */}
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Visibility size={14} strokeWidth={1.75} />}
+                    variant="outline"
+                    size="sm"
                     onClick={() => navigate(`/users/${user.id}`)}
-                    fullWidth
+                    className="w-full"
                   >
+                    <Visibility strokeWidth={1.75} />
                     Voir détails
                   </Button>
                 </CardActions>
@@ -768,11 +765,10 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} size="small">Annuler</Button>
-          <Button 
-            onClick={handleEditSave} 
-            variant="contained"
-            size="small"
+          <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} variant="outline" size="sm">Annuler</Button>
+          <Button
+            onClick={handleEditSave}
+            size="sm"
             disabled={saving || !editFormData.firstName || !editFormData.lastName || !editFormData.email}
           >
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -790,8 +786,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           </p>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} size="small">Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
+          <Button onClick={() => setDeleteDialogOpen(false)} variant="outline" size="sm">Annuler</Button>
+          <Button onClick={confirmDelete} variant="destructive" size="sm">
             Supprimer
           </Button>
         </DialogActions>

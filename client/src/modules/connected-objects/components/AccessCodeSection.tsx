@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { IconButton, Button, Tooltip, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
+import { IconButton, Tooltip, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
@@ -119,13 +120,13 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           <>
             <span className="cn-text-caption text-muted-foreground">Aucun code actif</span>
             <Button
-              size="small"
-              variant="text"
-              startIcon={rotating ? <Spinner className="size-[13px]" /> : <Refresh size={14} strokeWidth={1.75} />}
+              variant="ghost"
+              size="sm"
               onClick={() => setConfirmOpen(true)}
               disabled={rotating}
-              sx={{ ml: 'auto' }}
+              className="ms-auto"
             >
+              {rotating ? <Spinner className="size-[13px]" /> : <Refresh size={14} strokeWidth={1.75} />}
               Générer
             </Button>
           </>
@@ -165,13 +166,13 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={rotating}>Annuler</Button>
+          <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={rotating}>Annuler</Button>
           <Button
+            variant="default"
             onClick={() => { void handleRotate(); }}
-            variant="contained"
             disabled={rotating}
-            startIcon={rotating ? <Spinner className="size-3.5" /> : undefined}
           >
+            {rotating ? <Spinner className="size-3.5" /> : null}
             {hasCode ? 'Régénérer' : 'Générer'}
           </Button>
         </DialogActions>

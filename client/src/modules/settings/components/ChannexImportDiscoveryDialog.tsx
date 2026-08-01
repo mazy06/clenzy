@@ -15,11 +15,11 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, ButtonBase } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Divider, ButtonBase } from '@mui/material';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
@@ -554,18 +554,20 @@ export default function ChannexImportDiscoveryDialog({
                   Ou bien :
                 </span>
                 <Button
-                  size="small"
+                  variant="ghost"
+                  size="sm"
                   onClick={onRequestConnectExisting}
-                  sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
+                  className="text-[var(--muted)]"
                 >
                   Connecter une propriete Baitly existante
                 </Button>
                 <Button
-                  size="small"
-                  startIcon={<RefreshCw size={12} />}
+                  variant="ghost"
+                  size="sm"
                   onClick={refresh}
-                  sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
+                  className="text-[var(--muted)]"
                 >
+                  <RefreshCw size={12} />
                   Rafraichir
                 </Button>
               </Stack>
@@ -589,12 +591,11 @@ export default function ChannexImportDiscoveryDialog({
                 proprietes cote OTA depuis, re-detectez-les ci-dessous.
               </span>
               <Button
-                variant="outlined"
-                size="small"
-                startIcon={<RefreshCw size={14} />}
+                variant="outline"
+                size="sm"
                 onClick={refresh}
-                sx={{ textTransform: 'none' }}
               >
+                <RefreshCw size={14} />
                 Verifier a nouveau
               </Button>
             </Stack>
@@ -683,11 +684,12 @@ export default function ChannexImportDiscoveryDialog({
                 )}
               </span>
               <Button
-                size="small"
-                startIcon={<RefreshCw size={12} />}
+                variant="ghost"
+                size="sm"
                 onClick={refresh}
-                sx={{ textTransform: 'none', color: 'text.secondary' }}
+                className="text-[var(--muted)]"
               >
+                <RefreshCw size={12} />
                 Rafraichir
               </Button>
             </div>
@@ -975,17 +977,16 @@ export default function ChannexImportDiscoveryDialog({
             <div className="flex-1" />
           )}
           <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-          <Button onClick={onClose} size="small" sx={{ textTransform: 'none', color: 'text.secondary' }}>
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-[var(--muted)]">
             Fermer
           </Button>
           <Button
-            variant="contained"
-            size="small"
+            variant="default"
+            size="sm"
             onClick={handleApply}
             disabled={importing || !hasChanges}
-            startIcon={importing ? <Spinner className="size-3" /> : <Download size={14} />}
-            sx={{ textTransform: 'none' }}
           >
+            {importing ? <Spinner className="size-3" /> : <Download size={14} />}
             {importing
               ? 'Application en cours...'
               : !hasChanges

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid, Button } from '@mui/material';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   Group,
   Edit,
@@ -120,13 +120,8 @@ const TeamDetails: React.FC = () => {
         showBackButton={true}
         actions={
           canEdit && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Edit />}
-              onClick={handleEdit}
-              title="Modifier"
-            >
+            <Button size="sm" onClick={handleEdit} title="Modifier">
+              <Edit />
               Modifier
             </Button>
           )

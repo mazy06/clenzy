@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { Button, IconButton, TextField, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
+import { IconButton, TextField, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -71,12 +72,12 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
         </div>
         {canEdit && (
           <Button
-            size="small"
-            startIcon={<Add size={18} strokeWidth={1.75} />}
+            size="sm"
+            variant="outline"
             onClick={openAdd}
-            variant="outlined"
             disabled={availableCatalog.length === 0}
           >
+            <Add size={18} strokeWidth={1.75} />
             Ajouter
           </Button>
         )}
@@ -92,7 +93,8 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
             </p>
           )}
           {canEdit && catalog.length > 0 && (
-            <Button size="small" startIcon={<Add size={18} strokeWidth={1.75} />} onClick={openAdd} sx={{ mt: 1 }}>
+            <Button size="sm" variant="ghost" onClick={openAdd} className="mt-1.5">
+              <Add size={18} strokeWidth={1.75} />
               Ajouter un article
             </Button>
           )}
@@ -194,8 +196,12 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} startIcon={<Close size={18} strokeWidth={1.75} />}>Annuler</Button>
-          <Button onClick={handleAdd} variant="contained" startIcon={<Save size={18} strokeWidth={1.75} />} disabled={!selectedKey}>
+          <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Close size={18} strokeWidth={1.75} />
+            Annuler
+          </Button>
+          <Button onClick={handleAdd} disabled={!selectedKey}>
+            <Save size={18} strokeWidth={1.75} />
             Ajouter
           </Button>
         </DialogActions>

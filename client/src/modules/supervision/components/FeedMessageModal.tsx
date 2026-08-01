@@ -9,8 +9,8 @@
    ============================================================ */
 
 import { useEffect, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, useTheme } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Dialog, DialogActions, DialogContent, DialogTitle, useTheme } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
 import { renderServerEmailPreview } from '../../../utils/emailMarkdown';
@@ -95,7 +95,8 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('supervision.messageModal.close', { defaultValue: 'Fermer' })}</Button>
+        {/* Modale de simple lecture : la fermeture reste une action tertiaire. */}
+        <Button variant="ghost" onClick={onClose}>{t('supervision.messageModal.close', { defaultValue: 'Fermer' })}</Button>
       </DialogActions>
     </Dialog>
   );

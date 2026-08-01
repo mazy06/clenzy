@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Button, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Info, Send } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -65,12 +66,12 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
           onChange={(e) => setLocalName(e.target.value)}
           sx={{ flex: '1 1 160px', '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
         />
+        {/* Seule action de la rangee, elle valide les deux champs : action
+            principale de la zone, d'ou l'encre pleine. */}
         <Button
-          variant="outlined"
-          size="small"
+          size="sm"
           disabled={!emailValid || !dirty || saving}
           onClick={() => onSave(localEmail.trim(), localName.trim())}
-          sx={{ textTransform: 'none', fontSize: '0.78rem', flexShrink: 0 }}
         >
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>

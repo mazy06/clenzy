@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Snackbar } from '@mui/material';
+import { Snackbar } from '@mui/material';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -203,11 +203,12 @@ export default function InterventionDetailsPage() {
           backLabel={t('interventions.detail.backToList')}
           actions={
             canEditInterventions ? (
-              <Button variant="outlined" startIcon={<EditIcon size={18} strokeWidth={1.75} />}
-                onClick={() => navigate(`/interventions/${id}/edit`)} size="small"
+              <BuiButton variant="outline" size="sm"
+                onClick={() => navigate(`/interventions/${id}/edit`)}
                 title={t('interventions.detail.editButton')}>
+                <EditIcon strokeWidth={1.75} />
                 {t('interventions.detail.editButton')}
-              </Button>
+              </BuiButton>
             ) : undefined
           }
         />
@@ -228,13 +229,15 @@ export default function InterventionDetailsPage() {
         <WorkOrderDetailLayout
           vm={vm}
           propertyAction={
-            <Button
-              size="small"
+            // Action discrete au coin d'une carte : ghost, et xs pour retrouver
+            // la hauteur 24 que le sx d'origine imposait.
+            <BuiButton
+              variant="ghost"
+              size="xs"
               onClick={() => navigate(`/properties/${intervention.propertyId}`)}
-              sx={{ fontSize: '0.6875rem', textTransform: 'none', py: 0, minHeight: 24 }}
             >
               {t('serviceRequests.details.viewProperty')}
-            </Button>
+            </BuiButton>
           }
           extraSection={
             <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">

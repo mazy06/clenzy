@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Skeleton } from '@mui/material';
+import { Skeleton } from '@mui/material';
+import { Button } from '../../components/ui';
 import { MonitorHeart, BatteryAlert, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -52,7 +53,7 @@ export default function DeviceDetail() {
           icon={<ChevronRight />}
           title="Objet introuvable"
           description="Cet objet connecté n'existe plus ou n'est pas accessible."
-          action={<Button variant="outlined" onClick={() => navigate(HUB_PATH)}>Retour aux objets connectés</Button>}
+          action={<Button variant="outline" onClick={() => navigate(HUB_PATH)}>Retour aux objets connectés</Button>}
         />
       </div>
     );
@@ -105,11 +106,11 @@ export default function DeviceDetail() {
           description="La gestion avancée de cet objet est en cours d'intégration dans cette vue."
           action={
             <Button
-              variant="outlined"
-              endIcon={<ChevronRight size={16} strokeWidth={1.75} />}
+              variant="outline"
               onClick={() => navigate(LEGACY_ROUTE[device.kind]!)}
             >
               Ouvrir la gestion
+              <ChevronRight size={16} strokeWidth={1.75} />
             </Button>
           }
         />

@@ -10,8 +10,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Spinner } from '../../../components/ui';
-import { Button, TextField } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { TextField } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 
@@ -105,11 +105,9 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
           />
           <div className="flex justify-end">
             <Button
-              size="small"
-              variant="contained"
+              size="sm"
               onClick={() => publish(review)}
               disabled={publishing === review.id || !(edited[review.id] ?? '').trim()}
-              sx={{ textTransform: 'none', fontWeight: 700 }}
             >
               {publishing === review.id ? (
                 <Spinner className="size-[13px]" />

@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Button, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider } from '@mui/material';
 import {
   Close,
   Home,
@@ -247,20 +247,19 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
 
       <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
         <Button
+          variant="ghost"
+          size="sm"
           onClick={handleClose}
-          size="small"
-          sx={{ fontSize: '0.75rem', textTransform: 'none' }}
         >
           Annuler
         </Button>
         <Button
+          variant="default"
+          size="sm"
           onClick={handleConfirm}
-          variant="contained"
-          size="small"
           disabled={!selectedProperty || loading}
-          startIcon={loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
-          sx={{ fontSize: '0.75rem', textTransform: 'none' }}
         >
+          {loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
           Confirmer le changement
         </Button>
       </DialogActions>

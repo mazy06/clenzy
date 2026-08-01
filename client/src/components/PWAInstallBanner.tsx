@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Paper, Button, Slide, IconButton } from '@mui/material';
+import { Paper, Slide, IconButton } from '@mui/material';
+import { Button } from './ui';
 import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
 import { useUserPreference } from '../hooks/useUserPreference';
@@ -108,10 +109,9 @@ export default function PWAInstallBanner() {
           </p>
         </div>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleInstall}
-          sx={{ flexShrink: 0 }}
+          className="shrink-0"
         >
           Installer
         </Button>

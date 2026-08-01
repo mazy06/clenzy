@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import { Card, CardContent, Button } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
+import { Button } from '../../components/ui';
 import { ErrorOutline, Refresh } from '../../icons';
 
 interface Props {
@@ -46,13 +47,8 @@ class DashboardErrorBoundary extends Component<Props, State> {
                 ? `Erreur lors du chargement de "${this.props.widgetName}"`
                 : 'Erreur lors du chargement du widget'}
             </p>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<Refresh size={14} strokeWidth={1.75} />}
-              onClick={this.handleRetry}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-            >
+            <Button variant="outline" size="sm" onClick={this.handleRetry}>
+              <Refresh size={14} strokeWidth={1.75} />
               Reessayer
             </Button>
           </CardContent>

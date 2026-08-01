@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Button } from '../../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -281,15 +282,13 @@ export default function OAuthProviderCard({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDisconnectOpen(false)} disabled={actionLoading} sx={{ textTransform: 'none' }}>
+          <Button variant="outline" onClick={() => setDisconnectOpen(false)} disabled={actionLoading}>
             {labels.cancel ?? 'Annuler'}
           </Button>
           <Button
             onClick={handleDisconnect}
-            color="error"
-            variant="contained"
+            variant="destructive"
             disabled={actionLoading}
-            sx={{ textTransform: 'none', boxShadow: 'none' }}
           >
             {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? 'Déconnecter')}
           </Button>

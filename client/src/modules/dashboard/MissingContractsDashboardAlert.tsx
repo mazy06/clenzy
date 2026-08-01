@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Button } from '@mui/material';
+import { Alert } from '@mui/material';
+import { Button } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMissingContractCount } from '../../hooks/useMissingContractCount';
@@ -35,11 +36,12 @@ const MissingContractsDashboardAlert: React.FC = () => {
           '& .MuiAlert-message': { fontSize: '0.8125rem' },
         }}
         action={
+          // Action logee dans une alerte : ghost. L'ancien `color="inherit"`
+          // reprenait l'encre du message (var(--body)), pas la teinte warn.
           <Button
-            color="inherit"
-            size="small"
+            variant="ghost"
+            size="sm"
             onClick={() => setContractModalOpen(true)}
-            sx={{ textTransform: 'none', fontWeight: 700 }}
           >
             {t('contracts.gate.cta', 'Établir les contrats')}
           </Button>

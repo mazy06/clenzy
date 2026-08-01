@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Alert, Snackbar, Button } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Alert, Snackbar } from '@mui/material';
 import {
   Save,
   Refresh,
@@ -134,23 +134,23 @@ export default function Tarification() {
               {canEdit && (
                 <>
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Refresh />}
+                    variant="outline"
+                    size="sm"
                     onClick={resetConfig}
                     disabled={isSaving}
                     title={t('tarification.reset')}
                   >
+                    <Refresh />
                     {t('tarification.reset')}
                   </Button>
                   <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={isSaving ? <Spinner className="size-4" /> : <Save />}
+                    variant="default"
+                    size="sm"
                     onClick={saveConfig}
                     disabled={isSaving}
                     title={t('tarification.save')}
                   >
+                    {isSaving ? <Spinner className="size-4" /> : <Save />}
                     {t('tarification.save')}
                   </Button>
                 </>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Button } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { VerifiedUser, Replay, HourglassEmpty, Check } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -154,28 +154,15 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
                     )}
                   </span>
                 ) : (
+                  // `xs` et non `sm` : action de ligne dans une liste tres dense
+                  // (libelles a 11 px), le gabarit h24 du kit s'y aligne.
                   <Button
-                    size="small"
-                    variant="text"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => handleRetry(d.id)}
                     disabled={row?.loading}
-                    startIcon={
-                      row?.loading ? <Spinner className="size-3" /> : <Replay size={13} strokeWidth={1.75} />
-                    }
-                    sx={{
-                      fontSize: '0.6875rem',
-                      textTransform: 'none',
-                      color: 'var(--accent)',
-                      py: 0.25,
-                      px: 0.75,
-                      minWidth: 0,
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: 'var(--accent-soft)' },
-                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-                      transition: 'background-color var(--duration-fast) var(--ease-out)',
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
                   >
+                    {row?.loading ? <Spinner className="size-3" /> : <Replay size={13} strokeWidth={1.75} />}
                     {t('reservations.compliance.resubmit', 'Resoumettre')}
                   </Button>
                 )}

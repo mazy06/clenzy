@@ -2,7 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Button } from '../../components/ui';
+import { IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   CloudUpload,
@@ -285,11 +286,11 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           description={t('properties.photos.emptyDesc')}
           action={
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CloudUpload size={18} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
             >
+              <CloudUpload size={18} strokeWidth={1.75} />
               {t('properties.photos.upload')}
             </Button>
           }
@@ -307,10 +308,10 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)} size="small" sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleDeleteConfirm} color="error" size="small" sx={{ textTransform: 'none' }}>
+          <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>
             {t('common.delete')}
           </Button>
         </DialogActions>

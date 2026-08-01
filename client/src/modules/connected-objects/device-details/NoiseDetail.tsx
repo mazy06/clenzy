@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button } from '@mui/material';
 import { Settings, History, Save, VolumeUp, Wifi, WifiOff, TrendingUp, ArrowUpward } from '../../../icons';
 import NoiseMonitorChart from '../../dashboard/NoiseMonitorChart';
 import NoiseAlertConfigPanel, {
@@ -126,12 +125,11 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
                 <Badge variant="secondary" className="text-[0.6875rem] h-[22px] font-semibold bg-[var(--ok-soft)] text-[var(--ok)] rounded-[var(--radius-pill)]">Sauvegardé</Badge>
               )}
               <Button
-                variant="contained"
-                size="small"
-                startIcon={<Save size={14} strokeWidth={1.75} />}
+                size="sm"
                 onClick={() => configRef.current?.save()}
                 disabled={!configStatus.canSave || configStatus.isSaving}
               >
+                <Save strokeWidth={1.75} />
                 {configStatus.isSaving ? 'Sauvegarde…' : 'Sauvegarder'}
               </Button>
             </div>

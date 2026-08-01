@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField } from '@mui/material';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { useAttachToReservation } from '../../hooks/useConversations';
 import { formatPhoneNumber } from '../../utils/formatPhone';
@@ -119,14 +119,12 @@ export default function AttachReservationDialog({
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none' }}>
+        <Button variant="outline" onClick={onClose}>
           Annuler
         </Button>
         <Button
-          variant="contained"
           onClick={handleAttach}
           disabled={!selected || attachMutation.isPending}
-          sx={{ textTransform: 'none' }}
         >
           {attachMutation.isPending ? 'Rattachement…' : 'Rattacher'}
         </Button>

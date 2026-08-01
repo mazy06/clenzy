@@ -3,8 +3,8 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, IconButton, Divider, TextField, Button } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, IconButton, Divider, TextField } from '@mui/material';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -160,7 +160,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   {t('channels.guest.notes')}
                 </p>
                 {!editingNotes && (
-                  <Button size="small" onClick={() => setEditingNotes(true)} sx={{ fontSize: '0.6875rem' }}>
+                  <Button variant="ghost" size="sm" onClick={() => setEditingNotes(true)}>
                     {t('common.edit')}
                   </Button>
                 )}
@@ -177,10 +177,10 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                     sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
                   />
                   <div className="flex gap-0.5 justify-end">
-                    <Button size="small" variant="outlined" onClick={() => { setEditingNotes(false); setNotes(guest.notes ?? ''); }} sx={{ fontSize: '0.6875rem' }}>
+                    <Button variant="outline" size="sm" onClick={() => { setEditingNotes(false); setNotes(guest.notes ?? ''); }}>
                       {t('common.cancel')}
                     </Button>
-                    <Button size="small" variant="contained" onClick={handleSaveNotes} disabled={savingNotes} sx={{ fontSize: '0.6875rem' }}>
+                    <Button size="sm" onClick={handleSaveNotes} disabled={savingNotes}>
                       {savingNotes ? <Spinner className="size-3" /> : t('common.save')}
                     </Button>
                   </div>

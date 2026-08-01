@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { Button } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 
 interface Props {
@@ -60,16 +61,15 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+        <Button variant="ghost" onClick={onClose} disabled={loading}>
           Annuler
         </Button>
         <Button
-          variant="contained"
-          color="error"
+          variant="destructive"
           onClick={handleRemove}
           disabled={loading}
-          startIcon={loading ? <Spinner className="size-4" /> : undefined}
         >
+          {loading ? <Spinner className="size-4" /> : null}
           {loading ? 'Retrait...' : 'Retirer'}
         </Button>
       </DialogActions>

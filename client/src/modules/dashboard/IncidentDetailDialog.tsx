@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
@@ -307,13 +307,12 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
               action={
                 canDelete && (
                   <Button
-                    size="small"
-                    color="error"
-                    variant="contained"
-                    startIcon={bulkDeleting ? <Spinner className="size-3.5" /> : <Delete fontSize="small" />}
+                    size="sm"
+                    variant="destructive"
                     onClick={() => setConfirmBulkOpen(true)}
                     disabled={bulkDeleting}
                   >
+                    {bulkDeleting ? <Spinner className="size-3.5" /> : <Delete />}
                     Supprimer les {overTargetCount} hors cible
                   </Button>
                 )
@@ -462,7 +461,9 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={onClose} startIcon={<Close />}>
+          {/* Dialog de consultation : « Fermer » n'engage rien, il reste tertiaire. */}
+          <Button variant="ghost" onClick={onClose}>
+            <Close />
             Fermer
           </Button>
         </DialogActions>
@@ -486,10 +487,9 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
           </ul>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDeleteId(null)}>Annuler</Button>
+          <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Annuler</Button>
           <Button
-            color="error"
-            variant="contained"
+            variant="destructive"
             onClick={() => confirmDeleteId !== null && handleDelete(confirmDeleteId)}
             disabled={deletingId !== null}
           >
@@ -526,16 +526,15 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
           </span>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>
+          <Button variant="outline" onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>
             Annuler
           </Button>
           <Button
-            color="error"
-            variant="contained"
+            variant="destructive"
             onClick={handleBulkDelete}
             disabled={bulkDeleting}
-            startIcon={bulkDeleting ? <Spinner className="size-3.5" /> : <Delete fontSize="small" />}
           >
+            {bulkDeleting ? <Spinner className="size-3.5" /> : <Delete />}
             Supprimer tout
           </Button>
         </DialogActions>

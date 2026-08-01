@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Spinner } from '../../components/ui';
-import { Paper, IconButton, Button } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Paper, IconButton } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
@@ -381,23 +381,22 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           </p>
           <div className="flex gap-1.5">
             <Button
-              variant="text"
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={() => setSelectedDates([])}
             >
               {t('common.cancel')}
             </Button>
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<NightsStay size={14} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={() => setMinNightsDialogOpen(true)}
             >
+              <NightsStay size={14} strokeWidth={1.75} />
               Min-nights
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={() => setEditDialogOpen(true)}
             >
               {t('dynamicPricing.calendar.editPrice')}

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Spinner } from '../../components/ui';
-import { TextField, Button, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { TextField, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
@@ -460,22 +460,16 @@ export default function OwnerPayoutSettings() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSepaOpen(false)}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '8px',
-              color: 'text.secondary',
-            }}
+            className="text-[var(--muted)]"
           >
             {t('common.cancel', 'Annuler')}
           </Button>
           <Button
-            variant="contained"
-            disableElevation
-            size="small"
+            variant="default"
+            size="sm"
             onClick={handleSaveSepa}
             disabled={
               updateSepaMutation.isPending
@@ -487,14 +481,12 @@ export default function OwnerPayoutSettings() {
               //   - cas 3 : pas de mask + champ vide → bouton désactivé (premier setup)
               || (!sepaIban.trim() && !sepaTarget?.maskedIban)
             }
-            startIcon={
-              updateSepaMutation.isPending ? (
-                <Spinner className="size-3.5" />
-              ) : (
-                <Save size={14} strokeWidth={1.75} />
-              )
-            }
->
+          >
+            {updateSepaMutation.isPending ? (
+              <Spinner className="size-3.5" />
+            ) : (
+              <Save size={14} strokeWidth={1.75} />
+            )}
             {t('common.save', 'Enregistrer')}
           </Button>
         </DialogActions>

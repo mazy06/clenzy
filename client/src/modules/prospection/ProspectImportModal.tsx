@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   Close as CloseIcon,
@@ -197,16 +197,12 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3, gap: 1, justifyContent: 'flex-end' }}>
-        <Button onClick={handleClose} variant="outlined" disabled={importMutation.isPending}>
+        <Button onClick={handleClose} variant="outline" disabled={importMutation.isPending}>
           {successCount !== null ? 'Fermer' : 'Annuler'}
         </Button>
         {successCount === null && (
-          <Button
-            onClick={handleImport}
-            variant="contained"
-            disabled={!canImport}
-            startIcon={<CloudUpload />}
-          >
+          <Button onClick={handleImport} disabled={!canImport}>
+            <CloudUpload />
             {importMutation.isPending ? 'Import en cours...' : 'Importer'}
           </Button>
         )}

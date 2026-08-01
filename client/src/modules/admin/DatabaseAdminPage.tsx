@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { IconButton, Button, Snackbar, Alert, Skeleton, Tooltip } from '@mui/material';
+import { Button } from '../../components/ui';
+import { IconButton, Snackbar, Alert, Skeleton, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Download,
@@ -117,21 +118,20 @@ const DatabaseAdminPage: React.FC = () => {
         actions={
           <div className="flex gap-1.5">
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Refresh />}
+              variant="outline"
+              size="sm"
               onClick={fetchBackups}
               disabled={loading}
             >
+              <Refresh />
               Actualiser
             </Button>
             <Button
-              variant="contained"
-              size="small"
-              startIcon={creating ? <Spinner className="size-4" /> : <Storage />}
+              size="sm"
               onClick={handleCreate}
               disabled={creating}
             >
+              {creating ? <Spinner className="size-4" /> : <Storage />}
               {creating ? 'Creation en cours...' : 'Creer un dump'}
             </Button>
           </div>

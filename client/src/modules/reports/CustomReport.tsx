@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, Card, IconButton, MenuItem, Select, TextField } from '@mui/material';
+import { Card, IconButton, MenuItem, Select, TextField } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -153,8 +153,7 @@ const CustomReport: React.FC = () => {
             InputLabelProps={{ shrink: true }}
           />
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             disabled={!canRun || runMutation.isPending}
             onClick={() => runMutation.mutate()}
           >
@@ -170,8 +169,8 @@ const CustomReport: React.FC = () => {
             onChange={(e) => setViewName(e.target.value)}
           />
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             disabled={!canRun || viewName.trim().length === 0 || saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
           >

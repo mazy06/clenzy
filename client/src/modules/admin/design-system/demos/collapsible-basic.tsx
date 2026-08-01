@@ -13,7 +13,7 @@ export function CollapsibleBasic() {
       <CardContent>
         <Collapsible className="rounded-md data-[state=open]:bg-muted">
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="group w-full">
+            <Button variant="ghost" className="group w-full shrink">
               Product details
               <ChevronDownIcon className="ms-auto group-data-[state=open]:rotate-180" />
             </Button>

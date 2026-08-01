@@ -9,8 +9,8 @@
    ============================================================ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { Button, IconButton, Tooltip } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { IconButton, Tooltip } from '@mui/material';
 import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -356,13 +356,15 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
             <div className="flex items-center gap-1.5 ps-[9px] pe-[3px] py-[3px] rounded-[7992px] bg-[rgba(20,24,58,.85)] text-[#E7E9FB] border border-solid border-[rgba(255,255,255,.12)] text-[12.5px] font-bold" style={{ backdropFilter: 'blur(8px)', boxShadow: '0 10px 28px -14px rgba(0,0,0,.6)' }} role="status">
               <WifiOff size={15} />
               {t('supervision.states.offline')} · {t('supervision.states.reconnecting')}
+              {/* Bandeau a fond nuit : on conserve la teinte claire d'origine,
+                  l'encre du ghost s'y perdrait. */}
               <Button
-                size="small"
-                variant="text"
+                variant="ghost"
+                size="sm"
                 onClick={retry}
-                startIcon={<Replay size={14} />}
-                sx={{ minWidth: 0, color: '#9B9BF6', fontWeight: 700, textTransform: 'none', ml: 0.5 }}
+                className="ms-[3px] text-[#9B9BF6] hover:text-[#9B9BF6] hover:bg-[rgba(255,255,255,.1)]"
               >
+                <Replay size={14} />
                 {t('supervision.states.retry')}
               </Button>
             </div>

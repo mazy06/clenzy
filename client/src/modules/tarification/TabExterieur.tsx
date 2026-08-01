@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { TextField, InputAdornment, Switch, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, InputAdornment, Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Yard, Add, Delete } from '../../icons';
 import type { PricingConfig, ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
@@ -131,12 +132,11 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
       {canEdit && (
         <div className="mt-2">
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Add />}
+            variant="outline"
+            size="sm"
             onClick={() => setAddDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
           >
+            <Add />
             {t('tarification.addPrestation')}
           </Button>
         </div>
@@ -165,8 +165,8 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} variant="contained" disabled={!newItemName.trim()}>
+          <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+          <Button variant="default" onClick={handleAdd} disabled={!newItemName.trim()}>
             {t('tarification.add')}
           </Button>
         </DialogActions>

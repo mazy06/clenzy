@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
-import { Alert as UiAlert, AlertDescription } from './ui';
+import { Alert as UiAlert, AlertDescription, Button } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, Grid, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Card, CardContent, Grid, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -303,11 +303,12 @@ const PermissionConfig: React.FC = () => {
         actions={
           selectedRole && rolePermissions && (
             <div className="flex gap-1.5 items-center">
+              {/* Les icones perdent leur `text-muted-foreground` : dans le kit elles
+                  prennent l'encre du bouton, sinon la teinte du variant est cassee. */}
               <Button
-                variant="outlined"
-                size="small"
-                color="warning"
-                startIcon={<span className="inline-flex text-muted-foreground"><RefreshIcon size={20} strokeWidth={1.75} /></span>}
+                variant="outline"
+                size="sm"
+                className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
                 onClick={async () => {
                   await resetRolePermissions(selectedRole);
                   triggerGlobalRefresh();
@@ -315,13 +316,14 @@ const PermissionConfig: React.FC = () => {
                 disabled={rolePermissions.isDefault}
                 title="Remet les permissions aux valeurs par défaut"
               >
+                <RefreshIcon strokeWidth={1.75} />
                 Réinitialiser
               </Button>
+              {/* Ecrase la config courante par celle stockee en base : geste
+                  irreversible du point de vue de l'utilisateur -> destructive. */}
               <Button
-                variant="outlined"
-                size="small"
-                color="error"
-                startIcon={<span className="inline-flex text-muted-foreground"><StorageIcon size={20} strokeWidth={1.75} /></span>}
+                variant="destructive"
+                size="sm"
                 onClick={async () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
@@ -342,13 +344,11 @@ const PermissionConfig: React.FC = () => {
                 disabled={loading}
                 title="Remet les permissions aux valeurs initiales stockées en base de données"
               >
+                <StorageIcon strokeWidth={1.75} />
                 Valeurs Initiales
               </Button>
               <Button
-                variant="contained"
-                size="small"
-                color="primary"
-                startIcon={<span className="inline-flex text-muted-foreground"><SaveIcon size={20} strokeWidth={1.75} /></span>}
+                size="sm"
                 onClick={async () => {
                   try {
                     await applyLocalChanges(selectedRole);
@@ -373,6 +373,7 @@ const PermissionConfig: React.FC = () => {
                 disabled={loading || rolePermissions?.isDefault}
                 title="Sauvegarder"
               >
+                <SaveIcon strokeWidth={1.75} />
                 Sauvegarder
               </Button>
             </div>

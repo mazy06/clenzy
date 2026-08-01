@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Cancel, Save } from "../../icons";
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
@@ -24,28 +24,27 @@ const InterventionEdit: React.FC = () => {
         actions={
           <div className="flex gap-1.5">
             <Button
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/interventions/${id}`)}
-              startIcon={<Cancel size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.cancel')}
             >
+              <Cancel size={18} strokeWidth={1.75} />
               {t('common.cancel')}
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={() => {
                 const submitButton = document.querySelector('[data-submit-intervention]') as HTMLButtonElement;
                 if (submitButton) {
                   submitButton.click();
                 }
               }}
-              startIcon={loading ? <Spinner className="size-4" /> : <Save size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.save')}
             >
+              {loading ? <Spinner className="size-4" /> : <Save size={18} strokeWidth={1.75} />}
               {loading ? t('common.loading') : t('common.save')}
             </Button>
           </div>

@@ -2,7 +2,8 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Paper, Button } from '@mui/material';
+import { Paper } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -152,12 +153,11 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
           <div className="text-end">
             {ota.available && !connected && (
               <Button
-                size="small"
-                variant="contained"
-                startIcon={<LinkIcon size={'0.75rem'} strokeWidth={1.75} />}
+                size="sm"
                 onClick={isAirbnb ? onAirbnbConnect : isOtaChannel ? () => onOtaConnect(ota) : undefined}
                 disabled={(isAirbnb && connectPending) || loading}
               >
+                <LinkIcon size={'0.75rem'} strokeWidth={1.75} />
                 {(isAirbnb && connectPending)
                   ? <Spinner className="size-3" />
                   : `Connecter ${ota.name}`
@@ -165,14 +165,15 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
               </Button>
             )}
             {ota.available && connected && (
+              // `destructive` et non `outline` : deconnecter un canal coupe la
+              // synchronisation — l'encre --err du kit porte cet avertissement.
               <Button
-                size="small"
-                variant="outlined"
-                color="error"
-                startIcon={<LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />}
+                size="sm"
+                variant="destructive"
                 onClick={isAirbnb ? onAirbnbDisconnect : isOtaChannel ? () => onOtaDisconnectRequest(ota) : undefined}
                 disabled={(isAirbnb && disconnectPending) || disconnectingChannelId === ota.id}
               >
+                <LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />
                 {((isAirbnb && disconnectPending) || disconnectingChannelId === ota.id)
                   ? <Spinner className="size-3" />
                   : `Déconnecter ${ota.name}`

@@ -4,7 +4,8 @@ import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button, Skeleton, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Skeleton, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   PlayArrow,
@@ -132,13 +133,8 @@ const ReconciliationTab: React.FC = () => {
   // Register Trigger Reconciliation button in the page header actions.
   useEffect(() => {
     setHeaderActions(
-      <Button
-        size="small"
-        variant="contained"
-        color="primary"
-        startIcon={<PlayArrow />}
-        onClick={() => setTriggerDialogOpen(true)}
-      >
+      <Button size="sm" onClick={() => setTriggerDialogOpen(true)}>
+        <PlayArrow />
         Trigger Reconciliation
       </Button>,
     );
@@ -317,13 +313,12 @@ const ReconciliationTab: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setTriggerDialogOpen(false)}>Annuler</Button>
+          <Button variant="outline" onClick={() => setTriggerDialogOpen(false)}>Annuler</Button>
           <Button
-            variant="contained"
             onClick={handleTrigger}
             disabled={!triggerPropertyId || triggerLoading}
-            startIcon={triggerLoading ? <Spinner className="size-4" /> : <PlayArrow />}
           >
+            {triggerLoading ? <Spinner className="size-4" /> : <PlayArrow />}
             Lancer
           </Button>
         </DialogActions>

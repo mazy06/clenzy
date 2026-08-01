@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';

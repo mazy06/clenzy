@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio } from '@mui/material';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 
@@ -99,15 +99,10 @@ export default function SendWhatsAppTemplateDialog({
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none' }}>
+        <Button variant="ghost" onClick={onClose}>
           Annuler
         </Button>
-        <Button
-          variant="contained"
-          onClick={handleSend}
-          disabled={!selectedKey || sending}
-          sx={{ textTransform: 'none' }}
-        >
+        <Button onClick={handleSend} disabled={!selectedKey || sending}>
           {sending ? 'Envoi…' : 'Envoyer'}
         </Button>
       </DialogActions>

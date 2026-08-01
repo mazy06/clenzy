@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Snackbar, Alert, Button } from '@mui/material';
+import { Snackbar, Alert } from '@mui/material';
+import { Button } from './ui';
 // Module virtuel injecte par vite-plugin-pwa au build. Types resolus via
 // /// <reference types="vite-plugin-pwa/react" /> dans vite-env.d.ts.
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -120,15 +121,14 @@ export default function AppUpdateBanner() {
         action={
           <div className="flex gap-0.5 items-center">
             <Button
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               onClick={handleLater}
             >
               {t('appUpdate.later', 'Plus tard')}
             </Button>
             <Button
-              size="small"
-              variant="contained"
+              size="sm"
               onClick={handleReload}
             >
               {t('appUpdate.reload', 'Recharger maintenant')}

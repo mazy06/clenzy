@@ -5,7 +5,7 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -339,9 +339,10 @@ const YieldRulesPanel: React.FC = () => {
           <h6 className="cn-text-subtitle1 font-bold">
             {t('yieldRules.rulesTitle', 'Règles d’occupation')}
           </h6>
-          <Button size="small" variant="outlined" startIcon={<Plus size={16} />} onClick={openCreate}>
+          <BuiButton size="sm" variant="outline" onClick={openCreate}>
+            <Plus size={16} />
             {t('yieldRules.addRule', 'Ajouter une règle')}
-          </Button>
+          </BuiButton>
         </div>
         {rules.length === 0 ? (
           <p className="cn-text-body2 text-[var(--muted)] py-3">
@@ -664,10 +665,10 @@ const YieldRulesPanel: React.FC = () => {
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>{t('common.cancel', 'Annuler')}</Button>
-          <Button variant="contained" onClick={() => void saveRule()} disabled={saving || !draft.name.trim()}>
+          <BuiButton variant="ghost" onClick={() => setDialogOpen(false)}>{t('common.cancel', 'Annuler')}</BuiButton>
+          <BuiButton onClick={() => void saveRule()} disabled={saving || !draft.name.trim()}>
             {t('common.save', 'Enregistrer')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
     </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
-import { Spinner } from '../../components/ui';
-import { Button } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
@@ -170,29 +169,29 @@ function OtaChannelCard({
         <div className="mt-auto flex justify-end">
           {isAvailable && !isConnected && (
             <Button
-              size="small"
-              variant="contained"
-              startIcon={<LinkIcon size={'0.8rem'} strokeWidth={1.75} />}
+              size="sm"
+              variant="default"
               onClick={onConnect}
               disabled={connecting || connectionLoading}
             >
+              <LinkIcon size={'0.8rem'} strokeWidth={1.75} />
               {connecting ? <Spinner className="size-3" /> : `Connecter ${channel.name}`}
             </Button>
           )}
           {isAvailable && isConnected && (
+            // Rompre une connexion OTA est l'action destructrice de la carte.
             <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />}
+              size="sm"
+              variant="destructive"
               onClick={onDisconnect}
               disabled={disconnecting}
             >
+              <LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />
               {disconnecting ? <Spinner className="size-3" /> : `Déconnecter ${channel.name}`}
             </Button>
           )}
           {!isAvailable && (
-            <Button size="small" variant="outlined" disabled>
+            <Button size="sm" variant="outline" disabled>
               {t('channels.ota.comingSoon')}
             </Button>
           )}

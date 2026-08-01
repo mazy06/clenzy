@@ -17,7 +17,8 @@
 import { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Button, Collapse, IconButton } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Collapse, IconButton } from '@mui/material';
 import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -131,37 +132,18 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
       ) : (
         <div className="flex items-center gap-1.5">
           <Button
-            size="small"
-            variant="contained"
-            disableElevation
+            variant="default"
+            size="sm"
             disabled={resolving}
             onClick={isPriceAdjust ? () => onAdjustPrice!(action) : validate}
-            startIcon={
-              resolving ? (
-                <Spinner className="size-[13px]" />
-              ) : isPayment ? (
-                <CreditCard size={15} />
-              ) : (
-                <Check size={15} />
-              )
-            }
-            // Couleur = token d'accent de la session (var(--accent)), pas le
-            // primary MUI figé sur l'indigo par défaut.
-            sx={{
-              textTransform: 'none',
-              fontWeight: 500,
-              fontSize: 12,
-              px: 1.5,
-              boxShadow: 'none',
-              bgcolor: 'var(--accent)',
-              color: 'var(--on-accent)',
-              // Icône collée au bord gauche par la marge négative par défaut de
-              // MUI : on la neutralise pour un espacement icône/texte régulier.
-              '& .MuiButton-startIcon': { ml: 0, mr: 0.75 },
-              '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
-              '&.Mui-disabled': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
-            }}
           >
+            {resolving ? (
+              <Spinner className="size-[13px]" />
+            ) : isPayment ? (
+              <CreditCard size={15} />
+            ) : (
+              <Check size={15} />
+            )}
             {isPriceAdjust ? (
               t('supervision.price.adjustCta', 'Ajuster les tarifs')
             ) : isPayment ? (
@@ -189,14 +171,12 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
             )}
           </Button>
           <Button
-            size="small"
-            variant="outlined"
-            color="inherit"
+            variant="outline"
+            size="sm"
             disabled={resolving}
             onClick={edit}
-            startIcon={isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
-            sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--ink)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
           >
+            {isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
             {/* Le bouton secondaire ÉCARTE la suggestion (dismiss serveur) : aucun éditeur
                 métier n'est câblé (onEditAction non fourni). On l'étiquette donc honnêtement
                 « Ignorer » pour toute carte non-paiement/non-rappel — jamais « Modifier »,

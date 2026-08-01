@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../../utils/cn';
-import { Box, Button, InputBase, Switch, Select, MenuItem, FormControl, Collapse, Divider } from '@mui/material';
+import { Box, InputBase, Switch, Select, MenuItem, FormControl, Collapse, Divider } from '@mui/material';
 import { ArrowLeft, ArrowRight, AlertTriangle, Sparkles, Upload, LayoutGrid } from 'lucide-react';
 import { designSystemsApi, type DesignSystem, type DesignSystemCreateRequest } from '../../../services/api/designSystemsApi';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
@@ -155,14 +155,18 @@ export default function DesignSystemCreatePage() {
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr avec marque centrée (modèle .ds-setup-topbar). */}
       <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
         <div className="justify-self-start">
-          <Button onClick={() => navigate(-1)} startIcon={<ArrowLeft size={16} strokeWidth={2} />} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Retour</Button>
+          {/* Sortie de l'ecran : action tertiaire, aucun cadre au repos. */}
+          <Button variant="ghost" onClick={() => navigate(-1)} className="text-[var(--muted)]">
+            <ArrowLeft size={16} strokeWidth={2} />
+            Retour
+          </Button>
         </div>
         <div className="justify-self-center grid place-items-center w-8 h-8 text-[var(--accent)]"><LayoutGrid size={20} strokeWidth={2} /></div>
         <div className="justify-self-end">
-          <Button disableElevation onClick={handleCreate} disabled={!canCreate}
-            startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
-            endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined} sx={accentBtnSx}>
+          <Button onClick={handleCreate} disabled={!canCreate} className={ACCENT_BTN_CLASS}>
+            {busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
             {primaryLabel}
+            {!busy && <ArrowRight size={16} strokeWidth={2} />}
           </Button>
         </div>
       </div>
@@ -255,9 +259,14 @@ export default function DesignSystemCreatePage() {
                     {systems.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
                   </Select>
                 </FormControl>
-                <Button disableElevation disabled={reuseId == null || busy} onClick={() => continueWithDirection(reuseId)}
-                  endIcon={<ArrowRight size={16} strokeWidth={2} />} sx={accentBtnSx}>Continuer</Button>
-                <Button disabled={busy} onClick={() => continueWithDirection(null)} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Sans direction</Button>
+                <Button disabled={reuseId == null || busy} onClick={() => continueWithDirection(reuseId)} className={ACCENT_BTN_CLASS}>
+                  Continuer
+                  <ArrowRight size={16} strokeWidth={2} />
+                </Button>
+                {/* Echappatoire du bloc « reutiliser » : action tertiaire. */}
+                <Button variant="ghost" disabled={busy} onClick={() => continueWithDirection(null)} className="text-[var(--muted)]">
+                  Sans direction
+                </Button>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <Divider sx={{ flex: 1, borderColor: 'var(--line)' }} />
@@ -282,9 +291,9 @@ export default function DesignSystemCreatePage() {
             <Row label="Site web" description="Collez l'URL d'un site dont vous aimez le style — l'IA en extrait couleurs, typo et ambiance.">
               <div className="flex gap-1.5 flex-wrap">
                 <InputBase value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://votre-site.com" sx={{ ...inputSx, flex: 1, minWidth: 220 }} />
-                <Button variant="outlined" onClick={() => brandRef.current?.focus()}
-                  startIcon={<Sparkles size={15} strokeWidth={2} />}
-                  sx={{ textTransform: 'none', borderColor: 'var(--line)', color: 'var(--body)', whiteSpace: 'nowrap', '&:hover': { borderColor: 'var(--accent)' } }}>
+                <Button variant="outline" onClick={() => brandRef.current?.focus()}
+                  className="whitespace-nowrap text-[var(--body)] hover:border-[var(--accent)]">
+                  <Sparkles size={15} strokeWidth={2} />
                   Partir d'une marque
                 </Button>
               </div>
@@ -347,7 +356,7 @@ export default function DesignSystemCreatePage() {
             </Row>
 
             <Row label="Code local" optional soon description="Un dossier ou des fichiers de votre machine.">
-              <Button disabled variant="outlined" sx={{ textTransform: 'none', borderColor: 'var(--line)', color: 'var(--muted)' }}>Parcourir un dossier</Button>
+              <Button disabled variant="outline" className="text-[var(--muted)]">Parcourir un dossier</Button>
             </Row>
           </div>
 
@@ -358,8 +367,8 @@ export default function DesignSystemCreatePage() {
           )}
 
           <div className="flex justify-end mt-4">
-            <Button disableElevation onClick={handleCreate} disabled={!canCreate}
-              startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />} sx={accentBtnSx}>
+            <Button onClick={handleCreate} disabled={!canCreate} className={ACCENT_BTN_CLASS}>
+              {busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
               {primaryLabel}
             </Button>
           </div>
@@ -429,10 +438,7 @@ const inputSx = {
   '&.Mui-focused': { borderColor: 'color-mix(in srgb, var(--accent) 48%, var(--line))', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)' },
 } as const;
 
-// Bouton primaire = terracotta (MUI « contained » ignore nos variables CSS → on force via sx).
-const accentBtnSx = {
-  textTransform: 'none', bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px',
-  boxShadow: '0 1px 0 rgba(28,27,26,0.04)',
-  '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
-  '&.Mui-disabled': { bgcolor: 'var(--accent)', opacity: 0.55, color: 'var(--on-accent)' },
-} as const;
+// Bouton primaire de cet ecran = terracotta : le gabarit vient du kit (variante
+// « default »), seule la teinte open-design est reposee par-dessus.
+const ACCENT_BTN_CLASS =
+  'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]';

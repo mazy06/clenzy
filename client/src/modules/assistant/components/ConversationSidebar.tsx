@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Button,
   IconButton,
   Tooltip,
 } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { Add, Delete, Message as MessageIcon } from '../../../icons';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
@@ -44,28 +44,16 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   return (
     <div className="w-full min-[900px]:w-[280px] shrink-0 flex flex-col py-[9px]">
       <div className="px-2 pb-1.5">
-        {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent */}
+        {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent.
+            Le kit n'a pas de variante accent-soft : ghost + les memes jetons
+            que l'ancien sx, l'alignement a gauche reste un choix de sidebar. */}
         <Button
-          fullWidth
+          variant="ghost"
+          size="sm"
           onClick={onNew}
-          startIcon={<Add size={15} strokeWidth={2} />}
-          sx={{
-            justifyContent: 'flex-start',
-            color: 'var(--accent)',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            textTransform: 'none',
-            py: 0.875,
-            px: 1.25,
-            borderRadius: '11px',
-            border: 'none',
-            bgcolor: 'var(--accent-soft)',
-            '&:hover': {
-              bgcolor: 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)',
-              border: 'none',
-            },
-          }}
+          className="w-full justify-start bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent-soft)_80%,var(--accent)_14%)] hover:text-[var(--accent)] shrink"
         >
+          <Add size={15} strokeWidth={2} />
           Nouvelle conversation
         </Button>
       </div>

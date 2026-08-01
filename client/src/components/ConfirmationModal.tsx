@@ -1,6 +1,6 @@
 import React from 'react';
-import { Spinner } from './ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
+import { Button, Spinner } from './ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from '@mui/material';
 import {
   Warning as WarningIcon,
   Close as CloseIcon,
@@ -45,6 +45,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 }) => {
   // Token sémantique de la sévérité (désaturé — baseline §1)
   const severityToken = severity === 'error' ? 'err' : severity === 'info' ? 'info' : 'warn';
+
+  // Le kit n'a pas de variante par teinte : `error` prend `destructive`, `primary` reste
+  // l'action principale (`default`), et les severites restantes se posent en classes sur
+  // `outline`. Branches litterales : une classe Tailwind ne peut pas naitre d'une variable.
+  const confirmTone = confirmColor ?? (severity === 'error' ? 'error' : 'primary');
+  const confirmVariant =
+    confirmTone === 'error' ? 'destructive' : confirmTone === 'primary' ? 'default' : 'outline';
+  const confirmToneClass =
+    confirmTone === 'warning'
+      ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]'
+      : confirmTone === 'success'
+        ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+        : confirmTone === 'info'
+          ? 'text-[var(--info)] border-[var(--info)] hover:bg-[var(--info-soft)]'
+          : '';
 
   const getIcon = () => {
     if (icon) return icon;
@@ -121,26 +136,23 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <DialogActions>
         <Button
           onClick={onClose}
-          variant="outlined"
+          variant="outline"
           disabled={loading}
-          sx={{ minWidth: 100 }}
+          className="min-w-[100px]"
         >
           {cancelText}
         </Button>
         <Button
           onClick={onConfirm}
-          variant="contained"
-          color={confirmColor ?? (severity === 'error' ? 'error' : 'primary')}
+          variant={confirmVariant}
           disabled={loading}
-          startIcon={
-            loading
-              ? <Spinner className="size-[13px]" />
-              : confirmIcon === null
-                ? undefined
-                : confirmIcon ?? <DeleteIcon size={13} strokeWidth={1.75} />
-          }
-          sx={{ minWidth: 100 }}
+          className={`min-w-[100px] ${confirmToneClass}`}
         >
+          {loading
+            ? <Spinner className="size-[13px]" />
+            : confirmIcon === null
+              ? null
+              : confirmIcon ?? <DeleteIcon size={13} strokeWidth={1.75} />}
           {loading ? 'Traitement...' : confirmText}
         </Button>
       </DialogActions>

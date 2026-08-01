@@ -1,6 +1,6 @@
 import React from 'react';
-import { Spinner } from '../../components/ui';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
 import { Person as PersonIcon, Group as GroupIcon } from '../../icons';
 import type { Team } from '../../services/api';
 import type { User } from '../../services/api/usersApi';
@@ -96,15 +96,13 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
       </FormControl>
     </DialogContent>
     <DialogActions sx={{ px: 3, pb: 2 }}>
-      <Button onClick={onClose} size="small" sx={{ textTransform: 'none' }}>
+      <Button variant="outline" size="sm" onClick={onClose}>
         Annuler
       </Button>
       <Button
+        size="sm"
         onClick={onAssign}
-        variant="contained"
-        size="small"
         disabled={assignTargetId === '' || assignLoading}
-        sx={{ textTransform: 'none' }}
       >
         {assignLoading ? <Spinner className="size-[18px]" /> : 'Assigner'}
       </Button>

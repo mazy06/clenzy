@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider } from '@mui/material';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -169,14 +169,13 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading} size="small">Annuler</Button>
+        <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleSubmit}
           disabled={loading || !file || !name || !documentType}
-          startIcon={loading ? <Spinner className="size-4" /> : <CloudUpload />}
         >
+          {loading ? <Spinner className="size-4" /> : <CloudUpload />}
           {loading ? 'Upload...' : 'Uploader & scanner'}
         </Button>
       </DialogActions>

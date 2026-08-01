@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Menu, MenuItem, ListItemText, Typography, Divider } from '@mui/material';
+import { Menu, MenuItem, ListItemText, Typography, Divider } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Description as TemplateIcon
 } from '../../icons';
@@ -63,13 +64,8 @@ const ContactTemplates: React.FC<ContactTemplatesProps> = ({ onSelectTemplate })
 
   return (
     <>
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<TemplateIcon />}
-        onClick={handleClick}
-        sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
-      >
+      <Button variant="outline" size="sm" className="whitespace-nowrap" onClick={handleClick}>
+        <TemplateIcon />
         {t('contact.templates')}
       </Button>
       <Menu

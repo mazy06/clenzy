@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Box, Checkbox, Button, Divider, Alert } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Box, Checkbox, Divider, Alert } from '@mui/material';
 import {
   ShoppingCart,
   Payment,
@@ -50,10 +50,11 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
           </p>
         </div>
         <div className="flex gap-0.5">
-          <Button size="small" onClick={selectAll} sx={{ fontSize: '0.5625rem', textTransform: 'none', minWidth: 0, p: '2px 6px' }}>
+          {/* Raccourcis de selection repetes dans un en-tete : registre tertiaire. */}
+          <Button variant="ghost" size="xs" onClick={selectAll}>
             Tout
           </Button>
-          <Button size="small" onClick={deselectAll} sx={{ fontSize: '0.5625rem', textTransform: 'none', minWidth: 0, p: '2px 6px' }}>
+          <Button variant="ghost" size="xs" onClick={deselectAll}>
             Aucun
           </Button>
         </div>
@@ -122,14 +123,13 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
 
       {/* Pay button */}
       <Button
-        variant="contained"
-        fullWidth
-        size="small"
-        startIcon={paying ? <Spinner className="size-3.5" /> : <Payment size={16} strokeWidth={1.75} />}
+        variant="default"
+        size="sm"
+        className="w-full shrink"
         onClick={initiatePayment}
         disabled={paying || selectedIds.length === 0}
-        sx={{ textTransform: 'none', fontSize: '0.75rem' }}
       >
+        {paying ? <Spinner className="size-3.5" /> : <Payment size={16} strokeWidth={1.75} />}
         {paying ? 'Paiement en cours...' : <>Payer <Money value={selectedTotal} /></>}
       </Button>
     </div>

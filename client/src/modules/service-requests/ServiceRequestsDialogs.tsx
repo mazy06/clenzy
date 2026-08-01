@@ -1,6 +1,6 @@
 import React from 'react';
-import { Spinner } from '../../components/ui';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, FormControl, InputLabel, MenuItem, Radio, RadioGroup, FormControlLabel, FormLabel } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Select, FormControl, InputLabel, MenuItem, Radio, RadioGroup, FormControlLabel, FormLabel } from '@mui/material';
 import {
   CheckCircle,
   Cancel,
@@ -29,8 +29,8 @@ export function DeleteConfirmDialog({ open, onClose, onConfirm, requestTitle, t 
         </p>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} size="small">{t('common.cancel')}</Button>
-        <Button onClick={onConfirm} color="error" variant="contained" size="small">
+        <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
+        <Button onClick={onConfirm} variant="destructive" size="sm">
           {t('serviceRequests.delete')}
         </Button>
       </DialogActions>
@@ -91,8 +91,8 @@ export function StatusChangeDialog({
         </FormControl>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} size="small">{t('common.cancel')}</Button>
-        <Button onClick={onConfirm} variant="contained" size="small">
+        <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
+        <Button onClick={onConfirm} size="sm">
           {t('common.confirm')}
         </Button>
       </DialogActions>
@@ -222,13 +222,11 @@ export function AssignDialog({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
+        <Button onClick={onClose} variant="ghost">
           {t('common.cancel')}
         </Button>
         <Button
           onClick={onConfirm}
-          variant="contained"
-          color="primary"
           disabled={loadingData || (assignmentType === 'team' && !selectedTeamId) || (assignmentType === 'user' && !selectedUserId)}
         >
           {t('serviceRequests.assign')}
@@ -271,12 +269,9 @@ export function ErrorDialog({ open, onClose, message, t }: ErrorDialogProps) {
         </p>
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={onClose}
-          variant="contained"
-          color="error"
-          size="small"
-        >
+        {/* Fermer n'est pas une action destructive : c'est la seule action de la modale, donc `default`.
+            La tonalite d'erreur est deja portee par le titre. */}
+        <Button onClick={onClose} size="sm">
           {t('common.close')}
         </Button>
       </DialogActions>
@@ -313,12 +308,8 @@ export function SuccessDialog({ open, onClose, message, t }: SuccessDialogProps)
         </p>
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={onClose}
-          variant="contained"
-          color="success"
-          size="small"
-        >
+        {/* Seule action de la modale de succes -> `default`, la tonalite verte reste sur le titre. */}
+        <Button onClick={onClose} size="sm">
           {t('common.close')}
         </Button>
       </DialogActions>

@@ -6,7 +6,7 @@ import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import { TextField, Button, Alert, Snackbar, Divider } from '@mui/material';
+import { TextField, Alert, Snackbar, Divider } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -222,23 +222,15 @@ export default function MyPayoutSettings() {
             )}
           </p>
         </div>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
+        <BuiButton
+          variant="outline"
+          size="sm"
+          className="text-[var(--accent)] border-[var(--accent)] hover:bg-[var(--accent-soft)]"
           onClick={() => setMethodDialogOpen(true)}
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.78rem',
-            borderRadius: '8px',
-            borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-            color: 'var(--accent)',
-            '&:hover': { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
-          }}
         >
+          <SettingsIcon size={14} strokeWidth={1.75} />
           {t('settings.myPayout.changeMethodBtn', 'Choisir une autre méthode')}
-        </Button>
+        </BuiButton>
       </Card>
 
       {/* ── Section SEPA ── */}
@@ -298,16 +290,14 @@ export default function MyPayoutSettings() {
           </div>
 
           <div className="flex items-center gap-2 mt-0.5">
-            <Button
-              variant="contained"
-              size="small"
+            <BuiButton
+              size="sm"
               onClick={handleSaveSepa}
               disabled={updateSepaMutation.isPending || !sepaIban.trim() || !sepaHolder.trim()}
-              startIcon={updateSepaMutation.isPending ? <Spinner className="size-3.5" /> : <Save />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
             >
+              {updateSepaMutation.isPending ? <Spinner className="size-3.5" /> : <Save />}
               {t('settings.myPayout.saveSepa', 'Enregistrer')}
-            </Button>
+            </BuiButton>
             <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
               {t('settings.myPayout.verificationNote', 'Apres modification, vos coordonnees seront verifiees par Baitly avant activation.')}
             </span>
@@ -340,43 +330,32 @@ export default function MyPayoutSettings() {
               <TriangleAlert />
               <AlertDescription>{t('settings.myPayout.stripeOnboardingPending', "Votre inscription Stripe n'est pas terminee. Veuillez la completer.")}</AlertDescription>
             </BuiAlert>
-            <Button
-              variant="outlined"
-              size="small"
+            {/* Violet Stripe conserve : c'est la couleur de marque du fournisseur,
+                pas une teinte semantique — elle identifie l'action au premier coup d'oeil. */}
+            <BuiButton
+              variant="outline"
+              size="sm"
+              className="self-start text-[#635bff] border-[#635bff] hover:bg-[#635bff]/5"
               onClick={handleResumeOnboarding}
               disabled={onboardingLinkMutation.isPending}
-              startIcon={onboardingLinkMutation.isPending ? <Spinner className="size-3.5" /> : <OpenInNew />}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                color: '#635bff',
-                borderColor: '#635bff',
-                '&:hover': { borderColor: '#4b45c6', backgroundColor: 'rgba(99, 91, 255, 0.04)' },
-                alignSelf: 'flex-start',
-              }}
             >
+              {onboardingLinkMutation.isPending ? <Spinner className="size-3.5" /> : <OpenInNew />}
               {t('settings.myPayout.stripeResumeBtn', "Reprendre l'inscription Stripe")}
-            </Button>
+            </BuiButton>
           </div>
         )}
 
         {!hasStripeConnect && (
-          <Button
-            variant="outlined"
-            size="small"
+          <BuiButton
+            variant="outline"
+            size="sm"
+            className="self-start text-[#635bff] border-[#635bff] hover:bg-[#635bff]/5"
             onClick={handleInitStripeConnect}
             disabled={initStripeMutation.isPending}
-            startIcon={initStripeMutation.isPending ? <Spinner className="size-3.5" /> : <CreditCard />}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              color: '#635bff',
-              borderColor: '#635bff',
-              '&:hover': { borderColor: '#4b45c6', backgroundColor: 'rgba(99, 91, 255, 0.04)' },
-            }}
           >
+            {initStripeMutation.isPending ? <Spinner className="size-3.5" /> : <CreditCard />}
             {t('settings.myPayout.stripeConnectBtn', 'Connecter mon compte Stripe')}
-          </Button>
+          </BuiButton>
         )}
       </Card>
 

@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -311,16 +311,19 @@ export const PayoutsTab: React.FC = () => {
         <div className="ms-auto flex gap-1.5">
           {processingSepaPayouts.length > 0 && (
             <SepaTransferProcedureTooltip placement="bottom">
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={sepaDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
-                onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
-                disabled={sepaDownloading}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
-                {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
-              </Button>
+              {/* Le Tooltip MUI pose une ref sur son enfant : le Button du kit
+                  ne la transmet pas, d'ou le span intermediaire. */}
+              <span className="inline-flex">
+                <BuiButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
+                  disabled={sepaDownloading}
+                >
+                  {sepaDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                  {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
+                </BuiButton>
+              </span>
             </SepaTransferProcedureTooltip>
           )}
         </div>
@@ -596,19 +599,18 @@ export const PayoutsTab: React.FC = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPayOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
             {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="success"
+          </BuiButton>
+          {/* `color="success"` d'origine restait decoratif : c'est l'action
+              principale de la modale, donc `default` et non une teinte --ok. */}
+          <BuiButton
+            size="sm"
             onClick={handleMarkPaid}
             disabled={markPaidMutation.isPending || !payRef.trim()}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {markPaidMutation.isPending ? <Spinner className="size-4" /> : t('accounting.confirmPaid', 'Confirmer paiement')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
 
@@ -691,9 +693,9 @@ export const PayoutsTab: React.FC = () => {
           );
         })()}
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDetailOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <BuiButton variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
             {t('common.close', 'Fermer')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
     </>
@@ -930,15 +932,10 @@ export const ExpensesTab: React.FC = () => {
         />
 
         <div className="ms-auto">
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
+          <BuiButton size="sm" onClick={() => setCreateOpen(true)}>
+            <AddIcon />
             {t('accounting.expenses.create', 'Nouvelle depense')}
-          </Button>
+          </BuiButton>
         </div>
       </Paper>
 
@@ -1287,18 +1284,16 @@ export const ExpensesTab: React.FC = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setCreateOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <BuiButton variant="ghost" size="sm" onClick={() => setCreateOpen(false)}>
             {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
+          </BuiButton>
+          <BuiButton
+            size="sm"
             onClick={handleCreate}
             disabled={createMutation.isPending || !form.providerId || !form.propertyId || !form.description || !form.amountHt}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {createMutation.isPending ? <Spinner className="size-4" /> : t('common.save', 'Enregistrer')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
 
@@ -1332,19 +1327,14 @@ export const ExpensesTab: React.FC = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPayOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+          <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
             {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="success"
-            onClick={handleMarkPaid}
-            disabled={payMutation.isPending}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
+          </BuiButton>
+          {/* Idem : action principale de la modale, la teinte succes d'origine
+              n'apportait rien de plus que l'emphase. */}
+          <BuiButton size="sm" onClick={handleMarkPaid} disabled={payMutation.isPending}>
             {payMutation.isPending ? <Spinner className="size-4" /> : t('accounting.expenses.markPaid', 'Confirmer paiement')}
-          </Button>
+          </BuiButton>
         </DialogActions>
       </Dialog>
     </>
@@ -1537,28 +1527,30 @@ export const ExportsTab: React.FC = () => {
                   {t(card.descKey)}
                 </p>
                 <div className="flex gap-1.5">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<VisibilityIcon />}
+                  {/* Paire d'actions a poids egal (previsualiser / telecharger) :
+                      outline des deux cotes, aucune ne domine la carte. */}
+                  <BuiButton
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handlePreview(card)}
-                    sx={{ flex: 1 }}
                   >
+                    <VisibilityIcon />
                     {t('common.view')}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={loadingKey === card.key ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                  </BuiButton>
+                  <BuiButton
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handleDownload(card)}
-                    sx={{ flex: 1 }}
                   >
+                    {loadingKey === card.key ? <Spinner className="size-3.5" /> : <DownloadIcon />}
                     {loadingKey === card.key
                       ? t('accounting.exports.downloading', 'Telechargement...')
                       : t('accounting.exports.download', 'Telecharger')}
-                  </Button>
+                  </BuiButton>
                 </div>
               </CardContent>
             </Card>

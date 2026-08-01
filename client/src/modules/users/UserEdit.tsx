@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Autocomplete } from '@mui/material';
+import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Autocomplete } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -279,32 +279,24 @@ const UserEdit: React.FC = () => {
         showBackButton={false}
         actions={
           <>
-            <Button
-              variant="outlined"
-              size="small"
+            <BuiButton
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/users/${id}`)}
-              startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ fontSize: '0.8125rem', textTransform: 'none' }}
             >
+              <Cancel strokeWidth={1.75} />
               Annuler
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
+            </BuiButton>
+            <BuiButton
+              size="sm"
               onClick={handleSubmit}
-              startIcon={
-                saving ? (
-                  <Spinner className="size-3.5" />
-                ) : (
-                  <Save size={16} strokeWidth={1.75} />
-                )
-              }
               disabled={saving}
-              sx={{ ml: 1, fontSize: '0.8125rem', textTransform: 'none', fontWeight: 600 }}
+              className="ms-1.5"
             >
+              {saving ? <Spinner className="size-3.5" /> : <Save strokeWidth={1.75} />}
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </Button>
+            </BuiButton>
           </>
         }
       />

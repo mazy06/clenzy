@@ -16,8 +16,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Spinner } from '../../../components/ui';
-import { IconButton, Stack, Skeleton, Tooltip, Button } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { IconButton, Stack, Skeleton, Tooltip } from '@mui/material';
 import {
   AlertCircle,
   AlertTriangle,
@@ -162,7 +162,7 @@ export default function ChannexHealthSummaryPanel({
         <span className="cn-text-caption text-destructive block mb-0.5">
           {error}
         </span>
-        <Button size="small" onClick={() => void fetchSummary()} sx={{ textTransform: 'none', fontSize: '0.72rem' }}>
+        <Button variant="ghost" size="xs" onClick={() => void fetchSummary()}>
           Reessayer
         </Button>
       </div>
@@ -231,12 +231,10 @@ export default function ChannexHealthSummaryPanel({
               onClick={onAttentionItemClick ? () => onAttentionItemClick(item) : undefined}
             />
           ))}
+          {/* « Voir plus » repete sous une liste = action tertiaire → ghost, taille xs
+              pour rester sous la densite des lignes d'attention. */}
           {hiddenCount > 0 && (
-            <Button
-              size="small"
-              onClick={() => setShowAll(true)}
-              sx={{ textTransform: 'none', fontSize: '0.72rem', alignSelf: 'flex-start' }}
-            >
+            <Button variant="ghost" size="xs" className="self-start" onClick={() => setShowAll(true)}>
               Voir {hiddenCount} item{hiddenCount > 1 ? 's' : ''} de plus
             </Button>
           )}

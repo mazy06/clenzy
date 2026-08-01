@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
+import { Paper, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -239,22 +240,22 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
         <div className="flex gap-1.5 justify-end">
           {editingPlan && (
             <Button
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={onCancel}
               disabled={loading}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+              className="text-[0.75rem]"
             >
               {t('common.cancel')}
             </Button>
           )}
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             onClick={handleSave}
             disabled={loading || !isValid}
-            startIcon={loading ? <Spinner className="size-3.5" /> : undefined}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+            className="text-[0.75rem]"
           >
+            {loading && <Spinner className="size-3.5" />}
             {editingPlan ? t('common.save') : t('dynamicPricing.ratePlan.create')}
           </Button>
         </div>

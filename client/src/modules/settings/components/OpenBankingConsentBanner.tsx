@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Button } from '@mui/material';
+import { Alert } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Warning, ErrorOutline } from '../../../icons';
 import type { OwnerPayoutConfig } from '../../../services/api/accountingApi';
 
@@ -49,11 +50,10 @@ export default function OpenBankingConsentBanner({
         action={
           onReconnect && (
             <Button
-              size="small"
-              variant="outlined"
-              color="warning"
+              size="sm"
+              variant="outline"
               onClick={onReconnect}
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderRadius: '8px' }}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               Compléter le SCA
             </Button>
@@ -87,19 +87,7 @@ export default function OpenBankingConsentBanner({
         sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem', alignItems: 'center' }}
         action={
           onReconnect && (
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={onReconnect}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                borderRadius: '8px',
-                boxShadow: 'none',
-              }}
-            >
+            <Button size="sm" variant="destructive" onClick={onReconnect}>
               Reconnecter ma banque
             </Button>
           )
@@ -129,11 +117,10 @@ export default function OpenBankingConsentBanner({
         action={
           onReconnect && (
             <Button
-              size="small"
-              variant="outlined"
-              color="warning"
+              size="sm"
+              variant="outline"
               onClick={onReconnect}
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderRadius: '8px' }}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               Renouveler maintenant
             </Button>

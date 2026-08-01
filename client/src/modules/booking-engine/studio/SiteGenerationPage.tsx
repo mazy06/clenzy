@@ -3,7 +3,8 @@ import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, InputBase, ButtonBase, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { InputBase, ButtonBase, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
@@ -237,7 +238,9 @@ export default function SiteGenerationPage() {
           <div className="w-[48px] h-[48px] rounded-[50%] grid place-items-[center] bg-[var(--err-soft)] text-[var(--err)]"><AlertTriangle size={26} strokeWidth={2} /></div>
           <div className="font-[family-name:var(--font-display)] text-[var(--text-xl)] font-bold text-[var(--ink)]">{k('unavailableTitle', 'Génération IA indisponible')}</div>
           <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">{k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}</div>
-          <Button disableElevation onClick={() => navigate(-1)} sx={{ ...accentBtnSx, mt: 1 }}>{k('unavailableClose', 'Fermer')}</Button>
+          {/* Accent terracotta conserve : c'est la couleur porteuse de cet ecran (badge, etapes,
+              lignes de direction). Seul le fond est surcharge, le gabarit vient du kit. */}
+          <Button onClick={() => navigate(-1)} className="mt-1.5 bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">{k('unavailableClose', 'Fermer')}</Button>
         </div>
       </div>
     );
@@ -248,18 +251,25 @@ export default function SiteGenerationPage() {
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr, marque centrée (modèle .ds-setup-topbar). */}
       <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
         <div className="justify-self-start">
-          <Button onClick={() => (step === 2 ? (setError(null), setStep(1)) : navigate(-1))} startIcon={<ArrowLeft size={16} strokeWidth={2} />} sx={{ textTransform: 'none', color: 'var(--muted)' }}>
+          <Button variant="ghost" onClick={() => (step === 2 ? (setError(null), setStep(1)) : navigate(-1))} className="text-[var(--muted)]">
+            <ArrowLeft size={16} strokeWidth={2} />
             {step === 2 ? k('back', 'Direction') : 'Retour'}
           </Button>
         </div>
         <div className="grid h-8 w-8 place-items-center justify-self-center text-[var(--accent)]"><LayoutGrid size={20} strokeWidth={2} /></div>
         <div className="justify-self-end">
           {step === 1 ? (
-            <Button disableElevation onClick={() => { setError(null); setStep(2); }}
-              endIcon={<ArrowRight size={16} strokeWidth={2} />} sx={accentBtnSx}>{k('continue', 'Continuer vers le brief')}</Button>
+            <Button onClick={() => { setError(null); setStep(2); }}
+              className="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">
+              {k('continue', 'Continuer vers le brief')}
+              <ArrowRight size={16} strokeWidth={2} />
+            </Button>
           ) : (
-            <Button disableElevation onClick={handleSubmit} disabled={!canSubmit}
-              startIcon={<Sparkles size={16} strokeWidth={2} />} sx={accentBtnSx}>{k('submit', 'Générer le site')}</Button>
+            <Button onClick={handleSubmit} disabled={!canSubmit}
+              className="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">
+              <Sparkles size={16} strokeWidth={2} />
+              {k('submit', 'Générer le site')}
+            </Button>
           )}
         </div>
       </div>
@@ -467,13 +477,6 @@ const inputSx = {
   bgcolor: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px',
   boxShadow: '0 1px 0 rgba(28,27,26,0.04)',
   '&.Mui-focused': { borderColor: 'color-mix(in srgb, var(--accent) 48%, var(--line))', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)' },
-} as const;
-// Bouton primaire terracotta (MUI « contained » ignore nos variables CSS → forcé via sx).
-const accentBtnSx = {
-  textTransform: 'none', bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px',
-  boxShadow: '0 1px 0 rgba(28,27,26,0.04)',
-  '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
-  '&.Mui-disabled': { bgcolor: 'var(--accent)', opacity: 0.55, color: 'var(--on-accent)' },
 } as const;
 const primaryBtnSx = {
   display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 38, px: 2, flexShrink: 0,

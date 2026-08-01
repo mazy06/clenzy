@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StatusChip from './StatusChip';
-import { Alert as BuiAlert, AlertDescription } from './ui';
+import { Alert as BuiAlert, AlertDescription, Button } from './ui';
 import { Info as BuiInfo } from 'lucide-react';
 import { Spinner } from './ui';
-import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
+import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Grid, Divider, Alert } from '@mui/material';
 import {
   Info,
   Warning,
@@ -166,7 +166,7 @@ const AuditLogging: React.FC = () => {
   if (error && !page) {
     return (
       <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={handleRefresh}>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
           Réessayer
         </Button>
       }>
@@ -232,12 +232,8 @@ const AuditLogging: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Clear size={18} strokeWidth={1.75} />}
-                onClick={clearFilters}
-              >
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <Clear size={18} strokeWidth={1.75} />
                 Effacer
               </Button>
             </Grid>

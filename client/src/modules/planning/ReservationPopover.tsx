@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Popover, useMediaQuery } from '@mui/material';
+import { Popover, useMediaQuery } from '@mui/material';
+import { Button } from '../../components/ui';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -210,44 +211,18 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
         )}
       </div>
 
-      {/* Pied : Message (outlined neutre) + Détail (outlined accent) */}
+      {/* Pied : Message (secondaire) + Détail (action principale du popover) */}
       {/* `p-[10px 14px]` (espace = classe invalide, silencieusement ignoree)
           remplace par les deux axes. */}
       <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<ChatBubbleOutline size={ICON_SIZE} strokeWidth={1.75} />}
-          onClick={onMessage}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--ink)',
-            borderColor: 'var(--line-2)',
-            '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-          }}
-        >
+        <Button variant="outline" size="sm" className="w-full shrink" onClick={onMessage}>
+          <ChatBubbleOutline size={ICON_SIZE} strokeWidth={1.75} />
           Message
         </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<Visibility size={ICON_SIZE} strokeWidth={1.75} />}
-          onClick={onDetail}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--accent)',
-            borderColor: 'var(--accent)',
-            '&:hover': { borderColor: 'var(--accent-deep)', backgroundColor: 'var(--accent-soft)' },
-          }}
-        >
+        {/* L'ancien sx teintait ce bouton en accent : c'est l'action attendue au clic
+            sur une brique — donc `default` et non un second `outline`. */}
+        <Button size="sm" className="w-full shrink" onClick={onDetail}>
+          <Visibility size={ICON_SIZE} strokeWidth={1.75} />
           Détail
         </Button>
       </div>

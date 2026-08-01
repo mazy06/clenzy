@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { TextField, InputAdornment, Switch, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { TextField, InputAdornment, Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import { Build, Add, Delete } from '../../icons';
 import type { ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -155,13 +155,8 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
         <div className="mt-2">
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Add />}
-            onClick={() => setAddDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
-          >
+          <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
+            <Add />
             {t('tarification.addPrestation')}
           </Button>
         </div>
@@ -198,8 +193,8 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} variant="contained" disabled={!newItemName.trim()}>
+          <Button variant="outline" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+          <Button onClick={handleAdd} disabled={!newItemName.trim()}>
             {t('tarification.add')}
           </Button>
         </DialogActions>

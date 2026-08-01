@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Badge } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { TextField, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -129,7 +129,9 @@ export default function DesignSystemsPage() {
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[280px_1fr] gap-[15px] mt-3">
         {/* Colonne liste */}
         <div>
-          <Button fullWidth variant="contained" disableElevation startIcon={<Plus size={16} strokeWidth={2} />} onClick={startCreate} sx={{ textTransform: 'none', mb: 1.5 }}>
+          {/* mb-[9px] : `mb: 1.5` MUI vaut 9 px ici (spacing = 6 px). */}
+          <Button className="w-full mb-[9px] shrink" onClick={startCreate}>
+            <Plus size={16} strokeWidth={2} />
             Créer un système
           </Button>
           <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[var(--muted)] px-0.5 mb-1.5">
@@ -197,11 +199,11 @@ export default function DesignSystemsPage() {
               )}
 
               <div className="flex gap-1.5 mt-1.5">
-                <Button variant="contained" disableElevation onClick={handleCreate} disabled={!canCreate || busy}
-                  startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
+                <Button onClick={handleCreate} disabled={!canCreate || busy}>
+                  {busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
                   {busy ? (aiSource ? 'Génération…' : 'Création…') : aiSource ? 'Générer le système' : 'Créer'}
                 </Button>
-                <Button variant="text" onClick={() => setCreating(false)} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
+                <Button variant="ghost" onClick={() => setCreating(false)} disabled={busy}>Annuler</Button>
               </div>
             </div>
           ) : selected ? (

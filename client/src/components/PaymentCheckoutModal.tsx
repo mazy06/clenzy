@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Spinner } from './ui';
-import { Dialog, DialogTitle, DialogContent, IconButton, Button, Alert } from '@mui/material';
+import { Button, Spinner } from './ui';
+import { Dialog, DialogTitle, DialogContent, IconButton, Alert } from '@mui/material';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -165,12 +165,10 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               Le paiement de <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
             </p>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={onClose}
-              sx={{ mt: 2, minWidth: 120 }}
-            >
+            {/* Seule action de l'ecran de succes : elle est principale (default).
+                Le kit n'a pas de variante « success » et la reussite est deja portee
+                par la coche verte au-dessus. */}
+            <Button className="mt-3 min-w-[120px]" onClick={onClose}>
               Fermer
             </Button>
           </div>

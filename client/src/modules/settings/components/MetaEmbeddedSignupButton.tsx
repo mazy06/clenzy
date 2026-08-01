@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { Alert, Button, alpha, useTheme } from '@mui/material';
+import { Spinner, Button } from '../../../components/ui';
+import { Alert, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -251,33 +251,27 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Bleu Facebook conserve : c'est l'identite de marque du bouton de connexion,
+            pas une couleur du theme Baitly. Seul le fond est surcharge, le reste du
+            gabarit vient du kit. */}
         <Button
-          variant="contained"
-          disableElevation
           onClick={handleSignup}
           disabled={!sdkReady || signingIn}
-          startIcon={
-            signingIn ? (
-              <Spinner className="size-3.5" />
-            ) : (
-              // Icone Facebook simple en SVG inline (pas besoin d'ajouter au barrel icons)
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                className="w-4 h-4 fill-current"
-              >
-                <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" />
-              </svg>
-            )
-          }
-          sx={{
-            bgcolor: '#1877F2', // Facebook brand blue (exception au theme — c'est leur identite)
-            '&:hover': { bgcolor: '#166FE5' },
-            textTransform: 'none',
-            fontWeight: 600,
-          }}
-          size="small"
+          size="sm"
+          className="bg-[#1877F2] text-white hover:bg-[#166FE5]"
         >
+          {signingIn ? (
+            <Spinner className="size-3.5" />
+          ) : (
+            // Icone Facebook simple en SVG inline (pas besoin d'ajouter au barrel icons)
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              className="fill-current"
+            >
+              <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" />
+            </svg>
+          )}
           {signingIn
             ? t('settings.whatsapp.meta.signup.inProgress', 'Connexion en cours…')
             : t('settings.whatsapp.meta.signup.cta', 'Connecter avec Facebook')}

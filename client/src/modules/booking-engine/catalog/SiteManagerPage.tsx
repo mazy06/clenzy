@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Skeleton, Menu, MenuItem } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Skeleton, Menu, MenuItem } from '@mui/material';
 import { Sparkles, Rocket, AlertTriangle, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 
@@ -161,26 +162,24 @@ export default function SiteManagerPage() {
     <div className="h-[100vh] flex flex-col bg-[var(--bg)]">
       {/* Barre supérieure */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--line)] shrink-0">
-        <Button onClick={() => navigate('/booking-engine/studio')} sx={{ textTransform: 'none', color: 'var(--muted)', minWidth: 0 }}>← Studio</Button>
+        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="text-[var(--muted)]">← Studio</Button>
         <div className="text-[15px] font-bold text-[var(--ink)]">{site?.name ?? 'Mon site'}</div>
         <div className="flex-1" />
         {/* Passage en ÉDITION MANUELLE : ouvre l'éditeur GrapesJS sur ce site (config liée). */}
         <Button
-          variant="text"
-          startIcon={<SquarePen size={16} strokeWidth={2} />}
+          variant="ghost"
           onClick={() => { if (site?.bookingEngineConfigId) navigate(`/booking-engine/studio/${site.bookingEngineConfigId}`); }}
           disabled={!site?.bookingEngineConfigId}
-          sx={{ textTransform: 'none', color: 'var(--muted)' }}
+          className="text-[var(--muted)]"
         >
+          <SquarePen size={16} strokeWidth={2} />
           Édition manuelle
         </Button>
         <Button
-          variant="contained" disableElevation
-          startIcon={<Rocket size={16} strokeWidth={2} />}
           onClick={handlePublish}
           disabled={publishing || !selected?.dirty}
-          sx={{ textTransform: 'none' }}
         >
+          <Rocket size={16} strokeWidth={2} />
           {publishing ? 'Publication…' : selected?.dirty ? 'Publier cette page' : 'Publié'}
         </Button>
       </div>

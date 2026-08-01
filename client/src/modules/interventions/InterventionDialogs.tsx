@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { Info } from 'lucide-react';
-import { Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
 } from '../../icons';
@@ -96,14 +96,10 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         </UiAlert>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           {t('interventions.dialogs.cancel')}
         </Button>
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={updating}
-        >
+        <Button onClick={onSubmit} disabled={updating}>
           {updating ? t('interventions.dialogs.saving') : t('interventions.dialogs.save')}
         </Button>
       </DialogActions>
@@ -178,14 +174,10 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
         </div>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           {t('interventions.dialogs.cancel')}
         </Button>
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={uploading || selectedPhotos.length === 0}
-        >
+        <Button onClick={onSubmit} disabled={uploading || selectedPhotos.length === 0}>
           {uploading ? t('interventions.dialogs.uploading') : t('interventions.dialogs.add')}
         </Button>
       </DialogActions>

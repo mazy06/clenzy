@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Card,
   CardContent,
-  Button,
   IconButton,
   Dialog,
   DialogTitle,
@@ -33,6 +32,7 @@ import {
   Logout,
   CheckCircle,
 } from '../../icons';
+import { Button } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
@@ -409,22 +409,21 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         {/* ─── Zone actions ─── */}
         <div className="px-[10.5px] pb-[7.5px] pt-0 flex gap-[4.5px]">
           <Button
-            fullWidth
-            size="small"
-            startIcon={<Visibility size={15} strokeWidth={1.75} />}
+            className="w-full shrink"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
-            variant="outlined"
+            variant="outline"
           >
+            <Visibility size={15} strokeWidth={1.75} />
             Détails
           </Button>
           {canEdit && onEdit && (
             <Button
-              fullWidth
-              size="small"
-              startIcon={<Edit size={15} strokeWidth={1.75} />}
+              className="w-full shrink"
+              size="sm"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              variant="contained"
             >
+              <Edit size={15} strokeWidth={1.75} />
               Modifier
             </Button>
           )}
@@ -590,18 +589,13 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
           {canDelete && onDelete && (
-            <Button
-              onClick={onDelete}
-              color="error"
-              variant="outlined"
-              size="small"
-              startIcon={<Delete size={16} strokeWidth={1.75} />}
-            >
+            <Button onClick={onDelete} variant="destructive" size="sm">
+              <Delete size={16} strokeWidth={1.75} />
               Supprimer
             </Button>
           )}
           <div className="flex-1" />
-          <Button onClick={() => setDetailsOpen(false)} size="small" variant="outlined">
+          <Button onClick={() => setDetailsOpen(false)} size="sm" variant="outline">
             Fermer
           </Button>
         </DialogActions>

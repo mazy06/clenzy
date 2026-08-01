@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -245,63 +245,63 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
 
       {/* .fr-actions : filet top + boutons */}
       <div className="flex items-center gap-2.5 flex-wrap m-[26px 0 0] pt-5" style={{ borderTop: '1px solid var(--line)' }}>
+        {/* Le Button du kit ne transmet pas de ref : span intermediaire sous les Tooltip MUI. */}
         {tpl && (
           <Tooltip title={`Génère un PDF à partir du template « ${tpl.name} »`} placement="top" arrow>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={generateDocumentMutation.isPending
-                ? <Spinner className="size-[13px]" />
-                : <FileTextIcon size={15} strokeWidth={1.75} />}
-              onClick={() => handleGeneratePdf()}
-              disabled={generateDocumentMutation.isPending}
-            >
-              {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
-            </Button>
+            <span className="inline-flex">
+              <Button
+                onClick={() => handleGeneratePdf()}
+                disabled={generateDocumentMutation.isPending}
+              >
+                {generateDocumentMutation.isPending
+                  ? <Spinner className="size-[13px]" />
+                  : <FileTextIcon size={15} strokeWidth={1.75} />}
+                {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
+              </Button>
+            </span>
           </Tooltip>
         )}
         {canResend && (
           <Tooltip title={`Renvoyer le devis à ${form.email}`} placement="top" arrow>
-            <Button
-              variant="outlined"
-              startIcon={<SendIcon size={15} strokeWidth={1.75} />}
-              onClick={openResendModal}
-              disabled={generateDocumentMutation.isPending}
-            >
-              Renvoyer
-            </Button>
+            <span className="inline-flex">
+              <Button
+                variant="outline"
+                onClick={openResendModal}
+                disabled={generateDocumentMutation.isPending}
+              >
+                <SendIcon size={15} strokeWidth={1.75} />
+                Renvoyer
+              </Button>
+            </span>
           </Tooltip>
         )}
         {form.status !== 'PROCESSED' && form.status !== 'ARCHIVED' && (
           <Button
-            variant="outlined"
-            startIcon={<CheckCircleIcon size={15} strokeWidth={1.75} />}
+            variant="outline"
             onClick={() => handleUpdateStatus('PROCESSED')}
             disabled={updateStatusMutation.isPending}
           >
+            <CheckCircleIcon size={15} strokeWidth={1.75} />
             Marquer traité
           </Button>
         )}
         {form.status !== 'ARCHIVED' ? (
           <Button
-            variant="text"
-            startIcon={<ArchiveIcon size={15} strokeWidth={1.75} />}
+            variant="ghost"
+            className="text-[var(--muted)] hover:text-[var(--err)]"
             onClick={() => handleUpdateStatus('ARCHIVED')}
             disabled={updateStatusMutation.isPending}
-            sx={{
-              color: 'var(--muted)', px: '8px',
-              '&:hover': { color: 'var(--err)', bgcolor: 'transparent' },
-            }}
           >
+            <ArchiveIcon size={15} strokeWidth={1.75} />
             Archiver
           </Button>
         ) : (
           <Button
-            variant="outlined"
-            startIcon={<RestoreIcon size={15} strokeWidth={1.75} />}
+            variant="outline"
             onClick={() => handleUpdateStatus('READ')}
             disabled={updateStatusMutation.isPending}
           >
+            <RestoreIcon size={15} strokeWidth={1.75} />
             Restaurer
           </Button>
         )}
@@ -471,19 +471,17 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button
-            variant="text"
+            variant="ghost"
+            className="me-auto"
             onClick={() => setResend((r) => ({ ...r, body: '' }))}
             disabled={resend.loading}
-            sx={{ mr: 'auto' }}
           >
             Vider le contenu
           </Button>
-          <Button variant="text" onClick={() => setResend((r) => ({ ...r, open: false }))}>
+          <Button variant="ghost" onClick={() => setResend((r) => ({ ...r, open: false }))}>
             Annuler
           </Button>
           <Button
-            variant="contained"
-            color="primary"
             onClick={confirmResend}
             disabled={resend.loading || generateDocumentMutation.isPending || !resend.subject.trim()}
           >

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Card, CardContent, TextField, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -201,25 +201,23 @@ const UserForm: React.FC = () => {
         actions={
           <>
             <Button
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="me-1.5"
               onClick={() => navigate('/users')}
-              startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ mr: 1, fontSize: '0.8125rem' }}
               title="Annuler"
             >
+              <Cancel size={16} strokeWidth={1.75} />
               Annuler
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={handleSubmit(onSubmit)}
-              startIcon={saving ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ fontSize: '0.8125rem' }}
               title="Créer l'utilisateur"
             >
+              {saving ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               {saving ? 'Création...' : 'Créer l\'utilisateur'}
             </Button>
           </>

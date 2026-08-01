@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
-import { Spinner } from './ui';
-import { CircularProgress, Alert, Button, Skeleton, Card, CardContent } from '@mui/material';
+import { Spinner, Button } from './ui';
+import { CircularProgress, Alert, Skeleton, Card, CardContent } from '@mui/material';
 import { Refresh as RefreshIcon } from '../icons';
 
 /**
@@ -101,13 +101,9 @@ const ErrorDisplay: React.FC<{
     onClose={onClearError}
     action={
       onRetry ? (
-        <Button
-          color="inherit"
-          size="small"
-          variant="text"
-          onClick={onRetry}
-          startIcon={<RefreshIcon size={13} strokeWidth={1.75} />}
-        >
+        // Action d'appoint dans une alerte : ghost, pas de cadre au repos.
+        <Button variant="ghost" size="sm" onClick={onRetry}>
+          <RefreshIcon size={13} strokeWidth={1.75} />
           Réessayer
         </Button>
       ) : undefined

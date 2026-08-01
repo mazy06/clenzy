@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '../../utils/cn';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Button, Collapse } from '@mui/material';
+import { Box, Paper, Collapse } from '@mui/material';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -587,11 +587,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           <Info />
           <AlertDescription>{t('serviceRequests.approvedCannotEdit')}</AlertDescription>
         </Alert>
-        <Button
-          variant="contained"
-          onClick={() => navigate(`/service-requests/${serviceRequestId}`)}
-          startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
-        >
+        <Button onClick={() => navigate(`/service-requests/${serviceRequestId}`)}>
+          <ArrowBack size={18} strokeWidth={1.75} />
           {t('common.back')}
         </Button>
       </div>
@@ -723,7 +720,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       {/* Bouton de soumission caché pour le PageHeader */}
       <Button
         type="submit"
-        sx={{ display: 'none' }}
+        className="hidden"
         data-submit-service-request
       >
         Soumettre

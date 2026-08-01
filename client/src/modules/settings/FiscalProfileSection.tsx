@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Button, TextField, MenuItem, Switch, FormControlLabel, Grid, Alert, Snackbar } from '@mui/material';
+import { TextField, MenuItem, Switch, FormControlLabel, Grid, Alert, Snackbar } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import {
   AccountBalance, Info as InfoIcon, Verified,
@@ -181,7 +182,14 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           severity="warning"
           icon={<InfoIcon />}
           action={
-            <Button color="inherit" size="small" onClick={() => refetch()}>
+            // `color="inherit"` n'a pas d'equivalent au kit : on pose
+            // explicitement la teinte --warn de l'alerte qui l'heberge.
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+            >
               Réessayer
             </Button>
           }

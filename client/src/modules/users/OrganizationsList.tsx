@@ -1,9 +1,9 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Button, Grid, Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
+import { Grid, Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -215,14 +215,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
   }
 
   const actionButtons = isAdmin() ? (
-    <Button
-      variant="contained"
-      color="primary"
-      size="small"
-      startIcon={<Add size={18} strokeWidth={1.75} />}
-      onClick={handleCreate}
-      sx={{ fontSize: '0.8125rem' }}
-    >
+    <Button size="sm" onClick={handleCreate}>
+      <Add size={18} strokeWidth={1.75} />
       Nouvelle organisation
     </Button>
   ) : null;
@@ -391,27 +385,24 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   {/* Actions */}
                   {/* Boutons secondaires : peau .s-btn--g du thème global */}
                   <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Visibility size={14} strokeWidth={1.75} />}
-                      onClick={() => setMembersDialogOrg(org)}
-                      sx={{ flex: 1 }}
-                    >
+                    {/* Deux actions de carte a poids egal : aucune ne domine, donc
+                        outline pour les deux plutot qu'une principale arbitraire. */}
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setMembersDialogOrg(org)}>
+                      <Visibility size={14} strokeWidth={1.75} />
                       Membres
                     </Button>
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Edit size={14} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
                       onClick={() => {
                         setSelectedOrg(org);
                         setFormMode('edit');
                         setFormData({ name: org.name, type: org.type });
                         setFormDialogOpen(true);
                       }}
-                      sx={{ flex: 1 }}
                     >
+                      <Edit size={14} strokeWidth={1.75} />
                       Modifier
                     </Button>
                   </CardActions>
@@ -511,18 +502,18 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setFormDialogOpen(false);
               setSelectedOrg(null);
             }}
-            size="small"
           >
             Annuler
           </Button>
           <Button
+            size="sm"
             onClick={handleFormSave}
-            variant="contained"
-            size="small"
             disabled={saving || !formData.name.trim()}
           >
             {saving ? 'Sauvegarde...' : formMode === 'create' ? 'Creer' : 'Sauvegarder'}
@@ -546,10 +537,10 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} size="small">
+          <Button variant="ghost" size="sm" onClick={() => setDeleteDialogOpen(false)}>
             Annuler
           </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
+          <Button variant="destructive" size="sm" onClick={confirmDelete}>
             Supprimer
           </Button>
         </DialogActions>
@@ -592,12 +583,15 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
               />
             </DialogContent>
             <DialogActions sx={{ px: 2, pb: 1.5 }}>
+              {/* Seule action du pied de cette modale : outline plutot que ghost,
+                  sinon le pied n'offre plus aucune cible visible. */}
               <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setMembersDialogOrg(null);
                   loadOrganizations();
                 }}
-                size="small"
               >
                 Fermer
               </Button>

@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button, Snackbar, Alert } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Snackbar, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
@@ -81,12 +82,12 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
         <div className="flex justify-between items-center mb-1.5">
           <h6 className="cn-text-subtitle2 font-bold">État du capteur</h6>
           <Button
-            size="small"
-            variant="outlined"
-            startIcon={refresh.isPending ? <Spinner className="size-[13px]" /> : <Refresh size={15} strokeWidth={1.75} />}
+            size="sm"
+            variant="outline"
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
           >
+            {refresh.isPending ? <Spinner className="size-[13px]" /> : <Refresh size={15} strokeWidth={1.75} />}
             Rafraîchir
           </Button>
         </div>

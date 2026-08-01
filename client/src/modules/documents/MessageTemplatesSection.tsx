@@ -3,7 +3,7 @@ import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/Stat
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, Tooltip, Button } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Add,
@@ -183,17 +183,16 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           title={t('messaging.templates.empty')}
           description={t('messaging.templates.emptyDesc')}
           action={(
-            <Button
-              variant="contained"
-              startIcon={<Add size={14} strokeWidth={1.75} />}
-              size="small"
+            <BuiButton
+              size="sm"
               onClick={() => {
                 setEditingTemplate(null);
                 setEditorOpen(true);
               }}
             >
+              <Add size={14} strokeWidth={1.75} />
               {t('messaging.templates.createFirst')}
-            </Button>
+            </BuiButton>
           )}
         />
       ) : (

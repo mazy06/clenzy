@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, MenuItem } from '@mui/material';
+import { Spinner, Button } from '../../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, MenuItem } from '@mui/material';
 import { Close as CloseIcon, Save } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { accountingApi } from '../../../services/api/accountingApi';
@@ -586,30 +586,22 @@ export default function PayoutMethodEditDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
+        {/* Sortie de modale volontairement effacee (le sx d'origine la teintait
+            en --muted) : ghost plutot que outline. */}
         <Button
+          variant="ghost"
+          size="sm"
           onClick={onClose}
           disabled={saving}
-          size="small"
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '8px',
-            color: NEUTRAL,
-          }}
         >
           Annuler
         </Button>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleSave}
           disabled={isSaveDisabled}
-          startIcon={
-            saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />
-          }
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
           {selectedMethod === 'OPEN_BANKING'
             ? 'Connecter ma banque'
             : saving ? 'Enregistrement…' : 'Enregistrer'}

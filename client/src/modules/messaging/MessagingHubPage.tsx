@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Card } from '../../components/ui';
-import { Button, useMediaQuery, useTheme } from '@mui/material';
+import { Card, Button } from '../../components/ui';
+import { useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -175,13 +175,9 @@ export default function MessagingHubPage() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          // Réf .s-btn--p : contour accent (signatureTheme containedPrimary).
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<EditIcon size={15} strokeWidth={1.75} />}
-            onClick={() => navigate('/contact/create')}
-          >
+          // Action principale de l'ecran : encre pleine du kit.
+          <Button onClick={() => navigate('/contact/create')}>
+            <EditIcon size={15} strokeWidth={1.75} />
             {t('messagingHub.newMessage', 'Nouveau message')}
           </Button>
         }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Skeleton } from '@mui/material';
+import { Skeleton } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -55,7 +56,8 @@ export default function PropertyDevicesView() {
         backPath="/connected-objects"
         backLabel="Objets connectés"
         actions={
-          <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+          <Button size="sm" onClick={() => setWizardOpen(true)}>
+            <Add size={16} strokeWidth={2} />
             Ajouter un objet
           </Button>
         }
@@ -77,7 +79,7 @@ export default function PropertyDevicesView() {
           icon={<Inventory2 />}
           title="Aucun objet dans ce logement"
           description="Ajoutez une serrure, un capteur sonore ou un point de remise des clés pour ce logement."
-          action={<Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>}
+          action={<Button variant="outline" onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />Ajouter un objet</Button>}
         />
       ) : (
         rooms.map(([room, list]) => (
@@ -105,7 +107,8 @@ export default function PropertyDevicesView() {
         defaultPropertyId={propertyId}
       />
       {/* Lien retour secondaire pour les écrans étroits */}
-      <Button variant="text" size="small" startIcon={<ChevronLeft size={16} strokeWidth={1.75} />} onClick={() => navigate('/connected-objects')} sx={{ mt: 1, color: 'text.secondary' }}>
+      <Button variant="ghost" size="sm" onClick={() => navigate('/connected-objects')} className="mt-1.5 text-[var(--muted)]">
+        <ChevronLeft size={16} strokeWidth={1.75} />
         Tous les objets
       </Button>
     </div>

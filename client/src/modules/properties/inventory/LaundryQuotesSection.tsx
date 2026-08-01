@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { Button, IconButton, Collapse, Tooltip } from '@mui/material';
+import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { IconButton, Collapse, Tooltip } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
@@ -60,13 +60,8 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
           </div>
         </div>
         {canEdit && (
-          <Button
-            size="small"
-            startIcon={<Add size={18} strokeWidth={1.75} />}
-            onClick={handleGenerate}
-            variant="contained"
-            disabled={!hasLaundryItems || generating}
-          >
+          <Button size="sm" onClick={handleGenerate} disabled={!hasLaundryItems || generating}>
+            <Add size={18} strokeWidth={1.75} />
             {generating ? 'Generation...' : 'Generer un devis'}
           </Button>
         )}
@@ -121,18 +116,22 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                       </TableCell>
                       {canEdit && (
                         <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
+                          {/* Le Button du kit ne transmet pas de ref : span sous le Tooltip MUI.
+                              Action de ligne repetee -> taille xs, teinte --ok (pas de variante
+                              « success » dans le kit). */}
                           {quote.status === 'DRAFT' && (
                             <Tooltip title="Confirmer le devis">
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="success"
-                                startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
-                                onClick={() => onConfirm(quote.id)}
-                                sx={{ fontSize: '0.75rem', py: 0.25 }}
-                              >
-                                Confirmer
-                              </Button>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                                  onClick={() => onConfirm(quote.id)}
+                                >
+                                  <CheckCircle size={14} strokeWidth={1.75} />
+                                  Confirmer
+                                </Button>
+                              </span>
                             </Tooltip>
                           )}
                         </TableCell>

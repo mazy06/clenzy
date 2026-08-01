@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Spinner } from '../../components/ui';
+import { Button, Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { IconButton, Tooltip, MenuItem, Alert, Skeleton, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
@@ -317,12 +317,8 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           sx={{ minWidth: 140, ...inputSx }}
         />
         {hasActiveFilters && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ClearIcon size={16} strokeWidth={1.75} />}
-            onClick={handleClearFilters}
-          >
+          <Button variant="outline" size="sm" onClick={handleClearFilters}>
+            <ClearIcon size={16} strokeWidth={1.75} />
             {t('payments.history.clearFilters')}
           </Button>
         )}
@@ -545,13 +541,11 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 <p className="cn-text-body2 text-[var(--muted)] mb-3">
                   {t('invoices.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </p>
-                <Button
-                  variant="contained"
-                  href={pdfUrl}
-                  download="facture.pdf"
-                  startIcon={<DownloadIcon />}
-                >
-                  {t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                <Button asChild>
+                  <a href={pdfUrl} download="facture.pdf">
+                    <DownloadIcon />
+                    {t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                  </a>
                 </Button>
               </div>
             </object>
@@ -574,7 +568,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClosePdfDialog}>
+          <Button variant="ghost" onClick={handleClosePdfDialog}>
             {t('common.close', 'Fermer')}
           </Button>
         </DialogActions>

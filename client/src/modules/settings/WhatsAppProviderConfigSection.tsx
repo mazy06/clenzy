@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Box, Button, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
+import { Alert, Box, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -376,17 +376,16 @@ export default function WhatsAppProviderConfigSection() {
             }}
           />
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <Button
-              variant="outlined"
-              size="small"
+            <BuiButton
+              variant="outline"
+              size="sm"
               onClick={() => setQrDialogOpen(true)}
               disabled={!config?.hasOpenwaApiKey}
-              disableElevation
             >
               {config?.openwaSessionId
                 ? t('settings.whatsapp.openwa.rescan', 'Re-scanner le QR code')
                 : t('settings.whatsapp.openwa.scan', 'Scanner le QR code')}
-            </Button>
+            </BuiButton>
             <span className="cn-text-caption text-muted-foreground">
               {config?.hasOpenwaApiKey
                 ? t('settings.whatsapp.openwa.scanHint', 'Crée la session et affiche le QR à scanner avec votre téléphone.')
@@ -452,16 +451,14 @@ export default function WhatsAppProviderConfigSection() {
 
       {/* Save button */}
       <div className="flex justify-end">
-        <Button
-          variant="contained"
-          disableElevation
-          startIcon={saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+        <BuiButton
           onClick={handleSave}
           disabled={!hasChanges || saving}
-          size="small"
+          size="sm"
         >
+          {saving ? <Spinner className="size-3.5" /> : <Save strokeWidth={1.75} />}
           {saving ? t('common.saving', 'Enregistrement...') : t('common.save', 'Enregistrer')}
-        </Button>
+        </BuiButton>
       </div>
     </div>
   );

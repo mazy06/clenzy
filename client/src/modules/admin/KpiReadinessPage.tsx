@@ -4,10 +4,10 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
+import { Button, Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Grid, Card, CardActionArea, CardContent, Typography, Button, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
+import { Grid, Card, CardActionArea, CardContent, Typography, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -462,13 +462,8 @@ const KpiReadinessPage: React.FC = () => {
                       }
                       label="Auto-refresh"
                     />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={refreshing ? <Spinner className="size-4" /> : <Refresh />}
-                      onClick={handleManualRefresh}
-                      disabled={refreshing}
-                    >
+                    <Button size="sm" onClick={handleManualRefresh} disabled={refreshing}>
+                      {refreshing ? <Spinner className="size-4" /> : <Refresh />}
                       Rafraichir
                     </Button>
                   </div>

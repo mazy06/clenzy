@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { FormControl, InputLabel, Select, MenuItem, Button, Tooltip } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Tooltip } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   CloudUpload as PushIcon,
   TrendingUp,
@@ -231,18 +232,26 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
   );
 
   const actionButtons = selectedPropertyId ? (
+    // Le Button du kit ne transmet pas de ref : le Tooltip s'accroche au span.
     <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={pushLoading ? <Spinner className="size-3.5" /> : <PushIcon size={16} strokeWidth={1.75} />}
-        onClick={handlePushPricing}
-        disabled={pushLoading}
-        color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
-        sx={{ whiteSpace: 'nowrap' }}
-      >
-        {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
-      </Button>
+      <span className="inline-flex">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePushPricing}
+          disabled={pushLoading}
+          // Le succes du push se signale par la teinte --ok ; les deux branches
+          // sont ecrites en litteral, une classe ne peut pas naitre d'une variable.
+          className={
+            pushResult?.includes('succes') || pushResult?.includes('success')
+              ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+              : ''
+          }
+        >
+          {pushLoading ? <Spinner className="size-3.5" /> : <PushIcon size={16} strokeWidth={1.75} />}
+          {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
+        </Button>
+      </span>
     </Tooltip>
   ) : null;
 

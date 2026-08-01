@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Box, LinearProgress, IconButton, Tooltip, Button } from '@mui/material';
+import { Box, LinearProgress, IconButton, Tooltip } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   CheckCircle,
   RadioButtonUnchecked,
@@ -437,48 +438,15 @@ const CtaSection: React.FC<CtaSectionProps> = ({
     </div>
     <div className="flex items-center gap-1.5 shrink-0">
       {skippable && onSkip && (
-        <Button
-          variant="text"
-          size="small"
-          onClick={onSkip}
-          sx={{
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            textTransform: 'none',
-            color: 'text.secondary',
-            whiteSpace: 'nowrap',
-            '&:hover': {
-              color: 'text.primary',
-              bgcolor: 'var(--hover)',
-            },
-          }}
-        >
+        <Button variant="ghost" size="sm" onClick={onSkip}>
           {skipLabel || 'Skip'}
         </Button>
       )}
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={actionIcon}
-        onClick={onAction}
-        sx={{
-          background: gradient,
-          color: 'var(--on-accent)',
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          textTransform: 'none',
-          borderRadius: 'var(--radius-md)',
-          px: 2,
-          py: 0.5,
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-          boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 25%, transparent)`,
-          '&:hover': {
-            filter: 'brightness(0.9)',
-            boxShadow: `0 4px 12px color-mix(in srgb, ${accentColor} 33%, transparent)`,
-          },
-        }}
-      >
+      {/* Le CTA portait un aplat par etape (var(--accent)/--ok/--warn) : c'est
+          deja la pastille d'icone a gauche qui porte ce signal. Le bouton reprend
+          l'encre pleine du kit, une seule action principale par zone. */}
+      <Button size="sm" onClick={onAction}>
+        {actionIcon}
         {actionLabel}
       </Button>
     </div>

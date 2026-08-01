@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Accordion, AccordionSummary, AccordionDetails, Button, Divider } from '@mui/material';
+import { Button } from '../../components/ui';
+import { Accordion, AccordionSummary, AccordionDetails, Divider } from '@mui/material';
 import {
   ExpandMore,
   EventAvailable,
@@ -510,19 +511,15 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                   {linkedTemplate.active ? 'Actif' : 'Inactif'} · v{linkedTemplate.version}
                                 </span>
                               </div>
+                              {/* Teinte calculee a l'execution (status.tone) : elle passe par
+                                  style, une classe Tailwind ne peut pas naitre d'une variable. */}
                               <Button
-                                size="small"
-                                startIcon={<Visibility size={13} strokeWidth={1.75} />}
+                                variant="ghost"
+                                size="sm"
+                                style={{ color: status.tone.color }}
                                 onClick={() => navigate(`/documents/templates/${linkedTemplate.id}`)}
-                                sx={{
-                                  fontSize: '0.6875rem',
-                                  textTransform: 'none',
-                                  fontWeight: 600,
-                                  color: status.tone.color,
-                                  cursor: 'pointer',
-                                  '&:hover': { backgroundColor: status.tone.bg },
-                                }}
                               >
+                                <Visibility size={13} strokeWidth={1.75} />
                                 Voir
                               </Button>
                             </>
@@ -534,20 +531,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                 Aucun template uploadé
                               </p>
                               <Button
-                                size="small"
-                                variant="outlined"
-                                startIcon={<CloudUpload size={13} strokeWidth={1.75} />}
+                                variant="outline"
+                                size="sm"
+                                style={{ color: status.tone.color, borderColor: status.tone.color }}
                                 onClick={onOpenUpload}
-                                sx={{
-                                  fontSize: '0.6875rem',
-                                  textTransform: 'none',
-                                  fontWeight: 600,
-                                  borderColor: `color-mix(in srgb, ${status.tone.color} 40%, transparent)`,
-                                  color: status.tone.color,
-                                  cursor: 'pointer',
-                                  '&:hover': { borderColor: status.tone.color, backgroundColor: status.tone.bg },
-                                }}
                               >
+                                <CloudUpload size={13} strokeWidth={1.75} />
                                 Uploader un template .odt
                               </Button>
                             </>
@@ -560,18 +549,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                               </p>
                               {onSwitchToMessagingTab && (
                                 <Button
-                                  size="small"
-                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  variant="ghost"
+                                  size="sm"
+                                  style={{ color: status.tone.color }}
                                   onClick={onSwitchToMessagingTab}
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    color: status.tone.color,
-                                    cursor: 'pointer',
-                                    '&:hover': { backgroundColor: status.tone.bg },
-                                  }}
                                 >
+                                  <OpenInNew size={13} strokeWidth={1.75} />
                                   Gérer
                                 </Button>
                               )}
@@ -591,18 +574,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                               </p>
                               {onOpenSystemEmail && item.systemEmailKey && (
                                 <Button
-                                  size="small"
-                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  variant="ghost"
+                                  size="sm"
+                                  style={{ color: status.tone.color }}
                                   onClick={() => onOpenSystemEmail(item.systemEmailKey!)}
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    color: status.tone.color,
-                                    cursor: 'pointer',
-                                    '&:hover': { backgroundColor: status.tone.bg },
-                                  }}
                                 >
+                                  <OpenInNew size={13} strokeWidth={1.75} />
                                   Personnaliser
                                 </Button>
                               )}

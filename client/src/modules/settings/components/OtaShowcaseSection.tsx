@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
-import { Box, Button } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowRightIcon } from '../../../icons';
 import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaChannels';
@@ -26,8 +27,6 @@ import {
  * <p>Les cards conservent le format uniforme : grille 3 cols, layout
  * horizontal logo+texte+chip, minHeight 56px.</p>
  */
-
-const ACCENT = 'var(--ok)';
 
 // Transcription du COMING_SOON_CHIP_SX de disabledIntegration.ts, encore
 // utilise par les puces MUI restantes ailleurs — d'ou la copie plutot que
@@ -97,24 +96,13 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
             </p>
           </div>
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             onClick={() => navigate('/channels')}
-            endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
-            sx={{
-              flexShrink: 0,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.74rem',
-              borderRadius: '8px',
-              py: 0.5,
-              px: 1.25,
-              borderColor: 'divider',
-              color: 'text.primary',
-              '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-            }}
+            className="shrink-0"
           >
             Voir dans Channels
+            <ArrowRightIcon size={14} strokeWidth={2} />
           </Button>
         </div>
 

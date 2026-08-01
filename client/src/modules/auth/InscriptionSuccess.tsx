@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, Button, Alert, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, Alert, ThemeProvider, CssBaseline } from '@mui/material';
+import { Button } from '../../components/ui';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -126,22 +127,11 @@ export default function InscriptionSuccess() {
               )}
 
               <Button
-                variant="contained"
-                size="large"
-                startIcon={resending ? <Spinner className="size-[18px]" /> : <SendIcon />}
+                size="lg"
                 onClick={handleResend}
                 disabled={resending}
-                sx={{
-                  px: 4,
-                  py: 1.25,
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  backgroundColor: 'primary.main',
-                  '&:hover': { backgroundColor: 'primary.dark' },
-                  borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(107,138,154,0.3)',
-                }}
               >
+                {resending ? <Spinner className="size-[18px]" /> : <SendIcon />}
                 {resending
                   ? t('auth.inscriptionSuccess.resending', 'Envoi...')
                   : t('auth.inscriptionSuccess.resend', "Renvoyer l'email")}
@@ -165,13 +155,8 @@ export default function InscriptionSuccess() {
                 {t('auth.inscriptionSuccess.errorBody', "Aucune session de paiement n'a ete trouvee. Si vous avez deja paye, verifiez vos emails.")}
               </p>
               <Button
-                variant="outlined"
+                variant="outline"
                 onClick={() => navigate('/login')}
-                sx={{
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
-                }}
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>

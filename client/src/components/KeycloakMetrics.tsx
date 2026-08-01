@@ -3,7 +3,8 @@ import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from './ui';
-import { Card, CardContent, Grid, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
+import { Button } from './ui';
+import { Card, CardContent, Grid, Alert, IconButton, Tooltip, LinearProgress } from '@mui/material';
 import { cn } from '../utils/cn';
 import {
   TrendingUp,
@@ -110,10 +111,12 @@ const KeycloakMetrics: React.FC = () => {
     );
   }
 
+  // `outline` et non `ghost` pour le bouton d'action : pose sur le fond teinte de
+  // l'alerte, un bouton sans cadre disparaitrait.
   if (error) {
     return (
       <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={handleRefresh}>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
           Réessayer
         </Button>
       }>

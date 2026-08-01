@@ -1,7 +1,7 @@
 import React from 'react';
-import { Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui';
+import { Badge, Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertTitle, Button, Card, CardContent, Grid, Tooltip } from '@mui/material';
+import { Alert, AlertTitle, Card, CardContent, Grid, Tooltip } from '@mui/material';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
@@ -250,9 +250,8 @@ const RlsAudit: React.FC = () => {
                             <Badge variant="secondary" className="bg-[var(--ok-soft)] text-[var(--ok)]">traite</Badge>
                           ) : (
                             <Button
-                              size="small"
-                              variant="text"
-                              sx={{ cursor: 'pointer' }}
+                              variant="ghost"
+                              size="sm"
                               disabled={marquerTraite.isPending}
                               onClick={() => marquerTraite.mutate(chemin.id)}
                             >

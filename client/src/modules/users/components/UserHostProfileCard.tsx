@@ -3,7 +3,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { Grid, Switch, FormControlLabel, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Grid, Switch, FormControlLabel, IconButton, Tooltip, Card, CardContent } from '@mui/material';
 import {
   Star,
   Payment,
@@ -324,17 +325,20 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 </Table>
 
                 <div className="flex justify-end mt-2">
+                  {/* Le Button du kit ne transmet pas de ref : le Tooltip MUI pose la
+                      sienne sur le span intercalaire. */}
                   <Tooltip title="Cree un lien Stripe et le copie dans le presse-papier">
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<ContentCopy size={16} strokeWidth={1.75} />}
-                      onClick={onSendPaymentLink}
-                      disabled={paymentLinkLoading || balance.totalUnpaid === 0}
-                      sx={{ fontSize: '0.8rem' }}
-                    >
-                      {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
-                    </Button>
+                    <span className="inline-flex">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={onSendPaymentLink}
+                        disabled={paymentLinkLoading || balance.totalUnpaid === 0}
+                      >
+                        <ContentCopy size={16} strokeWidth={1.75} />
+                        {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
+                      </Button>
+                    </span>
                   </Tooltip>
                 </div>
               </>

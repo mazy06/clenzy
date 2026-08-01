@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
+import { Card, CardContent, Grid, TextField, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
 import {
   Autocomplete,
   IconButton,
@@ -267,27 +267,26 @@ const TeamEdit: React.FC = () => {
         showBackButton={true}
         actions={
           <div className="flex gap-1.5">
-            <Button
-              variant="outlined"
-              size="small"
+            <BuiButton
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/teams/${id}`)}
-              startIcon={<Cancel />}
               disabled={updateMutation.isPending}
               title="Annuler"
             >
+              <Cancel />
               Annuler
-            </Button>
-            <Button
+            </BuiButton>
+            <BuiButton
               type="submit"
-              variant="contained"
-              size="small"
-              startIcon={<Save />}
+              size="sm"
               disabled={updateMutation.isPending}
               onClick={handleSubmit}
               title="Mettre à jour"
             >
+              <Save />
               {updateMutation.isPending ? 'Mise à jour...' : 'Mettre à jour'}
-            </Button>
+            </BuiButton>
           </div>
         }
       />
@@ -372,14 +371,17 @@ const TeamEdit: React.FC = () => {
                 <MapIcon size={20} strokeWidth={1.75} />
                 Zones de couverture
               </h6>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Add />}
+              {/* type="button" explicite : le Button du kit est un <button> natif, qui
+                  soumettrait le <form> parent au clic (MUI posait type="button" seul). */}
+              <BuiButton
+                type="button"
+                size="sm"
+                variant="outline"
                 onClick={addCoverageZone}
               >
+                <Add />
                 Ajouter une zone
-              </Button>
+              </BuiButton>
             </div>
 
             {formData.coverageZones.length === 0 ? (
@@ -535,14 +537,14 @@ const TeamEdit: React.FC = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Button
-                  variant="outlined"
+                <BuiButton
+                  type="button"
+                  variant="outline"
                   onClick={addMember}
                   disabled={!selectedUser || !selectedRole}
-                  sx={{ height: '56px' }}
                 >
                   Ajouter
-                </Button>
+                </BuiButton>
               </Grid>
             </Grid>
 
@@ -575,14 +577,14 @@ const TeamEdit: React.FC = () => {
                               ))}
                             </Select>
                           </FormControl>
-                          <Button
-                            size="small"
-                            color="error"
-                            variant="outlined"
+                          <BuiButton
+                            type="button"
+                            size="sm"
+                            variant="destructive"
                             onClick={() => removeMember(member.userId)}
                           >
                             Retirer
-                          </Button>
+                          </BuiButton>
                         </div>
                       </ListItem>
                     </React.Fragment>

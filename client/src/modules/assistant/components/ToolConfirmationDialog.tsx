@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { Warning as AlertIcon } from '../../../icons';
 import type { PendingToolConfirmation } from '../../../hooks/useAgent';
 
@@ -78,10 +79,10 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button variant="text" onClick={onCancel}>
+        <Button variant="ghost" onClick={onCancel}>
           Refuser
         </Button>
-        <Button variant="contained" onClick={onConfirm}>
+        <Button variant="default" onClick={onConfirm}>
           Executer
         </Button>
       </DialogActions>

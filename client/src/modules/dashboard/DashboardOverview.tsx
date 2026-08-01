@@ -10,7 +10,6 @@ import {
   WalletIcon,
   WrenchIcon,
 } from 'lucide-react';
-import { Button as MuiButton } from '@mui/material';
 import { GridView } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -24,7 +23,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import StatTile from '../../components/baitly/StatTile';
 import { Money } from '../../components/baitly/Money';
-import { Skeleton } from '../../components/ui';
+import { Button, Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardWidgetGrid, { type DashboardWidgetEntry } from './DashboardWidgetGrid';
@@ -374,20 +373,22 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     canCustomize ? (
       <>
         {isEditingLayout && layout.isCustomized && (
-          <MuiButton size="small" variant="text" onClick={layout.reset}>
+          <Button size="sm" variant="ghost" onClick={layout.reset}>
             {t('dashboard.layout.reset', 'Réinitialiser')}
-          </MuiButton>
+          </Button>
         )}
-        <MuiButton
-          size="small"
-          variant={isEditingLayout ? 'contained' : 'outlined'}
-          startIcon={<GridView size={14} />}
+        {/* En cours d'edition, ce bouton devient l'action qui SORT du mode : il
+            passe en encre pleine ; au repos il reste une action d'en-tete. */}
+        <Button
+          size="sm"
+          variant={isEditingLayout ? 'default' : 'outline'}
           onClick={() => setEditingLayout((value) => !value)}
         >
+          <GridView size={14} />
           {isEditingLayout
             ? t('dashboard.layout.done', 'Terminer')
             : t('dashboard.layout.customize', 'Personnaliser')}
-        </MuiButton>
+        </Button>
       </>
     ) : null,
   );

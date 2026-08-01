@@ -8,8 +8,9 @@
  *   - Cochee par defaut : "Appliquer aux X propriete(s)"
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Button, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
 import { X, Sparkles } from 'lucide-react';
+import { Button } from '../../../components/ui';
 
 import {
   amenitiesManagementApi,
@@ -267,16 +268,9 @@ export default function CreateCustomAmenityModal({
               </span>
             </div>
             <Button
-              size="small"
-              variant="outlined"
+              size="sm"
+              variant="outline"
               onClick={() => setIconPickerOpen(true)}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.78rem',
-                borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                color: ACCENT,
-                '&:hover': { borderColor: ACCENT, backgroundColor: 'var(--accent-soft)' },
-              }}
             >
               {t('settings.amenities.changeIcon', "Changer l'icône")}
             </Button>
@@ -330,15 +324,13 @@ export default function CreateCustomAmenityModal({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-        <Button onClick={onClose} size="small" sx={{ textTransform: 'none', color: 'text.secondary' }}>
+        <Button onClick={onClose} variant="outline" size="sm">
           Annuler
         </Button>
         <Button
-          variant="contained"
-          size="small"
+          size="sm"
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
-          sx={{ textTransform: 'none' }}
         >
           {submitting ? 'Création…' : 'Créer la commodité'}
         </Button>

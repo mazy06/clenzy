@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Badge } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -166,11 +166,11 @@ const ConstellationLinkButton: React.FC<{ ownerId: number }> = ({ ownerId }) => 
 
   return (
     <Button
-      variant="outlined"
-      size="small"
+      variant="outline"
+      size="sm"
       onClick={handleShare}
       disabled={status === 'busy'}
-      sx={{ textTransform: 'none', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+      className="whitespace-nowrap"
     >
       {status === 'copied'
         ? t('ownerPortal.constellationLinkCopied', 'Lien copié !')
@@ -223,10 +223,10 @@ const BrandingButton: React.FC = () => {
   return (
     <>
       <Button
-        variant="text"
-        size="small"
+        variant="ghost"
+        size="sm"
         onClick={handleOpen}
-        sx={{ textTransform: 'none', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+        className="whitespace-nowrap"
       >
         {t('ownerPortal.branding.open', 'Personnaliser la page propriétaire')}
       </Button>
@@ -262,10 +262,10 @@ const BrandingButton: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
             {t('common.cancel', 'Annuler')}
           </Button>
-          <Button onClick={handleSave} disabled={saving} variant="contained" sx={{ textTransform: 'none' }}>
+          <Button variant="default" onClick={handleSave} disabled={saving}>
             {t('common.save', 'Enregistrer')}
           </Button>
         </DialogActions>
@@ -445,13 +445,12 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
           InputProps={{ sx: { fontSize: '0.8125rem' } }}
         />
         <Button
-          size="small"
-          variant="contained"
+          size="sm"
+          variant="default"
           onClick={handleGenerate}
           disabled={!from || !to || isLoading}
-          startIcon={isLoading ? <Spinner className="size-3.5" /> : <StatementIcon />}
-          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
+          {isLoading ? <Spinner className="size-3.5" /> : <StatementIcon />}
           {t('ownerPortal.generate', 'Generer le releve')}
         </Button>
       </Paper>

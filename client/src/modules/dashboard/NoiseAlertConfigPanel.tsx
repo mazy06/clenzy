@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Spinner } from '../../components/ui';
-import { Card, CardContent, Switch, FormControlLabel, Button, TextField, Slider, IconButton, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Card, CardContent, Switch, FormControlLabel, TextField, Slider, IconButton, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
 import {
   Settings,
   Add,
@@ -339,12 +339,13 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                       <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em]">
                         Créneaux horaires
                       </p>
+                      {/* Action d'en-tete de section, discrete face au contenu edite. */}
                       <Button
-                        size="small"
-                        startIcon={<Add size={14} strokeWidth={1.75} />}
+                        variant="ghost"
+                        size="xs"
                         onClick={addTimeWindow}
-                        sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
                       >
+                        <Add size={14} strokeWidth={1.75} />
                         Ajouter
                       </Button>
                     </div>

@@ -2,9 +2,9 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
+import { Card, Button } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, TextField, Button, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
+import { Paper, TextField, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -257,16 +257,12 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
           <div className="flex justify-end gap-1.5">
             {editingId != null && (
-              <Button size="small" onClick={resetForm} sx={{ textTransform: 'none' }}>
+              <Button variant="ghost" size="sm" onClick={resetForm}>
                 {t('common.cancel', 'Annuler')}
               </Button>
             )}
-            <Button
-              variant="contained" size="small" disableElevation
-              startIcon={saving ? <Spinner className="size-[13px]" /> : <Plus size={14} />}
-              onClick={handleSubmit} disabled={saving}
-              sx={{ textTransform: 'none' }}
-            >
+            <Button size="sm" onClick={handleSubmit} disabled={saving}>
+              {saving ? <Spinner className="size-[13px]" /> : <Plus size={14} />}
               {editingId != null ? t('common.save', 'Enregistrer') : t('restrictions.add', 'Ajouter')}
             </Button>
           </div>

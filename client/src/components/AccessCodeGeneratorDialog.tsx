@@ -1,7 +1,8 @@
 import StatusChip from './StatusChip';
 import { cn } from '../utils/cn';
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogActions, Slider, Chip, IconButton, InputBase, Button, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogActions, Slider, Chip, IconButton, InputBase, Tooltip } from '@mui/material';
+import { Button } from './ui';
 import { Autorenew, Close as CloseIcon, ContentCopy, CheckCircle, VpnKey as KeyIcon } from '../icons';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -334,12 +335,12 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={onClose} color="inherit">{t('channels.checkIn.generator.cancel', 'Annuler')}</Button>
+        <Button variant="ghost" onClick={onClose}>{t('channels.checkIn.generator.cancel', 'Annuler')}</Button>
+        {/* L'encre pleine du kit remplace le fond de marque code en dur. */}
         <Button
+          variant="default"
           onClick={() => onApply(code, buildFormat())}
-          variant="contained"
           disabled={!code}
-          sx={{ bgcolor: BRAND, '&:hover': { bgcolor: '#5a7888' } }}
         >
           {t('channels.checkIn.generator.apply', 'Utiliser ce code')}
         </Button>

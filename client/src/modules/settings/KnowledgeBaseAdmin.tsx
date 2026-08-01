@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Divider, IconButton, TextField, Tooltip } from '@mui/material';
+import { Button } from '../../components/ui';
+import { Divider, IconButton, TextField, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
@@ -291,12 +292,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               onChange={handleFileChange}
             />
             <Button
-              variant="contained"
-              startIcon={<AttachFile size={16} />}
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              sx={{ textTransform: 'none', cursor: 'pointer' }}
             >
+              <AttachFile size={16} />
               {uploading ? 'Indexation...' : 'Uploader un document'}
             </Button>
             {uploading && <Spinner className="size-5" />}
@@ -304,11 +303,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         )}
         <div className="flex-1" />
         <Button
-          variant="text"
-          size="small"
+          variant="ghost"
+          size="sm"
           onClick={loadDocs}
           disabled={loading}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           Rafraichir
         </Button>
@@ -396,10 +394,9 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               </p>
             </div>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={handleRunEval}
               disabled={evaluating}
-              sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {evaluating
                 ? evalProgress
@@ -496,10 +493,9 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               disabled={testing}
             />
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={handleSearchTest}
               disabled={testing || !testQuery.trim()}
-              sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {testing ? 'Recherche...' : 'Tester'}
             </Button>

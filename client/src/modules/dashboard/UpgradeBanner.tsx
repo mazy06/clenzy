@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Spinner } from '../../components/ui';
+import { Button, Spinner } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { Button, useTheme } from '@mui/material';
+import { useTheme } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   CalendarMonth as CalendarIcon,
@@ -15,7 +15,6 @@ import { subscriptionApi } from '../../services/api/subscriptionApi';
 const C = {
   primary:      '#6B8A9A',
   primaryLight: '#8BA3B3',
-  primaryDark:  '#5A7684',
 } as const;
 
 // ─── Forfaits ──────────────────────────────────────────────────────────────
@@ -175,57 +174,24 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
 
       {/* ── Ligne 2 : Boutons CTA en dessous ────────────────────────── */}
       <div className="flex gap-2 items-center flex-wrap">
+        {/* « Confort » est l'offre poussee par la banniere : action principale du bloc.
+            « Premium » reste une alternative, donc secondaire (outline sourdine). */}
         <Button
-          variant="contained"
-          size="medium"
           disabled={loading}
           onClick={() => handleUpgrade('confort')}
-          startIcon={loading ? <Spinner className="size-4" /> : <CalendarIcon />}
-          endIcon={!loading ? <ArrowIcon size={18} strokeWidth={1.75} /> : undefined}
-          sx={{
-            bgcolor: C.primary,
-            color: '#fff',
-            fontWeight: 600,
-            textTransform: 'none',
-            borderRadius: '6px',
-            px: 2.5,
-            py: 0.75,
-            fontSize: '0.813rem',
-            boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.4)' : '0 1px 3px rgba(107,138,154,0.3)',
-            '&:hover': {
-              bgcolor: C.primaryDark,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            },
-            '&:disabled': {
-              bgcolor: C.primaryLight,
-              color: '#fff',
-              opacity: 0.6,
-            },
-          }}
         >
+          {loading ? <Spinner className="size-4" /> : <CalendarIcon />}
           {loading ? 'Redirection...' : 'Passer au Confort'}
+          {!loading && <ArrowIcon size={18} strokeWidth={1.75} />}
         </Button>
         <Button
-          variant="outlined"
-          size="small"
+          variant="outline"
+          size="sm"
+          className="text-[var(--muted)]"
           disabled={loading}
           onClick={() => handleUpgrade('premium')}
-          startIcon={<TrendingIcon size={16} strokeWidth={1.75} />}
-          sx={{
-            borderColor: 'divider',
-            color: 'text.secondary',
-            fontWeight: 600,
-            textTransform: 'none',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            py: 0.5,
-            '&:hover': {
-              borderColor: C.primary,
-              color: C.primary,
-              bgcolor: 'rgba(107,138,154,0.04)',
-            },
-          }}
         >
+          <TrendingIcon size={16} strokeWidth={1.75} />
           Passer au Premium
         </Button>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner } from '../../components/ui';
-import { Paper, Button, IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { Paper, IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
@@ -152,18 +152,16 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
           <DialogContentText sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading} size="small" sx={{ textTransform: 'none' }}>
+          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading}>
             {t('common.cancel')}
           </Button>
           <Button
-            color="error"
-            variant="contained"
-            size="small"
+            variant="destructive"
+            size="sm"
             onClick={handleDelete}
             disabled={deleteLoading}
-            startIcon={deleteLoading ? <Spinner className="size-3.5" /> : undefined}
-            sx={{ textTransform: 'none' }}
           >
+            {deleteLoading ? <Spinner className="size-3.5" /> : null}
             {t('common.delete')}
           </Button>
         </DialogActions>

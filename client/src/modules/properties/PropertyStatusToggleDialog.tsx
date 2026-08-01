@@ -1,6 +1,6 @@
 import React from 'react';
-import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
 interface PropertyStatusToggleDialogProps {
@@ -37,17 +37,21 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
         </p>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} size="small" variant="text" disabled={pending}>
+        {/* « Annuler » passe en ghost pour que l'action de droite reste la seule
+            cadree, y compris quand la desactivation la teinte en --warn. */}
+        <Button onClick={onClose} size="sm" variant="ghost" disabled={pending}>
           Annuler
         </Button>
+        {/* La desactivation est un geste a avertir : outline teinte --warn.
+            La reactivation est benigne : encre pleine. */}
         <Button
           onClick={onConfirm}
-          variant="contained"
-          size="small"
-          color={isActive ? 'warning' : 'primary'}
+          variant={isActive ? 'outline' : 'default'}
+          size="sm"
+          className={isActive ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]' : undefined}
           disabled={pending}
-          startIcon={pending ? <Spinner className="size-3.5" /> : undefined}
         >
+          {pending ? <Spinner className="size-3.5" /> : null}
           {isActive ? 'Désactiver' : 'Réactiver'}
         </Button>
       </DialogActions>

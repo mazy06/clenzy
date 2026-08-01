@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Button, Skeleton } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
@@ -128,13 +128,15 @@ const ConnectionsTab: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell>
+                    {/* Action repetee sur chaque ligne : registre tertiaire du kit,
+                        pour ne pas paver le tableau de cadres. */}
                     <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={checkingId === conn.id ? <Spinner className="size-4" /> : <Refresh />}
+                      size="sm"
+                      variant="ghost"
                       onClick={() => handleHealthCheck(conn.id)}
                       disabled={checkingId === conn.id}
                     >
+                      {checkingId === conn.id ? <Spinner className="size-4" /> : <Refresh />}
                       Health Check
                     </Button>
                   </TableCell>

@@ -4,7 +4,8 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button, Alert, TextField } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { Alert, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -54,7 +55,6 @@ import IntegrationConfigDialog from './IntegrationConfigDialog';
  */
 
 const ACCENT = 'var(--ok)';
-const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 
 
@@ -287,57 +287,34 @@ export default function OtaInfoDialog({
               <div className="flex gap-1.5 flex-wrap">
                 {isFormConnectable && (
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<LinkIcon size={14} strokeWidth={2} />}
+                    variant="outline"
+                    size="sm"
                     onClick={() => setEditingForm(true)}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      borderRadius: '8px',
-                      borderColor: 'divider',
-                      color: 'text.primary',
-                      '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-                    }}
                   >
+                    <LinkIcon size={14} strokeWidth={2} />
                     Modifier la connexion
                   </Button>
                 )}
                 {isFormConnectable && (
+                  // Deconnecter est l'action irreversible de cette zone : le kit lui
+                  // donne la variante destructive, la ou MUI ne l'exprimait qu'au hover.
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={disconnectMutation.isPending ? <Spinner className="size-3" /> : <LinkOffIcon size={14} strokeWidth={2} />}
+                    variant="destructive"
+                    size="sm"
                     onClick={handleDisconnect}
                     disabled={disconnectMutation.isPending}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      borderRadius: '8px',
-                      borderColor: 'divider',
-                      color: 'text.primary',
-                      '&:hover': { borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)', backgroundColor: 'var(--err-soft)', color: DANGER },
-                    }}
                   >
+                    {disconnectMutation.isPending ? <Spinner className="size-3" /> : <LinkOffIcon size={14} strokeWidth={2} />}
                     {disconnectMutation.isPending ? 'Déconnexion...' : `Déconnecter ${ota.name}`}
                   </Button>
                 )}
                 <Button
-                  variant="text"
-                  size="small"
-                  endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate('/channels')}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    color: 'text.secondary',
-                    '&:hover': { color: ACCENT },
-                  }}
                 >
                   Gérer dans Channels
+                  <ArrowRightIcon size={14} strokeWidth={2} />
                 </Button>
               </div>
             </div>
@@ -351,28 +328,20 @@ export default function OtaInfoDialog({
               </p>
               <div className="flex gap-1.5 flex-wrap">
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={airbnbConnectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
+                  size="sm"
                   onClick={handleAirbnbConnect}
                   disabled={airbnbConnectMutation.isPending}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
+                  {airbnbConnectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                   {airbnbConnectMutation.isPending ? 'Redirection...' : 'Se connecter via Airbnb'}
                 </Button>
                 <Button
-                  variant="text"
-                  size="small"
-                  endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate('/channels')}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    color: 'text.secondary',
-                  }}
                 >
                   Détails dans Channels
+                  <ArrowRightIcon size={14} strokeWidth={2} />
                 </Button>
               </div>
             </div>
@@ -419,45 +388,28 @@ export default function OtaInfoDialog({
               <div className="flex gap-1.5 flex-wrap mt-0.5">
                 <Button
                   type="button"
-                  variant="outlined"
-                  size="small"
-                  startIcon={testMutation.isPending ? <Spinner className="size-3" /> : <TestIcon size={14} strokeWidth={2} />}
+                  variant="outline"
+                  size="sm"
                   onClick={handleTest}
                   disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    borderRadius: '8px',
-                    borderColor: 'divider',
-                    color: 'text.primary',
-                    '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-                  }}
                 >
+                  {testMutation.isPending ? <Spinner className="size-3" /> : <TestIcon size={14} strokeWidth={2} />}
                   {testMutation.isPending ? 'Test en cours...' : 'Tester'}
                 </Button>
                 <Button
                   type="submit"
-                  variant="contained"
-                  size="small"
-                  startIcon={connectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
+                  size="sm"
                   disabled={!isFormValid || connectMutation.isPending}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
+                  {connectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                   {connectMutation.isPending ? 'Connexion...' : `Connecter ${ota.name}`}
                 </Button>
                 {editingForm && (
                   <Button
                     type="button"
-                    variant="text"
-                    size="small"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => { setEditingForm(false); setFormData({}); setTestResult(null); }}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      color: 'text.secondary',
-                    }}
                   >
                     Annuler
                   </Button>

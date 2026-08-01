@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
-import { Button, IconButton, TextField, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Button } from '../../../components/ui';
+import { IconButton, TextField, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Add,
@@ -332,21 +333,19 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         {onCancel && (
           <Button
             onClick={onCancel}
-            size="small"
-            startIcon={<Close size={16} strokeWidth={1.75} />}
-            sx={{ textTransform: 'none' }}
+            variant="ghost"
+            size="sm"
           >
+            <Close size={16} strokeWidth={1.75} />
             Annuler
           </Button>
         )}
         <Button
           onClick={onSubmit}
-          variant="contained"
-          size="small"
-          startIcon={onCancel ? <Save size={16} strokeWidth={1.75} /> : <Add size={16} strokeWidth={1.75} />}
+          size="sm"
           disabled={!value.name.trim() || submitting}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {onCancel ? <Save size={16} strokeWidth={1.75} /> : <Add size={16} strokeWidth={1.75} />}
           {submitLabel}
         </Button>
       </div>

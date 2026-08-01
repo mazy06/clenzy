@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Divider, Button, TextField, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Divider, TextField, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   AutoAwesome,
   Handyman,
@@ -316,29 +316,27 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {/* Action buttons */}
       {!isStarted && onStartIntervention && (
         <Button
-          variant="contained"
-          fullWidth
-          size="small"
-          startIcon={loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
+          size="sm"
           onClick={handleStart}
           disabled={loading}
-          sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
+          className="w-full mb-1.5 shrink"
         >
+          {loading ? <Spinner className="size-3.5" /> : <PlayArrow strokeWidth={1.75} />}
           Démarrer l'intervention
         </Button>
       )}
 
       {isStarted && !isCompleted && onCompleteIntervention && (
+        // `color="success"` n'a pas de variante dediee dans le kit : outline
+        // teinte --ok.
         <Button
-          variant="contained"
-          color="success"
-          fullWidth
-          size="small"
-          startIcon={loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
+          variant="outline"
+          size="sm"
           onClick={handleComplete}
           disabled={loading}
-          sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
+          className="w-full mb-1.5 text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)] shrink"
         >
+          {loading ? <Spinner className="size-3.5" /> : <CheckCircle strokeWidth={1.75} />}
           Terminer l'intervention
         </Button>
       )}

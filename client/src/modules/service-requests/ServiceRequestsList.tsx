@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
+import { Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Add,
   Edit,
@@ -352,12 +353,8 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
               : t('serviceRequests.noRequestAssigned')
           } — ${t('serviceRequests.requestsDescription')}`}
           action={(isAdmin() || isManager() || isHost()) && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
-              onClick={() => navigate('/service-requests/new')}
-            >
+            <Button variant="outline" size="sm" onClick={() => navigate('/service-requests/new')}>
+              <Add size={16} strokeWidth={1.75} />
               {t('serviceRequests.createFirst')}
             </Button>
           )}

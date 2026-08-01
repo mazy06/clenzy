@@ -1,5 +1,6 @@
 import React from 'react';
-import { Drawer, IconButton, Button, Divider } from '@mui/material';
+import { Drawer, IconButton, Divider } from '@mui/material';
+import { Button } from '../../components/ui';
 import {
   Close,
   Add,
@@ -219,9 +220,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             </div>
 
             <Button
-              variant="contained"
-              fullWidth
-              size="large"
+              className="w-full shrink"
+              size="lg"
               onClick={onCheckout}
             >
               {t('shop.checkout')}

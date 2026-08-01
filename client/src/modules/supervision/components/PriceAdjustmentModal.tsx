@@ -8,8 +8,8 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Button, Spinner } from '../../../components/ui';
+import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
@@ -209,10 +209,12 @@ export function PriceAdjustmentModal({
             <div className="flex-1 min-w-0" key={mi}>
               <div className="flex items-center justify-between mb-0.5">
                 {mi === 0 ? (
+                  // Navigation repetee dans un en-tete : tertiaire, gabarit carre.
                   <Button
-                    size="small"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-                    sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
+                    className="text-[var(--muted)]"
                     aria-label={t('common.previous', 'Précédent')}
                   >
                     ‹
@@ -223,9 +225,10 @@ export function PriceAdjustmentModal({
                 </p>
                 {mi === months.length - 1 ? (
                   <Button
-                    size="small"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-                    sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
+                    className="text-[var(--muted)]"
                     aria-label={t('common.next', 'Suivant')}
                   >
                     ›
@@ -365,26 +368,22 @@ export function PriceAdjustmentModal({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none' }} disabled={applying}>
+        <Button variant="ghost" onClick={onClose} disabled={applying}>
           {t('common.cancel', 'Annuler')}
         </Button>
         <Button
+          variant="outline"
           onClick={runSimulate}
-          variant="outlined"
           disabled={simulating || applying || segments.length === 0}
-          startIcon={simulating ? <Spinner className="size-3.5" /> : undefined}
-          sx={{ textTransform: 'none' }}
         >
+          {simulating && <Spinner className="size-3.5" />}
           {t('supervision.price.simulate', 'Simuler')}
         </Button>
         <Button
           onClick={runApply}
-          variant="contained"
-          disableElevation
           disabled={applying || segments.length === 0}
-          startIcon={applying ? <Spinner className="size-3.5" /> : undefined}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {applying && <Spinner className="size-3.5" />}
           {t('supervision.price.apply', 'Appliquer les tarifs')}
         </Button>
       </DialogActions>

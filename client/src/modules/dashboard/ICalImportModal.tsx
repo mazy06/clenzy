@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -720,71 +720,48 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       >
         {activeStep === 0 && (
           <>
-            <Button
-              onClick={handleClose}
-              variant="outlined"
-              size="small"
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
-            >
+            <BuiButton onClick={handleClose} variant="outline" size="sm">
               Annuler
-            </Button>
-            <Button
+            </BuiButton>
+            <BuiButton
               onClick={handlePreview}
-              variant="contained"
-              color="primary"
-              size="small"
+              variant="default"
+              size="sm"
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
-              startIcon={loading ? <Spinner className="size-4" /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
+              {loading ? <Spinner className="size-4" /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
               {loading ? 'Chargement...' : 'Prévisualiser'}
-            </Button>
+            </BuiButton>
           </>
         )}
 
         {activeStep === 1 && (
           <>
-            <Button
+            <BuiButton
               onClick={() => { setActiveStep(0); setFormError(null); previewMutation.reset(); importMutation.reset(); }}
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
               disabled={loading}
-              startIcon={<ArrowBackIcon size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
+              <ArrowBackIcon size={16} strokeWidth={1.75} />
               Retour
-            </Button>
-            <Button
+            </BuiButton>
+            <BuiButton
               onClick={handleImport}
-              variant="contained"
-              color="primary"
-              size="small"
+              variant="default"
+              size="sm"
               disabled={loading || !preview || totalPreviewEvents === 0}
-              startIcon={loading ? <Spinner className="size-4" /> : <ImportIcon size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
+              {loading ? <Spinner className="size-4" /> : <ImportIcon size={16} strokeWidth={1.75} />}
               {loading ? 'Import en cours...' : importButtonLabel}
-            </Button>
+            </BuiButton>
           </>
         )}
 
         {activeStep === 2 && (
-          <Button
-            onClick={handleClose}
-            variant="contained"
-            size="small"
-            sx={{
-              borderRadius: '10px',
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              px: 3,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
-            }}
-          >
+          <BuiButton onClick={handleClose} variant="default" size="sm">
             Fermer
-          </Button>
+          </BuiButton>
         )}
       </DialogActions>
     </Dialog>
