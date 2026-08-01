@@ -3,9 +3,6 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-// TextField reste MUI : l'insertion de variable a la position du curseur a
-// besoin d'une ref sur l'element de saisie (cf. commentaire au point d'usage).
-import { TextField } from '@mui/material';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +13,7 @@ import {
   FieldDescription,
   FieldLabel,
   Input,
+  Textarea,
   NativeSelect,
   Separator,
 } from '../../components/ui';
@@ -279,41 +277,43 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     </NativeSelect>
                   </Field>
                 </div>
-                {/* Subject et Body restent en MUI : l'insertion de variable a la
-                    position du curseur a besoin d'une ref sur l'element de saisie,
-                    or les primitives du kit ne sont pas des forwardRef (React 18)
-                    et la ref serait nulle — l'insertion retomberait en fin de champ. */}
+                {/* Les refs visent l'element de saisie lui-meme : l'insertion de
+                    variable se fait A LA POSITION DU CURSEUR, pas en fin de champ. */}
                 {/* Subject */}
                 <div className="col-span-12">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.subject')}
-                    value={subject}
-                    onChange={(e) => { setSubject(e.target.value); setTouched(true); }}
-                    onFocus={() => { activeFieldRef.current = 'subject'; }}
-                    inputRef={subjectRef}
-                    size="small"
-                    required
-                    helperText={t('messaging.templates.editor.subjectHelper')}
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="sys-tpl-subject">
+                      {t('messaging.templates.editor.subject')}
+                    </FieldLabel>
+                    <Input
+                      id="sys-tpl-subject"
+                      ref={subjectRef}
+                      value={subject}
+                      onChange={(e) => { setSubject(e.target.value); setTouched(true); }}
+                      onFocus={() => { activeFieldRef.current = 'subject'; }}
+                      required
+                    />
+                    <FieldDescription>{t('messaging.templates.editor.subjectHelper')}</FieldDescription>
+                  </Field>
                 </div>
                 {/* Body multiline */}
                 <div className="col-span-12">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.body')}
-                    value={body}
-                    onChange={(e) => { setBody(e.target.value); setTouched(true); }}
-                    onFocus={() => { activeFieldRef.current = 'body'; }}
-                    inputRef={bodyRef}
-                    multiline
-                    rows={12}
-                    required
-                    helperText={t('systemEmailTemplates.dialog.bodyHelper')}
-                    InputProps={{
-                      sx: language === 'ar' ? { direction: 'rtl' } : undefined,
-                    }}
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="sys-tpl-body">
+                      {t('messaging.templates.editor.body')}
+                    </FieldLabel>
+                    <Textarea
+                      id="sys-tpl-body"
+                      ref={bodyRef}
+                      value={body}
+                      onChange={(e) => { setBody(e.target.value); setTouched(true); }}
+                      onFocus={() => { activeFieldRef.current = 'body'; }}
+                      required
+                      // `field-sizing: content` du kit neutralise `rows`.
+                      className={cn('min-h-[12lh]', language === 'ar' && '[direction:rtl]')}
+                    />
+                    <FieldDescription>{t('systemEmailTemplates.dialog.bodyHelper')}</FieldDescription>
+                  </Field>
                 </div>
               </div>
 

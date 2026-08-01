@@ -3,10 +3,6 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-// TextField reste MUI : `inputRef` porte l'insertion de variable A LA POSITION
-// DU CURSEUR ; les primitifs du kit sont de simples fonctions et ne recoivent
-// pas de ref sous React 18 — la convertir casserait le comportement en silence.
-import { TextField } from '@mui/material';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
   Field,
+  FieldDescription,
   FieldLabel,
   Input,
+  Textarea,
   NativeSelect,
   NativeSelectOption,
   Separator,
@@ -237,36 +235,41 @@ export default function MessageTemplateEditor({
                   </NativeSelect>
                 </Field>
               </div>
-              {/* Sujet et corps restent en TextField MUI : ils portent un inputRef
-                  (insertion de variable a la position du curseur) que les primitifs
-                  du kit, simples fonctions sans forwardRef, ne savent pas recevoir
-                  sous React 18. */}
+              {/* Les refs visent l'element de saisie lui-meme : l'insertion de
+                  variable se fait A LA POSITION DU CURSEUR, pas en fin de champ. */}
               <div className="col-span-12">
-                <TextField
-                  fullWidth
-                  label={t('messaging.templates.editor.subject')}
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  onFocus={() => { activeFieldRef.current = 'subject'; }}
-                  inputRef={subjectRef}
-                  size="small"
-                  required
-                  helperText={t('messaging.templates.editor.subjectHelper')}
-                />
+                <Field>
+                  <FieldLabel htmlFor="tpl-subject">
+                    {t('messaging.templates.editor.subject')}
+                  </FieldLabel>
+                  <Input
+                    id="tpl-subject"
+                    ref={subjectRef}
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    onFocus={() => { activeFieldRef.current = 'subject'; }}
+                    required
+                  />
+                  <FieldDescription>{t('messaging.templates.editor.subjectHelper')}</FieldDescription>
+                </Field>
               </div>
               <div className="col-span-12">
-                <TextField
-                  fullWidth
-                  label={t('messaging.templates.editor.body')}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  onFocus={() => { activeFieldRef.current = 'body'; }}
-                  inputRef={bodyRef}
-                  multiline
-                  rows={12}
-                  required
-                  helperText={t('messaging.templates.editor.bodyHelper')}
-                />
+                <Field>
+                  <FieldLabel htmlFor="tpl-body">
+                    {t('messaging.templates.editor.body')}
+                  </FieldLabel>
+                  <Textarea
+                    id="tpl-body"
+                    ref={bodyRef}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    onFocus={() => { activeFieldRef.current = 'body'; }}
+                    required
+                    // `field-sizing: content` du kit neutralise `rows`.
+                    className="min-h-[12lh]"
+                  />
+                  <FieldDescription>{t('messaging.templates.editor.bodyHelper')}</FieldDescription>
+                </Field>
               </div>
             </div>
 

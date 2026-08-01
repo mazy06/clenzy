@@ -27,11 +27,6 @@ import {
   Textarea,
 } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-// Seul rescape MUI : le menu d'actions par ligne. Son declencheur (le « … » de
-// chaque ligne) vit dans <ServicesCatalog>, qui nous passe un `anchorEl` ; un
-// DropdownMenu Radix a besoin que son declencheur soit rendu par lui-meme, ce
-// qui suppose de modifier ce composant tiers. Il migrera avec lui.
-import { Menu, MenuItem } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -198,8 +193,6 @@ const UpsellsAdmin: React.FC = () => {
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [commissionsOpen, setCommissionsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
-  // Menu « … » d'actions par ligne (table « Mes services », parité Booking Engine / Welcome guide).
-  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; offer: UpsellOffer } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const notify = (message: string, severity: NotificationSeverity = 'success') =>
     showNotification(message, severity);
@@ -525,7 +518,29 @@ const UpsellsAdmin: React.FC = () => {
         typeLabel={typeLabel}
         onAdd={handleMarketplaceAdd}
         onOpenInternal={openInternalDetail}
-        onMenuInternal={(el, o) => setRowMenu({ el, offer: o })}
+        renderRowMenu={(o) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="mp-imenu"
+              aria-label={t('upsells.actions.menu', 'Actions')}
+              onClick={(ev) => ev.stopPropagation()}
+            >
+              <MoreHorizontal size={18} strokeWidth={2} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+              <DropdownMenuItem disabled={togglingId === o.id} onSelect={() => toggleActive(o)}>
+                <Power size={16} strokeWidth={2} />
+                {o.active ? t('upsells.actions.deactivate', 'Désactiver') : t('upsells.actions.activate', 'Activer')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => openEdit(o)}>
+                <Edit size={16} strokeWidth={2} /> {t('upsells.actions.edit', 'Modifier')}
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onSelect={() => handleDelete(o)}>
+                <Delete size={16} strokeWidth={2} /> {t('upsells.actions.delete', 'Supprimer')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         kpis={(
           <div className="svc-band">
             <div className="kpis">
@@ -537,20 +552,6 @@ const UpsellsAdmin: React.FC = () => {
         )}
       />
 
-      {/* Menu d'actions par ligne — toggle actif / modifier / supprimer (aucune action perdue). */}
-      <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
-        {rowMenu && ([
-          <MenuItem key="toggle" disabled={togglingId === rowMenu.offer.id} onClick={() => { toggleActive(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-            <Power size={16} strokeWidth={2} /> {rowMenu.offer.active ? t('upsells.actions.deactivate', 'Désactiver') : t('upsells.actions.activate', 'Activer')}
-          </MenuItem>,
-          <MenuItem key="edit" onClick={() => { openEdit(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-            <Edit size={16} strokeWidth={2} /> {t('upsells.actions.edit', 'Modifier')}
-          </MenuItem>,
-          <MenuItem key="del" onClick={() => { handleDelete(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
-            <Delete size={16} strokeWidth={2} /> {t('upsells.actions.delete', 'Supprimer')}
-          </MenuItem>,
-        ])}
-      </Menu>
     </>
   );
 

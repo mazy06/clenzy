@@ -1,6 +1,5 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { CssBaseline, ThemeProvider } from '@mui/material'
 import { CacheProvider } from '@emotion/react'
 import { DirectionProvider } from './components/ui/direction'
 import createCache from '@emotion/cache'
@@ -12,11 +11,10 @@ import * as Sentry from '@sentry/react'
 import posthog from 'posthog-js'
 import App from './modules/App'
 import AppUpdateBanner from './components/AppUpdateBanner'
-import { createBaitlyTheme } from './theme/createBaitlyTheme'
 import './theme/signature/tokens.css'
+import './theme/base.css'
 import './theme/baitly-ui.css'
 import { applyThemeAttributesAtBoot, applyThemeAttribute } from './theme/signature/accent'
-import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
 import { AccentProvider } from './hooks/useAccent'
@@ -72,10 +70,14 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
 // useThemeMode/AppWithTheme resynchronisent ensuite a chaque changement.
 applyThemeAttributesAtBoot()
 
-// ─── Emotion caches for LTR and RTL ─────────────────────────────────────────
-const ltrCache = createCache({ key: 'mui' })
+// ─── Caches Emotion, LTR et RTL ─────────────────────────────────────────────
+// Emotion ne subsiste que pour la constellation de supervision, seule a etre
+// ecrite en CSS-in-JS (FramerConstellation, ConstellationSkeleton). Le cache RTL
+// est ce qui retourne ses `left`/`right` en arabe : le reste de l'application
+// utilise des proprietes logiques et n'en a pas besoin.
+const ltrCache = createCache({ key: 'bui' })
 const rtlCache = createCache({
-  key: 'muirtl',
+  key: 'buirtl',
   stylisPlugins: [prefixer, rtlPlugin],
 })
 
@@ -175,15 +177,6 @@ function AppWithTheme() {
     applyThemeAttribute(isDark);
   }, [isDark]);
 
-  // Theme principal : factory single source of truth (cf. createBaitlyTheme).
-  // Tous les ThemeProvider de l'app (AppWithTheme + AuthLayout +
-  // InscriptionSuccess/Confirm + Support) DOIVENT passer par cette factory
-  // sinon les overrides langue (Tajawal en arabe) + direction RTL sont KO.
-  const currentTheme = useMemo(
-    () => createBaitlyTheme({ isDark, isRtl }),
-    [isDark, isRtl]
-  );
-
   const emotionCache = isRtl ? rtlCache : ltrCache;
 
   return (
@@ -195,12 +188,9 @@ function AppWithTheme() {
     // écran, ancrages inversés, flèches du clavier à contresens.
     <DirectionProvider dir={isRtl ? 'rtl' : 'ltr'}>
     <CacheProvider value={emotionCache}>
-      <ThemeProvider theme={currentTheme}>
-        <CssBaseline />
         <CurrencyProvider>
           <GeoDetectionInitializer>
             <NotificationProvider>
-              <ThemeSafetyWrapper>
                 {/* React Router v7 : v7_startTransition et v7_relativeSplatPath
                     etaient deja actives via `future` sous v6 ; ce sont desormais
                     les comportements par defaut et la prop n'existe plus. Le
@@ -214,11 +204,9 @@ function AppWithTheme() {
                     <AppUpdateBanner />
                   </AuthProvider>
                 </BrowserRouter>
-              </ThemeSafetyWrapper>
             </NotificationProvider>
           </GeoDetectionInitializer>
         </CurrencyProvider>
-      </ThemeProvider>
     </CacheProvider>
     </DirectionProvider>
   );

@@ -37,12 +37,6 @@ import {
 } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-// Seul rescape MUI : le champ du mot d'accueil. Son `inputRef` porte le
-// comportement (insertion du tag {prenom} a la position du curseur via
-// selectionStart/setSelectionRange) ; le Textarea du kit est un composant
-// fonction qui, sous React 18, ne transmet pas de ref — l'insertion retomberait
-// silencieusement en fin de texte.
-import { TextField } from '@mui/material';
 import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -1408,24 +1402,25 @@ const WelcomeGuideAdmin: React.FC = () => {
           )}
         </span>
         <div className="flex flex-col gap-[9px]">
-          {/* Laisse en MUI : ce champ a besoin d'un handle sur le textarea pour
-              inserer le tag prenom a la position du curseur. Le Textarea du kit
-              est un composant fonction simple — sous React 18 il ne transmet pas
-              ref, et l'insertion retomberait en simple ajout en fin de texte. */}
-          <TextField
-            label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
-            inputRef={welcomeMessageRef}
-            value={welcomeMessage}
-            onChange={(e) => setWelcomeMessage(e.target.value)}
-            size="small"
-            fullWidth
-            multiline
-            minRows={2}
-            placeholder={t(
-              'welcomeGuide.welcomeNote.messagePlaceholder',
-              'Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.',
-            )}
-          />
+          {/* La ref vise le <textarea> lui-meme : le tag prenom s'insere A LA
+              POSITION DU CURSEUR, pas en fin de texte. */}
+          <Field>
+            <FieldLabel htmlFor="welcome-note-message">
+              {t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
+            </FieldLabel>
+            <Textarea
+              id="welcome-note-message"
+              ref={welcomeMessageRef}
+              value={welcomeMessage}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+              // `field-sizing: content` du kit neutralise `minRows`.
+              className="min-h-[2lh]"
+              placeholder={t(
+                'welcomeGuide.welcomeNote.messagePlaceholder',
+                'Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.',
+              )}
+            />
+          </Field>
           {/* Nom du voyageur chargé depuis la réservation (lecture seule), insérable dans le
               message via un tag. Remplace l'ancienne signature d'hôte (champ libre). */}
           <div className="flex items-center gap-1.5 flex-wrap">

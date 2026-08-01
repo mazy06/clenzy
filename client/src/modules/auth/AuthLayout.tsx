@@ -1,15 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
-// Ne restent de MUI que le fournisseur de theme et le `Box` du conteneur de
-// formulaire : les pages filles (Login, Inscription, InscriptionConfirm…) sont
-// encore en MUI. Le ThemeProvider est ce qui les force en clair + RTL, et le
-// `sx` du Box cible leurs classes `.MuiOutlinedInput-*` — traduit en classes
-// Tailwind (couche `utilities`) il perdrait contre les styles Emotion de MUI,
-// et l'habillage des champs d'authentification disparaitrait sans erreur.
-import { Box, CssBaseline, ThemeProvider } from '@mui/material';
 import { useMediaQuery } from '../../hooks/use-media-query';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 
@@ -245,13 +237,15 @@ export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutP
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
   // Hook override l'i18n au mount + restore au unmount.
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isDark: false, isRtl }), [isRtl]);
 
+  // Ces pages s'affichent TOUJOURS en clair, quelle que soit la preference de
+  // l'utilisateur : elles precedent la session. Auparavant un ThemeProvider
+  // local l'imposait ; c'est maintenant l'attribut `data-theme` pose sur le
+  // conteneur, que lisent les jetons CSS.
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <div data-theme="light" dir={isRtl ? 'rtl' : 'ltr'}>
       <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>
-    </ThemeProvider>
+    </div>
   );
 }
 
@@ -402,17 +396,16 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
                   vs framer-motion pour ce cas (1 element a la fois). */}
-              <Box
+              {/* `key` force le remontage a chaque slide, donc le rejeu de
+                  l'animation. `slide-in-from-bottom-2` vaut les 8px de l'ancien
+                  keyframe, a l'identique. */}
+              <div
                 key={slideIndex}
-                sx={{
-                  animation: prefersReducedMotion
-                    ? 'none'
-                    : 'auth-slide-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both',
-                  '@keyframes auth-slide-in': {
-                    from: { opacity: 0, transform: 'translateY(8px)' },
-                    to: { opacity: 1, transform: 'translateY(0)' },
-                  },
-                }}
+                className={cn(
+                  'animate-in fade-in slide-in-from-bottom-2 fill-mode-both',
+                  'duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                  prefersReducedMotion && 'animate-none',
+                )}
               >
                 {/* Titre — bumped from h4 (2.125rem) to ~2.375rem pour creer
                     une hierarchie plus marquee avec le subtitle (0.8125rem,
@@ -482,7 +475,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     ))}
                   </div>
                 )}
-              </Box>
+              </div>
             </div>
 
             {/* Dots pagination en colonne verticale a droite du texte.
@@ -557,31 +550,20 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
       {/* ── ZONE FORM ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-[var(--card)]">
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: maxFormWidth,
-            display: 'flex',
-            flexDirection: 'column',
-            // Champs auth uniformisés sur l'accent indigo (bordure + remplissage
-            // soft au survol/focus), alignés sur le bouton primary — cohérent sur
-            // TOUTES les pages auth (Login, Inscription…). L'état erreur (.Mui-error,
-            // specificité supérieure) garde sa bordure rouge.
-            '& .MuiOutlinedInput-root': {
-              transition: 'background-color .14s',
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--accent)',
-                transition: 'border-color .14s',
-              },
-              '&:hover': { backgroundColor: 'var(--accent-soft)' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' },
-              '&.Mui-focused': { backgroundColor: 'var(--accent-soft)' },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--accent)',
-                borderWidth: '1px',
-              },
-            },
-          }}
+        {/* Champs auth uniformisés sur l'accent indigo (bordure + remplissage
+            soft au survol/focus), alignés sur le bouton primary — cohérent sur
+            TOUTES les pages auth (Login, Inscription…). Le sélecteur d'erreur
+            est plus spécifique que celui de repos : un champ invalide garde sa
+            bordure rouge. */}
+        <div
+          className={cn(
+            'w-full flex flex-col',
+            '[&_[data-slot=input]]:border-[var(--accent)] [&_[data-slot=input]]:transition-colors',
+            '[&_[data-slot=input]:hover]:bg-[var(--accent-soft)]',
+            '[&_[data-slot=input]:focus]:bg-[var(--accent-soft)]',
+            '[&_[data-slot=input][aria-invalid=true]]:border-[var(--err)]',
+          )}
+          style={{ maxWidth: maxFormWidth }}
         >
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}
           {!isMdUp && (
@@ -591,7 +573,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           )}
 
           {children}
-        </Box>
+        </div>
       </div>
     </div>
   );

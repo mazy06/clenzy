@@ -2,14 +2,15 @@ import React, { useRef, useState } from "react";
 import { Spinner } from '../../../components/ui';
 import {
   Alert,
+  AlertDescription,
   Button,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Stack,
-} from "@mui/material";
+} from '../../../components/ui';
 import { cn } from "../../../utils/cn";
 import { activitiesApi } from "../../../services/api/activitiesApi";
 import type {
@@ -105,17 +106,19 @@ export default function AffiliateImportDialog({
   const providerLabel = provider ? PROVIDER_LABELS[provider] ?? provider : "";
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.25]">
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+      <DialogHeader className="pb-1">
+        <DialogTitle className="text-[0.95rem] font-semibold leading-[1.25]">
           {t("settings.services.importTitle", "Importer un rapport")}
-        </p>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4]">
+        </DialogTitle>
+        <DialogDescription className="text-[0.72rem] leading-[1.4]">
           {providerLabel}
-        </p>
-      </DialogTitle>
+        </DialogDescription>
+      </DialogHeader>
 
-      <DialogContent dividers>
+      {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+      <div className="border-y border-solid border-[var(--line)] py-3">
         {result === null ? (
           <>
             <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.55] mb-2.5">
@@ -138,28 +141,32 @@ export default function AffiliateImportDialog({
             />
 
             {error && (
-              <Alert severity="error" sx={{ mt: 1.75, borderRadius: "8px" }}>
-                {error}
+              <Alert variant="destructive" className="mt-[10.5px]">
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
           </>
         ) : (
           <>
             {result.length === 0 ? (
-              <Alert severity="warning" sx={{ borderRadius: "8px" }}>
-                {t(
-                  "settings.services.importEmpty",
-                  "Aucune commission exploitable dans ce fichier : les lignes sans référence ni montant sont ignorées.",
-                )}
+              <Alert variant="warning">
+                <AlertDescription>
+                  {t(
+                    "settings.services.importEmpty",
+                    "Aucune commission exploitable dans ce fichier : les lignes sans référence ni montant sont ignorées.",
+                  )}
+                </AlertDescription>
               </Alert>
             ) : (
               <>
-                <Alert severity="success" sx={{ borderRadius: "8px", mb: 1.75 }}>
-                  {t("settings.services.importDone", "{{count}} commission(s) enregistrée(s).", {
-                    count: result.length,
-                  })}
+                <Alert variant="success" className="mb-[10.5px]">
+                  <AlertDescription>
+                    {t("settings.services.importDone", "{{count}} commission(s) enregistrée(s).", {
+                      count: result.length,
+                    })}
+                  </AlertDescription>
                 </Alert>
-                <Stack spacing={0.875}>
+                <div className="flex flex-col gap-[5.25px]">
                   {[
                     {
                       key: "gross",
@@ -196,7 +203,7 @@ export default function AffiliateImportDialog({
                       </p>
                     </div>
                   ))}
-                </Stack>
+                </div>
                 <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-2 leading-[1.5]">
                   {t(
                     "settings.services.importIdempotent",
@@ -207,27 +214,26 @@ export default function AffiliateImportDialog({
             )}
           </>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions>
-        <Button onClick={handleClose} size="small">
+      <DialogFooter>
+        <Button variant="ghost" size="sm" onClick={handleClose}>
           {result === null
             ? t("common.cancel", "Annuler")
             : t("common.close", "Fermer")}
         </Button>
         {result === null && (
           <Button
-            variant="contained"
-            disableElevation
-            size="small"
+            size="sm"
             onClick={handleImport}
             disabled={!file || busy}
-            startIcon={busy ? <Spinner className="size-3.5" /> : undefined}
           >
+            {busy && <Spinner className="size-3.5" />}
             {t("settings.services.importAction", "Importer")}
           </Button>
         )}
-      </DialogActions>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

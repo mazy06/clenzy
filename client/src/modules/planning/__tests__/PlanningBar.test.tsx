@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ThemeProvider, createTheme } from '@mui/material';
 import PlanningBar from '../PlanningBar';
 import type { BarLayout, PlanningEvent } from '../types';
 
@@ -47,7 +46,6 @@ vi.mock('../../../hooks/useCurrency', () => ({
 
 // ─── Test fixtures ──────────────────────────────────────────────────────────
 
-const theme = createTheme();
 
 const baseEvent: PlanningEvent = {
   id: 'res-1',
@@ -71,7 +69,6 @@ const baseLayout: BarLayout = {
 
 function renderBar(props?: Partial<React.ComponentProps<typeof PlanningBar>>) {
   return render(
-    <ThemeProvider theme={theme}>
       <PlanningBar
         layout={baseLayout}
         zoom="week"
@@ -83,7 +80,6 @@ function renderBar(props?: Partial<React.ComponentProps<typeof PlanningBar>>) {
         onClick={vi.fn()}
         {...props}
       />
-    </ThemeProvider>,
   );
 }
 

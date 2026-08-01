@@ -3,23 +3,22 @@ import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
-  Chip,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  TextField,
   Button,
-  InputAdornment,
-  Stack,
-  IconButton,
-  Tooltip,
-  Tabs,
-  Tab,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from "@mui/material";
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import PageTabs from '../../components/PageTabs';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Save,
   Payment,
@@ -189,13 +188,9 @@ const isProviderConfigured = (
 
 export default function PaymentSettings() {
   const { t } = useTranslation();
+  const { showNotification } = useNotification();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error",
-  });
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [configDialogProvider, setConfigDialogProvider] =
     useState<PaymentProviderType | null>(null);
@@ -338,19 +333,12 @@ export default function PaymentSettings() {
             : c
         )
       );
-      setSnackbar({
-        open: true,
-        message: `${PAYMENT_PROVIDER_LABELS[providerType]} ${
-          !currentEnabled ? "activé" : "désactivé"
-        }`,
-        severity: "success",
-      });
+      showNotification(
+        `${PAYMENT_PROVIDER_LABELS[providerType]} ${!currentEnabled ? "activé" : "désactivé"}`,
+        "success",
+      );
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de la mise à jour",
-        severity: "error",
-      });
+      showNotification("Erreur lors de la mise à jour", "error");
     }
   };
 
@@ -377,11 +365,7 @@ export default function PaymentSettings() {
           )
         : [...prev, updated];
     });
-    setSnackbar({
-      open: true,
-      message: `${PAYMENT_PROVIDER_LABELS[configDialogProvider]} configuré`,
-      severity: "success",
-    });
+    showNotification(`${PAYMENT_PROVIDER_LABELS[configDialogProvider]} configuré`, "success");
   };
 
   const splitTotal = useCallback(() => {
@@ -432,28 +416,16 @@ export default function PaymentSettings() {
    */
   const handleSaveAll = async () => {
     if (splitBlocksSave) {
-      setSnackbar({
-        open: true,
-        message: t("settings.split.totalError"),
-        severity: "error",
-      });
+      showNotification(t("settings.split.totalError"), "error");
       return;
     }
     setSaving(true);
     try {
       if (isSplitDirty) await saveSplit();
       if (monetization.isDirty) await monetization.save();
-      setSnackbar({
-        open: true,
-        message: t("settings.split.saved"),
-        severity: "success",
-      });
+      showNotification(t("settings.split.saved"), "success");
     } catch {
-      setSnackbar({
-        open: true,
-        message: t("settings.split.error"),
-        severity: "error",
-      });
+      showNotification(t("settings.split.error"), "error");
     } finally {
       setSaving(false);
     }
@@ -461,28 +433,12 @@ export default function PaymentSettings() {
 
   const headerActions = useSettingsHeaderActions(
     <>
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={<CreditCard size={14} strokeWidth={1.75} />}
-        onClick={() => setProvidersOpen(true)}
-      >
+      <Button variant="outline" size="sm" onClick={() => setProvidersOpen(true)}>
+        <CreditCard size={14} strokeWidth={1.75} />
         {t("settings.providers.open", "Fournisseurs")}
       </Button>
-      <Button
-        variant="contained"
-        disableElevation
-        size="small"
-        startIcon={
-          saving ? (
-            <Spinner className="size-3.5" />
-          ) : (
-            <Save size={14} strokeWidth={1.75} />
-          )
-        }
-        disabled={!canSave}
-        onClick={handleSaveAll}
-      >
+      <Button size="sm" disabled={!canSave} onClick={handleSaveAll}>
+        {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
         {saving
           ? t("settings.split.saving", "Sauvegarde...")
           : t("settings.split.save")}
@@ -511,17 +467,9 @@ export default function PaymentSettings() {
       {headerActions}
       {/* Fournisseurs de paiement — dans une modale : c'est une configuration
           qu'on ouvre pour brancher un PSP, pas une lecture du quotidien. */}
-      <Dialog
-        open={providersOpen}
-        onClose={() => setProvidersOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        aria-labelledby="payment-providers-title"
-      >
-        <DialogTitle
-          id="payment-providers-title"
-          sx={{ display: "flex", alignItems: "center", gap: 1.25, pb: 1 }}
-        >
+      <Dialog open={providersOpen} onOpenChange={setProvidersOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader className="flex-row items-center gap-[7.5px] pb-1 space-y-0">
           <div
             className="w-8 h-8 rounded-[8px] inline-flex items-center justify-center shrink-0 text-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
             aria-hidden="true"
@@ -529,18 +477,19 @@ export default function PaymentSettings() {
             <Payment size={16} strokeWidth={1.75} />
           </div>
           <div className="min-w-0">
-            <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.25]">
+            <DialogTitle className="text-[0.95rem] font-semibold leading-[1.25]">
               {t("settings.providers.title", "Fournisseurs de paiement")}
-            </p>
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.35]">
+            </DialogTitle>
+            <DialogDescription className="text-[0.72rem] leading-[1.35]">
               {t(
                 "settings.providers.subtitle",
                 "Activez ou désactivez les fournisseurs pour votre organisation."
               )}
-            </p>
+            </DialogDescription>
           </div>
-        </DialogTitle>
-        <DialogContent dividers>
+        </DialogHeader>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3 max-h-[60vh] overflow-y-auto">
           {allProviders.map((type, index) => {
             const config = getConfig(type);
             const enabled = config?.enabled ?? false;
@@ -572,29 +521,26 @@ export default function PaymentSettings() {
             // n'expose pas ce slot. On va plutot wrapper la ligne dans un
             // Box avec un IconButton positionne en absolu.
             const configureButton = isConfigurable ? (
-              <Tooltip
-                title={
-                  isConfigured ? "Reconfigurer" : "Configurer les credentials"
-                }
-                arrow
-              >
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openConfigDialog(type);
-                  }}
-                  sx={{
-                    ml: 0.5,
-                    color: isConfigured ? "text.secondary" : "var(--warn)",
-                    "&:hover": {
-                      color: "var(--accent)",
-                      backgroundColor: "var(--accent-soft)",
-                    },
-                  }}
-                >
-                  <SettingsIcon size={16} strokeWidth={1.75} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openConfigDialog(type);
+                    }}
+                    className={cn(
+                      'ms-[3px] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
+                      isConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]',
+                    )}
+                  >
+                    <SettingsIcon size={16} strokeWidth={1.75} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isConfigured ? "Reconfigurer" : "Configurer les credentials"}
+                </TooltipContent>
               </Tooltip>
             ) : null;
 
@@ -626,12 +572,13 @@ export default function PaymentSettings() {
               </div>
             );
           })}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setProvidersOpen(false)} size="small">
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={() => setProvidersOpen(false)}>
             {t("common.close", "Fermer")}
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <div className="flex flex-col gap-3">
@@ -642,32 +589,18 @@ export default function PaymentSettings() {
           accent="warm"
           help={t("settings.split.subtitle")}
         >
-          <Tabs
+          {/* Rangee interne a la section, pas le niveau de navigation de la
+              page : `trail={false}` l'empeche de polluer le fil d'Ariane. */}
+          <PageTabs
+            className="mb-[10.5px]"
+            trail={false}
             value={splitTab}
-            onChange={(_, v) => setSplitTab(v)}
-            variant="scrollable"
-            scrollButtons={false}
-            sx={{
-              minHeight: 34,
-              mb: 1.75,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              "& .MuiTab-root": {
-                minHeight: 34,
-                py: 0,
-                px: 1.25,
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                textTransform: "none",
-                color: "text.secondary",
-                "&.Mui-selected": { color: "var(--accent)" },
-              },
-              "& .MuiTabs-indicator": { backgroundColor: "var(--accent)", height: 2 },
-            }}
-          >
-            <Tab label={t("settings.split.tabChannels", "Canaux de distribution")} />
-            <Tab label={t("settings.split.tabServices", "Services & activités")} />
-          </Tabs>
+            onChange={setSplitTab}
+            options={[
+              { value: 0, label: t("settings.split.tabChannels", "Canaux de distribution") },
+              { value: 1, label: t("settings.split.tabServices", "Services & activités") },
+            ]}
+          />
 
           {splitTab === 0 ? (
             <RevenueSplitPanel
@@ -746,19 +679,6 @@ export default function PaymentSettings() {
         onSave={handleSaveProviderConfig}
       />
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          sx={{ borderRadius: "8px" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }
@@ -778,25 +698,27 @@ const ShareInput: React.FC<ShareInputProps> = ({
   onChange,
   color,
 }) => (
-  <TextField
-    label={label}
-    type="number"
-    size="small"
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    InputProps={{
-      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-      inputProps: { min: 0, max: 100, step: 0.01 },
-      sx: {
-        "& input": {
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 600,
-          color,
-        },
-      },
-    }}
-    fullWidth
-  />
+  <Field className="w-full">
+    <FieldLabel htmlFor={`share-${label}`}>{label}</FieldLabel>
+    <div className="relative">
+      <Input
+        id={`share-${label}`}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        min={0}
+        max={100}
+        step={0.01}
+        className="tabular-nums font-semibold pe-6"
+        // La teinte vient d'une valeur d'execution : une classe arbitraire ne
+        // peut pas naitre a la compilation.
+        style={{ color }}
+      />
+      <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+        %
+      </span>
+    </div>
+  </Field>
 );
 
 // ─── Projection des reversements par canal ──────────────────────────────────
@@ -866,10 +788,11 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
   const { label, color, soft } = meta[provenance];
 
   return (
-    <Tooltip title={tooltip[provenance]}>
-      {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-          (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-      <span className="inline-flex">
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* L'infobulle pose une ref sur son enfant, que StatusChip ne transmet
+            pas (React 18, composant fonction) : sans ce span, elle ne s'ancre pas. */}
+        <span className="inline-flex">
         <StatusChip
           tokens={{ color, bg: soft }}
           label={label}
@@ -877,8 +800,10 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
           // une classe arbitraire ne peut pas naitre d'une valeur d'execution.
           sx={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
           className="h-[20px] border border-solid text-[0.65rem] tracking-[0.01em]"
-        />
-      </span>
+          />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{tooltip[provenance]}</TooltipContent>
     </Tooltip>
   );
 }
@@ -1004,16 +929,8 @@ function ChannelProjectionTable({
                 <ChannelCell row={row} />
               </TableCell>
               <TableCell className="text-end">
-                <Tooltip
-                  title={
-                    drifts
-                      ? t(
-                          "settings.commissions.driftHint",
-                          "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant."
-                        )
-                      : ""
-                  }
-                >
+                <Tooltip>
+                  <TooltipTrigger asChild>
                   <span
                     className={cn(
                       PROJECTION_NUMBER_CLASS,
@@ -1028,6 +945,16 @@ function ChannelProjectionTable({
                   >
                     {fee > 0 ? `−${formatMoney(fee)}` : formatMoney(0)}
                   </span>
+                  </TooltipTrigger>
+                  {/* Pas d'infobulle quand il n'y a pas d'ecart : elle serait vide. */}
+                  {drifts && (
+                    <TooltipContent>
+                      {t(
+                        "settings.commissions.driftHint",
+                        "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant."
+                      )}
+                    </TooltipContent>
+                  )}
                 </Tooltip>
               </TableCell>
               <TableCell className="text-end">
@@ -1165,11 +1092,7 @@ function RevenueSplitPanel({
           </div>
 
           {/* Champs de saisie — memes reglages que la barre, valeur exacte. */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.25}
-            sx={{ mb: 1.5 }}
-          >
+          <div className="flex flex-col min-[600px]:flex-row gap-[7.5px] mb-[9px]">
             {inputs.map((input) => (
               <ShareInput
                 key={input.key}
@@ -1179,7 +1102,7 @@ function RevenueSplitPanel({
                 color={input.color}
               />
             ))}
-          </Stack>
+          </div>
 
           {/* Total — l'enregistrement vit dans le header de la page. */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -1254,63 +1177,43 @@ function BookingEngineRateRow({
       <p className="cn-text-body1 text-[0.75rem] text-muted-foreground font-medium">
         {t("settings.commissions.bookingEngineRate", "Taux du booking engine")}
       </p>
-      <TextField
-        type="number"
-        size="small"
-        value={value}
-        onChange={(e) => setRate(e.target.value)}
-        inputProps={{
-          min: 0,
-          max: 100,
-          step: 0.5,
-          "aria-label": t(
+      <div className="relative inline-block w-[110px]">
+        <Input
+          type="number"
+          value={value}
+          onChange={(e) => setRate(e.target.value)}
+          min={0}
+          max={100}
+          step={0.5}
+          aria-label={t(
             "settings.commissions.bookingEngineRate",
             "Taux du booking engine"
-          ),
-          style: {
-            textAlign: "center",
-            fontVariantNumeric: "tabular-nums",
-            fontWeight: 600,
-          },
-        }}
-        InputProps={{
-          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-          sx: { fontSize: "0.8125rem" },
-        }}
-        sx={{ width: 110 }}
-      />
+          )}
+          className="text-center text-[0.8125rem] font-semibold tabular-nums pe-6"
+        />
+        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+          %
+        </span>
+      </div>
       {saved ? (
         <StatusChip color={"var(--ok)"} label={t("common.saved", "Sauvegardé")} />
       ) : (
-        <Tooltip title={t("common.save", "Enregistrer")}>
-          <IconButton
-            size="small"
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            aria-label={t("common.save", "Enregistrer")}
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: "7px",
-              color: "text.secondary",
-              border: "1px solid",
-              borderColor: "divider",
-              transition:
-                "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-              "&:hover": {
-                color: "var(--accent)",
-                borderColor:
-                  "color-mix(in srgb, var(--accent) 40%, transparent)",
-                backgroundColor: "var(--accent-soft)",
-              },
-              "&:focus-visible": {
-                outline: "2px solid var(--accent)",
-                outlineOffset: 2,
-              },
-            }}
-          >
-            <Save size={13} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+                aria-label={t("common.save", "Enregistrer")}
+                className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+              >
+                <Save size={13} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t("common.save", "Enregistrer")}</TooltipContent>
         </Tooltip>
       )}
     </div>

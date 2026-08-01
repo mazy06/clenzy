@@ -2,12 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-// ThemeProvider / CssBaseline restent MUI : cette page est montee hors du shell
-// applicatif et BaitlyMarkLogo lit encore le theme MUI (useTheme).
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient from '../../services/apiClient';
@@ -16,7 +12,6 @@ export default function InscriptionSuccess() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
@@ -62,8 +57,8 @@ export default function InscriptionSuccess() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    // Montee hors du shell applicatif : elle porte son propre mode clair.
+    <div data-theme="light" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
         <div className="p-[18px] min-[600px]:p-6 w-full max-w-[480px] rounded-[24px] bg-[rgba(255,255,255,0.95)] backdrop-blur-[10px] border border-solid border-[rgba(255,255,255,0.2)] shadow-[0_8px_24px_rgba(0,0,0,0.16)] text-center">
           {/* Logo */}
@@ -149,6 +144,6 @@ export default function InscriptionSuccess() {
           )}
         </div>
       </div>
-    </ThemeProvider>
+    </div>
   );
 }

@@ -5,8 +5,10 @@ import {
   Button,
   Field,
   FieldDescription,
+  FieldError,
   FieldLabel,
   Input,
+  Textarea,
   NativeSelect,
   Dialog,
   DialogContent,
@@ -16,10 +18,6 @@ import {
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-// TextField reste MUI : `inputRef` porte l'insertion de variable A LA POSITION
-// DU CURSEUR ; les primitifs du kit sont de simples fonctions et ne recoivent
-// pas de ref sous React 18 — la convertir casserait le comportement en silence.
-import { TextField } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -252,31 +250,35 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                     </NativeSelect>
                   </Field>
                 </div>
-                {/* Body multiline (pas de subject pour WhatsApp).
-                    Reste en TextField MUI : `inputRef` porte l'insertion de variable
-                    a la position du curseur, or les primitives du kit sont des
-                    composants fonction sans forwardRef (React 18) — la ref resterait
-                    nulle et l'insertion retomberait silencieusement en fin de champ. */}
+                {/* Body multiline (pas de subject pour WhatsApp). La ref porte
+                    l'insertion de variable A LA POSITION DU CURSEUR : elle vise
+                    donc le <textarea> lui-meme, pas son enveloppe. */}
                 <div className="col-span-12">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.body')}
-                    value={body}
-                    onChange={(e) => { setBody(e.target.value); setTouched(true); }}
-                    inputRef={bodyRef}
-                    multiline
-                    rows={12}
-                    required
-                    error={isOverLimit}
-                    helperText={
-                      isOverLimit
-                        ? t('whatsappTemplates.dialog.tooLong', { count: charCount })
-                        : t('whatsappTemplates.dialog.charCount', { count: charCount })
-                    }
-                    InputProps={{
-                      sx: language === 'ar_AR' ? { direction: 'rtl' } : undefined,
-                    }}
-                  />
+                  <Field data-invalid={isOverLimit || undefined}>
+                    <FieldLabel htmlFor="wa-template-body">
+                      {t('messaging.templates.editor.body')}
+                    </FieldLabel>
+                    <Textarea
+                      id="wa-template-body"
+                      ref={bodyRef}
+                      value={body}
+                      onChange={(e) => { setBody(e.target.value); setTouched(true); }}
+                      required
+                      aria-invalid={isOverLimit || undefined}
+                      // `field-sizing: content` du kit neutralise `rows` : la
+                      // hauteur se pose en lignes (`lh`).
+                      className={cn('min-h-[12lh]', language === 'ar_AR' && '[direction:rtl]')}
+                    />
+                    {isOverLimit ? (
+                      <FieldError>
+                        {t('whatsappTemplates.dialog.tooLong', { count: charCount })}
+                      </FieldError>
+                    ) : (
+                      <FieldDescription>
+                        {t('whatsappTemplates.dialog.charCount', { count: charCount })}
+                      </FieldDescription>
+                    )}
+                  </Field>
                 </div>
               </div>
 

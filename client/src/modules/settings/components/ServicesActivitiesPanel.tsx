@@ -3,15 +3,13 @@ import { Spinner } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
 import {
   Alert,
-  Box,
-  Stack,
-  CircularProgress,
-  IconButton,
-  InputAdornment,
-  TextField,
+  AlertDescription,
+  Button,
+  Input,
   Tooltip,
-  Typography,
-} from "@mui/material";
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Table,
   TableHeader,
@@ -226,7 +224,7 @@ export default function ServicesActivitiesPanel({
         <SplitBarEditor segments={segments} onChange={handleSegmentsChange} />
       </div>
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mb: 1.5 }}>
+      <div className="flex flex-col min-[600px]:flex-row gap-[7.5px] mb-[9px]">
         {renderInput({
           key: "upsellPlatform",
           label: t("settings.monetization.upsellFee", "Part plateforme (upsells)"),
@@ -244,13 +242,15 @@ export default function ServicesActivitiesPanel({
           onChange: onOrgPctChange,
           color: SHARE_CONCIERGE,
         })}
-      </Stack>
+      </div>
 
-      <Alert severity="info" sx={{ borderRadius: "8px", mb: 2.5 }}>
-        {t(
-          "settings.services.contractOverride",
-          "La part conciergerie peut être surchargée par le contrat de gestion d’un logement : c’est alors le taux du contrat qui s’applique, pas celui-ci.",
-        )}
+      <Alert variant="info" className="mb-[15px]">
+        <AlertDescription>
+          {t(
+            "settings.services.contractOverride",
+            "La part conciergerie peut être surchargée par le contrat de gestion d’un logement : c’est alors le taux du contrat qui s’applique, pas celui-ci.",
+          )}
+        </AlertDescription>
       </Alert>
 
       <div className="border-t border-[var(--line)] pt-2">
@@ -310,31 +310,26 @@ export default function ServicesActivitiesPanel({
                       />
                     </TableCell>
                     <TableCell className="text-center">
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder="0"
-                        value={rates[provider] ?? ""}
-                        onChange={(e) =>
-                          setRates((prev) => ({ ...prev, [provider]: e.target.value }))
-                        }
-                        inputProps={{
-                          min: 0,
-                          max: 100,
-                          step: 0.5,
-                          "aria-label": `${t("settings.services.baitlyRate", "Part Baitly")} — ${PROVIDER_LABELS[provider]}`,
-                          style: {
-                            textAlign: "center",
-                            fontVariantNumeric: "tabular-nums",
-                            fontWeight: 600,
-                          },
-                        }}
-                        InputProps={{
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                          sx: { fontSize: "0.8125rem" },
-                        }}
-                        sx={{ width: 108 }}
-                      />
+                      <div className="relative inline-block w-[108px]">
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={rates[provider] ?? ""}
+                          onChange={(e) =>
+                            setRates((prev) => ({ ...prev, [provider]: e.target.value }))
+                          }
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          aria-label={`${t("settings.services.baitlyRate", "Part Baitly")} — ${PROVIDER_LABELS[provider]}`}
+                          className="text-center text-[0.8125rem] font-semibold tabular-nums pe-6"
+                        />
+                        {/* Le « % » ne doit pas intercepter le clic : sinon il
+                            volerait le focus du champ qu'il annote. */}
+                        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+                          %
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-end">
                       <p className="cn-text-body1 text-[0.78rem] font-bold tabular-nums text-foreground">
@@ -343,71 +338,48 @@ export default function ServicesActivitiesPanel({
                     </TableCell>
                     <TableCell className="text-end">
                       <div className="inline-flex gap-0.5">
-                      <Tooltip
-                        title={t(
-                          "settings.services.importTooltip",
-                          "Importer un rapport de conversions",
-                        )}
-                      >
-                        <IconButton
-                          size="small"
-                          onClick={() => setImportProvider(provider as ActivityProvider)}
-                          aria-label={`${t("settings.services.importTitle", "Importer un rapport")} — ${PROVIDER_LABELS[provider]}`}
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: "7px",
-                            color: "text.secondary",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            transition:
-                              "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-                            "&:hover": {
-                              color: "var(--accent)",
-                              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
-                            },
-                            "&:focus-visible": {
-                              outline: "2px solid var(--accent)",
-                              outlineOffset: 2,
-                            },
-                          }}
-                        >
-                          <Upload size={13} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={t("common.save", "Enregistrer")}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            onClick={() => saveRate(provider)}
-                            disabled={savingProvider === provider}
-                            aria-label={t("common.save", "Enregistrer")}
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "7px",
-                              color: "text.secondary",
-                              border: "1px solid",
-                              borderColor: "divider",
-                              transition:
-                                "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-                              "&:hover": {
-                                color: "var(--accent)",
-                                borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
-                              },
-                              "&:focus-visible": {
-                                outline: "2px solid var(--accent)",
-                                outlineOffset: 2,
-                              },
-                            }}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setImportProvider(provider as ActivityProvider)}
+                            aria-label={`${t("settings.services.importTitle", "Importer un rapport")} — ${PROVIDER_LABELS[provider]}`}
+                            className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
                           >
-                            {savingProvider === provider ? (
-                              <Spinner className="size-[13px]" />
-                            ) : (
-                              <Save size={13} strokeWidth={1.75} />
-                            )}
-                          </IconButton>
-                        </span>
+                            <Upload size={13} strokeWidth={1.75} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t(
+                            "settings.services.importTooltip",
+                            "Importer un rapport de conversions",
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le declencheur reste monte meme desactive : sinon
+                              l'infobulle disparaitrait pendant l'enregistrement,
+                              au moment ou elle est le plus utile. */}
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => saveRate(provider)}
+                              disabled={savingProvider === provider}
+                              aria-label={t("common.save", "Enregistrer")}
+                              className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                            >
+                              {savingProvider === provider ? (
+                                <Spinner className="size-[13px]" />
+                              ) : (
+                                <Save size={13} strokeWidth={1.75} />
+                              )}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("common.save", "Enregistrer")}</TooltipContent>
                       </Tooltip>
                       </div>
                     </TableCell>

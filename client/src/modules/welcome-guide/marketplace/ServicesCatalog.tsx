@@ -35,8 +35,13 @@ interface Props {
   onAdd: (exp: MarketplaceExperience) => Promise<void>;
   /** Ouvre le détail d'un service interne (géré par le parent). */
   onOpenInternal: (o: UpsellOffer) => void;
-  /** Ouvre le menu d'actions « … » d'un service interne (ancré sur l'élément). */
-  onMenuInternal: (el: HTMLElement, o: UpsellOffer) => void;
+  /**
+   * Menu d'actions « … » d'un service interne, rendu par le parent AVEC son
+   * declencheur. Le catalogue ne fait que lui donner sa place dans la ligne :
+   * un menu Radix ancre son panneau sur le declencheur qu'il rend lui-meme, et
+   * ne saurait pas quoi faire d'un `anchorEl` recu apres coup.
+   */
+  renderRowMenu: (o: UpsellOffer) => React.ReactNode;
 }
 
 const fmtEur = (n: number) => `${n} €`;
@@ -50,7 +55,7 @@ const tint = (hex: string, pct: number) => `color-mix(in srgb, ${hex} ${pct}%, t
  */
 export default function ServicesCatalog({
   loading = false, offers, search = '', kpis, addedTitles = [], typeLabel,
-  onAdd, onOpenInternal, onMenuInternal,
+  onAdd, onOpenInternal, renderRowMenu,
 }: Props) {
   const [view, setView] = useState<View>('cards');
   const [filter, setFilter] = useState<Filter>('Tous');
@@ -123,16 +128,6 @@ export default function ServicesCatalog({
       </button>
     );
   };
-
-  // Bouton menu « … » d'un service interne.
-  const menuBtn = (o: UpsellOffer) => (
-    <button
-      type="button" className="mp-imenu" aria-label="Actions"
-      onClick={(ev) => { ev.stopPropagation(); onMenuInternal(ev.currentTarget, o); }}
-    >
-      <MoreHorizontal size={18} strokeWidth={2} />
-    </button>
-  );
 
   // ── Écran de détail (expérience partenaire) ─────────────────────────────────
   if (selected) {
@@ -362,7 +357,7 @@ export default function ServicesCatalog({
           <p className="mp-card__desc">{typeLabel(o.type)}</p>
           <div className="mp-card__foot">
             <div className="mp-price"><span className="mp-price__v">{fmtPrice(o.price, o.currency)}</span></div>
-            {menuBtn(o)}
+            {renderRowMenu(o)}
           </div>
         </div>
       </article>
@@ -407,7 +402,7 @@ export default function ServicesCatalog({
         <span className={'mp-stat ' + (o.active ? 'on' : 'off')}><span className="mp-stat__led" />{o.active ? 'Actif' : 'Inactif'}</span>
         <span className="mp-row__price">{fmtPrice(o.price, o.currency)}</span>
         <span className="mp-row__chans">{chans}</span>
-        {menuBtn(o)}
+        {renderRowMenu(o)}
       </div>
     );
   }

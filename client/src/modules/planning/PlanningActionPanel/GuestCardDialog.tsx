@@ -8,12 +8,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Input,
   Separator,
 } from '../../../components/ui';
-// TextField laisse en MUI : `inputRef` porte ici le comportement (focus du champ
-// au passage en edition). Les primitives du kit sont des fonctions et ne
-// transmettent pas de ref sous React 18 — la conversion casserait le focus.
-import { TextField } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   Close,
@@ -44,6 +41,15 @@ interface GuestCardDialogProps {
   allEvents: PlanningEvent[];
   onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<{ success: boolean; error: string | null }>;
 }
+
+/**
+ * Champ d'edition en place : on neutralise le cadre de `.cn-input` pour ne
+ * garder qu'un filet sous le texte. C'est l'equivalent du `variant="standard"`
+ * de MUI — la valeur se lit comme du texte, le champ ne se signale qu'a
+ * l'edition, et la fiche ne se transforme pas en formulaire.
+ */
+const CHAMP_EN_PLACE =
+  'h-auto w-full rounded-none border-0 border-b border-solid border-[var(--line-2)] bg-transparent px-0 py-0.5 focus-visible:border-[var(--accent)] focus-visible:ring-0';
 
 const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reservation, allEvents, onUpdateGuestInfo }) => {
   // Find all reservations from the same guest (by name match)
@@ -179,17 +185,15 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               {/* Editable guest name */}
               {editingField === 'name' ? (
                 <div className="flex items-center gap-0.5">
-                  <TextField
-                    inputRef={editRef}
+                  <Input
+                    ref={editRef}
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={handleEditKeyDown}
                     onBlur={commitEdit}
                     disabled={saving}
-                    size="small"
-                    fullWidth
-                    variant="standard"
-                    sx={{ '& input': { fontSize: '1rem', fontWeight: 700 } }}
+                    aria-label="Nom du voyageur"
+                    className={cn(CHAMP_EN_PLACE, 'text-[1rem] font-bold')}
                   />
                   {saving && <Spinner className="size-3.5" />}
                 </div>
@@ -221,17 +225,15 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 {editingField === 'email' ? (
                   <div className="flex items-center gap-0.5">
                     <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
-                    <TextField
-                      inputRef={editRef}
+                    <Input
+                      ref={editRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       disabled={saving}
-                      size="small"
-                      fullWidth
-                      variant="standard"
                       placeholder="email@exemple.com"
-                      sx={{ '& input': { fontSize: '0.75rem' } }}
+                      aria-label="Email du voyageur"
+                      className={cn(CHAMP_EN_PLACE, 'text-[0.75rem]')}
                     />
                     {saving ? <Spinner className="size-3" /> : (
                       <Button variant="ghost" size="icon-xs" aria-label="Valider l'email" onClick={commitEdit}>
@@ -264,18 +266,16 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 {editingField === 'phone' ? (
                   <div className="flex items-center gap-0.5">
                     <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
-                    <TextField
-                      inputRef={editRef}
+                    <Input
+                      ref={editRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       onBlur={commitEdit}
                       disabled={saving}
-                      size="small"
-                      fullWidth
-                      variant="standard"
                       placeholder="+33 6 12 34 56 78"
-                      sx={{ '& input': { fontSize: '0.75rem' } }}
+                      aria-label="Telephone du voyageur"
+                      className={cn(CHAMP_EN_PLACE, 'text-[0.75rem]')}
                     />
                     {saving && <Spinner className="size-3" />}
                   </div>
