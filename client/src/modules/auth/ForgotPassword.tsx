@@ -158,7 +158,7 @@ export default function ForgotPassword() {
       )}
 
       {/* ── Footer : retour login + support ── */}
-      <div className="mt-6 pt-4 border-t border-[divider]">
+      <div className="mt-6 pt-4 border-t border-[var(--line)]">
         <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
           {t('auth.forgotPassword.rememberedPassword', 'Tu te souviens de ton mot de passe ?')}{' '}
           <Link

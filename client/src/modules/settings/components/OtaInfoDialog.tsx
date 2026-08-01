@@ -193,7 +193,7 @@ export default function OtaInfoDialog({
     <IntegrationConfigDialog open={open} onClose={onClose}>
       <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* ─── Header (uniforme avec ApiKeyConnectionCard) ─────────────── */}
-        <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
+        <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
           <Box
             sx={{
               width: 40,

@@ -31,7 +31,7 @@ interface TabEntretienProps {
 const FORFAIT_ICONS = [
   <span className="inline-flex text-primary"><AutoAwesome key="s" size={20} strokeWidth={1.75} /></span>,
   <span className="inline-flex text-[var(--bui-warning-ink)]"><Bolt key="e" size={20} strokeWidth={1.75} /></span>,
-  <span className="inline-flex text-[secondary.main]"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-[#A6C0CE]"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
 ];
 
 export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
@@ -169,7 +169,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'propertyType'} onChange={handleAccordionChange('propertyType')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[secondary.main]"><Home size={20} strokeWidth={1.75} /></span>
+            <span className="inline-flex text-[#A6C0CE]"><Home size={20} strokeWidth={1.75} /></span>
             <div>
               <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyType.title')}</h6>
               <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>

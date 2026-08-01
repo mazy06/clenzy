@@ -331,7 +331,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         }}
       >
         {metrics.map((m) => (
-          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[divider] rounded-[1px] min-w-0 gap-0" key={m.label}>
+          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[1px] min-w-0 gap-0" key={m.label}>
             <span className="inline-flex text-muted-foreground">{m.icon}</span>
             <Typography sx={{ fontSize: BODY_FS, fontWeight: 700, lineHeight: 1 }}>{m.value}</Typography>
             <Typography sx={{ fontSize: MICRO_FS, color: 'text.secondary', lineHeight: 1.1 }}>{m.label}</Typography>

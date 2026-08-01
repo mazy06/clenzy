@@ -90,7 +90,7 @@ function formatRelative(iso: string | null): string {
 function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
   const meta = CHANNEX_STATUS_META[snapshot.status];
   return (
-    <div className="border border-[divider] rounded-[1px] p-2 bg-[var(--surface-2)]">
+    <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
       <Stack spacing={0.85}>
         <div className="flex items-center gap-2">
           <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">

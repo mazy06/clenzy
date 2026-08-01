@@ -43,11 +43,11 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   intervention: <span className="inline-flex text-primary"><Build size={18} strokeWidth={1.75} /></span>,
   service_request: <span className="inline-flex text-[var(--bui-warning-ink)]"><Description size={18} strokeWidth={1.75} /></span>,
   payment: <span className="inline-flex text-[var(--bui-success-ink)]"><Payment size={18} strokeWidth={1.75} /></span>,
-  system: <span className="inline-flex text-[secondary.main]"><Info size={18} strokeWidth={1.75} /></span>,
-  team: <span className="inline-flex text-[info.main]"><Groups size={18} strokeWidth={1.75} /></span>,
+  system: <span className="inline-flex text-[#A6C0CE]"><Info size={18} strokeWidth={1.75} /></span>,
+  team: <span className="inline-flex text-[#7BA3C2]"><Groups size={18} strokeWidth={1.75} /></span>,
   contact: <span className="inline-flex text-destructive"><Email size={18} strokeWidth={1.75} /></span>,
-  document: <span className="inline-flex text-[warning.dark]"><Description size={18} strokeWidth={1.75} /></span>,
-  reservation: <span className="inline-flex text-[info.main]"><EventNote size={18} strokeWidth={1.75} /></span>,
+  document: <span className="inline-flex text-[#B88A5A]"><Description size={18} strokeWidth={1.75} /></span>,
+  reservation: <span className="inline-flex text-[#7BA3C2]"><EventNote size={18} strokeWidth={1.75} /></span>,
   guest_messaging: <span className="inline-flex text-destructive"><Email size={18} strokeWidth={1.75} /></span>,
 };
 
@@ -284,7 +284,7 @@ export default function NotificationsPage() {
               }}
             >
               {/* Icon */}
-              <div className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center bg-[action.hover] shrink-0">
+              <div className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center bg-[var(--hover)] shrink-0">
                 {CATEGORY_ICONS[notification.category] ?? <Info size={18} strokeWidth={1.75} />}
               </div>
 

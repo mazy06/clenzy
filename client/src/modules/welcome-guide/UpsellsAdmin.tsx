@@ -656,7 +656,7 @@ const UpsellsAdmin: React.FC = () => {
         <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
         <DialogContent dividers>
           {previewOffer && (
-            <div className="border border-[divider] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
+            <div className="border border-[var(--line)] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
               <Box sx={{
                 height: 150, bgcolor: 'action.hover',
                 backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none',
@@ -851,7 +851,7 @@ const UpsellsAdmin: React.FC = () => {
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 {edit.imageUrl ? (
-                  <img className="w-[72px] h-[72px] rounded-[1.5px] object-cover block border border-[divider]" src={edit.imageUrl} alt="" />
+                  <img className="w-[72px] h-[72px] rounded-[1.5px] object-cover block border border-[var(--line)]" src={edit.imageUrl} alt="" />
                 ) : null}
                 <Button component="label" variant="outlined" size="small" startIcon={<ImagePlus size={15} strokeWidth={1.75} />}>
                   {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
@@ -905,7 +905,7 @@ const UpsellsAdmin: React.FC = () => {
           ) : (
             <Stack spacing={1.25}>
               {orders.map((order: UpsellOrder) => (
-                <div className="border-b border-[divider] pb-1.5" key={order.id}>
+                <div className="border-b border-[var(--line)] pb-1.5" key={order.id}>
                   <div className="flex justify-between items-center gap-1.5">
                     <p className="cn-text-body2 font-semibold">
                       {order.title}

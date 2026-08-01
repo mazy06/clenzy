@@ -897,7 +897,7 @@ export default function Settings() {
               accent="warm"
               description="Apparence, densité et préférences visuelles"
             >
-              <div className="pb-2 border-b border-[divider]">
+              <div className="pb-2 border-b border-[var(--line)]">
                 <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground mb-0">
                   Apparence
                 </p>

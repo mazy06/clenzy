@@ -359,7 +359,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
         <Grid item xs={12} md={6}>
           <Card className="gap-0 py-0 p-3 h-full">
             <div className="flex items-center gap-1.5 mb-3">
-              <span className="inline-flex text-[secondary.main]"><AccountBalance size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-[#A6C0CE]"><AccountBalance size={20} strokeWidth={1.75} /></span>
               <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
                 {t('fiscal.profile.sectionLegalInfo')}
               </h6>

@@ -87,7 +87,7 @@ function DriftRow({
   const TrendIcon = clenzyHigher ? TrendingUp : TrendingDown;
   const trendColor = clenzyHigher ? 'var(--ok)' : 'var(--err)';
   return (
-    <div className="border border-[divider] rounded-[1px] p-2 bg-[var(--surface-2)]">
+    <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
       <div className="flex items-center gap-2 mb-1.5">
         <Box sx={{ color: trendColor, flexShrink: 0 }}>
           <TrendIcon size={18} strokeWidth={2.2} />

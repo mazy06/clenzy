@@ -768,7 +768,7 @@ function UsageBreakdownTooltip({
       title={
         <div className="p-2 min-w-[280px]">
           {/* Header */}
-          <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[divider]">
+          <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[var(--line)]">
             <Typography variant="caption" sx={{ fontWeight: 700, color: feature.color, letterSpacing: 0.4 }}>
               {feature.label.toUpperCase()}
             </Typography>
@@ -994,7 +994,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
             <Box sx={{ position: 'relative', width: 170, flexShrink: 0, cursor: usageBreakdown.length > 0 ? 'help' : 'default' }}>
               {/* Progress bar background */}
-              <div className="absolute inset-[0px] rounded-[1px] overflow-hidden border border-[divider]">
+              <div className="absolute inset-[0px] rounded-[1px] overflow-hidden border border-[var(--line)]">
                 <Box
                   sx={{
                     position: 'absolute',

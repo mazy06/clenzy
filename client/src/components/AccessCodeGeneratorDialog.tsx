@@ -217,7 +217,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
 
       <DialogContent sx={{ pt: 1 }}>
         {/* Aperçu du code + régénération / copie */}
-        <div className="flex items-center justify-between gap-1.5 p-3 rounded-[2px] bg-[action.hover] border border-[divider]">
+        <div className="flex items-center justify-between gap-1.5 p-3 rounded-[2px] bg-[var(--hover)] border border-[var(--line)]">
           {/* Éditable : l'hôte peut saisir un code précis (boîte à clé existante, digicode imposé). */}
           <InputBase
             value={code}

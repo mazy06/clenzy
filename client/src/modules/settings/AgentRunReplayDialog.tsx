@@ -148,7 +148,7 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
               })}
             </div>
             {replay.userQuery && (
-              <div className="mt-3 pt-2 border-t border-[divider]">
+              <div className="mt-3 pt-2 border-t border-[var(--line)]">
                 <h6 className="cn-text-subtitle2 mb-0.5">
                   {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
                 </h6>

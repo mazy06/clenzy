@@ -151,7 +151,7 @@ export default function ChannexSyncLogsList({
   const hiddenCount = logs.length - visibleLogs.length;
 
   return (
-    <div className="border border-[divider] rounded-[1px] overflow-hidden">
+    <div className="border border-[var(--line)] rounded-[1px] overflow-hidden">
       {/* Header cliquable pour collapse */}
       <Box
         onClick={() => setCollapsed((c) => !c)}

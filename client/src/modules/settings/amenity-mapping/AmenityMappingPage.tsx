@@ -340,7 +340,7 @@ export default function AmenityMappingPage() {
       </Stack>
 
       {/* Tabs */}
-      <div className="border-b border-[divider] mb-3">
+      <div className="border-b border-[var(--line)] mb-3">
         <PageTabs
           options={[
             { value: 'unmapped' as TabKey, label: 'À mapper', badge: unmapped.length, badgeColor: 'warning' },
@@ -495,7 +495,7 @@ export default function AmenityMappingPage() {
                     <span className="cn-text-caption text-muted-foreground opacity-60">→</span>
                     <StatusChip tokens={{ color: SUCCESS, bg: 'var(--ok-soft)' }} label={codeLabelOf(a.clenzyCode)} className="text-[0.7rem]" />
                     {a.otaSource && (
-                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{a.otaSource}</Badge>
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{a.otaSource}</Badge>
                     )}
                   </Stack>
                   <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
@@ -627,7 +627,7 @@ export default function AmenityMappingPage() {
                     <Ban size={14} color="var(--faint)" />
                     <p className="cn-text-body1 font-mono text-[0.85rem]">{i.rawOtaName}</p>
                     {i.otaSource && (
-                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{i.otaSource}</Badge>
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{i.otaSource}</Badge>
                     )}
                   </Stack>
                 </div>
@@ -966,7 +966,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
             {item.rawOtaName}
           </p>
           {item.otaSources[0] && item.otaSources[0] !== 'OTA' && (
-            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{item.otaSources[0]}</Badge>
+            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{item.otaSources[0]}</Badge>
           )}
           <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}</Badge>
         </Stack>

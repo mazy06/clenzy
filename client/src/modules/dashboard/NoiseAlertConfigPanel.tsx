@@ -350,7 +350,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     </div>
 
                     {form.timeWindows.map((tw, idx) => (
-                      <div className="p-2 mb-1.5 rounded-[1px] bg-[grey.50] border border-[divider]" key={idx}>
+                      <div className="p-2 mb-1.5 rounded-[1px] bg-[grey.50] border border-[var(--line)]" key={idx}>
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <TextField
                             size="small"

@@ -764,7 +764,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     const brandFg = otaOption?.brandColorFg ?? '#FFFFFF';
                     const initials = otaOption?.initials ?? ota.otaName.slice(0, 2);
                     return (
-                      <div className="flex items-center gap-2 p-2 rounded-[1.5px] border border-[divider]" key={ota.channelId}>
+                      <div className="flex items-center gap-2 p-2 rounded-[1.5px] border border-[var(--line)]" key={ota.channelId}>
                         <Box
                           sx={{
                             width: 40,

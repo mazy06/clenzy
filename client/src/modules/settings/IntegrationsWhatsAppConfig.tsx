@@ -176,7 +176,7 @@ export default function IntegrationsWhatsAppConfig() {
       <IntegrationConfigDialog open={open} onClose={closeConfig} maxWidth="lg">
         <Card className="gap-0 py-0 overflow-hidden">
           {/* Header — uniforme avec les autres modales d'intégration. */}
-          <div className="px-3 py-2.5 flex items-center gap-2 border-b border-[divider]">
+          <div className="px-3 py-2.5 flex items-center gap-2 border-b border-[var(--line)]">
             <Box
               sx={{
                 width: 40,

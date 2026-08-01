@@ -162,7 +162,7 @@ const PublicKeyVerification: React.FC = () => {
                   <AlertDescription>Code valide</AlertDescription>
                 </Alert>
 
-                <div className="p-3 border border-[divider] rounded-[1.5px] mb-3">
+                <div className="p-3 border border-[var(--line)] rounded-[1.5px] mb-3">
                   {verifyResult.guestName && (
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="inline-flex text-muted-foreground"><PersonOutline size={18} strokeWidth={1.75} /></span>
@@ -247,7 +247,7 @@ const PublicKeyVerification: React.FC = () => {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-4 pt-3 border-t border-[divider]">
+        <div className="text-center mt-4 pt-3 border-t border-[var(--line)]">
           <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
             Propulsé par Baitly — Gestion immobilière
           </p>

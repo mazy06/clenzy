@@ -139,7 +139,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         description={t('settings.payoutSchedule.subtitle')}
       >
         {/* Auto-generate toggle */}
-        <div className="p-2 mb-2 rounded-[8px] border border-[divider] flex items-center justify-between gap-2">
+        <div className="p-2 mb-2 rounded-[8px] border border-[var(--line)] flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
               {t('settings.payoutSchedule.autoGenerate')}
@@ -228,7 +228,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         </Box>
 
         {/* Grace period */}
-        <div className="p-2 rounded-[8px] border border-[divider]">
+        <div className="p-2 rounded-[8px] border border-[var(--line)]">
           <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
             {t('settings.payoutSchedule.gracePeriod')}
           </p>

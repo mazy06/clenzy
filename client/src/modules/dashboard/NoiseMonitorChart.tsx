@@ -334,7 +334,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             <p className="cn-text-body1 text-[0.75rem] font-bold uppercase tracking-[0.04em] text-muted-foreground">
               {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
             </p>
-            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[primary.main] text-[primary.main] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[#6B8A9A] text-[#6B8A9A] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
           </div>
 
           {!isDevice && (

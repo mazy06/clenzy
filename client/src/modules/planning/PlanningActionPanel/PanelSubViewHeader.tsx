@@ -8,7 +8,7 @@ interface PanelSubViewHeaderProps {
 }
 
 const PanelSubViewHeader: React.FC<PanelSubViewHeaderProps> = ({ title, onBack }) => (
-  <div className="flex items-center gap-1.5 min-h-[40px] px-1.5 border-b border-[divider]">
+  <div className="flex items-center gap-1.5 min-h-[40px] px-1.5 border-b border-[var(--line)]">
     <IconButton size="small" onClick={onBack} sx={{ p: 0.5 }}>
       <ArrowBack size={18} strokeWidth={1.75} />
     </IconButton>

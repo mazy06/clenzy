@@ -128,7 +128,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
   return (
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
         <Box
           sx={{
             width: 40,

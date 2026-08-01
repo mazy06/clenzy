@@ -253,7 +253,7 @@ export default function MessageTemplateEditor({
               <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                 {t('messaging.templates.editor.preview')}
               </h6>
-              <Card className="gap-0 py-0 p-3 bg-[action.hover]">
+              <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">
                 <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                 </h6>

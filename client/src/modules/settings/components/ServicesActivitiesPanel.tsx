@@ -260,7 +260,7 @@ export default function ServicesActivitiesPanel({
         )}
       </Alert>
 
-      <div className="border-t border-[divider] pt-2">
+      <div className="border-t border-[var(--line)] pt-2">
         <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
           {t("settings.services.activitiesTitle", "Activités — programmes d’affiliation")}
         </p>

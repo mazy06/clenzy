@@ -268,7 +268,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
               </Typography>
               {financialKpis.map((kpi, i) => (
                 <React.Fragment key={kpi.key}>
-                  {i > 0 && <div className="border-t border-[divider]" />}
+                  {i > 0 && <div className="border-t border-[var(--line)]" />}
                   <SecondaryKpiRow item={kpi} loading={loading} />
                 </React.Fragment>
               ))}
@@ -285,7 +285,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
               </Typography>
               {operationalKpis.map((kpi, i) => (
                 <React.Fragment key={kpi.key}>
-                  {i > 0 && <div className="border-t border-[divider]" />}
+                  {i > 0 && <div className="border-t border-[var(--line)]" />}
                   <SecondaryKpiRow item={kpi} loading={loading} />
                 </React.Fragment>
               ))}

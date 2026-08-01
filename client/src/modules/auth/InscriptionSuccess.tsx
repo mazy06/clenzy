@@ -86,7 +86,7 @@ export default function InscriptionSuccess() {
 
           {status === 'loading' && (
             <div className="py-6">
-              <Spinner className="size-10 text-[primary.main] mb-3" />
+              <Spinner className="size-10 text-[#6B8A9A] mb-3" />
               <p className="cn-text-body1 font-medium text-muted-foreground">
                 {t('auth.inscriptionSuccess.loading', 'Finalisation de votre paiement...')}
               </p>

@@ -905,7 +905,7 @@ function ChannelCell({ row }: { row: ChannelCommissionOverview }) {
   const logo = channelLogo(row.channel);
   return (
     <div className="flex items-center gap-1.5">
-      <div className="w-[24px] h-[24px] rounded-[50%] inline-flex items-center justify-center shrink-0 border border-[divider] bg-[background.paper] overflow-hidden">
+      <div className="w-[24px] h-[24px] rounded-[50%] inline-flex items-center justify-center shrink-0 border border-[var(--line)] bg-[var(--card)] overflow-hidden">
         {logo ? (
           <img className="w-[14px] h-[14px] object-contain" src={logo} alt="" aria-hidden />
         ) : (
@@ -1246,7 +1246,7 @@ function RevenueSplitPanel({
           {/* Detail par canal — toujours visible : c'est ce tableau qui relie
               la commission du canal au reversement reel, l'information que les
               deux sections separees masquaient. */}
-          <div className="mt-2.5 border-t border-[divider] pt-2">
+          <div className="mt-2.5 border-t border-[var(--line)] pt-2">
             <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
               {t("settings.split.detailTitle", "Détail par canal")}
             </p>

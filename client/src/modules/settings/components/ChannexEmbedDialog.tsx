@@ -250,7 +250,7 @@ export default function ChannexEmbedDialog({
             liste s'affiche au lieu du wizard. Channex ne supporte pas toujours
             un deep-link direct vers le formulaire de creation. */}
         {embedUrl && !error && (
-          <div className="flex items-start gap-2 px-3 py-2 border-b border-[divider] bg-[var(--accent-soft)]">
+          <div className="flex items-start gap-2 px-3 py-2 border-b border-[var(--line)] bg-[var(--accent-soft)]">
             <div className="text-[var(--accent)] flex items-center shrink-0 mt-0.5">
               <Info size={14} />
             </div>

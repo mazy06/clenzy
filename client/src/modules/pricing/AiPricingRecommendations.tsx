@@ -154,7 +154,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
 
         <div className="flex flex-col gap-1.5">
           {data.map((rec) => (
-            <div className="flex items-center gap-2 p-1.5 rounded-[1px] bg-[action.hover]" key={rec.date}>
+            <div className="flex items-center gap-2 p-1.5 rounded-[1px] bg-[var(--hover)]" key={rec.date}>
               {/* Date */}
               <div className="min-w-[60px]">
                 <Typography variant="caption" fontWeight={600} fontSize="0.7rem">
@@ -198,7 +198,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
 
         {/* Market comparison from first recommendation */}
         {data[0]?.marketComparison && (
-          <div className="mt-2 pt-1.5 border-t border-[divider]">
+          <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
             <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
               {t('bookingEngine.ai.pricing.marketComparison')}: {data[0].marketComparison}
             </Typography>

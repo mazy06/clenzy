@@ -41,9 +41,9 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="min-h-[100vh] bg-[background.default] flex flex-col">
+      <div className="min-h-[100vh] bg-[var(--bg)] flex flex-col">
         {/* Header */}
-        <header className="border-b border-[divider] bg-[background.paper] py-2">
+        <header className="border-b border-[var(--line)] bg-[var(--card)] py-2">
           <Container maxWidth="md">
             <div className="flex items-center justify-between">
               <Link component={RouterLink} to="/login" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -134,7 +134,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
         </Container>
 
         {/* Footer minimal */}
-        <footer className="border-t border-[divider] py-4 bg-[background.paper]">
+        <footer className="border-t border-[var(--line)] py-4 bg-[var(--card)]">
           <Container maxWidth="md">
             <div className="flex gap-4 justify-center flex-wrap">
               <Link component={RouterLink} to="/cgu" sx={{ color: 'text.secondary', fontSize: '0.8125rem', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>

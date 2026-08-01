@@ -1075,7 +1075,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       <div className="flex items-center gap-0.5 mt-1.5 mb-0.5 flex-wrap">
                         <StatusChip tokens={{ color: srTypeColor, bg: `color-mix(in srgb, ${srTypeColor} 14%, transparent)` }} label={typeLabel} icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />} className="text-[0.5625rem] h-[21px]" />
                         {typeof sr.estimatedCost === 'number' && sr.estimatedCost > 0 && (
-                          <Badge variant="secondary" className="text-[0.5625rem] h-[21px] font-bold bg-[action.hover] text-[text.primary] rounded-[6px] tabular-nums px-1">{<Money value={sr.estimatedCost} from="EUR" decimals={0} />}</Badge>
+                          <Badge variant="secondary" className="text-[0.5625rem] h-[21px] font-bold bg-[var(--hover)] text-[var(--ink)] rounded-[6px] tabular-nums px-1">{<Money value={sr.estimatedCost} from="EUR" decimals={0} />}</Badge>
                         )}
                         <StatusChip tokens={{ color: statusCfg.tokens.color, bg: statusCfg.tokens.bg }} label={statusCfg.label} className="text-[0.5625rem] h-[21px] tracking-[0.01em]" />
                       </div>
@@ -1104,7 +1104,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           <div className="flex items-center gap-0.5">
                             {sr.autoAssignStatus === 'searching' && (
                               <>
-                                <Spinner className="size-2.5 text-[text.secondary]" />
+                                <Spinner className="size-2.5 text-[var(--muted)]" />
                                 <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
                                   Recherche en cours...
                                 </span>
@@ -1130,7 +1130,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         )}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
                           <div className="flex items-center gap-0.5">
-                            <Spinner className="size-2.5 text-[text.secondary]" />
+                            <Spinner className="size-2.5 text-[var(--muted)]" />
                             <span className="cn-text-caption text-[0.6rem] text-muted-foreground italic">
                               Recherche auto...
                             </span>
@@ -1674,7 +1674,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         : 'Certains membres ont des interventions sur ce créneau'}
                     </Alert>
                   )}
-                  <div className="border border-[divider] rounded-[1.5px] overflow-hidden">
+                  <div className="border border-[var(--line)] rounded-[1.5px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
                       <Box
                         key={member.userId}

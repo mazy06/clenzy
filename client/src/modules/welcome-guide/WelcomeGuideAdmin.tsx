@@ -1633,7 +1633,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   ) : (
                     <div>
                       {s.items.map((item, iIdx) => (
-                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[1.5px] bg-[action.hover]" key={item.id}>
+                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[1.5px] bg-[var(--hover)]" key={item.id}>
                           <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
                           <div className="flex-1 min-w-0">
                             <TextField
@@ -1995,7 +1995,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
       <Card variant="outlined">
         <CardContent sx={{ '&:last-child': { pb: 1.5 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <div className="shrink-0 w-[34px] h-[34px] rounded-[1.25px] flex items-center justify-center bg-[action.hover] text-muted-foreground">
+          <div className="shrink-0 w-[34px] h-[34px] rounded-[1.25px] flex items-center justify-center bg-[var(--hover)] text-muted-foreground">
             <Globe size={18} strokeWidth={1.75} />
           </div>
           <div className="flex-1 min-w-0">
@@ -2151,7 +2151,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           ) : (
             <Stack spacing={1.5}>
               {guestbook.entries.map((e) => (
-                <div className="border-b border-[divider] pb-2" key={e.id}>
+                <div className="border-b border-[var(--line)] pb-2" key={e.id}>
                   <div className="flex justify-between items-center">
                     <h6 className="cn-text-subtitle2 font-semibold">
                       {e.authorName || '—'}
@@ -2215,7 +2215,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   { key: 'activities', icon: <MapPin size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.activities', 'Clics activités'), value: stats.data.activityClicks },
                   { key: 'checkin', icon: <DoorOpen size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.checkin', 'Clics check-in'), value: stats.data.checkinClicks },
                 ].map((tile) => (
-                  <div className="border border-[divider] rounded-[2px] p-2" key={tile.key}>
+                  <div className="border border-[var(--line)] rounded-[2px] p-2" key={tile.key}>
                     <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
                       {tile.icon}
                       <span className="cn-text-caption">{tile.label}</span>

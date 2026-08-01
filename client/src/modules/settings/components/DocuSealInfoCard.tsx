@@ -38,7 +38,7 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
   return (
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
         <ProviderLogo provider="DOCUSEAL" size={40} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">

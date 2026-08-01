@@ -120,7 +120,7 @@ export default function IntegrationsHeader({
         }}
         renderGroup={(params) => (
           <li key={params.key}>
-            <div className="sticky top-[0px] bg-[background.paper] px-2 py-0.5 border-b border-[divider]">
+            <div className="sticky top-[0px] bg-[var(--card)] px-2 py-0.5 border-b border-[var(--line)]">
               <p className="cn-text-body1 text-[0.6rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
                 {params.group}
               </p>

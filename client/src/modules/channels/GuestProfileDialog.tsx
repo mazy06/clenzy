@@ -93,7 +93,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
           <div className="flex flex-col gap-2">
             {/* Header */}
             <div className="flex items-center gap-3">
-              <div className="w-[48px] h-[48px] rounded-[50%] bg-[primary.main] flex items-center justify-center text-[white] text-[1.125rem] font-bold">
+              <div className="w-[48px] h-[48px] rounded-[50%] bg-[#6B8A9A] flex items-center justify-center text-[white] text-[1.125rem] font-bold">
                 {guest.name.charAt(0).toUpperCase()}
               </div>
               <div>
@@ -143,7 +143,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-0.5 uppercase text-muted-foreground">
                     {t('channels.guest.specialRequests')}
                   </p>
-                  <p className="cn-text-body1 text-[0.8125rem] bg-[action.hover] p-1.5 rounded-[1px]">
+                  <p className="cn-text-body1 text-[0.8125rem] bg-[var(--hover)] p-1.5 rounded-[1px]">
                     {guest.specialRequests}
                   </p>
                 </div>
@@ -202,7 +202,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   </p>
                   <div className="flex flex-col gap-0.5">
                     {guest.reservations.map((r) => (
-                      <div className="flex justify-between items-center border border-[divider] rounded-[0.75px] px-1.5 py-0.5" key={r.id}>
+                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[0.75px] px-1.5 py-0.5" key={r.id}>
                         <div>
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">{r.propertyName}</p>
                           <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
@@ -228,7 +228,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
 
 function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="border border-[divider] rounded-[1px] px-2 py-1 text-center">
+    <div className="border border-[var(--line)] rounded-[1px] px-2 py-1 text-center">
       <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground uppercase font-medium">{label}</p>
       <p className="cn-text-body1 text-[0.875rem] font-bold mt-0.5">{value}</p>
     </div>

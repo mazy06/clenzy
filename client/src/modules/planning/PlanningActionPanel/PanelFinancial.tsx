@@ -1314,7 +1314,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </TableContainer>
           )}
           {payments.length > 0 && (
-            <div className="mt-2 pt-1.5 border-t border-[divider]">
+            <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
               <div className="flex justify-between mb-0.5">
                 <span className="cn-text-caption font-semibold text-[0.75rem]">Total paye</span>
                 <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--ok)]">{fmtCurrency(totalPaid)}</span>

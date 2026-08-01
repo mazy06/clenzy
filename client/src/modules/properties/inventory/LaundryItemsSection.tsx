@@ -60,7 +60,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-[info.main]"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
+          <span className="inline-flex text-[#7BA3C2]"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
           <div>
             <h6 className="cn-text-subtitle1 font-semibold">Linge de maison</h6>
             <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">

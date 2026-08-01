@@ -157,7 +157,7 @@ export default function SendMessageDialog({
             </TextField>
 
             {selectedTemplate && (
-              <Card className="gap-0 py-0 p-3 bg-[action.hover]">
+              <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">
                 <span className="cn-text-caption text-muted-foreground">
                   {t('messaging.send.preview')}
                 </span>

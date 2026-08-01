@@ -72,7 +72,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
       </div>
 
       {!hasLaundryItems && (
-        <Card className="gap-0 py-0 p-4 text-center mb-3 bg-[action.hover]">
+        <Card className="gap-0 py-0 p-4 text-center mb-3 bg-[var(--hover)]">
           <p className="cn-text-body2 text-muted-foreground">
             Configurez d'abord les articles de linge avant de generer un devis
           </p>
@@ -142,7 +142,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                     <TableRow>
                       <TableCell colSpan={canEdit ? 6 : 5} sx={{ p: 0, border: isExpanded ? undefined : 'none' }}>
                         <Collapse in={isExpanded}>
-                          <div className="p-3 bg-[action.hover]">
+                          <div className="p-3 bg-[var(--hover)]">
                             <Table size="small">
                               <TableHead>
                                 <TableRow>

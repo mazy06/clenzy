@@ -80,13 +80,13 @@ export default function Support() {
       background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
       p: 2
     }}>
-      <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[background.paper] border-border">
+      <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[var(--card)] border-border">
         {/* Header avec logo */}
         <div className="text-center mb-3">
           <div className="flex justify-center mb-2">
             <BaitlyMarkLogo variant="full" size={42} />
           </div>
-          <p className="cn-text-body2 font-medium text-[secondary.main] text-[0.85rem]">
+          <p className="cn-text-body2 font-medium text-[#A6C0CE] text-[0.85rem]">
             {t('auth.support.headerSubtitle', 'Contactez notre support')}
           </p>
         </div>

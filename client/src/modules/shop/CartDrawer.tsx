@@ -55,7 +55,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 py-3 border-b border-[divider]">
+        <div className="flex items-center justify-between px-3.5 py-3 border-b border-[var(--line)]">
           <div className="flex items-center gap-1.5">
             <h6 className="cn-text-h6 font-semibold font-[var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
               {t('shop.cart')}
@@ -110,7 +110,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   }}
                 >
                   {/* Thumbnail */}
-                  <div className="w-[64px] h-[64px] rounded-[8px] overflow-hidden shrink-0 border border-[divider]">
+                  <div className="w-[64px] h-[64px] rounded-[8px] overflow-hidden shrink-0 border border-[var(--line)]">
                     <ProductHero product={product} height={62} />
                   </div>
 
@@ -193,7 +193,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Footer */}
         {!isEmpty && (
-          <div className="border-t border-[divider] px-3.5 py-3 bg-[background.paper]">
+          <div className="border-t border-[var(--line)] px-3.5 py-3 bg-[var(--card)]">
             <div className="flex justify-between mb-0.5">
               <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
                 {t('shop.subtotal')}

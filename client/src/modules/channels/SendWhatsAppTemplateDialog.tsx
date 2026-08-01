@@ -76,7 +76,7 @@ export default function SendWhatsAppTemplateDialog({
                   <div className="py-0.5">
                     <div className="flex items-center gap-1">
                       <p className="cn-text-body1 text-[0.8125rem] font-semibold">{formatKey(g.templateKey)}</p>
-                      <Badge variant="secondary" className="h-[16px] text-[0.5625rem] font-semibold bg-[action.hover]">{g.category}</Badge>
+                      <Badge variant="secondary" className="h-[16px] text-[0.5625rem] font-semibold bg-[var(--hover)]">{g.category}</Badge>
                     </div>
                     <p className="cn-text-body1 text-[0.75rem] text-muted-foreground whitespace-pre-wrap mt-0.5">
                       {(() => { const b = bodyOf(g); return b.length > 160 ? `${b.slice(0, 160)}…` : b; })()}

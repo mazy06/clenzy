@@ -128,7 +128,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           </Avatar>
           {uploading && (
             <div className="absolute inset-[0px] rounded-[50%] bg-[rgba(15,23,42,0.45)] flex items-center justify-center">
-              <Spinner className="size-[22px] text-[common.white]" />
+              <Spinner className="size-[22px] text-[#FFFFFF]" />
             </div>
           )}
         </div>

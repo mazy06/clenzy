@@ -21,7 +21,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
     <div className="pt-3">
       {/* ─── Abonnement PMS ─────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[info.main]"><Devices size={20} strokeWidth={1.75} /></span>
+        <span className="inline-flex text-[#7BA3C2]"><Devices size={20} strokeWidth={1.75} /></span>
         <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.title')}
         </h6>
@@ -69,7 +69,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
 
       {/* ─── Supplément IA par forfait (campagne X5) ─────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[secondary.main]"><AutoAwesome size={20} strokeWidth={1.75} /></span>
+        <span className="inline-flex text-[#A6C0CE]"><AutoAwesome size={20} strokeWidth={1.75} /></span>
         <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.aiTitle')}
         </h6>

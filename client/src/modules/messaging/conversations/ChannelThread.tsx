@@ -207,7 +207,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             <>
               {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
               {aiDraft && (
-                <div className="p-2 bg-[action.hover] border-b border-[divider]">
+                <div className="p-2 bg-[var(--hover)] border-b border-[var(--line)]">
                   <div className="flex items-center gap-1 mb-1 text-primary">
                     <SparklesIcon size={16} strokeWidth={1.75} />
                     <Typography

@@ -288,7 +288,7 @@ export function PriceAdjustmentModal({
           {segments.map((seg, i) => {
             const f = sim?.segments[i];
             return (
-              <div className="border border-[divider] rounded-[1.5px] p-2" key={i}>
+              <div className="border border-[var(--line)] rounded-[1.5px] p-2" key={i}>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <input
                     type="date"
@@ -344,7 +344,7 @@ export function PriceAdjustmentModal({
 
         {/* Cumul de la prévision */}
         {sim && (
-          <div className="mt-2 p-2 bg-[action.hover] rounded-[1.5px]">
+          <div className="mt-2 p-2 bg-[var(--hover)] rounded-[1.5px]">
             <p className="cn-text-body1 text-[12.5px] font-bold">
               {t('supervision.price.forecastTotal', 'Prévision cumulée')}
             </p>

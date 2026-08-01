@@ -347,7 +347,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
     <Card className="gap-0 py-0 p-3">
       {/* Header */}
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[secondary.main]"><Notifications size={20} strokeWidth={1.75} /></span>
+        <span className="inline-flex text-[#A6C0CE]"><Notifications size={20} strokeWidth={1.75} /></span>
         <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           Preferences de notifications
         </h6>

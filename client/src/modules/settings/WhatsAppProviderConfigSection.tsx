@@ -593,7 +593,7 @@ function ProviderOptionCard({
           <Stack spacing={0.5} sx={{ py: 0.5 }}>
             {pros.map((p) => (
               <div className="flex items-start gap-1 text-[0.72rem]" key={p}>
-                <span className="text-[success.light] font-bold leading-[1.4]">✓</span>
+                <span className="text-[#6BB5A8] font-bold leading-[1.4]">✓</span>
                 <span>{p}</span>
               </div>
             ))}

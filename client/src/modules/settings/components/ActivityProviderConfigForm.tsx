@@ -73,7 +73,7 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
   }
 
   return (
-    <div className="border border-[divider] rounded-[2px] p-2 mb-2">
+    <div className="border border-[var(--line)] rounded-[2px] p-2 mb-2">
       <FormControlLabel
         control={<Switch size="small" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
         label={t('welcomeGuide.activities.enabled', 'Actif')}
