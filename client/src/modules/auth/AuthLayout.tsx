@@ -236,17 +236,14 @@ export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutP
   // Geo-detected language : ces pages NE respectent PAS les preferences user.
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
   // Hook override l'i18n au mount + restore au unmount.
-  const { isRtl } = useGeoAuthLanguage();
+  useGeoAuthLanguage();
 
   // Ces pages s'affichent TOUJOURS en clair, quelle que soit la preference de
-  // l'utilisateur : elles precedent la session. Auparavant un ThemeProvider
-  // local l'imposait ; c'est maintenant l'attribut `data-theme` pose sur le
-  // conteneur, que lisent les jetons CSS.
-  return (
-    <div data-theme="light" dir={isRtl ? 'rtl' : 'ltr'}>
-      <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>
-    </div>
-  );
+  // l'utilisateur : elles precedent la session. Un ThemeProvider local
+  // l'imposait auparavant ; `AuthLayoutInner` porte deja le `data-theme="light"`
+  // que lisent les jetons CSS, ainsi que le fond plein ecran — il n'y a donc
+  // rien a ajouter par-dessus.
+  return <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>;
 }
 
 function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {

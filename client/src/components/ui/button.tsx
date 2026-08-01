@@ -39,20 +39,26 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
+/**
+ * `forwardRef` est un ajout local a la source shadcn, qui cible React 19 ou la
+ * ref est une propriete ordinaire. Sous React 18 un composant-fonction ne la
+ * recoit pas, et un bouton place en enfant d'un `asChild` — le cas de
+ * `<TooltipTrigger asChild><Button/></TooltipTrigger>`, courant ici — verrait
+ * la ref du declencheur tomber dans le vide : ancrage de l'infobulle errone, et
+ * un avertissement React en console.
+ */
+const Button = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }
+>(function Button(
+  { className, variant = "default", size = "default", asChild = false, ...props },
+  ref,
+) {
   const Comp = asChild ? Slot.Root : "button"
 
   return (
     <Comp
+      ref={ref}
       data-slot="button"
       data-variant={variant}
       data-size={size}
@@ -60,6 +66,6 @@ function Button({
       {...props}
     />
   )
-}
+})
 
 export { Button, buttonVariants }
