@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import { Snackbar, Alert, AlertColor, Slide, SlideProps } from '@mui/material';
+import React, { createContext, useContext, useCallback, useMemo, ReactNode } from 'react';
+import { toast } from 'sonner';
+import { Toaster } from '../components/ui';
 
 /**
- * Système de notification centralisé (toast/snackbar).
+ * Système de notification centralisé (toast).
  * Remplace les gestions d'erreur/succès locales dans chaque composant.
  *
  * @example
@@ -12,14 +13,17 @@ import { Snackbar, Alert, AlertColor, Slide, SlideProps } from '@mui/material';
  * notify.error('Erreur lors de la sauvegarde');
  * notify.warning('Attention: données incomplètes');
  * notify.info('Chargement en cours...');
+ *
+ * <h3>Pourquoi une file locale a disparu</h3>
+ * L'ancienne implémentation gardait les notifications dans un `useState` du
+ * provider et n'en affichait qu'UNE (`notifications[0]`) : les suivantes
+ * attendaient sans être visibles, et chaque toast re-rendait le provider donc
+ * tout l'arbre applicatif. `sonner` empile, expire et anime les toasts hors de
+ * React, si bien que le provider ne détient plus d'état du tout.
  */
 
-interface Notification {
-  id: string;
-  message: string;
-  severity: AlertColor;
-  duration?: number;
-}
+/** Conservé à l'identique de l'ancienne API MUI, que 13 écrans consomment. */
+export type NotificationSeverity = 'success' | 'error' | 'warning' | 'info';
 
 interface NotificationContextType {
   notify: {
@@ -29,74 +33,47 @@ interface NotificationContextType {
     info: (message: string, duration?: number) => void;
   };
   /** Afficher une notification avec un type personnalisé */
-  showNotification: (message: string, severity?: AlertColor, duration?: number) => void;
+  showNotification: (message: string, severity?: NotificationSeverity, duration?: number) => void;
   /** Fermer toutes les notifications */
   clearAll: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// Transition de slide pour le Snackbar
-function SlideTransition(props: SlideProps) {
-  return <Slide {...props} direction="up" />;
-}
-
-// Compteur unique pour les IDs
-let notificationCounter = 0;
+/** Durées de l'ancienne implémentation, reprises telles quelles. */
+const DUREE_PAR_DEFAUT = 4000;
+const DUREE_ERREUR = 6000;
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  const addNotification = useCallback((message: string, severity: AlertColor = 'info', duration: number = 4000) => {
-    const id = `notification-${++notificationCounter}`;
-    setNotifications(prev => [...prev, { id, message, severity, duration }]);
-  }, []);
-
-  const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
+  const showNotification = useCallback(
+    (message: string, severity: NotificationSeverity = 'info', duration: number = DUREE_PAR_DEFAUT) => {
+      toast[severity](message, { duration });
+    },
+    [],
+  );
 
   const clearAll = useCallback(() => {
-    setNotifications([]);
+    toast.dismiss();
   }, []);
 
-  // Valeur mémoïsée : le provider re-rend à chaque toast, une valeur inline
-  // re-rendait tous les consommateurs de useNotification() à chaque affichage.
+  // La valeur ne dépend plus d'aucun état : elle est stable pour toute la vie
+  // de l'application, et les consommateurs ne se re-rendent plus a chaque toast.
   const contextValue = useMemo<NotificationContextType>(() => ({
     notify: {
-      success: (message: string, duration?: number) => addNotification(message, 'success', duration),
-      error: (message: string, duration?: number) => addNotification(message, 'error', duration ?? 6000),
-      warning: (message: string, duration?: number) => addNotification(message, 'warning', duration),
-      info: (message: string, duration?: number) => addNotification(message, 'info', duration),
+      success: (message: string, duration?: number) => showNotification(message, 'success', duration),
+      error: (message: string, duration?: number) => showNotification(message, 'error', duration ?? DUREE_ERREUR),
+      warning: (message: string, duration?: number) => showNotification(message, 'warning', duration),
+      info: (message: string, duration?: number) => showNotification(message, 'info', duration),
     },
-    showNotification: addNotification,
+    showNotification,
     clearAll,
-  }), [addNotification, clearAll]);
-
-  const currentNotification = notifications[0] || null;
+  }), [showNotification, clearAll]);
 
   return (
     <NotificationContext.Provider value={contextValue}>
       {children}
-      {currentNotification && (
-        <Snackbar
-          key={currentNotification.id}
-          open={true}
-          autoHideDuration={currentNotification.duration}
-          onClose={() => removeNotification(currentNotification.id)}
-          TransitionComponent={SlideTransition}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert
-            onClose={() => removeNotification(currentNotification.id)}
-            severity={currentNotification.severity}
-            variant="filled"
-            sx={{ width: '100%', minWidth: 300 }}
-          >
-            {currentNotification.message}
-          </Alert>
-        </Snackbar>
-      )}
+      {/* Position reprise de l'ancien Snackbar : bas, centré. */}
+      <Toaster position="bottom-center" richColors closeButton />
     </NotificationContext.Provider>
   );
 };
