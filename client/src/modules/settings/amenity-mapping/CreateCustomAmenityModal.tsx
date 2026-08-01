@@ -8,10 +8,24 @@
  *   - Cochee par defaut : "Appliquer aux X propriete(s)"
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
+// Le Dialog reste MUI : il heberge un Autocomplete MUI (son renderInput recoit
+// des props internes). Sous un Dialog Radix, la liste de l'Autocomplete est
+// portalisee HORS du contenu modal -> clic traite comme « interaction exterieure »
+// (fermeture) et piege de focus casse. On garde donc les deux du meme cote.
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material';
 import { X, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui';
-import { Field, FieldLabel, FieldDescription, Input } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Checkbox,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 
 import {
   amenitiesManagementApi,
@@ -22,8 +36,6 @@ import { ICON_REGISTRY } from './amenityIcons';
 import { useAmenityIconOverrides } from './useAmenityIconOverrides';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';
-
-const ACCENT = 'var(--accent)';
 
 const CATEGORY_OPTIONS = [
   { value: 'comfort',      label: 'Confort' },
@@ -156,20 +168,23 @@ export default function CreateCustomAmenityModal({
             Étend le référentiel Baitly pour votre organisation
           </span>
         </div>
-        <IconButton size="small" onClick={onClose}><X size={18} /></IconButton>
+        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
+          <X size={18} />
+        </Button>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2.5 }}>
         {prefillRawName && (
-          <Alert severity="info" variant="outlined"
-                 sx={{ mb: 2, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
-            Détectée sur <strong>{prefillAffectedCount}</strong> propriété
-            {prefillAffectedCount > 1 ? 's' : ''} sous le nom OTA brut «&nbsp;
-            <span className="font-mono">{prefillRawName}</span>&nbsp;».
+          <Alert variant="info" className="mb-3 text-[0.8rem]">
+            <AlertDescription>
+              Détectée sur <strong>{prefillAffectedCount}</strong> propriété
+              {prefillAffectedCount > 1 ? 's' : ''} sous le nom OTA brut «&nbsp;
+              <span className="font-mono">{prefillRawName}</span>&nbsp;».
+            </AlertDescription>
           </Alert>
         )}
 
-        <Stack spacing={2}>
+        <div className="flex flex-col gap-3">
           <Field>
             <FieldLabel htmlFor="custom-amenity-label-fr">Label français *</FieldLabel>
             <Input
@@ -223,18 +238,19 @@ export default function CreateCustomAmenityModal({
               />
             )}
           />
-          <FormControl size="small" fullWidth>
-            <InputLabel>Catégorie *</InputLabel>
-            <Select
-              label="Catégorie *"
+          <Field>
+            <FieldLabel htmlFor="custom-amenity-category">Catégorie *</FieldLabel>
+            <NativeSelect
+              id="custom-amenity-category"
+              className="w-full"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
               {CATEGORY_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                <NativeSelectOption key={opt.value} value={opt.value}>{opt.label}</NativeSelectOption>
               ))}
-            </Select>
-          </FormControl>
+            </NativeSelect>
+          </Field>
           <Field>
             <FieldLabel htmlFor="custom-amenity-code">Code (auto si vide)</FieldLabel>
             <Input
@@ -252,7 +268,7 @@ export default function CreateCustomAmenityModal({
           </Field>
 
           {/* Icone : preview cliquable + label + bouton "Choisir" */}
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+          <div className="flex flex-row items-center gap-[9px]">
             <div
               onClick={() => setIconPickerOpen(true)}
               role="button"
@@ -277,53 +293,42 @@ export default function CreateCustomAmenityModal({
             >
               {t('settings.amenities.changeIcon', "Changer l'icône")}
             </Button>
-          </Stack>
+          </div>
 
           {prefillRawName && (
-            <Stack spacing={0.5}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={autoAlias}
-                    onChange={(e) => setAutoAlias(e.target.checked)}
-                    sx={{ color: ACCENT, '&.Mui-checked': { color: ACCENT } }}
-                  />
-                }
-                label={
-                  <span className="cn-text-caption">
-                    Créer aussi l'alias «&nbsp;<strong>{prefillRawName}</strong>&nbsp;» → <strong>{previewCode || '...'}</strong>
-                  </span>
-                }
-              />
-              {prefillAffectedCount > 0 && (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={applyNow}
-                      onChange={(e) => setApplyNow(e.target.checked)}
-                      disabled={!autoAlias}
-                      sx={{ color: ACCENT, '&.Mui-checked': { color: ACCENT } }}
-                    />
-                  }
-                  label={
-                    <span className="cn-text-caption">
-                      Appliquer aux <strong>{prefillAffectedCount}</strong> propriété{prefillAffectedCount > 1 ? 's' : ''} maintenant
-                    </span>
-                  }
+            <div className="flex flex-col gap-[3px]">
+              <Field orientation="horizontal" className="gap-1.5">
+                <Checkbox
+                  id="custom-amenity-auto-alias"
+                  checked={autoAlias}
+                  onCheckedChange={(checked) => setAutoAlias(checked === true)}
                 />
+                <FieldLabel htmlFor="custom-amenity-auto-alias" className="cn-text-caption font-normal">
+                  Créer aussi l'alias «&nbsp;<strong>{prefillRawName}</strong>&nbsp;» → <strong>{previewCode || '...'}</strong>
+                </FieldLabel>
+              </Field>
+              {prefillAffectedCount > 0 && (
+                <Field orientation="horizontal" className="gap-1.5">
+                  <Checkbox
+                    id="custom-amenity-apply-now"
+                    checked={applyNow}
+                    onCheckedChange={(checked) => setApplyNow(checked === true)}
+                    disabled={!autoAlias}
+                  />
+                  <FieldLabel htmlFor="custom-amenity-apply-now" className="cn-text-caption font-normal">
+                    Appliquer aux <strong>{prefillAffectedCount}</strong> propriété{prefillAffectedCount > 1 ? 's' : ''} maintenant
+                  </FieldLabel>
+                </Field>
               )}
-            </Stack>
+            </div>
           )}
 
           {error && (
-            <Alert severity="error" variant="outlined"
-                   sx={{ '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
-              {error}
+            <Alert variant="destructive" className="text-[0.8rem]">
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-        </Stack>
+        </div>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>

@@ -12,7 +12,7 @@ import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
-import { MenuItem, Select, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
+import { NativeSelect, NativeSelectOption, ToggleGroup, ToggleGroupItem } from '../../components/ui';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, type AiDailyUsage } from '../../services/api/aiApi';
@@ -33,7 +33,6 @@ type ProviderFilter = 'all' | 'openai' | 'anthropic' | 'nvidia';
 
 export default function AiUsageTrendSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [days, setDays] = useState(30);
   const [provider, setProvider] = useState<ProviderFilter>('all');
   const [metric, setMetric] = useState<'tokens' | 'cost'>('tokens');
@@ -98,35 +97,44 @@ export default function AiUsageTrendSection() {
     <div>
       {/* ── Contrôles ── */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <Select size="small" value={days} onChange={(e) => setDays(Number(e.target.value))} sx={{ minWidth: 120 }}>
-          <MenuItem value={7}>{t('settings.ai.usage.days7', '7 jours')}</MenuItem>
-          <MenuItem value={30}>{t('settings.ai.usage.days30', '30 jours')}</MenuItem>
-          <MenuItem value={90}>{t('settings.ai.usage.days90', '90 jours')}</MenuItem>
-        </Select>
+        <NativeSelect
+          size="sm"
+          className="min-w-[120px]"
+          aria-label={t('settings.ai.usage.period', 'Période')}
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+        >
+          <NativeSelectOption value={7}>{t('settings.ai.usage.days7', '7 jours')}</NativeSelectOption>
+          <NativeSelectOption value={30}>{t('settings.ai.usage.days30', '30 jours')}</NativeSelectOption>
+          <NativeSelectOption value={90}>{t('settings.ai.usage.days90', '90 jours')}</NativeSelectOption>
+        </NativeSelect>
 
-        <ToggleButtonGroup
-          size="small"
-          exclusive
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          spacing={0}
           value={provider}
-          onChange={(_, v) => v && setProvider(v)}
-          sx={{ '& .MuiToggleButton-root': { textTransform: 'none', px: 1.5 } }}
+          onValueChange={(v) => v && setProvider(v as ProviderFilter)}
         >
-          <ToggleButton value="all">{t('settings.ai.usage.all', 'Tous')}</ToggleButton>
-          <ToggleButton value="openai">OpenAI</ToggleButton>
-          <ToggleButton value="anthropic">Claude</ToggleButton>
-          <ToggleButton value="nvidia">NVIDIA</ToggleButton>
-        </ToggleButtonGroup>
+          <ToggleGroupItem value="all">{t('settings.ai.usage.all', 'Tous')}</ToggleGroupItem>
+          <ToggleGroupItem value="openai">OpenAI</ToggleGroupItem>
+          <ToggleGroupItem value="anthropic">Claude</ToggleGroupItem>
+          <ToggleGroupItem value="nvidia">NVIDIA</ToggleGroupItem>
+        </ToggleGroup>
 
-        <ToggleButtonGroup
-          size="small"
-          exclusive
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          spacing={0}
+          className="ms-auto"
           value={metric}
-          onChange={(_, v) => v && setMetric(v)}
-          sx={{ ml: 'auto', '& .MuiToggleButton-root': { textTransform: 'none', px: 1.5 } }}
+          onValueChange={(v) => v && setMetric(v as 'tokens' | 'cost')}
         >
-          <ToggleButton value="tokens">{t('settings.ai.usage.tokens', 'Tokens')}</ToggleButton>
-          <ToggleButton value="cost">{t('settings.ai.usage.cost', 'Coût')}</ToggleButton>
-        </ToggleButtonGroup>
+          <ToggleGroupItem value="tokens">{t('settings.ai.usage.tokens', 'Tokens')}</ToggleGroupItem>
+          <ToggleGroupItem value="cost">{t('settings.ai.usage.cost', 'Coût')}</ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* ── Totaux + seuil ── */}
@@ -177,16 +185,18 @@ export default function AiUsageTrendSection() {
         <div className="h-[300px] mb-4">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
-              <XAxis dataKey="date" tickFormatter={dayLabel} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} interval="preserveStartEnd" />
-              <YAxis tickFormatter={(v) => (metric === 'tokens' ? fmtTokens(v) : fmtCost(v))} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} width={54} />
+              {/* Les jetons MUI (divider / text.secondary) laissent place aux tokens du kit :
+                  recharts pose ces valeurs en attributs de presentation, ou var() est resolu. */}
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+              <XAxis dataKey="date" tickFormatter={dayLabel} tick={{ fontSize: 11, fill: 'var(--muted)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={(v) => (metric === 'tokens' ? fmtTokens(v) : fmtCost(v))} tick={{ fontSize: 11, fill: 'var(--muted)' }} width={54} />
               <Tooltip
                 labelFormatter={(l) => dayLabel(String(l))}
                 formatter={(value, name) => {
                   const v = Number(value) || 0;
                   return [metric === 'tokens' ? `${fmtTokens(v)} tok` : fmtCost(v), String(name)];
                 }}
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${theme.palette.divider}` }}
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--line)' }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {providers.map((p) => (

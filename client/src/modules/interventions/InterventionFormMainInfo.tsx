@@ -1,11 +1,17 @@
 import React from 'react';
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
 import {
+  Card,
+  CardContent,
   Field,
   FieldDescription,
   FieldError,
   FieldLabel,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Textarea,
 } from '../../components/ui';
 import { Controller } from 'react-hook-form';
@@ -66,8 +72,8 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
 
     return (
       <div className="col-span-12 min-[900px]:col-span-8">
-        <Card>
-          <CardContent sx={{ p: 2 }}>
+        <Card size="sm">
+          <CardContent>
             <h6 className="cn-text-subtitle1 font-semibold mb-2">
               {t('interventions.sections.mainInfo')}
             </h6>
@@ -127,31 +133,37 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="type"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.interventionType')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.interventionType')}
-                        size="small"
-                      >
-                        {interventionTypes.map((type) => {
-                          const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
-                          const IconComponent = typeOption?.icon;
+                    <Field>
+                      <FieldLabel htmlFor="intervention-type">
+                        {t('interventions.fields.interventionType')}
+                      </FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="intervention-type"
+                          size="sm"
+                          className="w-full"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue placeholder={t('interventions.fields.interventionType')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {interventionTypes.map((type) => {
+                            const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
+                            const IconComponent = typeOption?.icon;
 
-                          return (
-                            <MenuItem key={type.value} value={type.value}>
-                              <div className="flex items-center gap-1">
-                                {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
-                                <p className="cn-text-body2">{type.label}</p>
-                              </div>
-                            </MenuItem>
-                          );
-                        })}
+                            return (
+                              <SelectItem key={type.value} value={type.value}>
+                                <span className="flex items-center gap-1">
+                                  {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
+                                  {type.label}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -161,23 +173,29 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="status"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.status')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.status')}
-                        size="small"
-                      >
-                        {statuses.map((status) => (
-                          <MenuItem key={status.value} value={status.value}>
-                            {status.label}
-                          </MenuItem>
-                        ))}
+                    <Field>
+                      <FieldLabel htmlFor="intervention-status">
+                        {t('interventions.fields.status')}
+                      </FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="intervention-status"
+                          size="sm"
+                          className="w-full"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue placeholder={t('interventions.fields.status')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -187,23 +205,29 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="priority"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.priority')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.priority')}
-                        size="small"
-                      >
-                        {priorities.map((priority) => (
-                          <MenuItem key={priority.value} value={priority.value}>
-                            {priority.label}
-                          </MenuItem>
-                        ))}
+                    <Field>
+                      <FieldLabel htmlFor="intervention-priority">
+                        {t('interventions.fields.priority')}
+                      </FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="intervention-priority"
+                          size="sm"
+                          className="w-full"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue placeholder={t('interventions.fields.priority')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priorities.map((priority) => (
+                            <SelectItem key={priority.value} value={priority.value}>
+                              {priority.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>

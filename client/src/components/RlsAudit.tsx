@@ -1,8 +1,24 @@
 import React from 'react';
-import { Badge, Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertTitle, Card, CardContent, Tooltip } from '@mui/material';
-import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Layers, Clock, Check, Info, TriangleAlert, CircleAlert } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
 import StatTile from './StatTile';
@@ -54,27 +70,36 @@ const RlsAudit: React.FC = () => {
     const status = (error as { status?: number }).status;
     if (status === 404) {
       return (
-        <Alert severity="warning">
+        <Alert variant="warning">
+          <TriangleAlert />
           <AlertTitle>Backend non a jour</AlertTitle>
-          Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
-          Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
-          le reconstruire et le relancer.
+          <AlertDescription>
+            Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
+            Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
+            le reconstruire et le relancer.
+          </AlertDescription>
         </Alert>
       );
     }
     if (status === 403) {
       return (
-        <Alert severity="warning">
+        <Alert variant="warning">
+          <TriangleAlert />
           <AlertTitle>Acces reserve</AlertTitle>
-          Cet inventaire designe du code et sert une decision d'infrastructure : il est
-          reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+          <AlertDescription>
+            Cet inventaire designe du code et sert une decision d'infrastructure : il est
+            reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+          </AlertDescription>
         </Alert>
       );
     }
     return (
-      <Alert severity="error">
+      <Alert variant="destructive">
+        <CircleAlert />
         <AlertTitle>Inventaire indisponible</AlertTitle>
-        {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
+        <AlertDescription>
+          {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -91,48 +116,63 @@ const RlsAudit: React.FC = () => {
       {/* Le drapeau le plus important de l'ecran : sans lui, on lirait un inventaire
           trompeur comme un vrai constat. */}
       {data && data.auditActif && !data.mesureExploitable && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert variant="destructive" className="mb-[18px]">
+          <CircleAlert />
           <AlertTitle>Cet inventaire est sans valeur</AlertTitle>
-          L'instrumentation tourne, mais l'aspect qui pose le contexte tenant est inactif
-          (<code>clenzy.security.rls.enabled=false</code>). Toutes les requetes sont donc
-          signalees, pas seulement les chemins a risque — et un inventaire vide ne
-          signifierait rien non plus. Poser ce parametre a <code>true</code> : sans risque
-          tant que la RLS n'est pas appliquee en base, puisque aucune politique ne lit ces
-          valeurs.
+          <AlertDescription>
+            L'instrumentation tourne, mais l'aspect qui pose le contexte tenant est inactif
+            (<code>clenzy.security.rls.enabled=false</code>). Toutes les requetes sont donc
+            signalees, pas seulement les chemins a risque — et un inventaire vide ne
+            signifierait rien non plus. Poser ce parametre a <code>true</code> : sans risque
+            tant que la RLS n'est pas appliquee en base, puisque aucune politique ne lit ces
+            valeurs.
+          </AlertDescription>
         </Alert>
       )}
 
       {data && !data.auditActif && (
-        <Alert severity="info" sx={{ mb: 3 }}>
+        <Alert variant="info" className="mb-[18px]">
+          <Info />
           <AlertTitle>Mesure a l'arret</AlertTitle>
-          L'instrumentation est desactivee. Les chemins ci-dessous datent de la derniere
-          campagne ; aucun nouveau constat n'est enregistre.
+          <AlertDescription>
+            L'instrumentation est desactivee. Les chemins ci-dessous datent de la derniere
+            campagne ; aucun nouveau constat n'est enregistre.
+          </AlertDescription>
         </Alert>
       )}
 
       {data?.sature && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert variant="warning" className="mb-[18px]">
+          <TriangleAlert />
           <AlertTitle>Inventaire incomplet</AlertTitle>
-          Le tampon a atteint son plafond : de nouveaux chemins ne sont plus enregistres.
-          Traiter ceux deja remontes avant de poursuivre la mesure — d'ici la, l'absence de
-          nouveaux constats ne prouve rien.
+          <AlertDescription>
+            Le tampon a atteint son plafond : de nouveaux chemins ne sont plus enregistres.
+            Traiter ceux deja remontes avant de poursuivre la mesure — d'ici la, l'absence de
+            nouveaux constats ne prouve rien.
+          </AlertDescription>
         </Alert>
       )}
 
       {data?.rlsDejaActive && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert variant="warning" className="mb-[18px]">
+          <TriangleAlert />
           <AlertTitle>La RLS est deja active</AlertTitle>
-          Les chemins listes ci-dessous ne renvoient plus zero ligne « en cas d'activation » :
-          ils le font <strong>deja</strong>. A traiter en priorite.
+          <AlertDescription>
+            Les chemins listes ci-dessous ne renvoient plus zero ligne « en cas d'activation » :
+            ils le font <strong>deja</strong>. A traiter en priorite.
+          </AlertDescription>
         </Alert>
       )}
 
       {enAttente > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert variant="warning" className="mb-[18px]">
+          <TriangleAlert />
           <AlertTitle>{enAttente} constat(s) en attente d'ecriture</AlertTitle>
-          Des chemins viennent d'etre detectes mais ne sont pas encore enregistres — le
-          vidage a lieu toutes les 5 minutes. Ils apparaitront ci-dessous au prochain
-          passage. D'ici la, ne pas lire cet ecran comme « aucun chemin a traiter ».
+          <AlertDescription>
+            Des chemins viennent d'etre detectes mais ne sont pas encore enregistres — le
+            vidage a lieu toutes les 5 minutes. Ils apparaitront ci-dessous au prochain
+            passage. D'ici la, ne pas lire cet ecran comme « aucun chemin a traiter ».
+          </AlertDescription>
         </Alert>
       )}
 
@@ -185,7 +225,7 @@ const RlsAudit: React.FC = () => {
         </div>
       </div>
 
-      <Card variant="outlined">
+      <Card>
         <CardContent>
           <h6 className="cn-text-h6 text-[var(--ink)] mb-0.5">
             Chemins sans contexte tenant
@@ -226,9 +266,20 @@ const RlsAudit: React.FC = () => {
                     return (
                       <TableRow key={chemin.id}>
                         <TableCell className="font-mono text-[0.8125rem]">
-                          <Tooltip title={chemin.sqlExcerpt ?? ''} placement="top-start">
+                          {/* Sans extrait SQL il n'y a rien a survoler : le Tooltip du kit
+                              afficherait une bulle vide la ou MUI n'en montrait aucune. */}
+                          {chemin.sqlExcerpt ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>{chemin.origin}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start">
+                                {chemin.sqlExcerpt}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
                             <span>{chemin.origin}</span>
-                          </Tooltip>
+                          )}
                           {reapparu && (
                             <Badge variant="secondary" className="ms-1.5 bg-[var(--warn-soft)] text-[var(--warn)]">reapparu apres correction</Badge>
                           )}

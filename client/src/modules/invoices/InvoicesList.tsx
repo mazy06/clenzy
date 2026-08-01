@@ -2,7 +2,19 @@ import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { IconButton, Tooltip, Alert, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Alert,
+  AlertDescription,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
@@ -111,6 +123,40 @@ const getSourceType = (inv: Invoice) => {
   if (inv.interventionId) return { label: 'Intervention', icon: <span className="inline-flex me-0.5"><BuildIcon size={14} strokeWidth={1.75} /></span>, color: '#D4A574' };
   return null;
 };
+
+/**
+ * Bouton-icone d'une ligne de tableau, muni de son infobulle.
+ *
+ * <p>Le `span` intermediaire n'est pas decoratif : `TooltipTrigger asChild`
+ * transmet une ref, or les primitives du kit sont des fonctions simples qui
+ * n'en acceptent pas. Il garde aussi l'infobulle vivante quand le bouton est
+ * desactive.</p>
+ */
+const RowAction: React.FC<{
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ label, onClick, disabled, className, children }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={label}
+          disabled={disabled}
+          className={className}
+          onClick={onClick}
+        >
+          {children}
+        </Button>
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>{label}</TooltipContent>
+  </Tooltip>
+);
 
 interface InvoicesListProps {
   embedded?: boolean;
@@ -225,26 +271,17 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       )}
 
       {/* ─── Template warning ──────────────────────────────────────────── */}
+      {/* Le look -soft hairline de l'ancien `sx` est deja le gabarit de la
+          variante `warning` du kit : il ne reste que la taille de texte. */}
       {templateStatus && !templateStatus.hasTemplate && (
-        <Alert
-          severity="warning"
-          icon={<WarningIcon size={20} strokeWidth={1.75} />}
-          sx={{
-            mb: 2,
-            // Alerte -soft hairline (pattern .rm-conflict)
-            bgcolor: 'var(--warn-soft)',
-            border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-            borderRadius: '12px',
-            color: 'var(--body)',
-            fontSize: '12.5px',
-            '& .MuiAlert-icon': { color: 'var(--warn)' },
-            '& .MuiAlert-message': { fontSize: '12.5px' },
-          }}
-        >
-          {t(
-            'invoices.noTemplateWarning',
-            'Aucun template FACTURE actif configure. Les PDF ne seront pas generes automatiquement lors des paiements. Veuillez configurer un template dans les parametres.'
-          )}
+        <Alert variant="warning" className="mb-3 text-[12.5px]">
+          <WarningIcon />
+          <AlertDescription>
+            {t(
+              'invoices.noTemplateWarning',
+              'Aucun template FACTURE actif configure. Les PDF ne seront pas generes automatiquement lors des paiements. Veuillez configurer un template dans les parametres.'
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -328,25 +365,17 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       {isLoading ? (
         /* Skeleton de table (carte hairline plate, lignes Skeleton) */
         <Card className="gap-0 py-0 border-[var(--line)] p-3">
-          <Skeleton variant="text" width="30%" height={18} sx={{ mb: 1.5 }} />
+          <Skeleton className="mb-1.5 h-[18px] w-[30%] rounded-[4px]" />
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
+            <Skeleton key={i} className="mb-1.5 h-9 rounded-[8px]" />
           ))}
         </Card>
       ) : error ? (
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            bgcolor: 'var(--err-soft)',
-            border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-            borderRadius: '12px',
-            color: 'var(--body)',
-            fontSize: '12.5px',
-            '& .MuiAlert-icon': { color: 'var(--err)' },
-          }}
-        >
-          {t('invoices.loadError', 'Erreur lors du chargement des factures')}
+        <Alert variant="destructive" className="mb-3 text-[12.5px]">
+          <WarningIcon />
+          <AlertDescription>
+            {t('invoices.loadError', 'Erreur lors du chargement des factures')}
+          </AlertDescription>
         </Alert>
       ) : !displayedInvoices.length ? (
         <EmptyState
@@ -426,82 +455,70 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                       <div className="flex gap-0.5 justify-end">
                         {/* Voir PDF (document genere) */}
                         {inv.documentGenerationId && (
-                          <Tooltip title={t('invoices.actions.viewPdf', 'Voir PDF')}>
-                            <IconButton
-                              size="small"
-                              sx={{ color: 'var(--err)', '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' } }}
-                              onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
-                            >
-                              <PdfIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.viewPdf', 'Voir PDF')}
+                            className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
+                          >
+                            <PdfIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Emettre */}
                         {inv.status === 'DRAFT' && (
-                          <Tooltip title={t('invoices.actions.issue', 'Emettre')}>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => issueMutation.mutate(inv.id)}
-                              disabled={issueMutation.isPending}
-                            >
-                              <SendIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.issue', 'Emettre')}
+                            className="text-[var(--mui-primary)] hover:text-[var(--mui-primary)]"
+                            onClick={() => issueMutation.mutate(inv.id)}
+                            disabled={issueMutation.isPending}
+                          >
+                            <SendIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Marquer payee */}
                         {inv.status === 'ISSUED' && (
-                          <Tooltip title={t('invoices.actions.markPaid', 'Marquer payee')}>
-                            <IconButton
-                              size="small"
-                              color="success"
-                              onClick={() => markPaidMutation.mutate(inv.id)}
-                              disabled={markPaidMutation.isPending}
-                            >
-                              <PaidIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.markPaid', 'Marquer payee')}
+                            className="text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+                            onClick={() => markPaidMutation.mutate(inv.id)}
+                            disabled={markPaidMutation.isPending}
+                          >
+                            <PaidIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Annuler */}
                         {(inv.status === 'DRAFT' || inv.status === 'ISSUED') && (
-                          <Tooltip title={t('invoices.actions.cancel', 'Annuler')}>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => cancelMutation.mutate(inv.id)}
-                              disabled={cancelMutation.isPending}
-                            >
-                              <CancelIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.cancel', 'Annuler')}
+                            className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            onClick={() => cancelMutation.mutate(inv.id)}
+                            disabled={cancelMutation.isPending}
+                          >
+                            <CancelIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Duplicata */}
                         {(inv.status === 'ISSUED' || inv.status === 'PAID') && !inv.duplicateOfId && (
-                          <Tooltip title={t('invoices.actions.duplicate', 'Generer duplicata')}>
-                            <IconButton
-                              size="small"
-                              sx={{ color: 'var(--info)', '&:hover': { bgcolor: 'var(--info-soft)', color: 'var(--info)' } }}
-                              onClick={() => duplicateMutation.mutate(inv.id)}
-                              disabled={duplicateMutation.isPending}
-                            >
-                              <DuplicateIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.duplicate', 'Generer duplicata')}
+                            className="text-[var(--info)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                            onClick={() => duplicateMutation.mutate(inv.id)}
+                            disabled={duplicateMutation.isPending}
+                          >
+                            <DuplicateIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Telecharger PDF */}
-                        <Tooltip title={t('invoices.actions.downloadPdf', 'Telecharger PDF')}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                          >
-                            <DownloadIcon size={18} strokeWidth={1.75} />
-                          </IconButton>
-                        </Tooltip>
+                        <RowAction
+                          label={t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                        >
+                          <DownloadIcon size={18} strokeWidth={1.75} />
+                        </RowAction>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -513,19 +530,13 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       )}
 
       {/* ─── PDF Preview Dialog ──────────────────────────────────────────── */}
-      <Dialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdfDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { height: '85vh' },
-        }}
-      >
-        <DialogTitle>
-          {t('invoices.pdfPreview', 'Apercu du document')}
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <Dialog open={pdfDialogOpen} onOpenChange={(open) => { if (!open) handleClosePdfDialog(); }}>
+        <DialogContent className="flex h-[85vh] max-w-3xl flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {t('invoices.pdfPreview', 'Apercu du document')}
+            </DialogTitle>
+          </DialogHeader>
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
               <Spinner className="size-10 text-[var(--accent)]" />
@@ -551,27 +562,20 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
             </object>
           ) : (
             <div className="p-4 text-center">
-              <Alert
-                severity="error"
-                sx={{
-                  bgcolor: 'var(--err-soft)',
-                  border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-                  borderRadius: '12px',
-                  color: 'var(--body)',
-                  fontSize: '12.5px',
-                  '& .MuiAlert-icon': { color: 'var(--err)' },
-                }}
-              >
-                {t('invoices.pdfLoadError', 'Erreur lors du chargement du PDF')}
+              <Alert variant="destructive" className="text-[12.5px]">
+                <WarningIcon />
+                <AlertDescription>
+                  {t('invoices.pdfLoadError', 'Erreur lors du chargement du PDF')}
+                </AlertDescription>
               </Alert>
             </div>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleClosePdfDialog}>
+              {t('common.close', 'Fermer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={handleClosePdfDialog}>
-            {t('common.close', 'Fermer')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

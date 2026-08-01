@@ -1,6 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
   Table,
   TableHeader,
   TableBody,
@@ -19,7 +22,6 @@ import {
 import StatusChip from '../../components/StatusChip';
 import {
   Euro,
-  ExpandMore,
   AutoAwesome,
   Bolt,
   CleaningServices,
@@ -50,14 +52,14 @@ const FORFAIT_ICONS = [
   <span className="inline-flex text-[var(--mui-secondary)]"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
 ];
 
+// Peau d'un panneau : le primitif du kit ne pose qu'un filet bas entre items,
+// la version MUI etait une surface encadree. On la reconstitue une seule fois.
+const PANEL_CLASS = 'rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] px-3';
+
 export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
   const { t } = useTranslation();
   const { currency } = useCurrency();
   const [expandedSection, setExpandedSection] = useState<string | false>('basePrices');
-
-  const handleAccordionChange = (panel: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedSection(isExpanded ? panel : false);
-  };
 
   const updateNumericField = (field: keyof PricingConfig, value: string) => {
     const num = parseInt(value, 10);
@@ -112,18 +114,28 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
 
   return (
     <div className="flex flex-col gap-1.5 pt-1.5">
-      {/* ─── Prix de base ───────────────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'basePrices'} onChange={handleAccordionChange('basePrices')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-primary"><Euro size={20} strokeWidth={1.75} /></span>
-            <div>
-              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.basePrices.title')}</h6>
-              <p className="cn-text-body2 text-muted-foreground">{t('tarification.basePrices.subtitle')}</p>
+      {/* Les panneaux MUI etaient des accordeons independants rendus exclusifs
+          par `expandedSection` : un seul Accordion `type="single"` porte
+          desormais cette exclusivite nativement. */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedSection === false ? '' : expandedSection}
+        onValueChange={(next) => setExpandedSection(next === '' ? false : next)}
+        className="flex flex-col gap-1.5"
+      >
+        {/* ─── Prix de base ───────────────────────────────────────────── */}
+        <AccordionItem value="basePrices" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-primary"><Euro size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.basePrices.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.basePrices.subtitle')}</p>
+              </div>
             </div>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails>
+          </AccordionTrigger>
+          <AccordionContent>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-6">
               <Field>
@@ -171,23 +183,16 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               </Field>
             </div>
           </div>
-        </AccordionDetails>
-      </Accordion>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Forfaits nettoyage ─────────────────────────────────────── */}
-      {(config.forfaitConfigs || []).map((forfait, index) => {
-        const panelKey = `forfait-${forfait.key}`;
-        return (
-          <Accordion
-            key={forfait.key}
-            expanded={expandedSection === panelKey}
-            onChange={handleAccordionChange(panelKey)}
-            sx={{ '&:before': { display: 'none' } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMore />}>
+        {/* ─── Forfaits nettoyage ─────────────────────────────────────── */}
+        {(config.forfaitConfigs || []).map((forfait, index) => (
+          <AccordionItem key={forfait.key} value={`forfait-${forfait.key}`} className={PANEL_CLASS}>
+            <AccordionTrigger>
               <div className="flex items-center gap-1.5">
                 {FORFAIT_ICONS[index] || FORFAIT_ICONS[0]}
-                <div>
+                <div className="text-start">
                   <h6 className="cn-text-subtitle1 font-semibold">
                     {t(`tarification.forfaits.${forfait.key}.title`, `Forfait ${forfait.label}`)}
                   </h6>
@@ -196,8 +201,8 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                   </p>
                 </div>
               </div>
-            </AccordionSummary>
-            <AccordionDetails>
+            </AccordionTrigger>
+            <AccordionContent>
               <ForfaitAccordionSection
                 forfait={forfait}
                 teams={teams}
@@ -209,23 +214,22 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 onAddSurcharge={handleAddSurcharge}
                 currencySymbol={currencySymbol}
               />
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
 
-      {/* ─── Coefficients type de logement ──────────────────────────── */}
-      <Accordion expanded={expandedSection === 'propertyType'} onChange={handleAccordionChange('propertyType')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--mui-secondary)]"><Home size={20} strokeWidth={1.75} /></span>
-            <div>
-              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyType.title')}</h6>
-              <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>
+        {/* ─── Coefficients type de logement ──────────────────────────── */}
+        <AccordionItem value="propertyType" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--mui-secondary)]"><Home size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyType.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>
+              </div>
             </div>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails>
+          </AccordionTrigger>
+          <AccordionContent>
           {/* Le primitif Table pose deja son propre conteneur overflow-x-auto :
               un TableContainer supplementaire n'ajouterait qu'un div en double. */}
           <Table>
@@ -248,21 +252,21 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               ))}
             </TableBody>
           </Table>
-        </AccordionDetails>
-      </Accordion>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Coefficients nombre de logements ───────────────────────── */}
-      <Accordion expanded={expandedSection === 'propertyCount'} onChange={handleAccordionChange('propertyCount')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--bui-success-ink)]"><Home size={20} strokeWidth={1.75} /></span>
-            <div>
-              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyCount.title')}</h6>
-              <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyCount.subtitle')}</p>
+        {/* ─── Coefficients nombre de logements ───────────────────────── */}
+        <AccordionItem value="propertyCount" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--bui-success-ink)]"><Home size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyCount.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyCount.subtitle')}</p>
+              </div>
             </div>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails>
+          </AccordionTrigger>
+          <AccordionContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -281,21 +285,21 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               ))}
             </TableBody>
           </Table>
-        </AccordionDetails>
-      </Accordion>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Coefficients capacité voyageurs ─────────────────────────── */}
-      <Accordion expanded={expandedSection === 'guestCapacity'} onChange={handleAccordionChange('guestCapacity')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-primary"><People size={20} strokeWidth={1.75} /></span>
-            <div>
-              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.guestCapacity.title')}</h6>
-              <p className="cn-text-body2 text-muted-foreground">{t('tarification.guestCapacity.subtitle')}</p>
+        {/* ─── Coefficients capacité voyageurs ─────────────────────────── */}
+        <AccordionItem value="guestCapacity" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-primary"><People size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.guestCapacity.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.guestCapacity.subtitle')}</p>
+              </div>
             </div>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails>
+          </AccordionTrigger>
+          <AccordionContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -314,21 +318,21 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               ))}
             </TableBody>
           </Table>
-        </AccordionDetails>
-      </Accordion>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Coefficients fréquence ──────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'frequency'} onChange={handleAccordionChange('frequency')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--bui-warning-ink)]"><Speed size={20} strokeWidth={1.75} /></span>
-            <div>
-              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.frequency.title')}</h6>
-              <p className="cn-text-body2 text-muted-foreground">{t('tarification.frequency.subtitle')}</p>
+        {/* ─── Coefficients fréquence ──────────────────────────────────── */}
+        <AccordionItem value="frequency" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--bui-warning-ink)]"><Speed size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.frequency.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.frequency.subtitle')}</p>
+              </div>
             </div>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails>
+          </AccordionTrigger>
+          <AccordionContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -347,21 +351,21 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               ))}
             </TableBody>
           </Table>
-        </AccordionDetails>
-      </Accordion>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Paliers surface ─────────────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'surfaceTiers'} onChange={handleAccordionChange('surfaceTiers')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-destructive"><SquareFoot size={20} strokeWidth={1.75} /></span>
-            <div>
-              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.surface.title')}</h6>
-              <p className="cn-text-body2 text-muted-foreground">{t('tarification.surface.subtitle')}</p>
+        {/* ─── Paliers surface ─────────────────────────────────────────── */}
+        <AccordionItem value="surfaceTiers" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-destructive"><SquareFoot size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.surface.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.surface.subtitle')}</p>
+              </div>
             </div>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails>
+          </AccordionTrigger>
+          <AccordionContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -386,7 +390,8 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               ))}
             </TableBody>
           </Table>
-        </AccordionDetails>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       {/* ─── Commission entretien ────────────────────────────────────── */}

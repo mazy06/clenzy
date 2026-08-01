@@ -1,10 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import {
@@ -429,22 +438,15 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       )}
 
       {payError && (
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            // Alerte -soft hairline (pattern .rm-conflict)
-            bgcolor: 'var(--err-soft)',
-            border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-            borderRadius: '12px',
-            color: 'var(--body)',
-            fontSize: '12.5px',
-            '& .MuiAlert-icon': { color: 'var(--err)' },
-          }}
-          onClose={() => setPayError(null)}
-        >
-          {payError}
-        </Alert>
+        <UiAlert variant="destructive" className="mb-3 text-[12.5px]">
+          <TriangleAlert />
+          <AlertDescription>{payError}</AlertDescription>
+          <AlertAction>
+            <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setPayError(null)}>
+              <X />
+            </Button>
+          </AlertAction>
+        </UiAlert>
       )}
 
       {/* KPIs (StatTile baseline) */}
@@ -543,91 +545,107 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
                   <TableCell className="text-center">
+                    {/* Chaque declencheur de tooltip passe par un span : les primitives
+                        du kit ne transmettent pas la ref attendue par Radix. */}
                     <div className="flex items-center justify-center gap-0.5">
-                      <Tooltip title={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(detailPath);
-                          }}
-                        >
-                          <VisibilityIcon size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                      {payment.type === 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
-                        <Tooltip title="Envoyer le lien de paiement par email">
-                          <span>
-                            <IconButton
-                              size="small"
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleSendPaymentLink(payment);
-                              }}
-                              disabled={sendingPaymentLink === payment.referenceId}
-                              sx={{
-                                color: 'var(--info)',
-                                '&:hover': { bgcolor: 'var(--info-soft)', color: 'var(--info)' },
-                                '&.Mui-disabled': { opacity: 0.45 },
+                                navigate(detailPath);
                               }}
                             >
-                              {sendingPaymentLink === payment.referenceId ? (
-                                <Spinner className="size-3.5 text-[var(--info)]" />
-                              ) : (
-                                <SendIcon size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
+                              <VisibilityIcon size={18} strokeWidth={1.75} />
+                            </Button>
                           </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}
+                        </TooltipContent>
+                      </Tooltip>
+                      {payment.type === 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Envoyer le lien de paiement par email"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSendPaymentLink(payment);
+                                }}
+                                disabled={sendingPaymentLink === payment.referenceId}
+                                className="text-[var(--info)] hover:bg-[var(--info-soft)] hover:text-[var(--info)] disabled:opacity-45"
+                              >
+                                {sendingPaymentLink === payment.referenceId ? (
+                                  <Spinner className="size-3.5 text-[var(--info)]" />
+                                ) : (
+                                  <SendIcon size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Envoyer le lien de paiement par email</TooltipContent>
                         </Tooltip>
                       )}
                       {payment.type !== 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
-                        <Tooltip title={payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}>
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePay(payment);
-                              }}
-                              disabled={processingPayment === payment.referenceId}
-                              sx={{
-                                color: 'var(--accent)',
-                                '&:hover': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
-                                '&.Mui-disabled': { opacity: 0.45 },
-                              }}
-                            >
-                              {processingPayment === payment.referenceId ? (
-                                <Spinner className="size-3.5 text-[var(--accent)]" />
-                              ) : (
-                                <PaymentIcon size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePay(payment);
+                                }}
+                                disabled={processingPayment === payment.referenceId}
+                                className="text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-45"
+                              >
+                                {processingPayment === payment.referenceId ? (
+                                  <Spinner className="size-3.5 text-[var(--accent)]" />
+                                ) : (
+                                  <PaymentIcon size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}
+                          </TooltipContent>
                         </Tooltip>
                       )}
                       {isAdminOrManager && payment.type === 'INTERVENTION' && payment.status === 'PAID' && (
-                        <Tooltip title="Rembourser">
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRefundClick(payment);
-                              }}
-                              disabled={refundingPayment === payment.referenceId}
-                              sx={{
-                                color: 'var(--err)',
-                                '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' },
-                                '&.Mui-disabled': { opacity: 0.45 },
-                              }}
-                            >
-                              {refundingPayment === payment.referenceId ? (
-                                <Spinner className="size-3.5 text-[var(--err)]" />
-                              ) : (
-                                <MoneyOffIcon size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Rembourser"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRefundClick(payment);
+                                }}
+                                disabled={refundingPayment === payment.referenceId}
+                                className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)] disabled:opacity-45"
+                              >
+                                {refundingPayment === payment.referenceId ? (
+                                  <Spinner className="size-3.5 text-[var(--err)]" />
+                                ) : (
+                                  <MoneyOffIcon size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Rembourser</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
@@ -664,95 +682,99 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       {/* Dialog de confirmation de remboursement */}
       <Dialog
         open={refundDialogOpen}
-        onClose={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => {
+          if (!next) { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }
+        }}
       >
-        <DialogTitle>
-          Confirmer le remboursement
-        </DialogTitle>
-        <DialogContent>
-          {refundTarget && (
-            <p className="cn-text-body2 mb-1.5">
-              Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
-              <strong> {refundTarget.description}</strong> ?
-            </p>
-          )}
-          <span className="cn-text-caption text-muted-foreground">
-            Cette action est irréversible. Le montant sera remboursé via Stripe.
-          </span>
-          {refundError && (
-            <UiAlert variant="destructive" className="mt-2 py-0.5">
-              <TriangleAlert />
-              <AlertDescription>{refundError}</AlertDescription>
-            </UiAlert>
-          )}
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Confirmer le remboursement</DialogTitle>
+          </DialogHeader>
+          <div>
+            {refundTarget && (
+              <p className="cn-text-body2 mb-1.5">
+                Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
+                <strong> {refundTarget.description}</strong> ?
+              </p>
+            )}
+            <span className="cn-text-caption text-muted-foreground">
+              Cette action est irréversible. Le montant sera remboursé via Stripe.
+            </span>
+            {refundError && (
+              <UiAlert variant="destructive" className="mt-2 py-0.5">
+                <TriangleAlert />
+                <AlertDescription>{refundError}</AlertDescription>
+              </UiAlert>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
+              size="sm"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleRefundConfirm}
+              variant="destructive"
+              size="sm"
+              disabled={refundingPayment !== null}
+            >
+              {refundingPayment !== null ? <Spinner className="size-[18px]" /> : 'Rembourser'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            variant="ghost"
-            onClick={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
-            size="sm"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleRefundConfirm}
-            variant="destructive"
-            size="sm"
-            disabled={refundingPayment !== null}
-          >
-            {refundingPayment !== null ? <Spinner className="size-[18px]" /> : 'Rembourser'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Dialog de saisie d'email pour envoi du lien de paiement */}
       <Dialog
         open={emailDialogOpen}
-        onClose={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => {
+          if (!next) { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }
+        }}
       >
-        <DialogTitle>
-          Email du client
-        </DialogTitle>
-        <DialogContent>
-          <p className="cn-text-body2 mb-3 text-muted-foreground">
-            Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
-          </p>
-          <Field>
-            <FieldLabel htmlFor="payment-guest-email">Adresse email</FieldLabel>
-            <Input
-              id="payment-guest-email"
-              className="w-full"
-              autoFocus
-              type="email"
-              placeholder="guest@example.com"
-              value={emailInput}
-              onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
-              aria-invalid={!!emailError}
-            />
-            <FieldError>{emailError}</FieldError>
-          </Field>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Email du client</DialogTitle>
+          </DialogHeader>
+          <div>
+            <p className="cn-text-body2 mb-3 text-muted-foreground">
+              Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
+            </p>
+            <Field>
+              <FieldLabel htmlFor="payment-guest-email">Adresse email</FieldLabel>
+              <Input
+                id="payment-guest-email"
+                className="w-full"
+                autoFocus
+                type="email"
+                placeholder="guest@example.com"
+                value={emailInput}
+                onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
+                aria-invalid={!!emailError}
+              />
+              <FieldError>{emailError}</FieldError>
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
+              size="sm"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleEmailDialogConfirm}
+              size="sm"
+              disabled={sendingPaymentLink !== null}
+            >
+              {sendingPaymentLink !== null ? <Spinner className="size-[18px]" /> : 'Envoyer'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            variant="ghost"
-            onClick={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
-            size="sm"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleEmailDialogConfirm}
-            size="sm"
-            disabled={sendingPaymentLink !== null}
-          >
-            {sendingPaymentLink !== null ? <Spinner className="size-[18px]" /> : 'Envoyer'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

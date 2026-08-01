@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { InputBase, ButtonBase, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { Button } from '../../../components/ui';
+import {
+  Button,
+  Input,
+  Spinner,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../../components/ui';
 import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
@@ -142,9 +147,6 @@ export default function SiteGenerationPage() {
   }, [propertyType, tone, brandName, primaryColorHint, languages, selectedDsId]);
 
   const k = (key: string, fallback: string) => t(`bookingEngine.studio.ai.generate.${key}`, fallback);
-
-  const toggleLanguage = (code: string) =>
-    setLanguages((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
 
   const canSubmit = propertyType.trim().length > 0 && languages.length > 0 && !generating;
 
@@ -359,29 +361,37 @@ export default function SiteGenerationPage() {
                         title={s.name} subtitle={[s.category, s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'].filter(Boolean).join(' · ')} />
                     ))}
                   </div>
-                  <ButtonBase onClick={() => setDsCreating(true)} sx={{ ...ghostBtnSx, mt: 1.5, alignSelf: 'flex-start' }}>
+                  <Button variant="outline" onClick={() => setDsCreating(true)} className="mt-1.5 self-start">
                     <Plus size={16} strokeWidth={2} /> {k('directionCreate', 'Créer une direction')}
-                  </ButtonBase>
+                  </Button>
                 </>
               )}
 
               {dsCreating && (
                 <div className="flex flex-col gap-2 border border-[var(--line)] rounded-[var(--radius-md)] p-3">
-                  <ToggleButtonGroup value={dsSource} exclusive onChange={(_, v) => v && setDsSource(v)} size="small"
-                    sx={{ flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: '1px solid var(--line)', borderRadius: 'var(--radius-md) !important', color: 'var(--body)', '&.Mui-selected': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)', borderColor: 'var(--accent)' } } }}>
+                  <ToggleGroup
+                    type="single"
+                    value={dsSource}
+                    onValueChange={(v) => { if (v) setDsSource(v as DesignSystemSource); }}
+                    variant="outline"
+                    size="sm"
+                    className="flex-wrap"
+                  >
                     {DS_SOURCES.map((s) => { const Icon = s.icon; return (
-                      <ToggleButton key={s.id} value={s.id} sx={{ textTransform: 'none', gap: 0.5, px: 1.25 }}><Icon size={14} strokeWidth={2} /> {s.label}</ToggleButton>
+                      <ToggleGroupItem key={s.id} value={s.id} className="gap-1 px-[7.5px]"><Icon size={14} strokeWidth={2} /> {s.label}</ToggleGroupItem>
                     ); })}
-                  </ToggleButtonGroup>
-                  <InputBase value={dsName} onChange={(e) => setDsName(e.target.value)} placeholder={k('directionName', 'Nom de la direction')} sx={inputSx} />
-                  {dsSource === 'URL' && <InputBase value={dsUrl} onChange={(e) => setDsUrl(e.target.value)} placeholder="https://…" sx={inputSx} />}
-                  {dsSource === 'BRAND' && <InputBase value={dsBrand} onChange={(e) => setDsBrand(e.target.value)} placeholder={k('directionBrand', 'Décrivez la marque (ambiance, couleurs, voix…)')} multiline minRows={3} sx={inputSx} />}
-                  {(dsSource === 'PASTE' || dsSource === 'MANUAL') && <InputBase value={dsMarkdown} onChange={(e) => setDsMarkdown(e.target.value)} placeholder="# Design System…" multiline minRows={4} sx={{ ...inputSx, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 'var(--text-sm)' }} />}
+                  </ToggleGroup>
+                  <Input value={dsName} onChange={(e) => setDsName(e.target.value)} placeholder={k('directionName', 'Nom de la direction')} />
+                  {dsSource === 'URL' && <Input value={dsUrl} onChange={(e) => setDsUrl(e.target.value)} placeholder="https://…" />}
+                  {/* `field-sizing: content` du primitif neutralise `rows` : la hauteur
+                      minimale se pose en lignes (`lh`) pour retrouver les minRows. */}
+                  {dsSource === 'BRAND' && <Textarea value={dsBrand} onChange={(e) => setDsBrand(e.target.value)} placeholder={k('directionBrand', 'Décrivez la marque (ambiance, couleurs, voix…)')} className="min-h-[3lh]" />}
+                  {(dsSource === 'PASTE' || dsSource === 'MANUAL') && <Textarea value={dsMarkdown} onChange={(e) => setDsMarkdown(e.target.value)} placeholder="# Design System…" className="min-h-[4lh] [font-family:ui-monospace,Menlo,monospace] text-[var(--text-sm)]" />}
                   <div className="flex justify-end gap-1.5">
-                    <ButtonBase onClick={() => setDsCreating(false)} disabled={dsBusy} sx={ghostBtnSx}>{t('common.cancel', 'Annuler')}</ButtonBase>
-                    <ButtonBase onClick={handleCreateDs} disabled={!canCreateDs || dsBusy} sx={primaryBtnSx}>
+                    <Button variant="outline" onClick={() => setDsCreating(false)} disabled={dsBusy}>{t('common.cancel', 'Annuler')}</Button>
+                    <Button onClick={handleCreateDs} disabled={!canCreateDs || dsBusy} className="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">
                       {dsBusy ? <><Spinner className="size-[15px] text-[var(--on-accent)]" /> {k('directionCreating', 'Création…')}</> : <><Sparkles size={16} strokeWidth={2} /> {k('directionDo', 'Créer')}</>}
-                    </ButtonBase>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -395,34 +405,36 @@ export default function SiteGenerationPage() {
 
               <div className="flex flex-col gap-3">
                 <Field label={k('propertyTypeLabel', 'Type de biens')} required>
-                  <InputBase value={propertyType} onChange={(e) => setPropertyType(e.target.value)} placeholder={k('propertyTypePlaceholder', 'Ex. riads de luxe à Marrakech, appartements urbains…')} sx={inputSx} autoFocus />
+                  <Input value={propertyType} onChange={(e) => setPropertyType(e.target.value)} placeholder={k('propertyTypePlaceholder', 'Ex. riads de luxe à Marrakech, appartements urbains…')} autoFocus />
                 </Field>
                 <Field label={k('toneLabel', 'Ton souhaité')}>
-                  <InputBase value={tone} onChange={(e) => setTone(e.target.value)} placeholder={k('tonePlaceholder', 'Ex. chaleureux et authentique, épuré et moderne…')} sx={inputSx} />
+                  <Input value={tone} onChange={(e) => setTone(e.target.value)} placeholder={k('tonePlaceholder', 'Ex. chaleureux et authentique, épuré et moderne…')} />
                 </Field>
                 <div className="flex gap-2 flex-wrap">
                   <Field label={k('brandLabel', 'Nom de marque')}>
-                    <InputBase value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder={k('brandPlaceholder', 'Optionnel')} sx={inputSx} />
+                    <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder={k('brandPlaceholder', 'Optionnel')} />
                   </Field>
                   <Field label={k('colorLabel', 'Couleur principale')}>
                     <div className="flex items-center gap-1">
-                      <input className="w-[38px] h-[38px] p-0 border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--field)] cursor-pointer shrink-0" type="color" value={/^#[0-9a-fA-F]{6}$/.test(primaryColorHint) ? primaryColorHint : '#5453D6'} onChange={(e) => setPrimaryColorHint((e.target as HTMLInputElement).value)} aria-label={k('colorPickerLabel', 'Choisir une couleur')} />
-                      <InputBase value={primaryColorHint} onChange={(e) => setPrimaryColorHint(e.target.value)} placeholder={k('colorPlaceholder', 'Auto')} sx={{ ...inputSx, flex: 1 }} />
+                      <input className="w-[38px] h-[38px] p-0 border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--field)] cursor-pointer shrink-0" type="color" value={/^#[0-9a-fA-F]{6}$/.test(primaryColorHint) ? primaryColorHint : '#5453D6'} onChange={(e) => setPrimaryColorHint((e.target as HTMLInputElement).value)} aria-label={k('colorPickerLabel', 'Choisir une couleur')} />
+                      <Input value={primaryColorHint} onChange={(e) => setPrimaryColorHint(e.target.value)} placeholder={k('colorPlaceholder', 'Auto')} className="flex-1" />
                     </div>
                   </Field>
                 </div>
                 <Field label={k('languagesLabel', 'Langues à générer')} required>
-                  <div className="flex flex-wrap gap-1">
-                    {LANGUAGE_CHOICES.map((lang) => {
-                      const selected = languages.includes(lang.code);
-                      return (
-                        <ButtonBase key={lang.code} onClick={() => toggleLanguage(lang.code)} aria-pressed={selected}
-                          sx={{ height: 34, px: 1.5, borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', border: '1px solid', borderColor: selected ? 'var(--accent)' : 'var(--line)', color: selected ? 'var(--on-accent)' : 'var(--body)', bgcolor: selected ? 'var(--accent)' : 'transparent', transition: 'background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)' } }}>
-                          {t(`bookingEngine.studio.ai.locales.${lang.labelKey}`, lang.fallback)}
-                        </ButtonBase>
-                      );
-                    })}
-                  </div>
+                  <ToggleGroup
+                    type="multiple"
+                    value={languages}
+                    onValueChange={setLanguages}
+                    variant="outline"
+                    className="flex-wrap"
+                  >
+                    {LANGUAGE_CHOICES.map((lang) => (
+                      <ToggleGroupItem key={lang.code} value={lang.code}>
+                        {t(`bookingEngine.studio.ai.locales.${lang.labelKey}`, lang.fallback)}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
                   <div className="mt-1 text-[var(--text-2xs)] text-[var(--muted)]">{k('languagesHint', 'La première langue sélectionnée est rédigée par l’IA ; les autres sont produites par auto-traduction (à relire).')}</div>
                 </Field>
               </div>
@@ -445,19 +457,26 @@ export default function SiteGenerationPage() {
 
 function DirectionRow({ selected, onClick, title, subtitle }: { selected: boolean; onClick: () => void; title: string; subtitle?: string }) {
   return (
-    <ButtonBase onClick={onClick} sx={{
-      justifyContent: 'space-between', textAlign: 'left', width: '100%', px: 1.5, py: 1.1,
-      borderRadius: 'var(--radius-md)', border: '1.5px solid', borderColor: selected ? 'var(--accent)' : 'var(--line)',
-      bgcolor: selected ? 'var(--accent-soft)' : 'var(--surface)', cursor: 'pointer',
-      transition: 'border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-      '&:hover': { borderColor: 'var(--accent)' },
-    }}>
+    // Rangee de selection sur mesure (pas un gabarit de bouton du kit) : <button> nu
+    // + classes. Les deux etats sont des branches litterales, une classe Tailwind ne
+    // pouvant pas naitre d'une variable.
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        'flex w-full items-center justify-between gap-2 text-start px-3 py-[6.6px] cursor-pointer',
+        'rounded-[var(--radius-md)] border-[1.5px] border-solid',
+        'transition-[border-color,background] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-[var(--accent)]',
+        selected ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--surface)]',
+      )}
+    >
       <div className="min-w-0">
         <div className="text-[var(--text-sm)] font-semibold text-[var(--ink)]">{title}</div>
         {subtitle && <div className="text-[var(--text-2xs)] text-[var(--muted)]">{subtitle}</div>}
       </div>
       {selected && <Check size={16} strokeWidth={2.4} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
-    </ButtonBase>
+    </button>
   );
 }
 
@@ -471,24 +490,3 @@ function Field({ label, required, children }: { label: string; required?: boolea
     </div>
   );
 }
-
-const inputSx = {
-  width: '100%', px: 1.5, py: 1, fontSize: 'var(--text-md)', color: 'var(--ink)',
-  bgcolor: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px',
-  boxShadow: '0 1px 0 rgba(28,27,26,0.04)',
-  '&.Mui-focused': { borderColor: 'color-mix(in srgb, var(--accent) 48%, var(--line))', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)' },
-} as const;
-const primaryBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 38, px: 2, flexShrink: 0,
-  borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'background var(--duration-fast) var(--ease-out)',
-  '&:hover': { bgcolor: 'var(--accent-deep)' }, '&.Mui-disabled': { opacity: 0.5, cursor: 'not-allowed' },
-} as const;
-const ghostBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 38, px: 1.75, flexShrink: 0,
-  borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', color: 'var(--body)',
-  fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.5 },
-} as const;

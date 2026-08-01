@@ -11,7 +11,15 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '../../components/ui';
-import { Card, CardContent, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import {
   Save,
   Cancel,
@@ -83,6 +91,11 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
 
 // La couleur portee par USER_STATUS_OPTIONS reste une cle de palette MUI ;
 // on la lit comme un ton de la primitive.
+// Radix Select interdit la chaine vide comme valeur d'item (elle est reservee a
+// « aucune selection ») : on route l'option « Aucune » par un sentinel, tout en
+// gardant '' dans le formulaire.
+const NONE_OPTION = '__none__';
+
 const STATUS_TONE: Record<string, StatusTone> = {
   success: 'ok',
   warning: 'warn',
@@ -261,8 +274,8 @@ const UserForm: React.FC = () => {
       )}
 
       {/* Formulaire */}
-      <Card>
-        <CardContent sx={{ p: 2 }}>
+      <Card className="gap-0 py-0">
+        <CardContent className="p-3">
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations personnelles */}
             <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
@@ -411,56 +424,68 @@ const UserForm: React.FC = () => {
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
-                <FormControl fullWidth required size="small" error={!!errors.role}>
-                  <InputLabel>Rôle *</InputLabel>
+                <Field>
+                  <FieldLabel htmlFor="user-role">Rôle *</FieldLabel>
                   <Controller
                     name="role"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        label="Rôle *"
-                      >
-                        {userRoles.map((role) => (
-                          <MenuItem key={role.value} value={role.value}>
-                            <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <div className="text-[18px]">{role.icon}</div>
-                              <p className="cn-text-body2">{role.label}</p>
-                            </MuiBox>
-                          </MenuItem>
-                        ))}
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="user-role" className="w-full" aria-invalid={!!errors.role}>
+                          <SelectValue placeholder="Rôle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userRoles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="inline-flex text-[18px]">{role.icon}</span>
+                                {role.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.role?.message || "Le rôle détermine les permissions de l'utilisateur"}
-                  </FormHelperText>
-                </FormControl>
+                  {errors.role?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.role.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      Le rôle détermine les permissions de l'utilisateur
+                    </FieldDescription>
+                  )}
+                </Field>
               </div>
 
               <div className="col-span-12 min-[900px]:col-span-6">
-                <FormControl fullWidth required size="small" error={!!errors.status}>
-                  <InputLabel>Statut *</InputLabel>
+                <Field>
+                  <FieldLabel htmlFor="user-status">Statut *</FieldLabel>
                   <Controller
                     name="status"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        label="Statut *"
-                      >
-                        {userStatuses.map((status) => (
-                          <MenuItem key={status.value} value={status.value}>
-                            <StatusChip tone={STATUS_TONE[status.color] ?? 'neutral'} label={status.label} />
-                          </MenuItem>
-                        ))}
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="user-status" className="w-full" aria-invalid={!!errors.status}>
+                          <SelectValue placeholder="Statut" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userStatuses.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              <StatusChip tone={STATUS_TONE[status.color] ?? 'neutral'} label={status.label} />
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.status?.message || "Le statut détermine si l'utilisateur peut se connecter"}
-                  </FormHelperText>
-                </FormControl>
+                  {errors.status?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.status.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      Le statut détermine si l'utilisateur peut se connecter
+                    </FieldDescription>
+                  )}
+                </Field>
               </div>
             </div>
 
@@ -490,75 +515,88 @@ const UserForm: React.FC = () => {
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
-                <FormControl fullWidth size="small" error={!!errors.organizationId}>
-                  <InputLabel>Organisation</InputLabel>
+                <Field>
+                  <FieldLabel htmlFor="user-organization">Organisation</FieldLabel>
                   <Controller
                     name="organizationId"
                     control={control}
                     render={({ field }) => (
                       <Select
-                        {...field}
-                        label="Organisation"
+                        value={field.value || NONE_OPTION}
+                        onValueChange={(value) => field.onChange(value === NONE_OPTION ? '' : value)}
                       >
-                        <MenuItem value="">
-                          <p className="cn-text-body2 text-muted-foreground">Aucune</p>
-                        </MenuItem>
-                        {organizations.map((org) => (
-                          <MenuItem key={org.id} value={String(org.id)}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex text-muted-foreground"><Business size={18} strokeWidth={1.75} /></span>
-                              <p className="cn-text-body2">{org.name}</p>
-                            </div>
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger id="user-organization" className="w-full" aria-invalid={!!errors.organizationId}>
+                          <SelectValue placeholder="Aucune" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE_OPTION}>
+                            <span className="text-muted-foreground">Aucune</span>
+                          </SelectItem>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.id} value={String(org.id)}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="inline-flex text-muted-foreground"><Business size={18} strokeWidth={1.75} /></span>
+                                {org.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.organizationId?.message || "Optionnel — rattacher l'utilisateur à une organisation"}
-                  </FormHelperText>
-                </FormControl>
+                  {errors.organizationId?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.organizationId.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      Optionnel — rattacher l'utilisateur à une organisation
+                    </FieldDescription>
+                  )}
+                </Field>
               </div>
 
               <div className="col-span-12 min-[900px]:col-span-6">
-                <FormControl
-                  fullWidth
-                  size="small"
-                  required={!!watchedOrganizationId && watchedOrganizationId !== ''}
-                  error={!!errors.orgRole}
-                  disabled={!watchedOrganizationId || watchedOrganizationId === ''}
-                >
-                  <InputLabel>
+                <Field>
+                  <FieldLabel htmlFor="user-org-role">
                     Rôle dans l'organisation {watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}
-                  </InputLabel>
+                  </FieldLabel>
                   <Controller
                     name="orgRole"
                     control={control}
                     render={({ field }) => (
                       <Select
-                        {...field}
-                        label={`Rôle dans l'organisation ${watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}`}
+                        value={field.value || NONE_OPTION}
+                        onValueChange={(value) => field.onChange(value === NONE_OPTION ? '' : value)}
+                        disabled={!watchedOrganizationId || watchedOrganizationId === ''}
                       >
-                        <MenuItem value="">
-                          <p className="cn-text-body2 text-muted-foreground">Aucun</p>
-                        </MenuItem>
-                        {orgMemberRoles.map((role) => (
-                          <MenuItem key={role.value} value={role.value}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex text-muted-foreground"><Group size={18} strokeWidth={1.75} /></span>
-                              <p className="cn-text-body2">{role.label}</p>
-                            </div>
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger id="user-org-role" className="w-full" aria-invalid={!!errors.orgRole}>
+                          <SelectValue placeholder="Aucun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE_OPTION}>
+                            <span className="text-muted-foreground">Aucun</span>
+                          </SelectItem>
+                          {orgMemberRoles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="inline-flex text-muted-foreground"><Group size={18} strokeWidth={1.75} /></span>
+                                {role.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.orgRole?.message || (watchedOrganizationId && watchedOrganizationId !== ''
-                      ? "Requis — rôle de l'utilisateur dans l'organisation"
-                      : "Sélectionnez d'abord une organisation")}
-                  </FormHelperText>
-                </FormControl>
+                  {errors.orgRole?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.orgRole.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      {watchedOrganizationId && watchedOrganizationId !== ''
+                        ? "Requis — rôle de l'utilisateur dans l'organisation"
+                        : "Sélectionnez d'abord une organisation"}
+                    </FieldDescription>
+                  )}
+                </Field>
               </div>
             </div>
           </form>

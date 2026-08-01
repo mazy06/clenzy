@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, Skeleton, Divider } from '@mui/material';
+import { Card, CardContent, Separator, Skeleton } from '../../components/ui';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -97,8 +97,10 @@ const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; 
 
 // ─── Mini chart constants (Pricing + Forecasts combined section) ────────────
 // Couleurs SVG (séries/grilles/ticks) : tokens résolus via useChartTokens().
-const MINI_CHART_CARD_SX = { width: '100%', height: 220 } as const;
-const MINI_CHART_CONTENT_SX = { p: 1.25, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.25 } } as const;
+// `--card-spacing` porte le rembourrage de la carte du kit (py sur la carte,
+// px sur le contenu) : c'est le report de l'ancien `p: 1.25` (7,5 px).
+const MINI_CHART_CARD_CLASS = 'w-full h-[220px] [--card-spacing:7.5px]';
+const MINI_CHART_CONTENT_CLASS = 'flex-1 min-h-0 flex flex-col';
 // Libelle overline des mini-cartes (ex-MINI_CHART_LABEL_SX : mb 0.5 = 3 px avec spacing 6).
 const MINI_CHART_LABEL_CLASS =
   'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px] shrink-0';
@@ -108,9 +110,12 @@ const MINI_CHART_MARGIN = { top: 4, right: 6, left: -18, bottom: 4 } as const;
 // Cartes : peau globale MuiCard (r14 hairline, hover --line-2) — pas de
 // transform au hover (anti-pattern baseline §5).
 
-const HERO_CARD_SX = { height: '100%' } as const;
+// Report en classes des anciens `sx` de cartes : hauteur pleine + rembourrage
+// (ex-`p: 2` = 12 px pour les cartes hero/graphe, `p: 1.5` = 9 px pour les
+// cartes secondaires).
+const HERO_CARD_CLASS = 'h-full [--card-spacing:12px]';
 
-const SECONDARY_CARD_SX = { height: '100%' } as const;
+const SECONDARY_CARD_CLASS = 'h-full [--card-spacing:9px]';
 
 // Libelle de section overline (ex-SECTION_LABEL_SX : mb 1 = 6 px avec spacing 6).
 const SECTION_LABEL_CLASS =
@@ -150,13 +155,13 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
 };
 
 const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Card sx={HERO_CARD_SX}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+  <Card className={HERO_CARD_CLASS}>
+    <CardContent>
       {loading ? (
         <div>
-          <Skeleton variant="text" width="50%" height={14} />
-          <Skeleton variant="text" width="70%" height={28} sx={{ mt: 0.5 }} />
-          <Skeleton variant="text" width="40%" height={12} sx={{ mt: 0.5 }} />
+          <Skeleton className="h-[14px] w-1/2 rounded-[4px]" />
+          <Skeleton className="h-[28px] w-[70%] rounded-[4px] mt-[3px]" />
+          <Skeleton className="h-[12px] w-2/5 rounded-[4px] mt-[3px]" />
         </div>
       ) : (
         <>
@@ -201,7 +206,7 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
     </div>
     <div className="text-end shrink-0">
       {loading ? (
-        <Skeleton variant="text" width={48} height={18} />
+        <Skeleton className="h-[18px] w-12 rounded-[4px]" />
       ) : (
         <>
           <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums">
@@ -253,8 +258,8 @@ interface ChartCardProps {
 
 // Carte de graphe : peau globale MuiCard (r14 hairline) + titre overline.
 const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
-  <Card sx={{ height: '100%' }}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+  <Card className={HERO_CARD_CLASS}>
+    <CardContent>
       <p className="cn-text-body1 text-[10.5px] font-bold mb-3 text-[var(--faint)] uppercase tracking-[0.05em]">
         {title}
       </p>
@@ -349,8 +354,8 @@ const InterventionsReport: React.FC = () => {
           {/* ─── Secondary KPIs (status breakdown + type breakdown) ── */}
           <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             <div className="col-span-12 min-[900px]:col-span-6">
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
                   <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.statusBreakdown', 'Repartition par statut')}
                   </p>
@@ -370,8 +375,8 @@ const InterventionsReport: React.FC = () => {
               </Card>
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
                   <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.typeBreakdown', 'Repartition par type')}
                   </p>
@@ -586,8 +591,8 @@ const TeamsReport: React.FC = () => {
           {/* ─── Secondary KPIs (task status + top performer) ────── */}
           <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             <div className="col-span-12 min-[900px]:col-span-6">
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
                   <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.taskStatus', 'Statut des taches')}
                   </p>
@@ -605,8 +610,8 @@ const TeamsReport: React.FC = () => {
               </Card>
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
                   <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.topPerformer', 'Meilleure equipe')}
                   </p>
@@ -763,8 +768,8 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
             {/* ─── Secondary KPIs ─── */}
             <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
               <div className="col-span-12 min-[900px]:col-span-6">
-                <Card sx={SECONDARY_CARD_SX}>
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                <Card className={SECONDARY_CARD_CLASS}>
+                  <CardContent>
                     <p className={SECTION_LABEL_CLASS}>
                       {t('reports.kpi.operationalMetrics', 'Indicateurs operationnels')}
                     </p>
@@ -812,7 +817,7 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
       </DataFetchWrapper>
 
       {/* ─── Analytics widgets ─── */}
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
       <p className={cn(SECTION_LABEL_CLASS, 'mb-3')}>
         {t('reports.charts.analyticsInsights', 'Analyses avancees')}
       </p>
@@ -911,13 +916,13 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
             <div className="grid grid-cols-12 gap-[9px]">
               {/* Chart 1: Prix Moyen vs RevPAN */}
               <div className="col-span-12 min-[600px]:col-span-4">
-                <Card sx={MINI_CHART_CARD_SX}>
-                  <CardContent sx={MINI_CHART_CONTENT_SX}>
+                <Card className={MINI_CHART_CARD_CLASS}>
+                  <CardContent className={MINI_CHART_CONTENT_CLASS}>
                     <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.priceVsRevPAN')}
                     </p>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
+                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
                     ) : (
                       <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -938,13 +943,13 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
 
               {/* Chart 2: Prix par Type */}
               <div className="col-span-12 min-[600px]:col-span-4">
-                <Card sx={MINI_CHART_CARD_SX}>
-                  <CardContent sx={MINI_CHART_CONTENT_SX}>
+                <Card className={MINI_CHART_CARD_CLASS}>
+                  <CardContent className={MINI_CHART_CONTENT_CLASS}>
                     <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.priceByType')}
                     </p>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
+                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
                     ) : (
                       <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -964,13 +969,13 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
 
               {/* Chart 3: Projection des Revenus */}
               <div className="col-span-12 min-[600px]:col-span-4">
-                <Card sx={MINI_CHART_CARD_SX}>
-                  <CardContent sx={MINI_CHART_CONTENT_SX}>
+                <Card className={MINI_CHART_CARD_CLASS}>
+                  <CardContent className={MINI_CHART_CONTENT_CLASS}>
                     <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.forecastChart')}
                     </p>
                     {analyticsLoading || !analytics?.forecast ? (
-                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
+                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
                     ) : (
                       <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -995,8 +1000,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
 
             {/* Scenarios below charts */}
             {analytics?.forecast && !analyticsLoading && (
-              <Card sx={{ width: '100%', mt: 1.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+              <Card className="w-full mt-[9px] [--card-spacing:7.5px]">
+                <CardContent>
                   <p className={MINI_CHART_LABEL_CLASS}>
                     {t('dashboard.analytics.scenarios')}
                   </p>
@@ -1087,7 +1092,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
       </div>
 
       {/* ─── Donnees operationnelles ─── */}
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
       <p className={cn(SECTION_LABEL_CLASS, 'mb-3')}>
         {t('reports.charts.operationalData', 'Donnees operationnelles')}
       </p>

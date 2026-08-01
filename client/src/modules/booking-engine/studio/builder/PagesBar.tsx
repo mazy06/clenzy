@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { ButtonBase, InputBase, Tooltip } from '@mui/material';
+import { Input, Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
 import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
 
@@ -49,55 +49,71 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
           <div className={cn('inline-flex items-center gap-[1.5px] h-[28px] ps-1.5 pe-[3px] shrink-0 rounded-[var(--radius-md)]', active ? 'bg-[var(--card)]' : 'bg-[transparent]', active ? 'border border-solid border-[var(--line)]' : 'border border-solid border-[transparent]')} style={{ boxShadow: active ? 'var(--shadow-card)' : 'none' }} key={p.id}>
             {isHome && <House size={13} strokeWidth={2} style={{ color: 'var(--muted)', marginRight: 2 }} />}
             {editing ? (
-              <InputBase
+              // Champ de renommage inline : le gabarit du primitif (bordure, hauteur,
+              // fond) est neutralise, l'onglet lui-meme porte deja le cadre.
+              <Input
                 autoFocus
+                aria-label="Renommer la page"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commitRename}
                 onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); }}
-                sx={{ fontSize: 'var(--text-sm)', color: 'var(--ink)', width: 120, '& input': { p: 0 } }}
+                className="h-[22px] w-[120px] rounded-none border-0 bg-transparent px-0 py-0 shadow-none text-[length:var(--text-sm)] text-[color:var(--ink)] focus-visible:ring-0"
               />
             ) : (
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => onSelect(p.id)}
                 onDoubleClick={() => startRename(p)}
-                sx={{
-                  fontSize: 'var(--text-sm)', cursor: 'pointer', maxWidth: 160,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)',
-                  color: active ? 'var(--ink)' : 'var(--muted)',
-                  '&:hover': { color: 'var(--ink)' },
-                }}
+                className={cn(
+                  'max-w-[160px] cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap bg-transparent border-0 p-0',
+                  'text-[length:var(--text-sm)] hover:text-[color:var(--ink)]',
+                  active
+                    ? '[font-weight:var(--fw-semibold)] text-[color:var(--ink)]'
+                    : '[font-weight:var(--fw-medium)] text-[color:var(--muted)]',
+                )}
               >
                 {p.title || p.path}
-              </ButtonBase>
+              </button>
             )}
             {active && !editing && (
               <>
                 {onMove && !isHome && canLeft && (
-                  <Tooltip title="Déplacer à gauche">
-                    <ButtonBase onClick={() => onMove(p.id, -1)} aria-label="Déplacer la page à gauche" sx={tabIconSx}>
-                      <ChevronLeft size={14} strokeWidth={2} />
-                    </ButtonBase>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" onClick={() => onMove(p.id, -1)} aria-label="Déplacer la page à gauche" className={TAB_ICON_CLASS}>
+                        <ChevronLeft size={14} strokeWidth={2} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Déplacer à gauche</TooltipContent>
                   </Tooltip>
                 )}
                 {onMove && !isHome && canRight && (
-                  <Tooltip title="Déplacer à droite">
-                    <ButtonBase onClick={() => onMove(p.id, 1)} aria-label="Déplacer la page à droite" sx={tabIconSx}>
-                      <ChevronRight size={14} strokeWidth={2} />
-                    </ButtonBase>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" onClick={() => onMove(p.id, 1)} aria-label="Déplacer la page à droite" className={TAB_ICON_CLASS}>
+                        <ChevronRight size={14} strokeWidth={2} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Déplacer à droite</TooltipContent>
                   </Tooltip>
                 )}
-                <Tooltip title="Renommer">
-                  <ButtonBase onClick={() => startRename(p)} aria-label="Renommer la page" sx={tabIconSx}>
-                    <Pencil size={12} strokeWidth={2} />
-                  </ButtonBase>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" onClick={() => startRename(p)} aria-label="Renommer la page" className={TAB_ICON_CLASS}>
+                      <Pencil size={12} strokeWidth={2} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Renommer</TooltipContent>
                 </Tooltip>
                 {!isHome && (
-                  <Tooltip title="Supprimer">
-                    <ButtonBase onClick={() => onDelete(p.id)} aria-label="Supprimer la page" sx={tabIconSx}>
-                      <X size={13} strokeWidth={2} />
-                    </ButtonBase>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" onClick={() => onDelete(p.id)} aria-label="Supprimer la page" className={TAB_ICON_CLASS}>
+                        <X size={13} strokeWidth={2} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Supprimer</TooltipContent>
                   </Tooltip>
                 )}
               </>
@@ -105,10 +121,23 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
           </div>
         );
       })}
-      <Tooltip title="Ajouter une page">
-        <ButtonBase onClick={onAdd} disabled={busy} aria-label="Ajouter une page" sx={{ ...tabIconSx, width: 28, height: 28, '&.Mui-disabled': { opacity: 0.4 } }}>
-          <Plus size={16} strokeWidth={2} />
-        </ButtonBase>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+              porte le declencheur a sa place. */}
+          <span className="inline-flex shrink-0">
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={busy}
+              aria-label="Ajouter une page"
+              className={cn(TAB_ICON_CLASS, 'w-[28px] h-[28px] disabled:opacity-40')}
+            >
+              <Plus size={16} strokeWidth={2} />
+            </button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Ajouter une page</TooltipContent>
       </Tooltip>
 
       {onReset && (
@@ -116,34 +145,36 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
           {confirmReset ? (
             <>
               <div className="text-[var(--text-2xs)] text-[var(--muted)] whitespace-nowrap">Tout effacer ?</div>
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => { setConfirmReset(false); onReset(); }}
-                sx={{ height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--on-accent)', bgcolor: 'var(--err, #C97A7A)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                className="h-[24px] px-1.5 border-0 rounded-[var(--radius-sm)] text-[length:var(--text-2xs)] [font-weight:var(--fw-semibold)] text-[color:var(--on-accent)] bg-[var(--err,#C97A7A)] cursor-pointer whitespace-nowrap"
               >
                 Oui, effacer
-              </ButtonBase>
-              <ButtonBase
+              </button>
+              <button
+                type="button"
                 onClick={() => setConfirmReset(false)}
-                sx={{ height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', color: 'var(--body)', border: '1px solid var(--line)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)' } }}
+                className="h-[24px] px-1.5 rounded-[var(--radius-sm)] text-[length:var(--text-2xs)] text-[color:var(--body)] border border-solid border-[var(--line)] bg-transparent cursor-pointer hover:bg-[var(--hover)]"
               >
                 Annuler
-              </ButtonBase>
+              </button>
             </>
           ) : (
-            <Tooltip title="Supprimer toutes les pages et repartir d'une page d'accueil vierge">
-              <ButtonBase
-                onClick={() => setConfirmReset(true)}
-                disabled={busy}
-                sx={{
-                  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 24, px: 1, flexShrink: 0,
-                  borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)',
-                  color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap',
-                  '&:hover': { color: 'var(--err, #C97A7A)', bgcolor: 'var(--hover)' },
-                  '&.Mui-disabled': { opacity: 0.4 },
-                }}
-              >
-                <RotateCcw size={12} strokeWidth={2} /> Repartir de zéro
-              </ButtonBase>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmReset(true)}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1 h-[24px] px-1.5 shrink-0 border-0 bg-transparent rounded-[var(--radius-sm)] text-[length:var(--text-2xs)] [font-weight:var(--fw-medium)] text-[color:var(--muted)] cursor-pointer whitespace-nowrap hover:text-[color:var(--err,#C97A7A)] hover:bg-[var(--hover)] disabled:opacity-40"
+                  >
+                    <RotateCcw size={12} strokeWidth={2} /> Repartir de zéro
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Supprimer toutes les pages et repartir d&apos;une page d&apos;accueil vierge</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -152,10 +183,8 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
   );
 }
 
-const tabIconSx = {
-  width: 22, height: 22, borderRadius: 'var(--radius-sm)', flexShrink: 0,
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  color: 'var(--muted)', cursor: 'pointer',
-  '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 1 },
-} as const;
+const TAB_ICON_CLASS =
+  'w-[22px] h-[22px] shrink-0 inline-flex items-center justify-center border-0 bg-transparent p-0 ' +
+  'rounded-[var(--radius-sm)] text-[color:var(--muted)] cursor-pointer ' +
+  'hover:bg-[var(--hover)] hover:text-[color:var(--ink)] ' +
+  'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-1';

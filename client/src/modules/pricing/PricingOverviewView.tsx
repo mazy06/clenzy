@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner } from '../../components/ui';
-import { Paper, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+// Le tableau reste MUI : `stickyHeader` (+ la premiere colonne collante) n'a pas
+// d'equivalent dans le kit, et le remplacer casserait le defilement horizontal.
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -13,14 +15,8 @@ import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+// Surface « carte » : le Paper MUI ne portait que ces declarations.
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px]';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -131,10 +127,13 @@ const PropertyRow: React.FC<{
             }}
           >
             {entry && entry.nightlyPrice !== null ? (
-              <Tooltip title={`${entry.priceSource} - ${dateStr}`} arrow>
-                <span className="cn-text-caption font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
-                  {entry.nightlyPrice}
-                </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cn-text-caption font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
+                    {entry.nightlyPrice}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{`${entry.priceSource} - ${dateStr}`}</TooltipContent>
               </Tooltip>
             ) : (
               <span className="cn-text-caption text-muted-foreground opacity-60">
@@ -168,46 +167,39 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Month navigation */}
-      <Paper sx={CARD_SX}>
+      <div className={cn(CARD_CLASS, 'p-[9px]')}>
         <div className="flex items-center justify-center gap-0.5">
-          <IconButton onClick={onPrevMonth} size="small">
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.previous', 'Précédent')} onClick={onPrevMonth}>
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
           <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
             {formatMonth(currentMonth, isFrench)}
           </p>
-          <IconButton onClick={onNextMonth} size="small">
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.next', 'Suivant')} onClick={onNextMonth}>
             <ChevronRightIcon size={20} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         </div>
-      </Paper>
+      </div>
 
       {/* Loading */}
       {propertiesLoading && (
-        <Paper sx={{ ...CARD_SX, display: 'flex', justifyContent: 'center', py: 4 }}>
+        <div className={cn(CARD_CLASS, 'flex justify-center px-[9px] py-6')}>
           <Spinner className="size-7" />
-        </Paper>
+        </div>
       )}
 
       {/* Empty state */}
       {!propertiesLoading && properties.length === 0 && (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
+        <div className={cn(CARD_CLASS, 'p-6 text-center')}>
           <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
             {t('dynamicPricing.calendar.noProperty')}
           </p>
-        </Paper>
+        </div>
       )}
 
       {/* Overview table */}
       {!propertiesLoading && properties.length > 0 && (
-        <TableContainer
-          component={Paper}
-          sx={{
-            ...CARD_SX,
-            p: 0,
-            maxHeight: 'calc(100vh - 280px)',
-          }}
-        >
+        <TableContainer className={cn(CARD_CLASS, 'max-h-[calc(100vh-280px)]')}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
@@ -254,7 +246,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
 
       {/* Legend */}
       {!propertiesLoading && properties.length > 0 && (
-        <Paper sx={CARD_SX}>
+        <div className={cn(CARD_CLASS, 'p-[9px]')}>
           <div className="flex flex-wrap gap-2">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
@@ -265,7 +257,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
               </div>
             ))}
           </div>
-        </Paper>
+        </div>
       )}
     </div>
   );

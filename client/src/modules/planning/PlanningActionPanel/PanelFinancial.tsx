@@ -18,14 +18,28 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '../../../components/ui';
-import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton, Snackbar, Collapse, Tooltip } from '@mui/material';
+import {
+  Separator,
+  Collapsible,
+  CollapsibleContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+// Snackbar laisse en MUI : remplacer le mecanisme de notification (et l'Alert
+// qu'il porte) depasse le perimetre de cette migration.
+import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import {
   Payment,
   Add,
   Receipt,
   MoneyOff,
   AttachMoney,
-  Close,
   Check,
   Warning,
   Person,
@@ -111,20 +125,6 @@ const OVERLINE_SX = {
 
 /** Report en classes de `OVERLINE_SX`. */
 const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
-
-/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
-const CLOSE_BTN_SX = {
-  width: 34,
-  height: 34,
-  borderRadius: '10px',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--muted)',
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
 
 const STATUS_LABELS: Record<string, string> = {
   PAID: 'Paye',
@@ -757,7 +757,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   </span>
                 </div>
               ))}
-              <Divider sx={{ my: 0.5 }} />
+              <Separator className="my-[3px]" />
               <FinRow label="Total" value={fmtCurrency(grandTotal)} bold />
             </>
           )}
@@ -798,29 +798,41 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   </span>
                   <DomainStatusChip status={inv.status} />
                   <div className="ms-auto flex gap-0.5">
-                    <Tooltip title="Telecharger">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName);
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Download size={14} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Telecharger"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName);
+                            }}
+                          >
+                            <Download size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Telecharger</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Duplicata">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Receipt size={14} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Duplicata"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
+                            }}
+                          >
+                            <Receipt size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicata</TooltipContent>
                     </Tooltip>
                   </div>
                 </div>
@@ -828,7 +840,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </div>
           )}
 
-          <Divider sx={{ my: 0.75 }} />
+          <Separator className="my-[4.5px]" />
 
           {/* ── Confirmation lien envoye ──────────────────────────── */}
           {lastSentAt && (
@@ -848,9 +860,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           )}
 
           {linkSent && (
-            <Alert severity="success" sx={{ fontSize: '0.6875rem', mt: 0.5, mb: 0.5, py: 0, '& .MuiAlert-message': { py: 0.25 } }}>
-              Lien envoye avec succes !
-            </Alert>
+            <UiAlert variant="success" className="my-[3px] py-1 text-[0.6875rem]">
+              <CheckCircle size={14} strokeWidth={1.75} />
+              <AlertDescription className="text-[0.6875rem]">Lien envoye avec succes !</AlertDescription>
+            </UiAlert>
           )}
 
           {/* ── Action buttons (same row) ──────────────────────────── */}
@@ -911,7 +924,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           </div>
 
           {/* Email input (si pas d'email guest) */}
-          <Collapse in={showEmailInput}>
+          <Collapsible open={showEmailInput}>
+            <CollapsibleContent>
             <div className="flex gap-0.5 mt-1">
               {/* Pas de libelle : le champ n'apparait qu'a la demande, le
                   placeholder suffit — d'ou l'aria-label pour le lecteur d'ecran. */}
@@ -939,7 +953,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 Envoyer
               </Button>
             </div>
-          </Collapse>
+            </CollapsibleContent>
+          </Collapsible>
 
         </SectionCard>
       )}
@@ -974,10 +989,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 return (
                   <div className="flex items-center gap-[4.5px] mb-[3px] p-[4.5px] rounded-[9px] border border-dashed border-[color-mix(in_srgb,_var(--warn)_50%,_transparent)] bg-[var(--warn-soft)]" key={`sr-${sr.id}`}>
                     {typeIcon}
-                    <Tooltip title={sr.title} placement="top">
-                      <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {sr.title}
-                      </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                          {sr.title}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{sr.title}</TooltipContent>
                     </Tooltip>
                     {sr.estimatedDurationHours > 0 && (
                       <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
@@ -991,7 +1009,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   </div>
                 );
               })}
-              {linkedInterventions.length > 0 && <Divider sx={{ my: 0.5 }} />}
+              {linkedInterventions.length > 0 && <Separator className="my-[3px]" />}
             </>
           )}
 
@@ -1002,12 +1020,19 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                   Prestations liees ({linkedInterventions.length})
                 </span>
-                <IconButton size="small" onClick={() => setInterventionsExpanded(!interventionsExpanded)} sx={{ p: 0.25 }}>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={interventionsExpanded ? 'Replier les prestations liees' : 'Deplier les prestations liees'}
+                  aria-expanded={interventionsExpanded}
+                  onClick={() => setInterventionsExpanded(!interventionsExpanded)}
+                >
                   {interventionsExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
-                </IconButton>
+                </Button>
               </div>
 
-              <Collapse in={interventionsExpanded}>
+              <Collapsible open={interventionsExpanded}>
+                <CollapsibleContent>
                 {linkedInterventions.map((intv) => {
                   const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
                   const typeIcon = intv.type === 'cleaning'
@@ -1016,10 +1041,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   return (
                     <div className="flex items-center gap-1 mb-0.5 p-1 rounded-[9px] border border-[var(--line)] bg-[var(--card)]" key={intv.id}>
                       {typeIcon}
-                      <Tooltip title={intv.title} placement="top">
-                        <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                          {intv.title}
-                        </p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {intv.title}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{intv.title}</TooltipContent>
                       </Tooltip>
                       {intv.estimatedDurationHours > 0 && (
                         <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
@@ -1037,11 +1065,12 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     </div>
                   );
                 })}
-              </Collapse>
+                </CollapsibleContent>
+              </Collapsible>
             </>
           )}
 
-          <Divider sx={{ my: 0.75 }} />
+          <Separator className="my-[4.5px]" />
 
           {/* Summary */}
           {srProposedTotal > 0 && (
@@ -1144,7 +1173,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <FinRow label="Cout reel" value={fmtCurrency(intervention.actualCost)} bold color="var(--ok)" />
           )}
 
-          <Divider sx={{ my: 0.75 }} />
+          <Separator className="my-[4.5px]" />
 
           <FinRow
             label="Statut paiement"
@@ -1203,29 +1232,41 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   </span>
                   <DomainStatusChip status={inv.status} />
                   <div className="ms-auto flex gap-0.5">
-                    <Tooltip title="Telecharger">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName);
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Download size={14} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Telecharger"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName);
+                            }}
+                          >
+                            <Download size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Telecharger</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Duplicata">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Receipt size={14} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Duplicata"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
+                            }}
+                          >
+                            <Receipt size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicata</TooltipContent>
                     </Tooltip>
                   </div>
                 </div>
@@ -1240,21 +1281,23 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
 
       {/* View Payments Dialog */}
-      <Dialog open={paymentsDialogOpen} onClose={() => setPaymentsDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><Payment size={20} strokeWidth={1.75} /></span>
-            <span>Historique des paiements</span>
-          </div>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={paymentsDialogOpen} onOpenChange={(next) => { if (!next) setPaymentsDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><Payment size={20} strokeWidth={1.75} /></span>
+              <span>Historique des paiements</span>
+            </DialogTitle>
+          </DialogHeader>
           {payments.length === 0 ? (
             <UiAlert variant="info" className="text-[0.8125rem]">
               <Info />
               <AlertDescription>Aucun paiement enregistre.</AlertDescription>
             </UiAlert>
           ) : (
+            // La modale du kit est une grille : sans ce conteneur, un tableau
+            // large ferait deborder la page au lieu de defiler chez lui.
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1279,6 +1322,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
           {payments.length > 0 && (
             <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
@@ -1304,15 +1348,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       </Dialog>
 
       {/* Add Payment Dialog */}
-      <Dialog open={addPaymentOpen} onClose={() => setAddPaymentOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><Add size={20} strokeWidth={1.75} /></span>
-            <span>Ajouter un paiement</span>
-          </div>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={addPaymentOpen} onOpenChange={(next) => { if (!next) setAddPaymentOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><Add size={20} strokeWidth={1.75} /></span>
+              <span>Ajouter un paiement</span>
+            </DialogTitle>
+          </DialogHeader>
           {reservation && (
             <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong><Money value={Math.max(0, balanceDue)} from="EUR" /></strong>
@@ -1366,26 +1409,25 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               />
             </Field>
           </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddPaymentOpen(false)} size="sm">Annuler</Button>
+            <Button onClick={handleAddPayment} size="sm" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading}>
+              {paymentLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setAddPaymentOpen(false)} size="sm">Annuler</Button>
-          <Button onClick={handleAddPayment} size="sm" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading}>
-            {paymentLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            Enregistrer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Add Extra Fee Dialog */}
-      <Dialog open={addFeeOpen} onClose={() => setAddFeeOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
-            <span>Frais supplementaires</span>
-          </div>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={addFeeOpen} onOpenChange={(next) => { if (!next) setAddFeeOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
+              <span>Frais supplementaires</span>
+            </DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col gap-3">
             <Field>
               <FieldLabel htmlFor="panel-financial-fee-description">Description</FieldLabel>
@@ -1413,33 +1455,38 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </Field>
           </div>
           {grandTotal > 0 && (
-            <Alert severity="info" sx={{ fontSize: '0.75rem', mt: 2, '& .MuiAlert-message': { py: 0.25 } }}>
-              Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
-            </Alert>
+            <UiAlert variant="info" className="mt-3 text-[0.75rem]">
+              <Info />
+              <AlertDescription className="text-[0.75rem]">
+                Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
+              </AlertDescription>
+            </UiAlert>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddFeeOpen(false)} size="sm">Annuler</Button>
+            <Button onClick={handleAddFee} size="sm" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading}>
+              {feeLoading ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={1.75} />}
+              Ajouter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setAddFeeOpen(false)} size="sm">Annuler</Button>
-          <Button onClick={handleAddFee} size="sm" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading}>
-            {feeLoading ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={1.75} />}
-            Ajouter
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Refund Confirmation Dialog */}
-      <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
-            <span>Confirmer le remboursement</span>
-          </div>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="warning" icon={<Warning size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.8125rem', mb: 2 }}>
-            Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
-          </Alert>
+      <Dialog open={refundDialogOpen} onOpenChange={(next) => { if (!next) setRefundDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
+              <span>Confirmer le remboursement</span>
+            </DialogTitle>
+          </DialogHeader>
+          <UiAlert variant="warning" className="mb-3 text-[0.8125rem]">
+            <Warning size={18} strokeWidth={1.75} />
+            <AlertDescription className="text-[0.8125rem]">
+              Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
+            </AlertDescription>
+          </UiAlert>
           <div className="flex flex-col gap-0.5 p-2 rounded-[10px] bg-[var(--field)]">
             <div className="flex justify-between">
               <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant total paye</p>
@@ -1458,22 +1505,22 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               </p>
             </div>
           </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRefundDialogOpen(false)} size="sm">Annuler</Button>
+            {/* Teinte --warn conservee (pas de variante « warning » au kit) :
+                l'action est irreversible mais ce n'est pas une suppression. */}
+            <Button
+              onClick={handleRefund}
+              variant="outline"
+              size="sm"
+              disabled={refundLoading}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+            >
+              {refundLoading ? <Spinner className="size-3.5" /> : <MoneyOff size={16} strokeWidth={1.75} />}
+              Confirmer le remboursement
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setRefundDialogOpen(false)} size="sm">Annuler</Button>
-          {/* Teinte --warn conservee (pas de variante « warning » au kit) :
-              l'action est irreversible mais ce n'est pas une suppression. */}
-          <Button
-            onClick={handleRefund}
-            variant="outline"
-            size="sm"
-            disabled={refundLoading}
-            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
-          >
-            {refundLoading ? <Spinner className="size-3.5" /> : <MoneyOff size={16} strokeWidth={1.75} />}
-            Confirmer le remboursement
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Payment Checkout Modal */}
@@ -1491,9 +1538,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
       {/* Snackbar */}
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ fontSize: '0.8125rem' }}>
+        <MuiAlert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ fontSize: '0.8125rem' }}>
           {snackbar.message}
-        </Alert>
+        </MuiAlert>
       </Snackbar>
     </div>
   );

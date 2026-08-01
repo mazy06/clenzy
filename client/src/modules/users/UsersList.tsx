@@ -1,9 +1,35 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  NativeSelect,
+  NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -140,7 +166,6 @@ interface UsersListProps {
 const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   // Tarifs & score d'un prestataire (staff plateforme) — MM-4A #6.
   const [ratesUser, setRatesUser] = useState<{ id: number; name: string } | null>(null);
@@ -187,40 +212,25 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
     loadUsers();
   }, []);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, u: User) => {
-    setAnchorEl(event.currentTarget);
+  // Le menu contextuel est desormais monte DANS chaque carte (DropdownMenu du
+  // kit, ancre sur son declencheur) : plus d'anchorEl, chaque action recoit
+  // directement la ligne concernee.
+  const openEdit = (u: User) => {
     setSelectedUser(u);
+    setEditFormData({
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      phoneNumber: u.phoneNumber,
+      role: u.role,
+      status: u.status,
+    });
+    setEditDialogOpen(true);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleEdit = () => {
-    if (selectedUser) {
-      setEditFormData({
-        firstName: selectedUser.firstName,
-        lastName: selectedUser.lastName,
-        email: selectedUser.email,
-        phoneNumber: selectedUser.phoneNumber,
-        role: selectedUser.role,
-        status: selectedUser.status,
-      });
-      setEditDialogOpen(true);
-      setAnchorEl(null);
-    }
-  };
-
-  const handleViewDetails = () => {
-    if (selectedUser) {
-      navigate(`/users/${selectedUser.id}`);
-      handleMenuClose();
-    }
-  };
-
-  const handleDelete = () => {
+  const openDelete = (u: User) => {
+    setSelectedUser(u);
     setDeleteDialogOpen(true);
-    setAnchorEl(null);
   };
 
   const handleSyncUsers = async () => {
@@ -327,7 +337,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
           <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
-            <Skeleton variant="rounded" height={180} sx={{ borderRadius: '14px' }} />
+            <Skeleton className="h-[180px] w-full rounded-[14px]" />
           </div>
         ))}
       </div>
@@ -486,41 +496,20 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             const OrgIcon = orgRole?.Icon;
             return (
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={user.id}>
-              {/* Carte hairline r14 (thème global) — hover lift + shadow-card (cliquable) */}
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  '&:hover': {
-                    borderColor: 'var(--line-2)',
-                    boxShadow: 'var(--shadow-card)',
-                    transform: 'translateY(-1px)',
-                  },
-                  '@media (prefers-reduced-motion: reduce)': {
-                    '&:hover': { transform: 'none' },
-                  },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
+              {/* Carte hairline r14 (kit) — hover lift + shadow-card (cliquable) */}
+              <Card className="h-full gap-2 [--card-spacing:10.5px] transition-[box-shadow,transform] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-card)] hover:ring-[color:var(--line-2)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                <CardContent className="flex-1">
                   {/* En-tête avec avatar (initiales display — pattern .mg-avt/.s-av) et menu */}
                   <div className="flex justify-between items-start mb-2 gap-1.5">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Avatar
-                        src={userAvatarSrc(user)}
-                        sx={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: '10px',
-                          bgcolor: `${roleColor}1F`,
-                          color: roleColor,
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '0.8125rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      <Avatar className="size-[38px] shrink-0 rounded-[10px] after:rounded-[10px]">
+                        <AvatarImage src={userAvatarSrc(user)} alt="" className="rounded-[10px]" />
+                        <AvatarFallback
+                          className="rounded-[10px] font-[family-name:var(--font-display)] text-[0.8125rem] font-semibold tracking-[0.02em]"
+                          style={{ backgroundColor: `${roleColor}1F`, color: roleColor }}
+                        >
+                          {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
@@ -531,40 +520,71 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         </p>
                       </div>
                     </div>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, user)}
-                      sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
-                      aria-label="Options"
-                    >
-                      <MoreVert size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        {/* Le span porte la ref exigee par Radix : Button du kit est
+                            un composant fonction qui ne la transmet pas (React 18). */}
+                        <span className="inline-flex ms-[1.5px]">
+                          <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-[var(--muted)]">
+                            <MoreVert size={16} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+                        <DropdownMenuItem onClick={() => navigate(`/users/${user.id}`)}>
+                          <Visibility size={18} strokeWidth={1.75} />
+                          Voir détails
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(user)}>
+                          <Edit size={18} strokeWidth={1.75} />
+                          Modifier
+                        </DropdownMenuItem>
+                        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])
+                          && ['HOUSEKEEPER', 'TECHNICIAN'].includes(user.role) && (
+                          <DropdownMenuItem
+                            onClick={() => setRatesUser({ id: user.id, name: `${user.firstName} ${user.lastName}`.trim() })}
+                          >
+                            <Euro size={18} strokeWidth={1.75} />
+                            Tarifs & score
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem variant="destructive" onClick={() => openDelete(user)}>
+                          <Delete size={18} strokeWidth={1.75} />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   {/* Rôles (plateforme + org) et statut — chips -soft */}
                   <div className="flex gap-0.5 mb-2 flex-wrap">
-                    <Tooltip title="Rôle sur la plateforme">
-                      {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-                          (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-                      <span className="inline-flex">
-                        <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
-                      </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {/* TooltipTrigger pose une ref sur son enfant, que StatusChip ne transmet
+                            pas (React 18, composant fonction) : sans ce span, rien ne s'ancre. */}
+                        <span className="inline-flex">
+                          <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Rôle sur la plateforme</TooltipContent>
                     </Tooltip>
                     {showOrgRole && orgRole && OrgIcon && (
-                      <Tooltip title="Rôle dans l'organisation">
-                        {/* Tooltip pose une ref sur son enfant, que StatusChip ne
-                            transmet pas : sans ce span l'infobulle ne s'ancre plus. */}
-                        <span className="inline-flex">
-                          {/* Liseré teinté : `border-solid` est indispensable, le
-                              gabarit de la primitive pose `border-none`. */}
-                          <StatusChip
-                            tokens={{ color: orgRole.hex, bg: 'transparent' }}
-                            label={orgRole.label}
-                            icon={<OrgIcon size={11} strokeWidth={2} />}
-                            className="border border-solid"
-                            sx={{ borderColor: `${orgRole.hex}55` }}
-                          />
-                        </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Meme raison que ci-dessus : le span porte la ref. */}
+                          <span className="inline-flex">
+                            {/* Liseré teinté : `border-solid` est indispensable, le
+                                gabarit de la primitive pose `border-none`. */}
+                            <StatusChip
+                              tokens={{ color: orgRole.hex, bg: 'transparent' }}
+                              label={orgRole.label}
+                              icon={<OrgIcon size={11} strokeWidth={2} />}
+                              className="border border-solid"
+                              sx={{ borderColor: `${orgRole.hex}55` }}
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Rôle dans l'organisation</TooltipContent>
                       </Tooltip>
                     )}
                     <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={s.label} />
@@ -602,7 +622,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 </CardContent>
 
                 {/* Actions */}
-                <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5 }}>
+                <div className="px-[10.5px]">
                   {/* Action de pied de carte, repetee sur chaque fiche : poids secondaire. */}
                   <Button
                     variant="outline"
@@ -613,62 +633,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     <Visibility strokeWidth={1.75} />
                     Voir détails
                   </Button>
-                </CardActions>
+                </div>
               </Card>
             </div>
             );
           })
         )}
       </div>
-
-      {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={handleViewDetails}>
-          <ListItemIcon>
-            <Visibility size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          Voir détails
-        </MenuItem>
-        <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <Edit size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          Modifier
-        </MenuItem>
-        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])
-          && selectedUser != null
-          && ['HOUSEKEEPER', 'TECHNICIAN'].includes(selectedUser.role) && (
-          <MenuItem
-            onClick={() => {
-              setRatesUser({ id: selectedUser.id, name: `${selectedUser.firstName} ${selectedUser.lastName}`.trim() });
-              setAnchorEl(null);
-            }}
-          >
-            <ListItemIcon>
-              <Euro size={18} strokeWidth={1.75} />
-            </ListItemIcon>
-            Tarifs & score
-          </MenuItem>
-        )}
-        <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
-          <ListItemIcon>
-            <span className="inline-flex text-[var(--err)]"><Delete size={18} strokeWidth={1.75} /></span>
-          </ListItemIcon>
-          Supprimer
-        </MenuItem>
-      </Menu>
 
       {/* Tarifs & score d'un prestataire (staff plateforme) */}
       <HousekeeperRatesDialog
@@ -678,9 +649,14 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       />
 
       {/* Dialog de modification */}
-      <Dialog open={editDialogOpen} onClose={() => { setEditDialogOpen(false); setSelectedUser(null); }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>Modifier l'utilisateur</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(next) => { if (!next) { setEditDialogOpen(false); setSelectedUser(null); } }}
+      >
+        <DialogContent className="max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Modifier l'utilisateur</DialogTitle>
+          </DialogHeader>
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 min-[900px]:col-span-6">
               <Field>
@@ -731,74 +707,81 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               </Field>
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
-              <FormControl fullWidth size="small">
-                <InputLabel>Rôle</InputLabel>
+              {/* Liste riche (pastille de couleur par role) -> Select du kit et non
+                  NativeSelect : une <option> native ne peut pas porter d'icone. */}
+              <Field>
+                <FieldLabel htmlFor="user-edit-role">Rôle</FieldLabel>
                 <Select
                   value={editFormData.role || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, role: e.target.value }))}
-                  label="Rôle"
+                  onValueChange={(value) => setEditFormData(prev => ({ ...prev, role: value }))}
                 >
-                  {userRoles.map((role) => {
-                    const RoleIcon = role.Icon;
-                    return (
-                      <MenuItem key={role.value} value={role.value}>
-                        <div className="flex items-center gap-1.5">
-                          <div className="inline-flex" style={{ color: role.hex }}>
+                  <SelectTrigger id="user-edit-role" size="sm" className="w-full">
+                    <SelectValue placeholder="Rôle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userRoles.map((role) => {
+                      const RoleIcon = role.Icon;
+                      return (
+                        <SelectItem key={role.value} value={role.value}>
+                          <span className="inline-flex" style={{ color: role.hex }}>
                             <RoleIcon size={16} strokeWidth={1.75} />
-                          </div>
-                          <p className="cn-text-body2">{role.label}</p>
-                        </div>
-                      </MenuItem>
-                    );
-                  })}
+                          </span>
+                          {role.label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
                 </Select>
-              </FormControl>
+              </Field>
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
-              <FormControl fullWidth size="small">
-                <InputLabel>Statut</InputLabel>
-                <Select
-                  value={editFormData.status || ''}
+              <Field>
+                <FieldLabel htmlFor="user-edit-status">Statut</FieldLabel>
+                <NativeSelect
+                  id="user-edit-status"
+                  className="w-full"
+                  value={editFormData.status ?? ''}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
-                  label="Statut"
                 >
                   {userStatuses.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>
-                      <p className="cn-text-body2">{status.label}</p>
-                    </MenuItem>
+                    <NativeSelectOption key={status.value} value={status.value}>
+                      {status.label}
+                    </NativeSelectOption>
                   ))}
-                </Select>
-              </FormControl>
+                </NativeSelect>
+              </Field>
             </div>
           </div>
+          <DialogFooter>
+            <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} variant="outline" size="sm">Annuler</Button>
+            <Button
+              onClick={handleEditSave}
+              size="sm"
+              disabled={saving || !editFormData.firstName || !editFormData.lastName || !editFormData.email}
+            >
+              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} variant="outline" size="sm">Annuler</Button>
-          <Button
-            onClick={handleEditSave}
-            size="sm"
-            disabled={saving || !editFormData.firstName || !editFormData.lastName || !editFormData.email}
-          >
-            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
+      <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) setDeleteDialogOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2">
             Êtes-vous sûr de vouloir supprimer l'utilisateur "{selectedUser?.firstName} {selectedUser?.lastName}" ?
             Cette action est irréversible.
           </p>
+          <DialogFooter>
+            <Button onClick={() => setDeleteDialogOpen(false)} variant="outline" size="sm">Annuler</Button>
+            <Button onClick={confirmDelete} variant="destructive" size="sm">
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} variant="outline" size="sm">Annuler</Button>
-          <Button onClick={confirmDelete} variant="destructive" size="sm">
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

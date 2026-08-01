@@ -4,7 +4,19 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Divider, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  buttonVariants,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -53,11 +65,9 @@ const TemplateDetails: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Kebab menu (regroupe les actions secondaires du header pour reduire l'encombrement)
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
-  const handleMenuClose = () => setMenuAnchor(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const runFromMenu = (fn: () => void | Promise<void>) => () => {
-    handleMenuClose();
+    setMenuOpen(false);
     void fn();
   };
 
@@ -308,28 +318,61 @@ const TemplateDetails: React.FC = () => {
                 Modifier
               </BuiButton>
             )}
-            <Tooltip title="Plus d'actions" arrow>
-              <IconButton
-                size="small"
-                onClick={handleMenuOpen}
-                aria-label="Plus d'actions"
-                aria-haspopup="menu"
-                aria-expanded={Boolean(menuAnchor)}
-                sx={{
-                  width: 30,
-                  height: 30,
-                  border: '1px solid var(--line-2)',
-                  borderRadius: '9px',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    borderColor: 'var(--faint)',
-                    backgroundColor: 'var(--hover)',
-                  },
-                }}
-              >
-                <MoreVert size={16} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
+            {/* Le declencheur est le bouton Radix lui-meme (pas `asChild` sur
+                un primitif du kit, qui ne transmet pas de ref) : il conserve
+                aria-haspopup / aria-expanded natifs. */}
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger
+                    aria-label="Plus d'actions"
+                    className={cn(
+                      buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                      'size-[30px] cursor-pointer rounded-[9px] border border-solid border-[var(--line-2)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                    )}
+                  >
+                    <MoreVert size={16} strokeWidth={1.75} />
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Plus d'actions</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-60 text-[0.85rem]">
+                <DropdownMenuItem onSelect={runFromMenu(handleDownloadOriginal)}>
+                  <span className="inline-flex text-muted-foreground">
+                    <Download size={18} strokeWidth={1.75} />
+                  </span>
+                  Télécharger le fichier source (.odt)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={runFromMenu(handleDownloadPreview)}>
+                  <span className="inline-flex text-muted-foreground">
+                    <Visibility size={18} strokeWidth={1.75} />
+                  </span>
+                  Télécharger l'aperçu PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={runFromMenu(handleReplaceFileClick)} disabled={replacePending}>
+                  <span className="inline-flex text-muted-foreground">
+                    {replacePending ? <Spinner className="size-4" /> : <Upload size={18} strokeWidth={1.75} />}
+                  </span>
+                  {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={runFromMenu(handleReparse)} disabled={reparsePending}>
+                  <span className="inline-flex text-muted-foreground">
+                    {reparsePending ? <Spinner className="size-4" /> : <Refresh size={18} strokeWidth={1.75} />}
+                  </span>
+                  Re-scanner les tags
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={runFromMenu(handleDelete)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Delete size={18} strokeWidth={1.75} />
+                  Supprimer
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <input
               ref={fileInputRef}
               type="file"
@@ -371,7 +414,7 @@ const TemplateDetails: React.FC = () => {
                     <FieldLabel htmlFor="template-description">Description</FieldLabel>
                     <Textarea id="template-description" rows={2} value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} />
                   </Field>
-                  <Divider />
+                  <Separator />
                   <Field>
                     <FieldLabel htmlFor="template-email-subject">Objet email</FieldLabel>
                     <Input id="template-email-subject" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} />
@@ -390,7 +433,7 @@ const TemplateDetails: React.FC = () => {
                   <InfoRow label="Créé le" value={template.createdAt ? new Date(template.createdAt).toLocaleDateString('fr-FR') : '—'} />
                   {template.emailSubject && (
                     <>
-                      <Divider sx={{ my: 1 }} />
+                      <Separator className="my-1.5" />
                       <InfoRow label="Objet email" value={template.emailSubject} />
                     </>
                   )}
@@ -410,26 +453,37 @@ const TemplateDetails: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex gap-0.5">
-                  <Tooltip title="Regénérer l'aperçu">
-                    <span>
-                      <IconButton onClick={loadPreview} disabled={previewLoading} size="small">
-                        <Refresh />
-                      </IconButton>
-                    </span>
+                  {/* Le span reste indispensable : `TooltipTrigger asChild` pose
+                      une ref, et il garde l'infobulle vivante bouton desactive. */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <BuiButton variant="ghost" size="icon-sm" aria-label="Regénérer l'aperçu" onClick={loadPreview} disabled={previewLoading}>
+                          <Refresh />
+                        </BuiButton>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Regénérer l'aperçu</TooltipContent>
                   </Tooltip>
-                  <Tooltip title="Ouvrir dans un nouvel onglet">
-                    <span>
-                      <IconButton onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading} size="small">
-                        <Visibility />
-                      </IconButton>
-                    </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <BuiButton variant="ghost" size="icon-sm" aria-label="Ouvrir dans un nouvel onglet" onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading}>
+                          <Visibility />
+                        </BuiButton>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
                   </Tooltip>
-                  <Tooltip title="Télécharger en PDF">
-                    <span>
-                      <IconButton onClick={handleDownloadPreview} disabled={previewLoading} size="small">
-                        <Download />
-                      </IconButton>
-                    </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <BuiButton variant="ghost" size="icon-sm" aria-label="Télécharger en PDF" onClick={handleDownloadPreview} disabled={previewLoading}>
+                          <Download />
+                        </BuiButton>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Télécharger en PDF</TooltipContent>
                   </Tooltip>
                 </div>
               </div>
@@ -485,61 +539,6 @@ const TemplateDetails: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* ── Menu kebab : actions secondaires du header ─────────────── */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { minWidth: 240, mt: 0.5 } } }}
-      >
-        <MenuItem onClick={runFromMenu(handleDownloadOriginal)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <span className="inline-flex me-1.5 text-muted-foreground">
-            <Download size={18} strokeWidth={1.75} />
-          </span>
-          Télécharger le fichier source (.odt)
-        </MenuItem>
-        <MenuItem onClick={runFromMenu(handleDownloadPreview)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <span className="inline-flex me-1.5 text-muted-foreground">
-            <Visibility size={18} strokeWidth={1.75} />
-          </span>
-          Télécharger l'aperçu PDF
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem
-          onClick={runFromMenu(handleReplaceFileClick)}
-          disabled={replacePending}
-          sx={{ fontSize: '0.85rem', py: 0.75 }}
-        >
-          <span className="inline-flex me-1.5 text-muted-foreground">
-            {replacePending ? <Spinner className="size-4" /> : <Upload size={18} strokeWidth={1.75} />}
-          </span>
-          {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
-        </MenuItem>
-        <MenuItem
-          onClick={runFromMenu(handleReparse)}
-          disabled={reparsePending}
-          sx={{ fontSize: '0.85rem', py: 0.75 }}
-        >
-          <span className="inline-flex me-1.5 text-muted-foreground">
-            {reparsePending ? <Spinner className="size-4" /> : <Refresh size={18} strokeWidth={1.75} />}
-          </span>
-          Re-scanner les tags
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem
-          onClick={runFromMenu(handleDelete)}
-          disabled={deleteMutation.isPending}
-          sx={{ fontSize: '0.85rem', py: 0.75, color: 'var(--err)' }}
-        >
-          <span className="inline-flex me-1.5 text-[var(--err)]">
-            <Delete size={18} strokeWidth={1.75} />
-          </span>
-          Supprimer
-        </MenuItem>
-      </Menu>
 
       {/* ── Modal de confirmation du remplacement de fichier ─────────── */}
       <ConfirmationModal

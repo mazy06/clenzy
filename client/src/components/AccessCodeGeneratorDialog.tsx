@@ -1,8 +1,20 @@
 import StatusChip from './StatusChip';
 import { cn } from '../utils/cn';
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogActions, Slider, Chip, IconButton, InputBase, Tooltip } from '@mui/material';
-import { Button } from './ui';
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Slider,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import { Autorenew, Close as CloseIcon, ContentCopy, CheckCircle, VpnKey as KeyIcon } from '../icons';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -196,38 +208,69 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
   const hasSymbols = counts.symbols > 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <div className="flex items-center gap-1.5 px-4 pt-3.5 pb-1.5">
-        <div className="w-[32px] h-[32px] rounded-[12px] flex items-center justify-center" style={{ backgroundColor: `${BRAND}1A`, color: BRAND }}>
-          <KeyIcon size={17} strokeWidth={1.8} />
-        </div>
-        <p className="cn-text-body1 flex-1 font-bold text-[1.05rem]">{t('channels.checkIn.generator.title', "Générer un code d'accès")}</p>
-        <IconButton size="small" onClick={onClose} aria-label={t('channels.checkIn.generator.close', 'Fermer')}><CloseIcon size={18} strokeWidth={1.8} /></IconButton>
-      </div>
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      {/* showCloseButton={false} : la croix vit dans l'entete, a cote du titre,
+          pour garder son libelle traduit (celui du kit est un « Close » fige). */}
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
+        <DialogHeader className="flex-row items-center gap-1.5">
+          <div className="w-[32px] h-[32px] rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${BRAND}1A`, color: BRAND }}>
+            <KeyIcon size={17} strokeWidth={1.8} />
+          </div>
+          <DialogTitle className="flex-1 font-bold text-[1.05rem]">{t('channels.checkIn.generator.title', "Générer un code d'accès")}</DialogTitle>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={t('channels.checkIn.generator.close', 'Fermer')}>
+              <CloseIcon size={18} strokeWidth={1.8} />
+            </Button>
+          </DialogClose>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
+      <div>
         {/* Aperçu du code + régénération / copie */}
-        <div className="flex items-center justify-between gap-1.5 p-3 rounded-[2px] bg-[var(--hover)] border border-[var(--line)]">
+        <div className="flex items-center justify-between gap-1.5 p-3 rounded-[2px] bg-[var(--hover)] border border-solid border-[var(--line)]">
           {/* Éditable : l'hôte peut saisir un code précis (boîte à clé existante, digicode imposé). */}
-          <InputBase
+          <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="—"
-            inputProps={{ 'aria-label': t('channels.checkIn.generator.codeInput', "Code d'accès"), maxLength: 32 }}
-            sx={{
-              flex: 1, minWidth: 0,
-              '& input': {
-                fontFamily: 'monospace', fontSize: '1.7rem', fontWeight: 700, letterSpacing: '0.14em',
-                fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, padding: 0,
-              },
-            }}
+            aria-label={t('channels.checkIn.generator.codeInput', "Code d'accès")}
+            maxLength={32}
+            className="flex-1 min-w-0 h-auto border-0 bg-transparent p-0 rounded-none shadow-none focus-visible:ring-0 font-mono text-[1.7rem] font-bold tracking-[0.14em] tabular-nums leading-[1.2]"
           />
           <div className="flex gap-0.5 shrink-0">
-            <Tooltip title={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}>
-              <IconButton onClick={regenerate} sx={{ color: BRAND }}><Autorenew size={19} strokeWidth={1.85} /></IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* span : TooltipTrigger asChild pose une ref DOM, que le Button du
+                    kit (fonction, React 18) ne transmet pas. */}
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    style={{ color: BRAND }}
+                    onClick={regenerate}
+                    aria-label={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}
+                  >
+                    <Autorenew size={19} strokeWidth={1.85} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('channels.checkIn.generator.regenerate', 'Régénérer le code')}</TooltipContent>
             </Tooltip>
-            <Tooltip title={copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
-              <IconButton onClick={copy}>{copied ? <CheckCircle size={19} strokeWidth={2} color="#10b981" /> : <ContentCopy size={17} strokeWidth={1.75} />}</IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={copy}
+                    aria-label={copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}
+                  >
+                    {copied ? <CheckCircle size={19} strokeWidth={2} color="#10b981" /> : <ContentCopy size={17} strokeWidth={1.75} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}
+              </TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -240,16 +283,21 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
               {t('channels.checkIn.generator.chars', '{{n}} caractères', { n: pattern.length })}
             </p>
           </div>
+          {/* Le Slider du kit ne connait ni `marks` ni bulle de valeur : les reperes
+              sont rendus dessous, et la valeur est deja lue dans la ligne ci-dessus. */}
           <Slider
-            value={pattern.length}
-            onChange={(_, v) => applyLength(v as number)}
+            value={[pattern.length]}
+            onValueChange={([v]) => applyLength(v)}
             min={MIN_LEN}
             max={MAX_LEN}
             step={1}
-            valueLabelDisplay="auto"
-            marks={[{ value: 4, label: '4' }, { value: 8, label: '8' }, { value: 12, label: '12' }, { value: 16, label: '16' }]}
-            sx={{ color: BRAND }}
+            aria-label={t('channels.checkIn.generator.length', 'Longueur')}
           />
+          <div className="flex justify-between mt-1" aria-hidden>
+            {[4, 8, 12, 16].map((mark) => (
+              <span key={mark} className="cn-text-caption text-muted-foreground tabular-nums">{mark}</span>
+            ))}
+          </div>
         </div>
 
         {/* Composition : type de chaque position (nombre + position de chaque type) */}
@@ -274,19 +322,22 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
                 // Fonds au repos ET au survol derives de la couleur du type (valeur
                 // d'execution) : passes en variables CSS, pas en style inline, sinon le
                 // style l'emporterait sur la classe hover:.
-                <Tooltip key={i} title={t('channels.checkIn.generator.slotCycle', 'Changer le type')}>
-                  <div
-                    onClick={() => cycleSlot(i)}
-                    className="w-[46px] py-[4.5px] rounded-[12px] cursor-pointer text-center border border-solid bg-[var(--slot-bg)] transition-all duration-150 ease-[ease] hover:bg-[var(--slot-bg-hover)]"
-                    style={{
-                      borderColor: `${meta.color}66`,
-                      '--slot-bg': `${meta.color}14`,
-                      '--slot-bg-hover': `${meta.color}24`,
-                    } as React.CSSProperties}
-                  >
-                    <p className="cn-text-body1 text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
-                    <p className="cn-text-body1 font-bold text-[0.78rem] mt-[1.5px]" style={{ fontFamily: 'monospace', color: meta.color }}>{meta.abbr}</p>
-                  </div>
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <div
+                      onClick={() => cycleSlot(i)}
+                      className="w-[46px] py-[4.5px] rounded-[12px] cursor-pointer text-center border border-solid bg-[var(--slot-bg)] transition-all duration-150 ease-[ease] hover:bg-[var(--slot-bg-hover)]"
+                      style={{
+                        borderColor: `${meta.color}66`,
+                        '--slot-bg': `${meta.color}14`,
+                        '--slot-bg-hover': `${meta.color}24`,
+                      } as React.CSSProperties}
+                    >
+                      <p className="cn-text-body1 text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
+                      <p className="cn-text-body1 font-bold text-[0.78rem] mt-[1.5px]" style={{ fontFamily: 'monospace', color: meta.color }}>{meta.abbr}</p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('channels.checkIn.generator.slotCycle', 'Changer le type')}</TooltipContent>
                 </Tooltip>
               );
             })}
@@ -332,19 +383,20 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
             </span>
           </div>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button variant="ghost" onClick={onClose}>{t('channels.checkIn.generator.cancel', 'Annuler')}</Button>
-        {/* L'encre pleine du kit remplace le fond de marque code en dur. */}
-        <Button
-          variant="default"
-          onClick={() => onApply(code, buildFormat())}
-          disabled={!code}
-        >
-          {t('channels.checkIn.generator.apply', 'Utiliser ce code')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>{t('channels.checkIn.generator.cancel', 'Annuler')}</Button>
+          {/* L'encre pleine du kit remplace le fond de marque code en dur. */}
+          <Button
+            variant="default"
+            onClick={() => onApply(code, buildFormat())}
+            disabled={!code}
+          >
+            {t('channels.checkIn.generator.apply', 'Utiliser ce code')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

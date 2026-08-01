@@ -3,7 +3,16 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  RadioGroup,
+  RadioGroupItem,
+} from '../../../components/ui';
 import {
   Field,
   FieldLabel,
@@ -362,88 +371,83 @@ export default function PayoutMethodEditDialog({
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Dialog
-      open={open}
-      onClose={saving ? undefined : onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: '12px' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.95rem',
-          fontWeight: 700,
-          letterSpacing: '-0.005em',
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent
+        className="max-w-[900px] max-h-[88vh] overflow-y-auto rounded-[12px]"
+        showCloseButton={false}
       >
-        <div>
-          Méthode de reversement
-          {ownerName && (
-            <span className="block text-[0.72rem] font-normal text-muted-foreground mt-0.5">
-              Propriétaire : {ownerName}
-            </span>
-          )}
-        </div>
-        <IconButton onClick={onClose} disabled={saving} size="small">
-          <CloseIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </DialogTitle>
+        <DialogHeader>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+                Méthode de reversement
+              </DialogTitle>
+              {ownerName && (
+                <DialogDescription className="text-[0.72rem] mt-0.5">
+                  Propriétaire : {ownerName}
+                </DialogDescription>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Fermer"
+              onClick={onClose}
+              disabled={saving}
+            >
+              <CloseIcon size={16} strokeWidth={2} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {/* ─── Sélecteur de méthode ───────────────────────────── */}
-        <FormControl>
-          <FormLabel sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.primary', mb: 1 }}>
-            Choisissez le rail de virement
-          </FormLabel>
-          <RadioGroup
-            value={selectedMethod}
-            onChange={(e) => setSelectedMethod(e.target.value as PayoutMethod)}
-            sx={{ gap: 0.5 }}
-          >
-            {METHOD_OPTIONS.map((opt) => (
-              <div
-                key={opt.value}
-                className={cn(
-                  'cursor-pointer rounded-[8px] border border-solid px-[9px] py-1.5',
-                  '[transition:border-color_150ms,background-color_150ms]',
-                  'hover:border-[color-mix(in_srgb,var(--accent)_53%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]',
-                  selectedMethod === opt.value
-                    ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-                    : 'border-[var(--line)] bg-transparent',
-                )}
-                onClick={() => setSelectedMethod(opt.value)}
-              >
-                <FormControlLabel
-                  value={opt.value}
-                  control={<Radio size="small" sx={{ p: 0.5, mr: 1 }} />}
-                  label={
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="cn-text-body1 text-[0.85rem] font-semibold">
-                          {opt.label}
-                        </p>
-                        {opt.badge && (
-                          <StatusChip size="sm" tokens={{ color: opt.badgeColor ?? 'var(--muted)', bg: `${opt.badgeColor ?? 'var(--muted)'}14` }} label={opt.badge} className="text-[0.6rem] tracking-[0.04em]" />
-                        )}
-                      </div>
-                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0.5">
-                        {opt.description}
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+          {/* ─── Sélecteur de méthode ───────────────────────────── */}
+          <div>
+            <p className="cn-text-body1 text-[0.78rem] font-bold text-[var(--ink)] mb-1.5">
+              Choisissez le rail de virement
+            </p>
+            <RadioGroup
+              value={selectedMethod}
+              onValueChange={(v) => setSelectedMethod(v as PayoutMethod)}
+              className="gap-[3px]"
+            >
+              {METHOD_OPTIONS.map((opt) => (
+                // <label> plutot qu'un onClick sur une div : le clic n'importe ou
+                // dans la carte coche le radio, et le libelle reste associe.
+                <label
+                  key={opt.value}
+                  className={cn(
+                    'flex items-start gap-1.5 cursor-pointer rounded-[8px] border border-solid px-[9px] py-1.5',
+                    '[transition:border-color_150ms,background-color_150ms]',
+                    'hover:border-[color-mix(in_srgb,var(--accent)_53%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]',
+                    selectedMethod === opt.value
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  )}
+                >
+                  <RadioGroupItem value={opt.value} className="mt-[3px]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="cn-text-body1 text-[0.85rem] font-semibold">
+                        {opt.label}
                       </p>
+                      {opt.badge && (
+                        <StatusChip size="sm" tokens={{ color: opt.badgeColor ?? 'var(--muted)', bg: `${opt.badgeColor ?? 'var(--muted)'}14` }} label={opt.badge} className="text-[0.6rem] tracking-[0.04em]" />
+                      )}
                     </div>
-                  }
-                  sx={{ alignItems: 'flex-start', m: 0, width: '100%' }}
-                />
-              </div>
-            ))}
-          </RadioGroup>
-        </FormControl>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0.5">
+                      {opt.description}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
 
         {/* ─── Section IBAN (SEPA + Wise) ─────────────────────────── */}
         {requiresIban && (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             <Alert variant="info" className="text-[0.8rem]">
               <Info />
               <AlertDescription>{hasExistingIban
@@ -484,7 +488,7 @@ export default function PayoutMethodEditDialog({
                 </FieldDescription>
               )}
             </Field>
-            <Stack direction="row" spacing={1.5}>
+            <div className="flex flex-row gap-[9px]">
               <Field className="flex-1">
                 <FieldLabel htmlFor="payout-bic">BIC / SWIFT</FieldLabel>
                 <Input
@@ -502,13 +506,13 @@ export default function PayoutMethodEditDialog({
                   onChange={(e) => setHolder(e.target.value)}
                 />
               </Field>
-            </Stack>
-          </Stack>
+            </div>
+          </div>
         )}
 
         {/* ─── Section Open Banking ───────────────────────────────── */}
         {selectedMethod === 'OPEN_BANKING' && (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             <Alert variant="info" className="text-[0.8rem]">
               <Info />
               <AlertDescription>En cliquant sur "Connecter ma banque" ci-dessous, vous serez redirigé vers le portail
@@ -563,7 +567,7 @@ export default function PayoutMethodEditDialog({
                   : ''}.</AlertDescription>
               </Alert>
             )}
-          </Stack>
+          </div>
         )}
 
         {/* ─── Section Stripe Connect ─────────────────────────────── */}
@@ -595,30 +599,31 @@ export default function PayoutMethodEditDialog({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-        {/* Sortie de modale volontairement effacee (le sx d'origine la teintait
-            en --muted) : ghost plutot que outline. */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          disabled={saving}
-        >
-          Annuler
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={isSaveDisabled}
-        >
-          {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
-          {selectedMethod === 'OPEN_BANKING'
-            ? 'Connecter ma banque'
-            : saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          {/* Sortie de modale volontairement effacee (le sx d'origine la teintait
+              en --muted) : ghost plutot que outline. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaveDisabled}
+          >
+            {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+            {selectedMethod === 'OPEN_BANKING'
+              ? 'Connecter ma banque'
+              : saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

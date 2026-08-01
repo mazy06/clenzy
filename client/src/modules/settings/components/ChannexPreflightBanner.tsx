@@ -22,9 +22,19 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Alert, AlertDescription } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  Skeleton,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -174,28 +184,37 @@ export default function ChannexPreflightBanner({
             </span>
           )}
         </div>
-        <Tooltip title="Relancer le diagnostic" arrow placement="top">
-          <span>
-            <IconButton
-              size="small"
-              disabled={loading}
-              onClick={(e) => {
-                e.stopPropagation();
-                void runCheck();
-              }}
-              sx={{ width: 28, height: 28 }}
-            >
-              {loading ? (
-                <CircularProgress size={14} sx={{ color: accent }} />
-              ) : (
-                <RefreshCw size={14} color={accent} strokeWidth={2.2} />
-              )}
-            </IconButton>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Enveloppe : un bouton desactive n'emet plus d'evenement de survol,
+                l'infobulle a besoin d'une cible qui en emette. */}
+            <span className="inline-flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Relancer le diagnostic"
+                disabled={loading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void runCheck();
+                }}
+              >
+                {loading ? (
+                  <Spinner className="size-[14px]" style={{ color: accent }} />
+                ) : (
+                  <RefreshCw size={14} color={accent} strokeWidth={2.2} />
+                )}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">Relancer le diagnostic</TooltipContent>
         </Tooltip>
-        <IconButton
-          size="small"
-          sx={{ width: 28, height: 28 }}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={collapsed ? 'Deplier le diagnostic' : 'Replier le diagnostic'}
           onClick={(e) => {
             e.stopPropagation();
             setCollapsed((c) => !c);
@@ -206,34 +225,36 @@ export default function ChannexPreflightBanner({
           ) : (
             <ChevronUp size={16} color={accent} strokeWidth={2.2} />
           )}
-        </IconButton>
+        </Button>
       </div>
 
       {/* Corps (deroulable) */}
-      <Collapse in={!collapsed}>
-        <div className="px-2 pb-2 pt-0.5">
-          {loading && !report && (
-            <Stack spacing={0.5}>
-              <Skeleton variant="rounded" height={36} />
-              <Skeleton variant="rounded" height={36} />
-              <Skeleton variant="rounded" height={36} />
-            </Stack>
-          )}
-          {error && !loading && (
-            <Alert variant="destructive" className="mt-0.5">
-              <TriangleAlert />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {report && !loading && (
-            <Stack spacing={0.25}>
-              {report.checks.map((check) => (
-                <CheckRow key={check.code + '-' + check.label} check={check} />
-              ))}
-            </Stack>
-          )}
-        </div>
-      </Collapse>
+      <Collapsible open={!collapsed}>
+        <CollapsibleContent>
+          <div className="px-2 pb-2 pt-0.5">
+            {loading && !report && (
+              <div className="flex flex-col gap-[3px]">
+                <Skeleton className="h-9 rounded-[8px]" />
+                <Skeleton className="h-9 rounded-[8px]" />
+                <Skeleton className="h-9 rounded-[8px]" />
+              </div>
+            )}
+            {error && !loading && (
+              <Alert variant="destructive" className="mt-0.5">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {report && !loading && (
+              <div className="flex flex-col gap-[1.5px]">
+                {report.checks.map((check) => (
+                  <CheckRow key={check.code + '-' + check.label} check={check} />
+                ))}
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

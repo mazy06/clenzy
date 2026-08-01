@@ -1,8 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Accordion, AccordionSummary, AccordionDetails, Alert, Skeleton, Switch, FormControlLabel, IconButton } from '@mui/material';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Button,
   Field,
   FieldError,
@@ -13,8 +16,10 @@ import {
   InputGroupInput,
   NativeSelect,
   NativeSelectOption,
+  Skeleton,
+  Switch,
 } from '../../components/ui';
-import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
+import { Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -130,6 +135,9 @@ const numOrUndef = (value: string): number | undefined => {
 /** Report en classes de l'ancien `NUM_FIELD_SX` (font-variant-numeric sur l'input). */
 const NUM_FIELD_CLASS = 'tabular-nums';
 
+/** Gabarit d'un panneau d'accordeon (l'ancien MuiAccordion portait sa propre surface). */
+const PANEL_CLASS = 'rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] px-3';
+
 interface TabMenageProps {
   config: PricingConfig;
   canEdit: boolean;
@@ -142,10 +150,6 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
   const [expandedSection, setExpandedSection] = useState<string | false>('workTime');
 
   const draft = useMemo(() => parseDraft(config.cleaningEngineConfig), [config.cleaningEngineConfig]);
-
-  const handleAccordionChange = (panel: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedSection(isExpanded ? panel : false);
-  };
 
   // ── Écriture d'un champ : parse → modif → prune → re-stringify → onUpdate ──
   const write = (mutate: (d: EngineConfigDraft) => void) => {
@@ -298,19 +302,29 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
 
   return (
     <div>
-      <Alert severity="info" icon={false} sx={{ mb: 2, fontSize: '12.5px' }}>
-        {t('tarification.cleaning.intro')}
-      </Alert>
+      <UiAlert variant="info" className="mb-3 text-[12.5px]">
+        <AlertDescription>{t('tarification.cleaning.intro')}</AlertDescription>
+      </UiAlert>
 
+      {/* Les panneaux MUI etaient des accordeons independants rendus exclusifs
+          par `expandedSection` : un seul Accordion `type="single"` porte
+          desormais cette exclusivite nativement. */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedSection === false ? '' : expandedSection}
+        onValueChange={(next) => setExpandedSection(next === '' ? false : next)}
+        className="flex flex-col gap-1.5"
+      >
       {/* ─── Temps de travail (minutes normées par composant) ─────────────── */}
-      <Accordion expanded={expandedSection === 'workTime'} onChange={handleAccordionChange('workTime')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionItem value="workTime" className={PANEL_CLASS}>
+        <AccordionTrigger>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.workTime')}</p>
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
+        </AccordionTrigger>
+        <AccordionContent>
           <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.baseByBedrooms')}
           </p>
@@ -354,18 +368,18 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               {numberField('menage-per-guest-above-4', t('tarification.cleaning.perGuestAbove4'), cm.perGuestAbove4, ENGINE_DEFAULTS.perGuestAbove4, (v) => setComponent('perGuestAbove4', v), 'min')}
             </div>
           </div>
-        </AccordionDetails>
-      </Accordion>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Taux & arrondis ───────────────────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'rates'} onChange={handleAccordionChange('rates')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionItem value="rates" className={PANEL_CLASS}>
+        <AccordionTrigger>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.ratesAndRounding')}</p>
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
+        </AccordionTrigger>
+        <AccordionContent>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               {numberField('menage-hourly-rate', t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
@@ -380,18 +394,18 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               {numberField('menage-min-price', t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
             </div>
           </div>
-        </AccordionDetails>
-      </Accordion>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Types de ménage (multiplicateurs) ─────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'types'} onChange={handleAccordionChange('types')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionItem value="types" className={PANEL_CLASS}>
+        <AccordionTrigger>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><CleaningServices size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.cleaningTypes')}</p>
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
+        </AccordionTrigger>
+        <AccordionContent>
           <div className="grid grid-cols-12 gap-[9px]">
             {MULTIPLIER_KEYS.map((key) => (
               <div className="col-span-12 min-[600px]:col-span-4" key={key}>
@@ -407,18 +421,18 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               </div>
             ))}
           </div>
-        </AccordionDetails>
-      </Accordion>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Majorations saisonnières (conseil moteur uniquement) ──────────── */}
-      <Accordion expanded={expandedSection === 'seasonal'} onChange={handleAccordionChange('seasonal')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionItem value="seasonal" className={PANEL_CLASS}>
+        <AccordionTrigger>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.seasonal.title')}</p>
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
+        </AccordionTrigger>
+        <AccordionContent>
           <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.seasonal.hint')}
           </p>
@@ -492,14 +506,15 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                   />
                 </Field>
                 {canEdit && (
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="mt-[3px]"
                     onClick={() => removeSeasonalModifier(index)}
                     aria-label={t('tarification.cleaning.seasonal.remove')}
-                    sx={{ mt: 0.5 }}
                   >
                     <Close size={16} strokeWidth={1.75} />
-                  </IconButton>
+                  </Button>
                 )}
               </div>
             );
@@ -520,49 +535,47 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               {t('tarification.cleaning.seasonal.firstMatchHint')}
             </p>
           )}
-        </AccordionDetails>
-      </Accordion>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Assignation (auto-assignation du meilleur pro) ────────────────── */}
-      <Accordion expanded={expandedSection === 'assignment'} onChange={handleAccordionChange('assignment')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionItem value="assignment" className={PANEL_CLASS}>
+        <AccordionTrigger>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.assignment.title')}</p>
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={draft.autoAssignBestPro ?? false}
-                onChange={(e) => setAutoAssignBestPro(e.target.checked)}
-                disabled={!canEdit}
-              />
-            }
-            label={
-              <div>
-                <p className="cn-text-body1 text-[13.5px] font-semibold">{t('tarification.cleaning.assignment.autoBestPro')}</p>
-                <p className="cn-text-body1 text-[12px] text-[var(--muted)]">{t('tarification.cleaning.assignment.autoBestProHint')}</p>
-              </div>
-            }
-          />
-        </AccordionDetails>
-      </Accordion>
+        </AccordionTrigger>
+        <AccordionContent>
+          <Field orientation="horizontal" className="gap-2 items-start">
+            <Switch
+              id="menage-auto-assign-best-pro"
+              className="mt-[3px]"
+              checked={draft.autoAssignBestPro ?? false}
+              onCheckedChange={(checked) => setAutoAssignBestPro(checked)}
+              disabled={!canEdit}
+            />
+            <FieldLabel htmlFor="menage-auto-assign-best-pro" className="flex-col items-start gap-0 font-normal">
+              <span className="text-[13.5px] font-semibold">{t('tarification.cleaning.assignment.autoBestPro')}</span>
+              <span className="text-[12px] text-[var(--muted)]">{t('tarification.cleaning.assignment.autoBestProHint')}</span>
+            </FieldLabel>
+          </Field>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Simulateur (grille ENREGISTRÉE côté serveur) ──────────────────── */}
-      <Accordion expanded={expandedSection === 'simulator'} onChange={handleAccordionChange('simulator')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionItem value="simulator" className={PANEL_CLASS}>
+        <AccordionTrigger>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><Speed size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.simulator')}</p>
           </div>
-        </AccordionSummary>
-        <AccordionDetails>
+        </AccordionTrigger>
+        <AccordionContent>
           {/* La preview backend calcule avec la config SAUVEGARDÉE — pas la grille en cours d'édition. */}
-          <Alert severity="warning" icon={false} sx={{ mb: 2, fontSize: '12px' }}>
-            {t('tarification.cleaning.simulatorSavedConfigHint')}
-          </Alert>
+          <UiAlert variant="warning" className="mb-3 text-[12px]">
+            <AlertDescription>{t('tarification.cleaning.simulatorSavedConfigHint')}</AlertDescription>
+          </UiAlert>
 
           <div className="flex gap-2 mb-3 flex-wrap">
             <Field className="w-auto min-w-[280px]">
@@ -598,7 +611,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           </div>
 
           {typeof simPropertyId === 'number' && (estimateQuery.isPending || previewQuery.isPending) && (
-            <Skeleton variant="rounded" height={140} sx={{ borderRadius: '11px' }} />
+            <Skeleton className="h-[140px] w-full rounded-[11px]" />
           )}
 
           {(estimateQuery.isError || previewQuery.isError) && (
@@ -609,9 +622,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           )}
 
           {simProperty && !simProperty.bedroomCount && !simProperty.squareMeters && (
-            <Alert severity="info" icon={false} sx={{ mb: 1.5, fontSize: '12.5px' }}>
-              {t('tarification.cleaning.simulatorInsufficientData')}
-            </Alert>
+            <UiAlert variant="info" className="mb-[9px] text-[12.5px]">
+              <AlertDescription>{t('tarification.cleaning.simulatorInsufficientData')}</AlertDescription>
+            </UiAlert>
           )}
 
           {estimateQuery.data && (
@@ -679,7 +692,8 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               </div>
             </>
           )}
-        </AccordionDetails>
+        </AccordionContent>
+      </AccordionItem>
       </Accordion>
     </div>
   );

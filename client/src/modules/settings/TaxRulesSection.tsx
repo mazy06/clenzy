@@ -1,9 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+// Snackbar/Alert MUI conserves : le fichier n'utilise pas sonner, et changer
+// le mecanisme de notification depasse le perimetre de cette migration.
+import { Alert, Snackbar } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
 import {
@@ -197,18 +209,15 @@ const TaxRulesSection: React.FC = () => {
   // ── Error ──
   if (error && !rules) {
     return (
-      <Alert
-        severity="warning"
-        icon={<InfoIcon />}
-        action={
+      <UiAlert variant="warning" className="mb-3">
+        <InfoIcon />
+        <AlertDescription>{t('fiscal.taxRules.loadError')}</AlertDescription>
+        <AlertAction>
           <Button variant="ghost" size="sm" onClick={() => refetch()}>
             {t('fiscal.taxRules.retry')}
           </Button>
-        }
-        sx={{ mb: 2 }}
-      >
-        {t('fiscal.taxRules.loadError')}
-      </Alert>
+        </AlertAction>
+      </UiAlert>
     );
   }
 
@@ -295,51 +304,40 @@ const TaxRulesSection: React.FC = () => {
                     {isSuperAdmin && (
                       <TableCell className="text-center">
                         <div className="inline-flex items-center gap-0.5">
-                          <Tooltip title={t('fiscal.taxRules.edit')}>
-                            <IconButton
-                              size="small"
-                              onClick={() => openEditDialog(rule)}
-                              aria-label={t('fiscal.taxRules.edit')}
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '6px',
-                                color: 'text.secondary',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                transition: 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': {
-                                  color: 'var(--accent)',
-                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                  backgroundColor: 'var(--accent-soft)',
-                                },
-                              }}
-                            >
-                              <Edit size={13} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Le span porte la ref que Radix pose sur son
+                                  enfant : Button est une fonction, il n'en
+                                  transmet pas. */}
+                              <span className="inline-flex">
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => openEditDialog(rule)}
+                                  aria-label={t('fiscal.taxRules.edit')}
+                                  className="text-[var(--muted)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+                                >
+                                  <Edit size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('fiscal.taxRules.edit')}</TooltipContent>
                           </Tooltip>
-                          <Tooltip title={t('fiscal.taxRules.delete')}>
-                            <IconButton
-                              size="small"
-                              onClick={() => setDeleteTarget(rule)}
-                              aria-label={t('fiscal.taxRules.delete')}
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '6px',
-                                color: 'text.secondary',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                transition: 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': {
-                                  color: 'var(--err)',
-                                  borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)',
-                                  backgroundColor: 'var(--err-soft)',
-                                },
-                              }}
-                            >
-                              <Delete size={13} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setDeleteTarget(rule)}
+                                  aria-label={t('fiscal.taxRules.delete')}
+                                  className="text-[var(--muted)] hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)]"
+                                >
+                                  <Delete size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('fiscal.taxRules.delete')}</TooltipContent>
                           </Tooltip>
                         </div>
                       </TableCell>
@@ -354,11 +352,14 @@ const TaxRulesSection: React.FC = () => {
       </Card>
 
       {/* ── Create/Edit Dialog ── */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingRule ? t('fiscal.taxRules.editTitle') : t('fiscal.taxRules.addTitle')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+      <Dialog open={dialogOpen} onOpenChange={(next) => { if (!next) closeDialog(); }}>
+        <DialogContent className="max-w-[600px] max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRule ? t('fiscal.taxRules.editTitle') : t('fiscal.taxRules.addTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
           <Field>
             <FieldLabel htmlFor="tax-rule-category">{t('fiscal.taxRules.category')}</FieldLabel>
             <NativeSelect
@@ -440,53 +441,58 @@ const TaxRulesSection: React.FC = () => {
 
           <Field>
             <FieldLabel htmlFor="tax-rule-description">{t('fiscal.taxRules.description')}</FieldLabel>
+            {/* Le primitif pose field-sizing:content, qui neutralise `rows` :
+                min-h en unites de ligne garantit les deux lignes. */}
             <Textarea
               id="tax-rule-description"
-              rows={2}
+              className="min-h-[2lh]"
               value={form.description ?? ''}
               onChange={(e) => handleFormChange('description', e.target.value || null)}
             />
           </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={closeDialog}>
+              {t('fiscal.taxRules.cancel')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving || !form.taxName || !form.effectiveFrom}
+            >
+              {isSaving ? <Spinner className="size-4" /> : null}
+              {isSaving ? t('fiscal.taxRules.saving') : t('fiscal.taxRules.save')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" size="sm" onClick={closeDialog}>
-            {t('fiscal.taxRules.cancel')}
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving || !form.taxName || !form.effectiveFrom}
-          >
-            {isSaving ? <Spinner className="size-4" /> : null}
-            {isSaving ? t('fiscal.taxRules.saving') : t('fiscal.taxRules.save')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ── Delete Confirmation Dialog ── */}
-      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs">
-        <DialogTitle>{t('fiscal.taxRules.deleteConfirmTitle')}</DialogTitle>
-        <DialogContent>
+      <Dialog open={!!deleteTarget} onOpenChange={(next) => { if (!next) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('fiscal.taxRules.deleteConfirmTitle')}</DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2">
             {t('fiscal.taxRules.deleteConfirmMessage', {
               name: deleteTarget?.taxName ?? '',
               category: deleteTarget ? categoryLabel(deleteTarget.taxCategory) : '',
             })}
           </p>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
+              {t('fiscal.taxRules.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? t('fiscal.taxRules.deleting') : t('fiscal.taxRules.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
-            {t('fiscal.taxRules.cancel')}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? t('fiscal.taxRules.deleting') : t('fiscal.taxRules.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ── Snackbar ── */}

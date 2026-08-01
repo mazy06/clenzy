@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
 import {
+  Checkbox,
   Field,
   FieldLabel,
   FieldDescription,
@@ -10,6 +10,16 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+  Switch,
+  Textarea,
 } from '../../components/ui';
 import {
   Person,
@@ -24,28 +34,11 @@ import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
-  mb: 1.5,
-} as const;
-
-/** Report en classes de `SECTION_TITLE_SX`. */
 const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
 
-const SECTION_TITLE_ICON_SX = {
-  ...SECTION_TITLE_SX,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.5,
-} as const;
-
-/** Report en classes de `SECTION_TITLE_ICON_SX` (gap 0.5 = 3 px, spacing 6). */
+/** Variante avec icone en tete de titre (gap 0.5 de l'ancien spacing MUI = 3 px). */
 const SECTION_TITLE_ICON_CLASS = `${SECTION_TITLE_CLASS} flex items-center gap-[3px]`;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -88,27 +81,39 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="ownerId"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.owner')} *</InputLabel>
+                  <Field>
+                    <FieldLabel htmlFor="property-owner">{t('properties.owner')} *</FieldLabel>
+                    {/* Select riche (et non NativeSelect) : chaque entree porte une
+                        icone, qu'une <option> native ne saurait rendre. Radix ne
+                        manipule que des chaines : la valeur est recastee en nombre. */}
                     <Select
-                      {...field}
-                      label={`${t('properties.owner')} *`}
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(v === '' ? undefined : Number(v))}
                       disabled={!isAdmin() && !isManager()}
-                      size="small"
                     >
-                      {users.map((user) => (
-                        <MenuItem key={user.id} value={user.id}>
-                          <div className="flex items-center gap-1">
-                            <span className="inline-flex text-muted-foreground"><Person size={14} strokeWidth={1.75} /></span>
-                            <p className="cn-text-body1 text-[0.8125rem]">
-                              {user.firstName} {user.lastName} ({user.role})
-                            </p>
-                          </div>
-                        </MenuItem>
-                      ))}
+                      <SelectTrigger
+                        id="property-owner"
+                        size="sm"
+                        className="w-full"
+                        aria-invalid={!!fieldState.error}
+                      >
+                        <SelectValue placeholder={t('properties.owner')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={String(user.id)}>
+                            <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex text-muted-foreground"><Person size={14} strokeWidth={1.75} /></span>
+                              <span className="text-[0.8125rem]">
+                                {user.firstName} {user.lastName} ({user.role})
+                              </span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </div>
@@ -117,18 +122,25 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="status"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.status')}</InputLabel>
-                    <Select {...field} label={t('properties.status')} size="small">
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-status">{t('properties.status')}</FieldLabel>
+                    <NativeSelect
+                      {...field}
+                      id="property-status"
+                      className="w-full"
+                      required
+                      value={field.value ?? ''}
+                      aria-invalid={!!fieldState.error}
+                    >
                       {propertyStatuses.map(status => (
-                        <MenuItem key={status.value} value={status.value}>
+                        <NativeSelectOption key={status.value} value={status.value}>
                           {status.label}
-                        </MenuItem>
+                        </NativeSelectOption>
                       ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
+                    </NativeSelect>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </div>
@@ -141,19 +153,22 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 render={({ field }) => (
                   <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
                     <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Language size={18} strokeWidth={1.75} /></span>
-                    <div className="flex-1">
-                      <p className="cn-text-body1 text-[0.8125rem] font-semibold">
+                    <label className="flex-1 cursor-pointer" htmlFor="property-booking-engine-visible">
+                      <span className="cn-text-body1 text-[0.8125rem] font-semibold block">
                         {t('properties.bookingEngineVisible')}
-                      </p>
-                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
+                      </span>
+                      <span className="cn-text-body1 text-[0.6875rem] text-muted-foreground block">
                         {t('properties.bookingEngineVisibleHelper')}
-                      </p>
-                    </div>
+                      </span>
+                    </label>
+                    {/* color="success" de MUI : le kit n'a qu'une teinte d'encre par
+                        defaut, la couleur « actif » se pose en classe data-checked. */}
                     <Switch
+                      id="property-booking-engine-visible"
+                      size="sm"
                       checked={field.value ?? false}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      size="small"
-                      color="success"
+                      onCheckedChange={(checked) => field.onChange(checked)}
+                      className="data-checked:bg-[var(--ok)]"
                     />
                   </div>
                 )}
@@ -172,19 +187,20 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
                       <Language size={18} strokeWidth={1.75} />
                     </span>
-                    <div className="flex-1">
-                      <p className="cn-text-body1 text-[0.8125rem] font-semibold">
+                    <label className="flex-1 cursor-pointer" htmlFor="property-org-can-create-vouchers">
+                      <span className="cn-text-body1 text-[0.8125rem] font-semibold block">
                         {t('properties.orgCanCreateVouchers')}
-                      </p>
-                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
+                      </span>
+                      <span className="cn-text-body1 text-[0.6875rem] text-muted-foreground block">
                         {t('properties.orgCanCreateVouchersHelper')}
-                      </p>
-                    </div>
+                      </span>
+                    </label>
                     <Switch
+                      id="property-org-can-create-vouchers"
+                      size="sm"
                       checked={field.value ?? false}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      size="small"
-                      color="success"
+                      onCheckedChange={(checked) => field.onChange(checked)}
+                      className="data-checked:bg-[var(--ok)]"
                     />
                   </div>
                 )}
@@ -245,7 +261,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
           </div>
         </div>
 
-        <Divider />
+        <Separator />
 
         {/* ── Tarification ménage ──────────────────────────────────────── */}
         <div>
@@ -259,18 +275,25 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="cleaningFrequency"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.cleaningFrequency')}</InputLabel>
-                    <Select {...field} label={t('properties.cleaningFrequency')} size="small">
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-cleaning-frequency">{t('properties.cleaningFrequency')}</FieldLabel>
+                    <NativeSelect
+                      {...field}
+                      id="property-cleaning-frequency"
+                      className="w-full"
+                      required
+                      value={field.value ?? ''}
+                      aria-invalid={!!fieldState.error}
+                    >
                       {cleaningFrequencies.map(freq => (
-                        <MenuItem key={freq.value} value={freq.value}>
+                        <NativeSelectOption key={freq.value} value={freq.value}>
                           {freq.label}
-                        </MenuItem>
+                        </NativeSelectOption>
                       ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
+                    </NativeSelect>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </div>
@@ -337,20 +360,16 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="hasExterior"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <p className="cn-text-body1 text-[0.8125rem]">
-                        {t('properties.hasExterior')}
-                      </p>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-exterior"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-exterior" className="text-[0.8125rem] font-normal">
+                      {t('properties.hasExterior')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
             </div>
@@ -360,20 +379,16 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="hasLaundry"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? true}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <p className="cn-text-body1 text-[0.8125rem]">
-                        {t('properties.hasLaundry')}
-                      </p>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-laundry"
+                      checked={field.value ?? true}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-laundry" className="text-[0.8125rem] font-normal">
+                      {t('properties.hasLaundry')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
             </div>
@@ -382,31 +397,29 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="cleaningNotes"
                 control={control}
-                render={({ field, fieldState }) => (
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
                   <div className={cn('flex gap-1.5 py-[7.5px] px-[9px] rounded-[11px] bg-[var(--accent-soft)] border border-solid min-h-[80px]', fieldState.error ? 'border-[var(--err)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')} style={{ transition: 'border-color 0.15s ease' }}>
                     <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>
                     <div className="flex-1">
-                      <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.05em] text-[var(--accent)] mb-0.5">
+                      <FieldLabel
+                        htmlFor="property-cleaning-notes"
+                        className="text-[0.625rem] font-bold uppercase tracking-[0.05em] text-[var(--accent)] mb-0.5"
+                      >
                         {t('properties.cleaningNotes')}
-                      </p>
-                      <TextField
+                      </FieldLabel>
+                      {/* Ancien TextField variant="standard" + disableUnderline : le
+                          champ est nu, seul le panneau teinte l'encadre. min-h/max-h
+                          en `lh` remplacent minRows/maxRows, que field-sizing annule. */}
+                      <Textarea
                         {...field}
+                        id="property-cleaning-notes"
                         value={field.value ?? ''}
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        maxRows={6}
                         placeholder={t('properties.cleaningNotesPlaceholder')}
-                        size="small"
-                        variant="standard"
-                        InputProps={{ disableUnderline: true }}
-                        sx={{
-                          '& .MuiInputBase-root': { fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, p: 0 },
-                          '& .MuiInputBase-input::placeholder': { fontSize: '0.75rem', color: 'text.disabled' },
-                        }}
+                        aria-invalid={!!fieldState.error}
+                        className="w-full border-0 bg-transparent p-0 rounded-none min-h-[2lh] max-h-[6lh] overflow-y-auto text-[0.75rem] leading-[1.4] text-[var(--muted)] placeholder:text-[0.75rem] placeholder:text-[var(--faint)] focus-visible:ring-0"
                       />
                       {fieldState.error && (
-                        <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
+                        <FieldError className="mt-0.5">{fieldState.error.message}</FieldError>
                       )}
                     </div>
                   </div>
@@ -416,7 +429,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
           </div>
         </div>
 
-        <Divider />
+        <Separator />
 
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
         <div>
@@ -502,20 +515,16 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="hasIroning"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <p className="cn-text-body1 text-[0.8125rem]">
-                        {t('properties.addOnServices.hasIroning')}
-                      </p>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-ironing"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-ironing" className="text-[0.8125rem] font-normal">
+                      {t('properties.addOnServices.hasIroning')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
             </div>
@@ -525,20 +534,16 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="hasDeepKitchen"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <p className="cn-text-body1 text-[0.8125rem]">
-                        {t('properties.addOnServices.hasDeepKitchen')}
-                      </p>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-deep-kitchen"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-deep-kitchen" className="text-[0.8125rem] font-normal">
+                      {t('properties.addOnServices.hasDeepKitchen')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
             </div>
@@ -548,20 +553,16 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="hasDisinfection"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <p className="cn-text-body1 text-[0.8125rem]">
-                        {t('properties.addOnServices.hasDisinfection')}
-                      </p>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-disinfection"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-disinfection" className="text-[0.8125rem] font-normal">
+                      {t('properties.addOnServices.hasDisinfection')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
             </div>

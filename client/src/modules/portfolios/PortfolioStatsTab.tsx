@@ -1,8 +1,7 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
-import { List, ListItem, ListItemText, ListItemIcon, Divider, Avatar } from '@mui/material';
+import { Card, Separator } from '../../components/ui';
 import {
   Business,
   People,
@@ -128,50 +127,45 @@ const PortfolioStatsTab: React.FC = () => {
               {t('portfolios.statistics.title')}
             </h6>
             {stats.portfolioBreakdown.length > 0 ? (
-              <List disablePadding>
+              <div>
                 {stats.portfolioBreakdown.map((portfolio, index) => (
                   <React.Fragment key={portfolio.portfolioId}>
-                    <ListItem disableGutters sx={{ py: 1 }}>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <Avatar
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: portfolio.isActive ? 'var(--accent-soft)' : 'var(--hover)',
-                            color: portfolio.isActive ? 'var(--accent)' : 'var(--muted)',
-                            borderRadius: '8px',
-                          }}
+                    <div className="flex items-center py-1.5">
+                      <div className="min-w-[36px] flex shrink-0">
+                        <span
+                          className={
+                            'w-7 h-7 rounded-[8px] inline-flex items-center justify-center '
+                            + (portfolio.isActive
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : 'bg-[var(--hover)] text-[var(--muted)]')
+                          }
                         >
                           <Business size={14} strokeWidth={1.75} />
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
-                            {portfolio.portfolioName}
-                          </h6>
-                        }
-                        secondary={
-                          <div className="flex gap-2 mt-0.5">
-                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
-                              {portfolio.clientCount} client{portfolio.clientCount > 1 ? 's' : ''}
-                            </span>
-                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
-                              {portfolio.teamMemberCount} {t('portfolios.fields.members')}
-                            </span>
-                          </div>
-                        }
-                      />
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
+                          {portfolio.portfolioName}
+                        </h6>
+                        <div className="flex gap-2 mt-0.5">
+                          <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                            {portfolio.clientCount} client{portfolio.clientCount > 1 ? 's' : ''}
+                          </span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                            {portfolio.teamMemberCount} {t('portfolios.fields.members')}
+                          </span>
+                        </div>
+                      </div>
                       <StatusChip
                         tone={portfolio.isActive ? 'ok' : 'neutral'}
                         label={portfolio.isActive ? t('portfolios.teamManagement.active') : t('portfolios.teamManagement.inactive')}
                         className="h-[20px] text-[0.6rem]"
                       />
-                    </ListItem>
-                    {index < stats.portfolioBreakdown.length - 1 && <Divider />}
+                    </div>
+                    {index < stats.portfolioBreakdown.length - 1 && <Separator />}
                   </React.Fragment>
                 ))}
-              </List>
+              </div>
             ) : (
               <p className="cn-text-body2 text-muted-foreground text-center py-4 text-[0.82rem]">
                 {t('portfolios.statistics.noDataAvailable')}
@@ -187,52 +181,45 @@ const PortfolioStatsTab: React.FC = () => {
               {t('portfolios.fields.associatedOn')}
             </h6>
             {stats.recentAssignments.length > 0 ? (
-              <List disablePadding>
+              <div>
                 {stats.recentAssignments.slice(0, 5).map((assignment, index) => (
                   <React.Fragment key={assignment.id}>
-                    <ListItem disableGutters sx={{ py: 1 }}>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <Avatar
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: assignment.type === 'CLIENT' ? 'var(--ok-soft)' : 'var(--info-soft)',
-                            color: assignment.type === 'CLIENT' ? 'var(--ok)' : 'var(--info)',
-                            borderRadius: '8px',
-                          }}
+                    <div className="flex items-center py-1.5">
+                      <div className="min-w-[36px] flex shrink-0">
+                        <span
+                          className={
+                            'w-7 h-7 rounded-[8px] inline-flex items-center justify-center '
+                            + (assignment.type === 'CLIENT'
+                              ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                              : 'bg-[var(--info-soft)] text-[var(--info)]')
+                          }
                         >
                           {assignment.type === 'CLIENT' ? (
                             <People size={14} strokeWidth={1.75} />
                           ) : (
                             <Group size={14} strokeWidth={1.75} />
                           )}
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
-                            {assignment.name}
-                          </h6>
-                        }
-                        secondary={
-                          <div>
-                            <span className="cn-text-caption text-muted-foreground block text-[0.7rem]">
-                              {assignment.portfolioName}
-                            </span>
-                            <div className="flex items-center gap-0.5 mt-0.5">
-                              <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
-                              <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
-                                {formatDate(assignment.assignedAt)}
-                              </span>
-                            </div>
-                          </div>
-                        }
-                      />
-                    </ListItem>
-                    {index < Math.min(stats.recentAssignments.length, 5) - 1 && <Divider />}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
+                          {assignment.name}
+                        </h6>
+                        <span className="cn-text-caption text-muted-foreground block text-[0.7rem]">
+                          {assignment.portfolioName}
+                        </span>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
+                            {formatDate(assignment.assignedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {index < Math.min(stats.recentAssignments.length, 5) - 1 && <Separator />}
                   </React.Fragment>
                 ))}
-              </List>
+              </div>
             ) : (
               <p className="cn-text-body2 text-muted-foreground text-center py-4 text-[0.82rem]">
                 {t('portfolios.fields.noClientAssociated')}

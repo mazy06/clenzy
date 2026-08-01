@@ -1,5 +1,14 @@
 import React from 'react';
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -35,8 +44,8 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
     const { t } = useTranslation();
 
     return (
-      <Card sx={{ mb: 1.5 }}>
-        <CardContent sx={{ p: 2 }}>
+      <Card className="mb-[9px]">
+        <CardContent>
           <h6 className="cn-text-subtitle1 font-semibold mb-2">
             {t('interventions.sections.propertyRequestor')}
           </h6>
@@ -44,54 +53,72 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
           <Controller
             name="propertyId"
             control={control}
-            render={({ field, fieldState }) => (
-              <FormControl fullWidth required sx={{ mb: 1.5 }} error={!!fieldState.error}>
-                <InputLabel>{t('interventions.fields.property')}</InputLabel>
-                <Select
+            // Le ref de react-hook-form est ecarte : les primitives du kit sont des
+            // composants fonction sans forwardRef (React 18 refuserait le ref).
+            render={({ field: { ref: _ref, ...field }, fieldState }) => (
+              <Field className="mb-[9px]">
+                <FieldLabel htmlFor="intervention-property">
+                  {t('interventions.fields.property')}
+                </FieldLabel>
+                <NativeSelect
                   {...field}
-                  label={t('interventions.fields.property')}
-                  size="small"
+                  id="intervention-property"
+                  className="w-full"
+                  required
+                  value={field.value ?? ''}
+                  // Le <select> natif ne renvoie que des chaines : la valeur est
+                  // recastee en nombre, l'ancien Select MUI portait des id numeriques.
+                  onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                  aria-invalid={!!fieldState.error}
                 >
+                  <NativeSelectOption value="" disabled>
+                    {t('interventions.fields.property')}
+                  </NativeSelectOption>
                   {properties.map((property) => (
-                    <MenuItem key={property.id} value={property.id}>
-                      <p className="cn-text-body2">{property.name} - {property.address}, {property.city}</p>
-                    </MenuItem>
+                    <NativeSelectOption key={property.id} value={property.id}>
+                      {property.name} - {property.address}, {property.city}
+                    </NativeSelectOption>
                   ))}
-                </Select>
-                {fieldState.error && (
-                  <FormHelperText>{fieldState.error.message}</FormHelperText>
-                )}
-              </FormControl>
+                </NativeSelect>
+                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+              </Field>
             )}
           />
 
           <Controller
             name="requestorId"
             control={control}
-            render={({ field, fieldState }) => (
-              <FormControl fullWidth required error={!!fieldState.error}>
-                <InputLabel>{t('interventions.fields.requestor')}</InputLabel>
-                <Select
+            render={({ field: { ref: _ref, ...field }, fieldState }) => (
+              <Field>
+                <FieldLabel htmlFor="intervention-requestor">
+                  {t('interventions.fields.requestor')}
+                </FieldLabel>
+                <NativeSelect
                   {...field}
-                  label={t('interventions.fields.requestor')}
+                  id="intervention-requestor"
+                  className="w-full"
+                  required
                   disabled={!isAdmin() && !isManager()}
-                  size="small"
+                  value={field.value ?? ''}
+                  onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                  aria-invalid={!!fieldState.error}
                 >
+                  <NativeSelectOption value="" disabled>
+                    {t('interventions.fields.requestor')}
+                  </NativeSelectOption>
                   {users.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      <p className="cn-text-body2">{user.firstName} {user.lastName} ({user.email})</p>
-                    </MenuItem>
+                    <NativeSelectOption key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName} ({user.email})
+                    </NativeSelectOption>
                   ))}
-                </Select>
+                </NativeSelect>
                 {!isAdmin() && !isManager() && (
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                  <FieldDescription className="text-[0.7rem]">
                     {t('interventions.fields.requestorHelper')}
-                  </FormHelperText>
+                  </FieldDescription>
                 )}
-                {fieldState.error && (
-                  <FormHelperText>{fieldState.error.message}</FormHelperText>
-                )}
-              </FormControl>
+                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+              </Field>
             )}
           />
         </CardContent>

@@ -15,7 +15,22 @@ import {
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Button, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink } from '@mui/material';
+import {
+  Alert,
+  AlertDescription,
+  Card,
+  CardContent,
+  Checkbox,
+  Separator,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+// Le fil d'etapes reste MUI : le kit Baitly n'a pas de primitif Stepper, et
+// `CustomStepIcon` recoit les props internes de `StepLabel`. Le bouton de
+// soumission garde lui aussi son gabarit MUI : sa teinte `secondary.dark` au
+// survol n'a pas de jeton equivalent cote tokens Signature.
+import { Box, Button, Stepper, Step, StepLabel, StepIconProps } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
@@ -487,14 +502,15 @@ export default function Inscription() {
 
         {/* Erreur */}
         {error && (
-          <Alert severity={paymentCancelled && !loading ? 'warning' : 'error'} sx={{ mb: 2 }}>
-            <p className="cn-text-body2">{error}</p>
+          <Alert variant={paymentCancelled && !loading ? 'warning' : 'destructive'} className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {/* Etape 1 : Informations */}
         {activeStep === 0 && (
-          <Stack spacing={2}>
+          <div className="flex flex-col gap-3">
             <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
               <Field>
                 <FieldLabel htmlFor="inscription-full-name">
@@ -610,30 +626,33 @@ export default function Inscription() {
             )}
 
             {/* Selection de la periode de facturation */}
-            <Divider sx={{ my: 1 }} />
+            <Separator className="my-1.5" />
             <span className="cn-text-caption text-muted-foreground font-semibold">
               {t('auth.inscription.billingPeriodLabel', 'Periode de facturation')}
             </span>
-            <ToggleButtonGroup
+            {/* ToggleGroup rend une valeur vide quand on re-clique l'item actif :
+                on ignore ce cas, la periode doit toujours etre definie. */}
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
               value={billingPeriod}
-              exclusive
-              onChange={(_, val) => val && setBillingPeriod(val as BillingPeriod)}
-              size="small"
-              fullWidth
-              sx={{ mb: 0.5 }}
+              onValueChange={(val) => val && setBillingPeriod(val as BillingPeriod)}
+              className="mb-[3px] w-full [&>*]:flex-1"
             >
-              <ToggleButton value="MONTHLY" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+              <ToggleGroupItem value="MONTHLY" className="text-[0.78rem] font-semibold">
                 {getBillingPeriodLabel(t, 'MONTHLY')}
-              </ToggleButton>
-              <ToggleButton value="ANNUAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="ANNUAL" className="text-[0.78rem] font-semibold">
                 {getBillingPeriodLabel(t, 'ANNUAL')}
                 <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-20%</Badge>
-              </ToggleButton>
-              <ToggleButton value="BIENNIAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="BIENNIAL" className="text-[0.78rem] font-semibold">
                 {getBillingPeriodLabel(t, 'BIENNIAL')}
                 <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-35%</Badge>
-              </ToggleButton>
-            </ToggleButtonGroup>
+              </ToggleGroupItem>
+            </ToggleGroup>
             <span className="cn-text-caption text-muted-foreground">
               {t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
               {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
@@ -651,7 +670,7 @@ export default function Inscription() {
             {/* Resume des donnees de la landing page */}
             {hasLandingData && (
               <>
-                <Divider sx={{ my: 1 }} />
+                <Separator className="my-1.5" />
                 <span className="cn-text-caption text-muted-foreground font-semibold">
                   {t('auth.inscription.requestInfo', 'Informations de votre demande')}
                 </span>
@@ -678,7 +697,7 @@ export default function Inscription() {
             )}
 
             {/* Code promo + source d'acquisition (optionnels, collapsibles visuellement) */}
-            <Divider sx={{ my: 1 }} />
+            <Separator className="my-1.5" />
             <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
               <Field>
                 <FieldLabel htmlFor="inscription-promo-code">
@@ -725,69 +744,55 @@ export default function Inscription() {
             </div>
 
             {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}
-            <Divider sx={{ my: 1 }} />
-            <div>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={acceptedTerms}
-                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    size="small"
-                    sx={{
-                      color: 'divider',
-                      '&.Mui-checked': { color: 'primary.main' },
-                    }}
-                  />
-                }
-                label={
-                  <p className="cn-text-body2 text-[0.8125rem] leading-[1.4]">
+            <Separator className="my-1.5" />
+            <div className="flex flex-col gap-[3px]">
+              <Field orientation="horizontal" className="items-start">
+                <Checkbox
+                  id="inscription-accept-terms"
+                  className="mt-[3px]"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                />
+                <FieldLabel htmlFor="inscription-accept-terms" className="cn-text-body2 text-[0.8125rem] leading-[1.4] font-normal">
+                  <span>
                     {t('auth.inscription.cguPrefix', "J'accepte les")}{' '}
-                    <MuiLink
+                    <a
                       href="/cgu"
                       target="_blank"
                       rel="noopener noreferrer"
-                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                      className="text-[var(--mui-primary)] font-semibold underline"
                     >
                       {t('auth.inscription.cguLinkText', "conditions générales d'utilisation")}
-                    </MuiLink>{' '}
+                    </a>{' '}
                     {t('auth.inscription.cguMiddle', 'et la')}{' '}
-                    <MuiLink
+                    <a
                       href="/confidentialite"
                       target="_blank"
                       rel="noopener noreferrer"
-                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                      className="text-[var(--mui-primary)] font-semibold underline"
                     >
                       {t('auth.inscription.privacyLinkText', 'politique de confidentialité')}
-                    </MuiLink>
+                    </a>
                     {' '}
                     <span className="cn-text-caption text-destructive font-semibold">
                       *
                     </span>
-                  </p>
-                }
-                sx={{ alignItems: 'flex-start', mr: 0, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={newsletterOptIn}
-                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
-                    size="small"
-                    sx={{
-                      color: 'divider',
-                      '&.Mui-checked': { color: 'primary.main' },
-                    }}
-                  />
-                }
-                label={
-                  <p className="cn-text-body2 text-[0.8125rem] leading-[1.4]">
-                    {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
-                  </p>
-                }
-                sx={{ alignItems: 'flex-start', mr: 0, mt: 0.5, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
-              />
+                  </span>
+                </FieldLabel>
+              </Field>
+              <Field orientation="horizontal" className="items-start">
+                <Checkbox
+                  id="inscription-newsletter"
+                  className="mt-[3px]"
+                  checked={newsletterOptIn}
+                  onCheckedChange={(checked) => setNewsletterOptIn(checked === true)}
+                />
+                <FieldLabel htmlFor="inscription-newsletter" className="cn-text-body2 text-[0.8125rem] leading-[1.4] font-normal">
+                  {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
+                </FieldLabel>
+              </Field>
             </div>
-          </Stack>
+          </div>
         )}
 
         {/* Etape 2 : Paiement Stripe Embedded Checkout */}
@@ -795,13 +800,8 @@ export default function Inscription() {
           <div className="flex flex-col min-[900px]:flex-row gap-[18px]">
             {/* Colonne gauche : Recapitulatif de la commande */}
             <div className="flex-[0_0_320px] min-w-0">
-              <Card sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                boxShadow: 'none',
-              }}>
-                <CardContent sx={{ p: 2.5 }}>
+              <Card className="border-solid border-[var(--line)] rounded-[12px] shadow-none">
+                <CardContent className="p-[15px]">
                   <div className="flex items-center gap-1.5 mb-3">
                     <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(166,192,206,0.15)] text-primary flex items-center justify-center">
                       <CartIcon size={18} strokeWidth={1.75} color='currentColor' />
@@ -811,7 +811,7 @@ export default function Inscription() {
                     </h6>
                   </div>
 
-                  <Stack spacing={1.5}>
+                  <div className="flex flex-col gap-[9px]">
                     <div>
                       <span className="cn-text-caption text-muted-foreground font-semibold">
                         {t('auth.inscription.summaryAccount', 'Compte')}
@@ -820,7 +820,7 @@ export default function Inscription() {
                       <p className="cn-text-body2 text-muted-foreground">{email}</p>
                     </div>
 
-                    <Divider />
+                    <Separator />
 
                     <div>
                       <span className="cn-text-caption text-muted-foreground font-semibold">
@@ -834,7 +834,7 @@ export default function Inscription() {
                       </span>
                     </div>
 
-                    <Divider />
+                    <Separator />
 
                     <div>
                       <span className="cn-text-caption text-muted-foreground font-semibold">
@@ -850,9 +850,9 @@ export default function Inscription() {
                       </span>
                     </div>
 
-                    <Divider />
+                    <Separator />
 
-                    <div className="p-2 rounded-[1.5px] bg-[rgba(166,192,206,0.08)] border border-[rgba(166,192,206,0.2)]">
+                    <div className="p-2 rounded-[1.5px] bg-[rgba(166,192,206,0.08)] border border-solid border-[rgba(166,192,206,0.2)]">
                       <div className="flex justify-between items-center">
                         <p className="cn-text-body2 font-semibold">
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
@@ -862,7 +862,7 @@ export default function Inscription() {
                         </p>
                       </div>
                     </div>
-                  </Stack>
+                  </div>
 
                   <div className="mt-3 flex items-center gap-0.5">
                     <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={14} strokeWidth={1.75} /></span>
@@ -876,14 +876,8 @@ export default function Inscription() {
 
             {/* Colonne droite : Stripe Embedded Checkout */}
             <div className="flex-1 min-w-0">
-              <Card sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                boxShadow: 'none',
-                overflow: 'hidden',
-              }}>
-                <CardContent sx={{ p: 2.5 }}>
+              <Card className="border-solid border-[var(--line)] rounded-[12px] shadow-none overflow-hidden">
+                <CardContent className="p-[15px]">
                   <div className="flex items-center gap-1.5 mb-3">
                     <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(107,138,154,0.12)] flex items-center justify-center">
                       <CreditCardIcon size={18} strokeWidth={1.75} color='currentColor' />

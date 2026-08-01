@@ -10,11 +10,19 @@ import {
   InputGroupAddon,
   InputGroupInput,
   InputGroupTextarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Card, CardContent, TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
+// Reste en MUI : l'Autocomplete du destinataire et le TextField de son
+// `renderInput`, qui recoit des props internes (params.InputProps, ref du
+// popper, aria du combobox) qu'aucun primitif du kit ne sait porter.
+import { TextField, Autocomplete } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
@@ -180,8 +188,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
         onBack={onCancel}
         backPath="/contact"
       />
-      <Card>
-        <CardContent>
+      <BuiCard className="gap-0 py-0 p-4">
           {isRestrictedUser && (
             <Alert variant="info" className="mb-4">
               <Info />
@@ -347,24 +354,29 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   name="priority"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.priority}>
-                      <InputLabel>{t('contact.priority')}</InputLabel>
-                      <Select {...field}>
-                        {priorityOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            <StatusChip
-                              label={option.label}
-                              tone={option.tone}
-                              className="me-1.5"
-                            />
-                            {option.label}
-                          </MenuItem>
-                        ))}
+                    // Select « riche » et non NativeSelect : les options portent un
+                    // StatusChip, qu'une <option> native ne peut pas afficher.
+                    <Field>
+                      <FieldLabel htmlFor="contact-priority">{t('contact.priority')}</FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger id="contact-priority" className="w-full" aria-invalid={!!errors.priority}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priorityOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <StatusChip
+                                label={option.label}
+                                tone={option.tone}
+                                className="me-1.5"
+                              />
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {errors.priority && (
-                        <FormHelperText>{errors.priority.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {errors.priority && <FieldError>{errors.priority.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -374,20 +386,23 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   name="category"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.category}>
-                      <InputLabel>{t('contact.category')}</InputLabel>
-                      <Select {...field}>
-                        {categoryOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            <span className="inline-flex me-1.5"><CategoryIcon size={16} strokeWidth={1.75} /></span>
-                            {option.label}
-                          </MenuItem>
-                        ))}
+                    <Field>
+                      <FieldLabel htmlFor="contact-category">{t('contact.category')}</FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger id="contact-category" className="w-full" aria-invalid={!!errors.category}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoryOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <span className="inline-flex me-1.5"><CategoryIcon size={16} strokeWidth={1.75} /></span>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {errors.category && (
-                        <FormHelperText>{errors.category.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {errors.category && <FieldError>{errors.category.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -505,8 +520,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
               </div>
             </div>
           </form>
-        </CardContent>
-      </Card>
+      </BuiCard>
     </div>
   );
 };

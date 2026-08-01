@@ -1,12 +1,26 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Badge } from '../../components/ui';
-import { Spinner } from '../../components/ui';
-import { Card as BuiCard } from '../../components/ui';
+import {
+  Avatar,
+  AvatarFallback,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  Card as BuiCard,
+} from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
-import { Button } from '../../components/ui';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -66,6 +80,16 @@ const SEM_CHIP_TOKEN: Record<string, { fg: string; bg: string }> = {
   default: { fg: 'var(--muted)', bg: 'var(--hover)' },
 };
 const semChip = (c: string) => SEM_CHIP_TOKEN[c] ?? SEM_CHIP_TOKEN.default;
+
+// Le contour de la Card du kit est un `ring`, pas un `border` : le survol se joue
+// donc sur la couleur de l'anneau, et la transition porte sur box-shadow.
+const ROW_CARD_CLASS =
+  'gap-0 py-[9px] rounded-[16px] ring-[var(--line)] transition-[box-shadow] duration-200 '
+  + 'hover:ring-[var(--line-2)] motion-reduce:transition-none';
+
+const NESTED_ROW_CARD_CLASS =
+  'gap-0 py-[7.5px] rounded-[12px] ring-[var(--line)] transition-[box-shadow] duration-200 '
+  + 'hover:ring-[var(--line-2)] motion-reduce:transition-none';
 
 interface SectionHeaderProps {
   icon: React.ReactNode;
@@ -148,12 +172,6 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
     getRoleColor,
     getRoleLabel,
   } = usePortfoliosPage();
-
-  // ── Team menu state (for assigning team to property) ────────────────────
-  const [teamMenuAnchor, setTeamMenuAnchor] = useState<null | HTMLElement>(null);
-  // Propriete cible du menu equipe : lue uniquement dans les handlers du menu
-  // (l'ouverture est pilotee par teamMenuAnchor) : ref, pas de re-render.
-  const teamMenuPropertyIdRef = useRef<number | null>(null);
 
   if (!canView) {
     return null;
@@ -246,30 +264,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                     {clients.map((client) => (
                       <Card
                         key={client.id}
-                        variant="outlined"
-                        sx={{
-                          borderRadius: 2,
-                          transition: 'border-color 0.2s ease',
-                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                          '&:hover': { borderColor: 'var(--line-2)' },
-                        }}
+                        className={ROW_CARD_CLASS}
                       >
-                        <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                        <CardContent className="py-[9px] px-3">
                           <div className="flex items-center">
-                            <Avatar
-                              sx={{
-                                bgcolor: 'var(--accent)',
-                                color: 'var(--on-accent)',
-                                fontFamily: 'var(--font-display)',
-                                borderRadius: '10px',
-                                width: 32,
-                                height: 32,
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
-                                mr: 1.5,
-                              }}
-                            >
-                              {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                            <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
+                              <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] [font-family:var(--font-display)] text-[0.7rem] font-semibold">
+                                {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                              </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
@@ -281,23 +283,39 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             </div>
                             <div className="flex items-center gap-[3px] ms-1.5">
                               <StatusChip tokens={{ color: semChip(getRoleColor(client.role)).fg, bg: semChip(getRoleColor(client.role)).bg }} label={getRoleLabel(client.role)} className="text-[0.65rem]" />
-                              <Tooltip title={t('portfolios.fields.reassignClient')}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setEditingClient(client)}
-                                  sx={{ color: 'var(--accent)', p: 0.5 }}
-                                >
-                                  <EditIcon size={16} strokeWidth={1.75} />
-                                </IconButton>
+                              <Tooltip>
+                                {/* Radix pose sa ref d'ancrage sur l'enfant : un <span> hote,
+                                    le Button du kit ne transmettant pas de ref (React 18). */}
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      onClick={() => setEditingClient(client)}
+                                      aria-label={t('portfolios.fields.reassignClient')}
+                                      className="text-[var(--accent)]"
+                                    >
+                                      <EditIcon size={16} strokeWidth={1.75} />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('portfolios.fields.reassignClient')}</TooltipContent>
                               </Tooltip>
-                              <Tooltip title={t('portfolios.fields.unassignClient')}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleUnassignClient(client.id)}
-                                  sx={{ color: 'var(--err)', p: 0.5 }}
-                                >
-                                  <DeleteIcon size={16} strokeWidth={1.75} />
-                                </IconButton>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      onClick={() => handleUnassignClient(client.id)}
+                                      aria-label={t('portfolios.fields.unassignClient')}
+                                      className="text-[var(--err)]"
+                                    >
+                                      <DeleteIcon size={16} strokeWidth={1.75} />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('portfolios.fields.unassignClient')}</TooltipContent>
                               </Tooltip>
                             </div>
                           </div>
@@ -350,32 +368,25 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                         <div key={client.id}>
                           <div className="flex items-center justify-between mb-[4.5px] cursor-pointer hover:opacity-80" onClick={() => toggleClientExpansion(client.id)}>
                             <div className="flex items-center gap-1">
-                              <Avatar
-                                sx={{
-                                  width: 24,
-                                  height: 24,
-                                  fontSize: '0.55rem',
-                                  fontFamily: 'var(--font-display)',
-                                  fontWeight: 600,
-                                  bgcolor: 'var(--accent)',
-                                  color: 'var(--on-accent)',
-                                  borderRadius: '8px',
-                                }}
-                              >
-                                {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                              <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
+                                <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] [font-family:var(--font-display)] text-[0.55rem] font-semibold">
+                                  {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                                </AvatarFallback>
                               </Avatar>
                               <h6 className="cn-text-subtitle2 text-primary text-[0.82rem] font-semibold">
                                 {client.firstName} {client.lastName}
                               </h6>
                               <Badge variant="secondary" className="h-[20px] text-[0.65rem] text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{`${clientProperties.length} ${t('portfolios.fields.properties')}`}</Badge>
                             </div>
-                            <IconButton size="small" sx={{ color: 'var(--accent)', p: 0.25 }}>
+                            {/* Chevron purement indicatif : le clic est porte par la rangee entiere.
+                                Un <span> evite d'imbriquer un bouton dans une zone deja cliquable. */}
+                            <span className="inline-flex p-0.5 text-[var(--accent)]" aria-hidden>
                               {expandedClients.has(client.id) ? (
                                 <ExpandLessIcon size={18} strokeWidth={1.75} />
                               ) : (
                                 <ExpandMoreIcon size={18} strokeWidth={1.75} />
                               )}
-                            </IconButton>
+                            </span>
                           </div>
 
                           {clientProperties.length > 0 ? (
@@ -384,27 +395,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                 {clientProperties.map((property) => (
                                   <Card
                                     key={property.id}
-                                    variant="outlined"
-                                    sx={{
-                                      borderRadius: 1.5,
-                                      transition: 'border-color 0.2s',
-                                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                                      '&:hover': { borderColor: 'var(--line-2)' },
-                                    }}
+                                    className={NESTED_ROW_CARD_CLASS}
                                   >
-                                    <CardContent sx={{ py: 1.25, px: 1.5, '&:last-child': { pb: 1.25 } }}>
+                                    <CardContent className="py-[7.5px] px-[9px]">
                                       <div className="flex items-start">
-                                        <Avatar
-                                          sx={{
-                                            bgcolor: '#7B68A818',
-                                            color: '#7B68A8',
-                                            borderRadius: '8px',
-                                            width: 28,
-                                            height: 28,
-                                            mr: 1.25,
-                                          }}
-                                        >
-                                          <Home size={14} strokeWidth={1.75} />
+                                        <Avatar className="size-7 rounded-[8px] after:rounded-[8px] me-[7.5px]">
+                                          <AvatarFallback className="rounded-[8px] bg-[#7B68A818] text-[#7B68A8]">
+                                            <Home size={14} strokeWidth={1.75} />
+                                          </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 min-w-0">
                                           <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
@@ -429,19 +427,48 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                               className="h-[20px] text-[0.6rem]"
                                             />
                                           ) : (
-                                            <Badge variant="outline" className="h-[20px] text-[0.6rem] cursor-pointer" onClick={(e) => {
-                                                setTeamMenuAnchor(e.currentTarget);
-                                                teamMenuPropertyIdRef.current = property.id;
-                                              }}><Group size={13} strokeWidth={1.75} />{t('portfolios.fields.assignTeam')}</Badge>
+                                            <DropdownMenu>
+                                              {/* Le menu vit avec sa pastille : chaque bien porte son propre
+                                                  declencheur, ce qui remplace l'ancien couple anchorEl + ref. */}
+                                              <DropdownMenuTrigger asChild>
+                                                <span className="inline-flex">
+                                                  <Badge variant="outline" className="h-[20px] text-[0.6rem] cursor-pointer"><Group size={13} strokeWidth={1.75} />{t('portfolios.fields.assignTeam')}</Badge>
+                                                </span>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end" className="w-auto min-w-[200px]">
+                                                <DropdownMenuLabel>{t('portfolios.fields.assignTeam')}</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {teams.length > 0 ? teams.map((team) => (
+                                                  <DropdownMenuItem
+                                                    key={team.id}
+                                                    onSelect={() => handleAssignTeamToProperty(property.id, team.id)}
+                                                  >
+                                                    <span className="inline-flex text-[var(--ok)] me-1.5"><Group size={16} strokeWidth={1.75} /></span>
+                                                    {team.name}
+                                                  </DropdownMenuItem>
+                                                )) : (
+                                                  <DropdownMenuItem disabled>
+                                                    {t('portfolios.fields.noTeamAssigned')}
+                                                  </DropdownMenuItem>
+                                                )}
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
                                           )}
-                                          <Tooltip title={t('portfolios.fields.unassignProperty')}>
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => handleUnassignProperty(property.id)}
-                                              sx={{ color: 'var(--err)', p: 0.25 }}
-                                            >
-                                              <DeleteIcon size={14} strokeWidth={1.75} />
-                                            </IconButton>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="inline-flex">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon-xs"
+                                                  onClick={() => handleUnassignProperty(property.id)}
+                                                  aria-label={t('portfolios.fields.unassignProperty')}
+                                                  className="text-[var(--err)]"
+                                                >
+                                                  <DeleteIcon size={14} strokeWidth={1.75} />
+                                                </Button>
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{t('portfolios.fields.unassignProperty')}</TooltipContent>
                                           </Tooltip>
                                         </div>
                                       </div>
@@ -493,27 +520,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   {teams.map((team) => (
                     <Card
                       key={team.id}
-                      variant="outlined"
-                      sx={{
-                        borderRadius: 2,
-                        transition: 'border-color 0.2s ease',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        '&:hover': { borderColor: 'var(--line-2)' },
-                      }}
+                      className={ROW_CARD_CLASS}
                     >
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                      <CardContent className="py-[9px] px-3">
                         <div className="flex items-center">
-                          <Avatar
-                            sx={{
-                              bgcolor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              borderRadius: '10px',
-                              width: 32,
-                              height: 32,
-                              mr: 1.5,
-                            }}
-                          >
-                            <Group size={16} strokeWidth={1.75} />
+                          <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
+                            <AvatarFallback className="rounded-[10px] bg-[var(--ok-soft)] text-[var(--ok)]">
+                              <Group size={16} strokeWidth={1.75} />
+                            </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
@@ -523,14 +537,21 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               {team.memberCount} {t('portfolios.fields.members')}
                             </span>
                           </div>
-                          <Tooltip title={t('portfolios.confirmations.unassignTeamTitle')}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleUnassignTeam(team.id)}
-                              sx={{ color: 'var(--err)', p: 0.5 }}
-                            >
-                              <DeleteIcon size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() => handleUnassignTeam(team.id)}
+                                  aria-label={t('portfolios.confirmations.unassignTeamTitle')}
+                                  className="text-[var(--err)]"
+                                >
+                                  <DeleteIcon size={16} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('portfolios.confirmations.unassignTeamTitle')}</TooltipContent>
                           </Tooltip>
                         </div>
                         {team.description && (
@@ -576,30 +597,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   {users.map((portfolioUser) => (
                     <Card
                       key={portfolioUser.id}
-                      variant="outlined"
-                      sx={{
-                        borderRadius: 2,
-                        transition: 'border-color 0.2s ease',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        '&:hover': { borderColor: 'var(--line-2)' },
-                      }}
+                      className={ROW_CARD_CLASS}
                     >
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                      <CardContent className="py-[9px] px-3">
                         <div className="flex items-center">
-                          <Avatar
-                            sx={{
-                              bgcolor: 'var(--warn-soft)',
-                              color: 'var(--warn)',
-                              fontFamily: 'var(--font-display)',
-                              borderRadius: '10px',
-                              width: 32,
-                              height: 32,
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              mr: 1.5,
-                            }}
-                          >
-                            {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
+                          <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
+                            <AvatarFallback className="rounded-[10px] bg-[var(--warn-soft)] text-[var(--warn)] [font-family:var(--font-display)] text-[0.7rem] font-semibold">
+                              {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
@@ -611,14 +616,21 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           </div>
                           <div className="flex items-center gap-[3px] ms-1.5">
                             <StatusChip tokens={{ color: semChip(getRoleColor(portfolioUser.role)).fg, bg: semChip(getRoleColor(portfolioUser.role)).bg }} label={getRoleLabel(portfolioUser.role)} className="text-[0.65rem]" />
-                            <Tooltip title={t('portfolios.confirmations.unassignUserTitle')}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleUnassignUser(portfolioUser.id)}
-                                sx={{ color: 'var(--err)', p: 0.5 }}
-                              >
-                                <DeleteIcon size={16} strokeWidth={1.75} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => handleUnassignUser(portfolioUser.id)}
+                                    aria-label={t('portfolios.confirmations.unassignUserTitle')}
+                                    className="text-[var(--err)]"
+                                  >
+                                    <DeleteIcon size={16} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('portfolios.confirmations.unassignUserTitle')}</TooltipContent>
                             </Tooltip>
                           </div>
                         </div>
@@ -654,42 +666,6 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
           <PortfolioStatsTab />
         </TabPanel>
       </BuiCard>
-
-      {/* Team selection menu for property assignment */}
-      <Menu
-        anchorEl={teamMenuAnchor}
-        open={Boolean(teamMenuAnchor)}
-        onClose={() => { setTeamMenuAnchor(null); teamMenuPropertyIdRef.current = null; }}
-        slotProps={{
-          paper: { sx: { borderRadius: 2, minWidth: 200 } },
-        }}
-      >
-        <span className="cn-text-caption px-3 py-0.5 font-semibold text-[0.72rem] text-muted-foreground block">
-          {t('portfolios.fields.assignTeam')}
-        </span>
-        <Divider sx={{ mb: 0.5 }} />
-        {teams.length > 0 ? teams.map((team) => (
-          <MenuItem
-            key={team.id}
-            onClick={() => {
-              const targetPropertyId = teamMenuPropertyIdRef.current;
-              if (targetPropertyId) {
-                handleAssignTeamToProperty(targetPropertyId, team.id);
-              }
-              setTeamMenuAnchor(null);
-              teamMenuPropertyIdRef.current = null;
-            }}
-            sx={{ fontSize: '0.82rem', py: 0.75 }}
-          >
-            <span className="inline-flex text-[var(--ok)] me-1.5"><Group size={16} strokeWidth={1.75} /></span>
-            {team.name}
-          </MenuItem>
-        )) : (
-          <MenuItem disabled sx={{ fontSize: '0.82rem' }}>
-            {t('portfolios.fields.noTeamAssigned')}
-          </MenuItem>
-        )}
-      </Menu>
 
       {/* Reassignment dialog */}
       <ReassignmentDialog

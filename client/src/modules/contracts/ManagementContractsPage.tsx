@@ -3,7 +3,10 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { IconButton, Tooltip, Alert, Snackbar, Stack } from '@mui/material';
+// Seuls rescapes MUI du fichier : le couple Snackbar + Alert flottante. Changer
+// le mecanisme de notification de l'ecran depasse la migration de vocabulaire.
+import { Alert, Snackbar } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, Textarea } from '../../components/ui';
 import { cn } from '../../utils/cn';
@@ -251,20 +254,23 @@ const ManagementContractsPage: React.FC = () => {
           />
         )}
         actions={(
-          <Tooltip title={t('contracts.create', 'Nouveau contrat')}>
-            <IconButton
-              size="small"
-              onClick={openCreateModal}
-              sx={{
-                p: 0.5,
-                borderRadius: '9px',
-                border: '1px solid var(--accent)',
-                color: 'var(--accent)',
-                '&:hover': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
-              }}
-            >
-              <Add size={20} strokeWidth={1.75} />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* span : TooltipTrigger asChild pose une ref DOM, que le Button du
+                  kit (fonction, React 18) ne transmet pas. */}
+              <span className="inline-flex">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  className="rounded-[9px] border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+                  onClick={openCreateModal}
+                  aria-label={t('contracts.create', 'Nouveau contrat')}
+                >
+                  <Add size={20} strokeWidth={1.75} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('contracts.create', 'Nouveau contrat')}</TooltipContent>
           </Tooltip>
         )}
       />
@@ -452,7 +458,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                             onChange={e => setTerminateReason(e.target.value)}
                           />
                         </Field>
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <div className="flex flex-row justify-end gap-1.5">
                           <Button
                             size="sm"
                             variant="outline"
@@ -468,7 +474,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                             <Cancel size={14} strokeWidth={1.75} />
                             {t('contracts.confirmTerminate')}
                           </Button>
-                        </Stack>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -526,44 +532,111 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   </TableCell>
                   <TableCell className="text-end">
                     <div className="flex justify-end gap-0.5">
-                      <Tooltip title="Voir le mandat de gestion">
-                        <IconButton size="small" color="primary" onClick={() => onViewMandate(c.id)}>
-                          <PictureAsPdf size={16} strokeWidth={1.75} />
-                        </IconButton>
+                      {/* Chaque bouton d'action est enveloppe d'un span : TooltipTrigger
+                          asChild pose une ref DOM que le Button du kit ne transmet pas. */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-[var(--mui-primary)]"
+                              aria-label="Voir le mandat de gestion"
+                              onClick={() => onViewMandate(c.id)}
+                            >
+                              <PictureAsPdf size={16} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Voir le mandat de gestion</TooltipContent>
                       </Tooltip>
                       {c.status === 'DRAFT' && (
-                        <Tooltip title={t('contracts.signature.resend', 'Renvoyer le lien de signature')}>
-                          <IconButton size="small" sx={{ color: 'var(--warn)', '&:hover': { color: 'var(--warn)', bgcolor: 'var(--warn-soft)' } }} onClick={() => onResendSignature(c.id)}>
-                            <Send size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--warn)] hover:text-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                                aria-label={t('contracts.signature.resend', 'Renvoyer le lien de signature')}
+                                onClick={() => onResendSignature(c.id)}
+                              >
+                                <Send size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.signature.resend', 'Renvoyer le lien de signature')}</TooltipContent>
                         </Tooltip>
                       )}
                       {(c.status === 'DRAFT' || c.status === 'SUSPENDED') && (
-                        <Tooltip title={t('contracts.activate')}>
-                          <IconButton size="small" color="success" onClick={() => onActivate(c.id)}>
-                            <CheckCircle size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--ok)]"
+                                aria-label={t('contracts.activate')}
+                                onClick={() => onActivate(c.id)}
+                              >
+                                <CheckCircle size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.activate')}</TooltipContent>
                         </Tooltip>
                       )}
                       {c.status === 'ACTIVE' && (
-                        <Tooltip title={t('contracts.suspend')}>
-                          <IconButton size="small" color="warning" onClick={() => onSuspend(c.id)}>
-                            <Pause size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--warn)]"
+                                aria-label={t('contracts.suspend')}
+                                onClick={() => onSuspend(c.id)}
+                              >
+                                <Pause size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.suspend')}</TooltipContent>
                         </Tooltip>
                       )}
                       {(c.status === 'ACTIVE' || c.status === 'SUSPENDED') && (
-                        <Tooltip title={t('contracts.terminate')}>
-                          <IconButton size="small" color="error" onClick={() => onTerminateStart(c.id)}>
-                            <Cancel size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--err)]"
+                                aria-label={t('contracts.terminate')}
+                                onClick={() => onTerminateStart(c.id)}
+                              >
+                                <Cancel size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.terminate')}</TooltipContent>
                         </Tooltip>
                       )}
                       {(c.status === 'DRAFT' || c.status === 'ACTIVE') && (
-                        <Tooltip title={t('contracts.edit')}>
-                          <IconButton size="small" onClick={() => onEdit(c)}>
-                            <Edit size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('contracts.edit')}
+                                onClick={() => onEdit(c)}
+                              >
+                                <Edit size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.edit')}</TooltipContent>
                         </Tooltip>
                       )}
                     </div>

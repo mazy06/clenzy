@@ -4,7 +4,24 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+// Reste en MUI : le couple Snackbar + Alert flottante. Remplacer le mecanisme de
+// notification de la page depasse le cadre de cette migration (le fichier
+// n'utilise pas encore sonner).
+import { Alert, Snackbar } from '@mui/material';
 import {
   Field,
   FieldLabel,
@@ -135,13 +152,18 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Add size={20} strokeWidth={1.75} />
-        Nouveau code promo
-      </DialogTitle>
-      <DialogContent>
-        <div className="flex flex-col gap-3 mt-1.5">
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      {/* `aria-describedby={undefined}` : la modale n'a pas de texte descriptif. */}
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="flex flex-row items-center gap-1.5 pe-8">
+            <Add size={20} strokeWidth={1.75} />
+            Nouveau code promo
+          </DialogTitle>
+        </DialogHeader>
+        {/* Le contenu de la modale du kit ne defile pas de lui-meme : ce
+            formulaire est long, on lui donne sa propre zone de defilement. */}
+        <div className="flex flex-col gap-3 max-h-[65vh] overflow-y-auto -mx-0.5 px-0.5">
           {error && (
             <BuiAlert variant="destructive">
               <TriangleAlert />
@@ -249,16 +271,16 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
             />
           </Field>
         </div>
+        <DialogFooter>
+          <BuiButton variant="ghost" onClick={handleClose} disabled={createMutation.isPending}>
+            Annuler
+          </BuiButton>
+          <BuiButton onClick={handleSubmit} disabled={createMutation.isPending}>
+            {createMutation.isPending ? <Spinner className="size-4" /> : <Add />}
+            Créer
+          </BuiButton>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <BuiButton variant="ghost" onClick={handleClose} disabled={createMutation.isPending}>
-          Annuler
-        </BuiButton>
-        <BuiButton onClick={handleSubmit} disabled={createMutation.isPending}>
-          {createMutation.isPending ? <Spinner className="size-4" /> : <Add />}
-          Créer
-        </BuiButton>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -373,22 +395,24 @@ export default function PromoCodesPage() {
         </div>
       )}
 
-      {/* Filtre — segmented stylé par le thème global MuiToggleButtonGroup */}
+      {/* Filtre — segmented du kit (ToggleGroup jointif, variante contour) */}
       <div className="flex items-center gap-1.5 mb-3">
         <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
           Filtre
         </p>
-        <ToggleButtonGroup
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          spacing={0}
           value={filterMode}
-          exclusive
-          onChange={(_, v) => v && setFilterMode(v)}
-          size="small"
+          onValueChange={(v) => v && setFilterMode(v as FilterMode)}
         >
-          <ToggleButton value="all">Tous ({promoCodes?.length ?? 0})</ToggleButton>
-          <ToggleButton value="active">Actifs ({stats?.active ?? 0})</ToggleButton>
-          <ToggleButton value="inactive">Inactifs</ToggleButton>
-          <ToggleButton value="expired">Expirés</ToggleButton>
-        </ToggleButtonGroup>
+          <ToggleGroupItem value="all">Tous ({promoCodes?.length ?? 0})</ToggleGroupItem>
+          <ToggleGroupItem value="active">Actifs ({stats?.active ?? 0})</ToggleGroupItem>
+          <ToggleGroupItem value="inactive">Inactifs</ToggleGroupItem>
+          <ToggleGroupItem value="expired">Expirés</ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {error && (
@@ -401,7 +425,7 @@ export default function PromoCodesPage() {
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-[44px] rounded-[9px]" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -476,25 +500,30 @@ export default function PromoCodesPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Tooltip
-                        title={
-                          expired
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Enveloppe : un interrupteur desactive n'emet plus
+                              d'evenement de survol, l'infobulle a besoin d'une
+                              cible qui en emette. */}
+                          <span className="inline-flex">
+                            <Switch
+                              size="sm"
+                              aria-label={promo.active ? 'Désactiver' : 'Activer'}
+                              checked={promo.active}
+                              disabled={toggleMutation.isPending}
+                              onCheckedChange={(checked) =>
+                                toggleMutation.mutate({ id: promo.id, activate: checked })
+                              }
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {expired
                             ? "Code expiré — le toggle n'a pas d'effet"
                             : promo.active
                               ? 'Désactiver'
-                              : 'Activer'
-                        }
-                      >
-                        <span>
-                          <Switch
-                            size="small"
-                            checked={promo.active}
-                            disabled={toggleMutation.isPending}
-                            onChange={(e) =>
-                              toggleMutation.mutate({ id: promo.id, activate: e.target.checked })
-                            }
-                          />
-                        </span>
+                              : 'Activer'}
+                        </TooltipContent>
                       </Tooltip>
                     </TableCell>
                   </TableRow>

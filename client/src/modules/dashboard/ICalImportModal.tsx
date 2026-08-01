@@ -16,7 +16,20 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+// Tableau laisse en MUI : `stickyHeader` (en-tete fige sur un conteneur a hauteur
+// bornee) n'a pas d'equivalent dans les primitifs de tableau du kit.
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -98,15 +111,6 @@ const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
 
 // Les champs de ce formulaire sont passes aux primitives du kit : le libelle
 // notche sur la bordure (pattern .rm-field) laisse place au libelle statique.
-
-/** Toggle « Signature » (.rm-toggle) — accent quand coché, conserve la taille small. */
-const SWITCH_SX = {
-  '& .MuiSwitch-switchBase.Mui-checked': {
-    color: '#fff',
-    '& + .MuiSwitch-track': { backgroundColor: 'var(--accent)', opacity: 1 },
-  },
-  '& .MuiSwitch-track': { backgroundColor: 'var(--line-2)', opacity: 1, transition: 'background-color .18s' },
-} as const;
 
 // ─── Step indicator component ────────────────────────────────────────────────
 
@@ -436,21 +440,24 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
       {/* Menage automatique — ligne inline legere */}
       <div className="flex items-center gap-1.5 py-0.5 cursor-pointer" onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}>
-        <Tooltip
-          title={!hasAccess ? 'Disponible avec le forfait Confort ou Premium' : ''}
-          arrow
-        >
-          <span>
-            <Switch
-              checked={autoCreateInterventions}
-              onChange={(e) => setAutoCreateInterventions(e.target.checked)}
-              disabled={!hasAccess}
-              size="small"
-              disableRipple
-              sx={SWITCH_SX}
-            />
-          </span>
-        </Tooltip>
+        {/* Le tooltip n'existait que pour expliquer l'indisponibilite : sans le
+            libelle vide de MUI, on ne monte le tooltip que dans ce cas. */}
+        {hasAccess ? (
+          <Switch
+            checked={autoCreateInterventions}
+            onCheckedChange={(checked) => setAutoCreateInterventions(checked)}
+            size="sm"
+          />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Switch checked={autoCreateInterventions} disabled size="sm" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Disponible avec le forfait Confort ou Premium</TooltipContent>
+          </Tooltip>
+        )}
         <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
           Ménage automatique
         </p>
@@ -651,70 +658,42 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         : `Importer ${previewReservations} résa. + ${previewBlocked} blocage${previewBlocked > 1 ? 's' : ''}`;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '18px',
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'none',
-          color: 'var(--body)',
-          boxShadow: 'var(--shadow-pop)',
-          border: '1px solid var(--line)',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      {/* ─── Title ──────────────────────────────────────────────────────── */}
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          py: 1.5,
-          px: 3,
-          borderBottom: '1px solid var(--line)',
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="sm:max-w-[600px] overflow-hidden"
       >
-        <div className="flex items-center gap-1.5">
-          <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center bg-[var(--accent-soft)]">
-            <span className="inline-flex text-[var(--accent)]"><CalendarIcon size={18} strokeWidth={1.75} /></span>
-          </div>
-          <h6 className="cn-text-subtitle1 font-bold text-[0.9375rem] text-[var(--ink)]">
+        {/* En-tete pleine largeur : les marges negatives annulent le padding de
+            la coque, comme le pied du kit le fait deja. */}
+        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-[var(--line)] px-4 py-2">
+          <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold text-[var(--ink)]">
+            <span className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)]">
+              <CalendarIcon size={18} strokeWidth={1.75} />
+            </span>
             Import Calendrier iCal
-          </h6>
-        </div>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--err)', backgroundColor: 'var(--hover)' } }}>
-          <CloseIcon size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+          <BuiButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Fermer"
+            onClick={handleClose}
+            className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--hover)]"
+          >
+            <CloseIcon size={18} strokeWidth={1.75} />
+          </BuiButton>
+        </DialogHeader>
 
-      {/* ─── Stepper ────────────────────────────────────────────────────── */}
-      <div className="px-4 pt-0.5">
         <StepIndicator steps={STEPS} activeStep={activeStep} />
-      </div>
 
-      {/* ─── Content ────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ px: 3, py: 2.5 }}>
-        {activeStep === 0 && renderConfigStep()}
-        {activeStep === 1 && renderPreviewStep()}
-        {activeStep === 2 && renderResultStep()}
-      </DialogContent>
+        {/* Hauteur bornee + defilement : le Dialog MUI faisait defiler son corps. */}
+        <div className="max-h-[60vh] overflow-y-auto">
+          {activeStep === 0 && renderConfigStep()}
+          {activeStep === 1 && renderPreviewStep()}
+          {activeStep === 2 && renderResultStep()}
+        </div>
 
-      {/* ─── Actions ────────────────────────────────────────────────────── */}
-      <DialogActions
-        sx={{
-          px: 3,
-          py: 1.5,
-          gap: 1,
-          justifyContent: 'flex-end',
-          borderTop: '1px solid var(--line)',
-          backgroundColor: 'var(--surface-2)',
-        }}
-      >
+        <DialogFooter className="gap-1.5">
         {activeStep === 0 && (
           <>
             <BuiButton onClick={handleClose} variant="outline" size="sm">
@@ -760,7 +739,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             Fermer
           </BuiButton>
         )}
-      </DialogActions>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

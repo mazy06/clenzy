@@ -9,8 +9,13 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  Separator,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../components/ui';
-import { Alert, Box, Divider, Stack, Switch, Tooltip, alpha, useTheme } from '@mui/material';
+import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -251,34 +256,35 @@ export default function WhatsAppProviderConfigSection() {
 
       {/* Disclaimer OpenWA — condensé : une ligne + détail complet en tooltip */}
       {provider === 'OPENWA' && (
-        <Alert
-          severity="warning"
-          icon={<ErrorOutline size={18} />}
-          sx={{ py: 0.5, '& .MuiAlert-message': { display: 'flex', alignItems: 'center', gap: 0.75 } }}
-        >
-          <p className="cn-text-body2 font-medium">
-            {t('settings.whatsapp.openwaDisclaimer.short',
-              'OpenWA est hors conditions Meta — risque de ban du compte.')}
-          </p>
-          <Tooltip
-            arrow
-            title={t('settings.whatsapp.openwaDisclaimer.body',
-              "WhatsApp peut bannir le compte associé sans préavis en cas de détection d'automation ou d'abus. " +
-              'Nous recommandons OpenWA uniquement pour les phases de test ou les organisations en trial. ' +
-              'Pour la production B2B, utilisez Meta Cloud API officielle.')}
-          >
-            <span className="inline-flex cursor-help text-[#D4A574]">
-              <InfoOutlined size={15} strokeWidth={1.75} />
+        <BuiAlert variant="warning">
+          <ErrorOutline size={18} />
+          <AlertDescription className="flex items-center gap-[4.5px]">
+            <span className="cn-text-body2 font-medium">
+              {t('settings.whatsapp.openwaDisclaimer.short',
+                'OpenWA est hors conditions Meta — risque de ban du compte.')}
             </span>
-          </Tooltip>
-        </Alert>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-help text-[#D4A574]">
+                  <InfoOutlined size={15} strokeWidth={1.75} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t('settings.whatsapp.openwaDisclaimer.body',
+                  "WhatsApp peut bannir le compte associé sans préavis en cas de détection d'automation ou d'abus. " +
+                  'Nous recommandons OpenWA uniquement pour les phases de test ou les organisations en trial. ' +
+                  'Pour la production B2B, utilisez Meta Cloud API officielle.')}
+              </TooltipContent>
+            </Tooltip>
+          </AlertDescription>
+        </BuiAlert>
       )}
 
-      <Divider />
+      <Separator />
 
       {/* Form selon provider */}
       {provider === 'META' ? (
-        <Stack spacing={2}>
+        <div className="flex flex-col gap-3">
           {/* Embedded Signup — methode rapide (~5 min, sans Meta Business Manager
               prealable). Le composant gere lui-meme son etat ; si la Meta App
               n'est pas configuree cote serveur (META_APP_ID vide), il rend null
@@ -292,11 +298,11 @@ export default function WhatsAppProviderConfigSection() {
           />
 
           <div className="flex items-center gap-3 my-1.5">
-            <Divider sx={{ flex: 1 }} />
+            <Separator className="flex-1" />
             <span className="cn-text-caption text-muted-foreground whitespace-nowrap">
               {t('settings.whatsapp.meta.orManual', 'OU configuration manuelle')}
             </span>
-            <Divider sx={{ flex: 1 }} />
+            <Separator className="flex-1" />
           </div>
 
           <h6 className="cn-text-subtitle2 font-semibold">
@@ -370,9 +376,9 @@ export default function WhatsAppProviderConfigSection() {
               </InputGroupAddon>
             </InputGroup>
           </Field>
-        </Stack>
+        </div>
       ) : (
-        <Stack spacing={2}>
+        <div className="flex flex-col gap-3">
           <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.openwa.formTitle', 'Connexion à votre instance OpenWA')}
           </h6>
@@ -427,7 +433,7 @@ export default function WhatsAppProviderConfigSection() {
                 : t('settings.whatsapp.openwa.scanHintNoKey', 'Saisissez la master key et enregistrez avant de scanner.')}
             </span>
           </div>
-        </Stack>
+        </div>
       )}
 
       {/* Dialog QR scan — flow Phase 4b complet (creation session, polling status).
@@ -444,7 +450,7 @@ export default function WhatsAppProviderConfigSection() {
         }}
       />
 
-      <Divider />
+      <Separator />
 
       {/* Toggle enable */}
       <div className="flex items-center justify-between gap-3">
@@ -460,8 +466,8 @@ export default function WhatsAppProviderConfigSection() {
         </div>
         <Switch
           checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
-          color="primary"
+          onCheckedChange={setEnabled}
+          aria-label={t('settings.whatsapp.enable', 'Activer les envois WhatsApp')}
         />
       </div>
 
@@ -520,10 +526,13 @@ interface ProviderOptionCardProps {
  */
 function FieldInfo({ text }: { text: string }) {
   return (
-    <Tooltip arrow title={text}>
-      <span className="inline-flex items-center cursor-help text-[var(--faint)] [transition:color_150ms_ease-out] hover:text-[var(--muted)]">
-        <InfoOutlined size={15} strokeWidth={1.75} />
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center cursor-help text-[var(--faint)] [transition:color_150ms_ease-out] hover:text-[var(--muted)]">
+          <InfoOutlined size={15} strokeWidth={1.75} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
     </Tooltip>
   );
 }
@@ -538,44 +547,38 @@ function ProviderOptionCard({
   pros,
   cons,
 }: ProviderOptionCardProps) {
-  const theme = useTheme();
   return (
-    <Box
-      component="button"
+    // Carte-radio sur mesure : <button> nu + classes. Les etats selectionne / desactive
+    // sont ecrits en branches litterales, une classe Tailwind ne pouvant pas naitre
+    // d'une variable ; les jetons MUI sont traduits en variables CSS.
+    <button
       type="button"
       onClick={disabled ? undefined : onClick}
       aria-pressed={selected}
       aria-disabled={disabled || undefined}
       tabIndex={disabled ? -1 : 0}
-      sx={{
-        textAlign: 'left',
-        p: 1.5,
-        borderRadius: 2,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.25,
-        bgcolor: selected ? alpha(theme.palette.primary.main, 0.06) : 'background.paper',
-        border: '1.5px solid',
-        borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.12),
-        transition: 'border-color 180ms ease-out, background-color 180ms ease-out, opacity 180ms ease-out',
-        fontFamily: 'inherit',
-        '&:hover': disabled
-          ? {}
-          : {
-              borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.5),
-            },
-        '&:focus-visible': {
-          outline: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
-          outlineOffset: 2,
-        },
-      }}
+      className={cn(
+        'flex items-center gap-[7.5px] text-start p-[9px] rounded-[16px] border-[1.5px] border-solid [font-family:inherit]',
+        'transition-[border-color,background-color,opacity] duration-[180ms] ease-out',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+        disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer opacity-100',
+        selected
+          ? 'bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)] border-[var(--mui-primary)]'
+          : 'bg-[var(--card)] border-[color-mix(in_srgb,var(--ink)_12%,transparent)]',
+        !disabled && !selected && 'hover:border-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+        !disabled && selected && 'hover:border-[var(--mui-primary)]',
+      )}
     >
       {/* Indicateur radio */}
-      <div className="w-[18px] h-[18px] rounded-[50%] shrink-0 border-[2px] border-solid inline-flex items-center justify-center" style={{ borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.3), transition: 'border-color 150ms ease-out' }}>
+      <div
+        className={cn(
+          'w-[18px] h-[18px] rounded-full shrink-0 border-[2px] border-solid inline-flex items-center justify-center',
+          '[transition:border-color_150ms_ease-out]',
+          selected ? 'border-[var(--mui-primary)]' : 'border-[color-mix(in_srgb,var(--ink)_30%,transparent)]',
+        )}
+      >
         {selected && (
-          <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: theme.palette.primary.main }} />
+          <div className="w-[9px] h-[9px] rounded-full bg-[var(--mui-primary)]" />
         )}
       </div>
 
@@ -596,10 +599,14 @@ function ProviderOptionCard({
       </div>
 
       {/* Avantages / limites — en tooltip pour ne pas alourdir la card */}
-      <Tooltip
-        arrow
-        title={
-          <Stack spacing={0.5} sx={{ py: 0.5 }}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex shrink-0 cursor-help text-[var(--muted)] [transition:color_150ms_ease-out] hover:text-[var(--ink)]">
+            <InfoOutlined size={16} strokeWidth={1.75} />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="flex flex-col gap-[3px] py-[3px]">
             {pros.map((p) => (
               <div className="flex items-start gap-1 text-[0.72rem]" key={p}>
                 <span className="text-[var(--mui-success-l)] font-bold leading-[1.4]">✓</span>
@@ -612,13 +619,9 @@ function ProviderOptionCard({
                 <span>{c}</span>
               </div>
             ))}
-          </Stack>
-        }
-      >
-        <span className="inline-flex shrink-0 cursor-help text-[var(--muted)] [transition:color_150ms_ease-out] hover:text-[var(--ink)]">
-          <InfoOutlined size={16} strokeWidth={1.75} />
-        </span>
+          </div>
+        </TooltipContent>
       </Tooltip>
-    </Box>
+    </button>
   );
 }

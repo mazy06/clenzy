@@ -2,7 +2,20 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge as BuiBadge } from '../../components/ui';
 import { Button, Spinner, Field, FieldLabel, Textarea } from '../../components/ui';
-import { Card, CardContent, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  NativeSelect,
+  NativeSelectOption,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -92,30 +105,39 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
 
   return (
     <Card>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+      <CardContent className="p-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <Badge badgeContent={unacknowledgedCount} color="error" max={99}>
-              <span className="inline-flex text-primary"><History size={18} strokeWidth={1.75} /></span>
-            </Badge>
+            {/* Pastille de compteur posee a la main : le kit n'a pas d'equivalent
+                au Badge « overlay » de MUI (badgeContent sur un enfant). */}
+            <span className="relative inline-flex text-primary">
+              <History size={18} strokeWidth={1.75} />
+              {unacknowledgedCount > 0 && (
+                <BuiBadge
+                  variant="destructive"
+                  className="absolute -top-1.5 -end-2 h-[16px] min-w-[16px] px-1 text-[0.625rem] tabular-nums"
+                >
+                  {unacknowledgedCount > 99 ? '99+' : unacknowledgedCount}
+                </BuiBadge>
+              )}
+            </span>
             <h6 className="cn-text-subtitle1 font-bold text-[0.875rem]">
               Historique des alertes
             </h6>
           </div>
 
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <Select
-              value={severityFilter}
-              onChange={(e) => { setSeverityFilter(e.target.value); setPage(0); }}
-              displayEmpty
-              sx={{ fontSize: '0.75rem', height: 28 }}
-            >
-              <MenuItem value="" sx={{ fontSize: '0.75rem' }}>Toutes severites</MenuItem>
-              <MenuItem value="WARNING" sx={{ fontSize: '0.75rem' }}>Avertissement</MenuItem>
-              <MenuItem value="CRITICAL" sx={{ fontSize: '0.75rem' }}>Critique</MenuItem>
-            </Select>
-          </FormControl>
+          <NativeSelect
+            size="sm"
+            aria-label="Filtrer par severite"
+            className="min-w-[140px] [&>select]:text-[0.75rem]"
+            value={severityFilter}
+            onChange={(e) => { setSeverityFilter(e.target.value); setPage(0); }}
+          >
+            <NativeSelectOption value="">Toutes severites</NativeSelectOption>
+            <NativeSelectOption value="WARNING">Avertissement</NativeSelectOption>
+            <NativeSelectOption value="CRITICAL">Critique</NativeSelectOption>
+          </NativeSelect>
         </div>
 
         {alertsQuery.isLoading ? (
@@ -158,18 +180,32 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                       <TableCell className={CELL_CLASS}><SourceChip source={alert.source} /></TableCell>
                       <TableCell className={`${CELL_CLASS} text-center`}>
                         {alert.acknowledged ? (
-                          <Tooltip title={`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}>
-                            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}
+                            </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <Tooltip title="Acquitter">
-                            <IconButton
-                              size="small"
-                              onClick={() => setAckDialog({ open: true, alertId: alert.id })}
-                              sx={{ color: 'warning.main' }}
-                            >
-                              <CheckCircle size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          // Le Button du kit est une fonction : il ne transmet pas de ref
+                          // (React 18). Le span porte l'ancrage de l'infobulle.
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Acquitter"
+                                  className="text-[var(--warn)]"
+                                  onClick={() => setAckDialog({ open: true, alertId: alert.id })}
+                                >
+                                  <CheckCircle size={16} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Acquitter</TooltipContent>
                           </Tooltip>
                         )}
                       </TableCell>
@@ -191,36 +227,41 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
         )}
 
         {/* Acknowledge Dialog */}
-        <Dialog open={ackDialog.open} onClose={() => setAckDialog({ open: false, alertId: null })} maxWidth="xs" fullWidth>
-          <DialogTitle sx={{ fontSize: '0.95rem' }}>Acquitter l'alerte</DialogTitle>
-          <DialogContent>
-            <Field className="mt-1.5">
+        <Dialog
+          open={ackDialog.open}
+          onOpenChange={(next) => { if (!next) setAckDialog({ open: false, alertId: null }); }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="pe-8 text-[0.95rem]">Acquitter l'alerte</DialogTitle>
+            </DialogHeader>
+            <Field>
               <FieldLabel htmlFor="noise-alert-ack-notes">Notes (optionnel)</FieldLabel>
+              {/* min-h en `lh` : le primitif pose field-sizing:content, qui neutralise `rows`. */}
               <Textarea
                 id="noise-alert-ack-notes"
-                className="w-full text-[0.8125rem]"
-                rows={3}
+                className="w-full text-[0.8125rem] min-h-[3lh]"
                 value={ackNotes}
                 onChange={(e) => setAckNotes(e.target.value)}
               />
             </Field>
+            <DialogFooter>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAckDialog({ open: false, alertId: null })}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAcknowledge}
+                disabled={ackMutation.isPending}
+              >
+                {ackMutation.isPending ? 'Acquittement...' : 'Acquitter'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setAckDialog({ open: false, alertId: null })}
-            >
-              Annuler
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleAcknowledge}
-              disabled={ackMutation.isPending}
-            >
-              {ackMutation.isPending ? 'Acquittement...' : 'Acquitter'}
-            </Button>
-          </DialogActions>
         </Dialog>
       </CardContent>
     </Card>

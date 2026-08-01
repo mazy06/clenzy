@@ -3,9 +3,24 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner, Button } from '../../components/ui';
+import {
+  Spinner,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import { Alert, Card, CardContent, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
+// Snackbar + Alert flottante : mecanisme de notification laisse en MUI — le fichier
+// n'utilise pas sonner, et changer de mecanisme depasse cette migration.
+import { Alert, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -155,13 +170,10 @@ const INFO_VALUE_SX = {
 const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-[var(--ink)] mt-px';
 
 // .pd-card — carte hairline r14 plate.
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: '16px 18px',
-} as const;
+// `border-solid` est obligatoire : sans preflight Tailwind, `border` seul donne une
+// largeur mais un style `none` — bordure invisible.
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] py-4 px-[18px]';
 
 // ─── Cleaning price estimation (mirrored from CleaningPriceEstimator) ───────
 
@@ -448,14 +460,17 @@ const PropertyDetails: React.FC = () => {
           {/* ── Key metrics grid ──────────────────────────────────────── */}
           <div className={cn('grid grid-cols-12 gap-1.5', featureChips.length > 0 ? 'mb-1.5' : 'mb-[9px]')}>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-              <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
-                <div className={cn(METRIC_CARD_CLASS, 'cursor-help')}>
-                  <div className={METRIC_ICON_BADGE_CLASS}><Payments size={16} strokeWidth={1.75} /></div>
-                  <p className={METRIC_VALUE_CLASS}>
-                    {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
-                  </p>
-                  <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
-                </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className={cn(METRIC_CARD_CLASS, 'cursor-help')}>
+                    <div className={METRIC_ICON_BADGE_CLASS}><Payments size={16} strokeWidth={1.75} /></div>
+                    <p className={METRIC_VALUE_CLASS}>
+                      {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
+                    </p>
+                    <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">{t('properties.cleaningEstimateTooltip')}</TooltipContent>
               </Tooltip>
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
@@ -534,7 +549,7 @@ const PropertyDetails: React.FC = () => {
           )}
 
           {/* ── Row 1: Photos | Informations + Tarification | Configuration ── */}
-          <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
+          <div className={cn(CARD_CLASS, 'mb-[9px]')}>
             <div className="flex gap-3 items-stretch">
               {/* ── Col 1: Photos (carrousel + plein ecran au clic) ──── */}
               <div className="flex-1 min-w-0 flex">
@@ -550,7 +565,7 @@ const PropertyDetails: React.FC = () => {
                 />
               </div>
 
-              <Divider orientation="vertical" flexItem />
+              <Separator orientation="vertical" />
 
               {/* ── Col 2: Informations generales + Tarification menage ── */}
               <div className="flex-1 min-w-0">
@@ -568,7 +583,7 @@ const PropertyDetails: React.FC = () => {
                 </div>
                 {property.country && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
+                    <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Flag size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
@@ -578,7 +593,7 @@ const PropertyDetails: React.FC = () => {
                     </div>
                   </>
                 )}
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -588,7 +603,7 @@ const PropertyDetails: React.FC = () => {
                 </div>
                 {property.createdAt && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
+                    <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
@@ -649,7 +664,7 @@ const PropertyDetails: React.FC = () => {
                 </div>
               </div>
 
-              <Divider orientation="vertical" flexItem />
+              <Separator orientation="vertical" />
 
               {/* ── Col 3: Configuration ───────────────────────────── */}
               <div className="flex-1 min-w-0">
@@ -668,7 +683,7 @@ const PropertyDetails: React.FC = () => {
                 </div>
                 {property.ownerName && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
+                    <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
@@ -680,7 +695,7 @@ const PropertyDetails: React.FC = () => {
                 )}
                 {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
+                    <Separator className="my-[3px]" />
                     <div className="flex flex-col gap-0.5">
                       {property.defaultCheckInTime && (
                         <div className={INFO_ROW_CLASS}>
@@ -703,7 +718,7 @@ const PropertyDetails: React.FC = () => {
                     </div>
                   </>
                 )}
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><CleaningServices size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -713,7 +728,7 @@ const PropertyDetails: React.FC = () => {
                 </div>
                 {property.lastCleaning && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
+                    <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
@@ -726,7 +741,7 @@ const PropertyDetails: React.FC = () => {
               </div>
 
             </div>
-          </Paper>
+          </div>
 
           {/* ── Row 2: Map + Description | Instructions voyageur ────── */}
           <div className="flex gap-2 mb-2">
@@ -734,7 +749,7 @@ const PropertyDetails: React.FC = () => {
             <div className="flex-[6] min-w-0 flex flex-col gap-[9px]">
               {/* Mini-carte Mapbox */}
               {property.latitude != null && property.longitude != null && (
-                <Paper sx={{ ...CARD_SX, p: 0, overflow: 'hidden' }}>
+                <div className={cn(CARD_CLASS, 'p-0 overflow-hidden')}>
                   <MapboxPropertyMap
                     properties={[{
                       lat: property.latitude,
@@ -747,7 +762,7 @@ const PropertyDetails: React.FC = () => {
                     zoom={15}
                     height={220}
                   />
-                </Paper>
+                </div>
               )}
 
               {/* Description du logement & Consignes de ménage */}
@@ -786,7 +801,7 @@ const PropertyDetails: React.FC = () => {
 
               return (
                 <div className="flex-[6] min-w-0">
-                  <Paper sx={CARD_SX}>
+                  <div className={CARD_CLASS}>
                     <div className="flex justify-between items-center mb-1.5">
                       <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                         {t('channels.checkIn.title')}
@@ -820,7 +835,7 @@ const PropertyDetails: React.FC = () => {
                     {/* Full-width fields */}
                     {fullWidthFields.map((field) => (
                       <React.Fragment key={field.label}>
-                        <Divider sx={{ my: 0.5 }} />
+                        <Separator className="my-[3px]" />
                         <div className={INFO_ROW_CLASS}>
                           {field.icon}
                           <div className="flex-1">
@@ -830,7 +845,7 @@ const PropertyDetails: React.FC = () => {
                         </div>
                       </React.Fragment>
                     ))}
-                  </Paper>
+                  </div>
                 </div>
               );
             })()}
@@ -850,7 +865,7 @@ const PropertyDetails: React.FC = () => {
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-2" aria-labelledby="property-tab-2">
           <div className="grid grid-cols-[repeat(auto-fill,_minmax(280px,_1fr))] gap-[9px]">
             {/* Airbnb — with real status */}
-            <Paper sx={CARD_SX}>
+            <div className={CARD_CLASS}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={airbnbLogoSmall} alt="Airbnb" />
                 <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>Airbnb</p>
@@ -883,7 +898,7 @@ const PropertyDetails: React.FC = () => {
                   {t('channels.listings.linkProperty')}
                 </Button>
               )}
-            </Paper>
+            </div>
 
             {/* Other channels — static cards */}
             {[
@@ -894,7 +909,7 @@ const PropertyDetails: React.FC = () => {
               { name: 'Vrbo', logo: vrboLogo },
               { name: 'Abritel', logo: abritelLogo },
             ].map((ch) => (
-              <Paper key={ch.name} sx={CARD_SX}>
+              <div key={ch.name} className={CARD_CLASS}>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={ch.logo} alt={ch.name} />
                   <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>{ch.name}</p>
@@ -904,7 +919,7 @@ const PropertyDetails: React.FC = () => {
                   <Hub size={14} strokeWidth={1.75} />
                   {t('channels.listings.linkProperty')}
                 </Button>
-              </Paper>
+              </div>
             ))}
           </div>
         </div>
@@ -932,24 +947,26 @@ const PropertyDetails: React.FC = () => {
       )}
 
       {/* Devis ménage : confirmation avant envoi au propriétaire */}
-      <Dialog open={cleaningQuoteDialogOpen} onClose={() => setCleaningQuoteDialogOpen(false)}>
-        <DialogTitle>{t('properties.cleaningQuote.confirmTitle')}</DialogTitle>
+      <Dialog open={cleaningQuoteDialogOpen} onOpenChange={(next) => { if (!next) setCleaningQuoteDialogOpen(false); }}>
         <DialogContent>
-          <p className="cn-text-body2">{t('properties.cleaningQuote.confirmBody')}</p>
+          <DialogHeader>
+            <DialogTitle>{t('properties.cleaningQuote.confirmTitle')}</DialogTitle>
+            <DialogDescription>{t('properties.cleaningQuote.confirmBody')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button size="sm" variant="ghost" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSendCleaningQuote}
+              disabled={cleaningQuoteSending}
+            >
+              {cleaningQuoteSending ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
+              {t('properties.cleaningQuote.confirmSend')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button size="sm" variant="ghost" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSendCleaningQuote}
-            disabled={cleaningQuoteSending}
-          >
-            {cleaningQuoteSending ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
-            {t('properties.cleaningQuote.confirmSend')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar

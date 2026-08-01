@@ -1,6 +1,20 @@
 import React from 'react';
-import { Button, Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
+import {
+  Button,
+  Spinner,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
 import { Person as PersonIcon, Group as GroupIcon } from '../../icons';
 import type { Team } from '../../services/api';
 import type { User } from '../../services/api/usersApi';
@@ -25,88 +39,85 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
   open, selectedIntervention, assignType, assignTargetId, teams, availableUsers,
   assignLoading, onClose, onAssign, setAssignType, setAssignTargetId,
 }) => (
-  <Dialog
-    open={open}
-    onClose={onClose}
-    maxWidth="xs"
-    fullWidth
-    PaperProps={{ sx: { borderRadius: 2 } }}
-  >
-    <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
-      Assigner l'intervention
-      {selectedIntervention && (
-        <p className="cn-text-body2 text-muted-foreground mt-0.5 text-[0.8125rem]">
-          {selectedIntervention.title}
-        </p>
-      )}
-    </DialogTitle>
-    <DialogContent sx={{ pt: 2 }}>
-      <ToggleButtonGroup
+  <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle className="pe-8">Assigner l'intervention</DialogTitle>
+        {selectedIntervention && (
+          <DialogDescription>{selectedIntervention.title}</DialogDescription>
+        )}
+      </DialogHeader>
+
+      <ToggleGroup
+        type="single"
         value={assignType}
-        exclusive
-        onChange={(_e, val) => {
-          if (val !== null) {
+        onValueChange={(val) => {
+          // Radix renvoie '' quand on deselectionne : on ignore, le choix reste exclusif.
+          if (val === 'user' || val === 'team') {
             setAssignType(val);
             setAssignTargetId('');
           }
         }}
-        size="small"
-        fullWidth
-        sx={{ mb: 2 }}
+        variant="outline"
+        size="sm"
+        className="w-full"
       >
-        <ToggleButton value="team" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-          <span className="inline-flex me-0.5"><GroupIcon size={18} strokeWidth={1.75} /></span>
+        <ToggleGroupItem value="team" className="flex-1">
+          <GroupIcon size={18} strokeWidth={1.75} />
           Équipe
-        </ToggleButton>
-        <ToggleButton value="user" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-          <span className="inline-flex me-0.5"><PersonIcon size={18} strokeWidth={1.75} /></span>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="user" className="flex-1">
+          <PersonIcon size={18} strokeWidth={1.75} />
           Utilisateur
-        </ToggleButton>
-      </ToggleButtonGroup>
+        </ToggleGroupItem>
+      </ToggleGroup>
 
-      <FormControl fullWidth size="small">
-        <InputLabel>{assignType === 'team' ? 'Équipe' : 'Utilisateur'}</InputLabel>
-        <MuiSelect
-          value={assignTargetId}
-          onChange={(e) => setAssignTargetId(e.target.value as number)}
-          label={assignType === 'team' ? 'Équipe' : 'Utilisateur'}
+      <Field>
+        <FieldLabel htmlFor="intervention-assign-target">
+          {assignType === 'team' ? 'Équipe' : 'Utilisateur'}
+        </FieldLabel>
+        {/* Option vide desactivee : le select natif afficherait sinon la premiere
+            equipe alors que l'etat vaut encore '' (rien de choisi). */}
+        <NativeSelect
+          id="intervention-assign-target"
+          className="w-full"
+          value={assignTargetId === '' ? '' : String(assignTargetId)}
+          onChange={(e) => setAssignTargetId(e.target.value === '' ? '' : Number(e.target.value))}
         >
+          <NativeSelectOption value="" disabled>
+            {assignType === 'team' ? 'Choisir une équipe' : 'Choisir un utilisateur'}
+          </NativeSelectOption>
           {assignType === 'team'
             ? teams.map((team) => (
-                <MenuItem key={team.id} value={team.id} sx={{ fontSize: '0.875rem' }}>
-                  {team.name}
-                  {team.memberCount !== undefined && (
-                    <span className="cn-text-caption text-muted-foreground ms-1.5">
-                      ({team.memberCount} membres)
-                    </span>
-                  )}
-                </MenuItem>
+                <NativeSelectOption key={team.id} value={team.id}>
+                  {team.memberCount !== undefined
+                    ? `${team.name} (${team.memberCount} membres)`
+                    : team.name}
+                </NativeSelectOption>
               ))
             : availableUsers.map((u) => (
-                <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.875rem' }}>
-                  {u.firstName} {u.lastName}
-                  {u.role && (
-                    <span className="cn-text-caption text-muted-foreground ms-1.5">
-                      ({u.role})
-                    </span>
-                  )}
-                </MenuItem>
+                <NativeSelectOption key={u.id} value={u.id}>
+                  {u.role
+                    ? `${u.firstName} ${u.lastName} (${u.role})`
+                    : `${u.firstName} ${u.lastName}`}
+                </NativeSelectOption>
               ))}
-        </MuiSelect>
-      </FormControl>
+        </NativeSelect>
+      </Field>
+
+      <DialogFooter>
+        <Button variant="outline" size="sm" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button
+          size="sm"
+          onClick={onAssign}
+          disabled={assignTargetId === '' || assignLoading}
+        >
+          {assignLoading ? <Spinner className="size-[18px]" /> : 'Assigner'}
+        </Button>
+      </DialogFooter>
     </DialogContent>
-    <DialogActions sx={{ px: 3, pb: 2 }}>
-      <Button variant="outline" size="sm" onClick={onClose}>
-        Annuler
-      </Button>
-      <Button
-        size="sm"
-        onClick={onAssign}
-        disabled={assignTargetId === '' || assignLoading}
-      >
-        {assignLoading ? <Spinner className="size-[18px]" /> : 'Assigner'}
-      </Button>
-    </DialogActions>
   </Dialog>
 );
 

@@ -1,8 +1,23 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Spinner, Button } from '../../components/ui';
-import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
+import { Card as BuiCard, CardContent } from '../../components/ui';
+import {
+  Avatar,
+  AvatarFallback,
+  Checkbox,
+  Field,
+  FieldLabel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
+// Reste en MUI : le Stepper (et ses Step / StepLabel) — la bibliotheque Baitly
+// UI n'expose aucun equivalent, le reecrire depasserait la migration.
+import { Stepper, Step, StepLabel } from '@mui/material';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   People,
@@ -75,7 +90,7 @@ const TeamUserAssignmentForm: React.FC = () => {
 
   if (!user?.id) {
     return (
-      <Container maxWidth="lg">
+      <div className="mx-auto w-full max-w-[1200px] px-3 min-[600px]:px-[18px]">
         <PageHeader
           title={t('portfolios.forms.teamUserAssociation')}
           subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
@@ -85,7 +100,7 @@ const TeamUserAssignmentForm: React.FC = () => {
         <div className="flex justify-center items-center min-h-[300px]">
           <Spinner className="size-8" />
         </div>
-      </Container>
+      </div>
     );
   }
 
@@ -102,29 +117,35 @@ const TeamUserAssignmentForm: React.FC = () => {
             <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
             </p>
-            <FormControl fullWidth size="small">
-              <InputLabel>{t('portfolios.fields.manager')}</InputLabel>
+            <Field>
+              <FieldLabel htmlFor="team-user-manager">{t('portfolios.fields.manager')}</FieldLabel>
+              {/* Select « riche » et non NativeSelect : chaque option porte un
+                  avatar, qu'une <option> native ne peut pas afficher. */}
               <Select
-                value={selectedManager}
-                onChange={(e) => setSelectedManager(e.target.value as number)}
-                label={t('portfolios.fields.manager')}
-                displayEmpty
-                sx={{ borderRadius: 2, fontSize: '0.85rem' }}
+                value={selectedManager === '' ? '' : String(selectedManager)}
+                onValueChange={(value) => setSelectedManager(Number(value))}
               >
-                {managers.map((manager) => (
-                  <MenuItem key={manager.id} value={manager.id}>
-                    <div className="flex items-center gap-1.5">
-                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
-                        {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
-                      </Avatar>
-                      <p className="cn-text-body1 text-[0.85rem]">
-                        {manager.firstName} {manager.lastName} - {manager.email}
-                      </p>
-                    </div>
-                  </MenuItem>
-                ))}
+                <SelectTrigger id="team-user-manager" className="w-full text-[0.85rem]">
+                  <SelectValue placeholder={t('portfolios.fields.manager')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {managers.map((manager) => (
+                    <SelectItem key={manager.id} value={String(manager.id)}>
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
+                          <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                            {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="cn-text-body1 text-[0.85rem]">
+                          {manager.firstName} {manager.lastName} - {manager.email}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
+            </Field>
           </div>
         );
 
@@ -141,28 +162,23 @@ const TeamUserAssignmentForm: React.FC = () => {
             <div className="grid grid-cols-12 gap-[9px]">
               {teams.map((team) => (
                 <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={team.id}>
-                  <Card
-                    variant={selectedTeamsSet.has(team.id) ? 'elevation' : 'outlined'}
-                    sx={{
-                      cursor: 'pointer',
-                      borderRadius: 2,
-                      border: selectedTeamsSet.has(team.id) ? 2 : 1,
-                      borderColor: selectedTeamsSet.has(team.id) ? 'var(--accent)' : 'var(--line)',
-                      transition: 'border-color 0.2s ease',
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                      '&:hover': {
-                        borderColor: 'var(--accent)',
-                      },
-                    }}
+                  <BuiCard
+                    className={cn(
+                      // `border-solid` obligatoire : le gabarit pose border-none,
+                      // sans quoi la largeur existe mais le lisere reste invisible.
+                      'cursor-pointer rounded-[16px] border-solid ring-0 gap-0 py-[9px] transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                      selectedTeamsSet.has(team.id)
+                        ? 'border-2 border-[var(--accent)]'
+                        : 'border border-[var(--line)]',
+                    )}
                     onClick={() => handleTeamToggle(team.id)}
                   >
-                    <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                    <CardContent className="px-3">
                       <div className="flex items-center mb-1">
                         <Checkbox
+                          className="me-[4.5px]"
                           checked={selectedTeamsSet.has(team.id)}
-                          onChange={() => handleTeamToggle(team.id)}
-                          size="small"
-                          sx={{ p: 0.25, mr: 0.75 }}
+                          onCheckedChange={() => handleTeamToggle(team.id)}
                         />
                         <span className="inline-flex text-[var(--accent)] me-1"><Group size={18} strokeWidth={1.75} /></span>
                         <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
@@ -187,7 +203,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                         </span>
                       </div>
                     </CardContent>
-                  </Card>
+                  </BuiCard>
                 </div>
               ))}
             </div>
@@ -236,43 +252,26 @@ const TeamUserAssignmentForm: React.FC = () => {
               <div className="grid grid-cols-12 gap-[9px]">
                 {filteredUsers.map((userItem) => (
                   <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={userItem.id}>
-                    <Card
-                      variant={selectedUsersSet.has(userItem.id) ? 'elevation' : 'outlined'}
-                      sx={{
-                        cursor: 'pointer',
-                        borderRadius: 2,
-                        border: selectedUsersSet.has(userItem.id) ? 2 : 1,
-                        borderColor: selectedUsersSet.has(userItem.id) ? 'var(--accent)' : 'var(--line)',
-                        transition: 'border-color 0.2s ease',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        '&:hover': {
-                          borderColor: 'var(--accent)',
-                        },
-                      }}
+                    <BuiCard
+                      className={cn(
+                        'cursor-pointer rounded-[16px] border-solid ring-0 gap-0 py-[9px] transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                        selectedUsersSet.has(userItem.id)
+                          ? 'border-2 border-[var(--accent)]'
+                          : 'border border-[var(--line)]',
+                      )}
                       onClick={() => handleUserToggle(userItem.id)}
                     >
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                      <CardContent className="px-3">
                         <div className="flex items-center mb-1">
                           <Checkbox
+                            className="me-[4.5px]"
                             checked={selectedUsersSet.has(userItem.id)}
-                            onChange={() => handleUserToggle(userItem.id)}
-                            size="small"
-                            sx={{ p: 0.25, mr: 0.75 }}
+                            onCheckedChange={() => handleUserToggle(userItem.id)}
                           />
-                          <Avatar
-                            sx={{
-                              width: 24,
-                              height: 24,
-                              fontSize: '0.55rem',
-                              fontWeight: 600,
-                              bgcolor: 'var(--accent)',
-                              color: 'var(--on-accent)',
-                              fontFamily: 'var(--font-display)',
-                              borderRadius: '8px',
-                              mr: 0.75,
-                            }}
-                          >
-                            {userItem.firstName.charAt(0)}{userItem.lastName.charAt(0)}
+                          <Avatar className="size-6 rounded-[8px] after:rounded-[8px] me-[4.5px]">
+                            <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.55rem] font-semibold font-[family-name:var(--font-display)]">
+                              {userItem.firstName.charAt(0)}{userItem.lastName.charAt(0)}
+                            </AvatarFallback>
                           </Avatar>
                           <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                             {userItem.firstName} {userItem.lastName}
@@ -290,7 +289,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                           />
                         </div>
                       </CardContent>
-                    </Card>
+                    </BuiCard>
                   </div>
                 ))}
               </div>
@@ -319,8 +318,10 @@ const TeamUserAssignmentForm: React.FC = () => {
                 {t('portfolios.fields.selectedManager')}
               </h6>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
-                  {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
+                <Avatar className="size-7 rounded-[8px] after:rounded-[8px]">
+                  <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                    {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <h6 className="cn-text-subtitle2 text-primary text-[0.85rem] font-semibold">
@@ -341,23 +342,19 @@ const TeamUserAssignmentForm: React.FC = () => {
                     {t('portfolios.fields.selectedTeams')} ({selectedTeamsData.length})
                   </h6>
                   {selectedTeamsData.length > 0 ? (
-                    <List dense disablePadding>
+                    <ul className="list-none m-0 p-0">
                       {selectedTeamsData.map((team) => (
-                        <ListItem key={team.id} disableGutters sx={{ py: 0.5 }}>
-                          <ListItemIcon sx={{ minWidth: 28 }}>
-                            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={<p className="cn-text-body1 text-[0.82rem]">{team.name}</p>}
-                            secondary={
-                              <span className="cn-text-caption text-[0.7rem]">
-                                {team.memberCount ?? 0} {t('portfolios.fields.members')} {team.interventionType ? `\u2022 ${team.interventionType}` : ''}
-                              </span>
-                            }
-                          />
-                        </ListItem>
+                        <li className="flex items-center py-[3px]" key={team.id}>
+                          <span className="inline-flex text-[var(--ok)] min-w-[28px]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                          <div className="min-w-0">
+                            <p className="cn-text-body1 text-[0.82rem]">{team.name}</p>
+                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                              {team.memberCount ?? 0} {t('portfolios.fields.members')} {team.interventionType ? `\u2022 ${team.interventionType}` : ''}
+                            </span>
+                          </div>
+                        </li>
                       ))}
-                    </List>
+                    </ul>
                   ) : (
                     <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
                       {t('portfolios.fields.noTeamSelected')}
@@ -373,23 +370,19 @@ const TeamUserAssignmentForm: React.FC = () => {
                     {t('portfolios.fields.selectedUsers')} ({selectedUsersData.length})
                   </h6>
                   {selectedUsersData.length > 0 ? (
-                    <List dense disablePadding>
+                    <ul className="list-none m-0 p-0">
                       {selectedUsersData.map((userItem) => (
-                        <ListItem key={userItem.id} disableGutters sx={{ py: 0.5 }}>
-                          <ListItemIcon sx={{ minWidth: 28 }}>
-                            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={<p className="cn-text-body1 text-[0.82rem]">{userItem.firstName} {userItem.lastName}</p>}
-                            secondary={
-                              <span className="cn-text-caption text-[0.7rem]">
-                                {userItem.email} {'\u2022'} {getRoleLabel(userItem.role)}
-                              </span>
-                            }
-                          />
-                        </ListItem>
+                        <li className="flex items-center py-[3px]" key={userItem.id}>
+                          <span className="inline-flex text-[var(--ok)] min-w-[28px]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                          <div className="min-w-0">
+                            <p className="cn-text-body1 text-[0.82rem]">{userItem.firstName} {userItem.lastName}</p>
+                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                              {userItem.email} {'\u2022'} {getRoleLabel(userItem.role)}
+                            </span>
+                          </div>
+                        </li>
                       ))}
-                    </List>
+                    </ul>
                   ) : (
                     <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
                       {t('portfolios.fields.noUserAvailable')}
@@ -408,7 +401,7 @@ const TeamUserAssignmentForm: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg">
+    <div className="mx-auto w-full max-w-[1200px] px-3 min-[600px]:px-[18px]">
       <PageHeader
         title={t('portfolios.forms.teamUserAssociation')}
         subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
@@ -458,7 +451,7 @@ const TeamUserAssignmentForm: React.FC = () => {
           )}
         </div>
       </BuiCard>
-    </Container>
+    </div>
   );
 };
 

@@ -3,11 +3,29 @@ import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Tooltip } from '@mui/material';
-import { Card } from '../../components/ui';
+// Snackbar (et l'Alert qu'il transporte) restent en MUI : changer le mecanisme
+// de notification flottante depasse la migration, et le Snackbar pose une ref
+// de transition sur son enfant direct — que les primitifs du kit ne portent pas.
+import { Alert, Snackbar } from '@mui/material';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Card,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
-  ExpandMore,
   Notifications,
   Build,
   Description,
@@ -367,79 +385,84 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
           const noneEnabled = stats.enabled === 0;
 
           return (
+            // Un Accordion par categorie : les panneaux MUI etaient independants
+            // (aucun n'en fermait un autre) et chacun est une cellule de la grille.
             <Accordion
               key={category.id}
-              disableGutters
-              sx={{
-                '&:before': { display: 'none' },
-                boxShadow: 'none',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '8px !important',
-                m: 0,
-                '&.Mui-expanded': { m: 0 },
-              }}
+              type="single"
+              collapsible
+              className="rounded-[8px] border border-solid border-[var(--line)]"
             >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{ minHeight: 48, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-              >
-                <div className="flex items-center gap-1.5 w-full pe-1.5">
-                  {/* La couleur de categorie vient des donnees : elle passe par style, pas par une classe. */}
-                  <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--faint)' : category.color }}>
-                    {category.icon}
+              <AccordionItem value={category.id} className="border-b-0">
+                {/* Le Switch ne peut PAS vivre dans le trigger : celui-ci est un
+                    <button>, en imbriquer un second est invalide et le clic
+                    piloterait l'accordeon. Il devient donc son frere de rangee —
+                    ce qui rend aussi les stopPropagation d'origine inutiles. */}
+                <div className="flex items-center">
+                  <div className="flex-1 min-w-0">
+                    <AccordionTrigger className="min-h-12 w-full items-center px-3">
+                      <div className="flex items-center gap-1.5 w-full pe-1.5">
+                        {/* La couleur de categorie vient des donnees : elle passe par style, pas par une classe. */}
+                        <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--faint)' : category.color }}>
+                          {category.icon}
+                        </div>
+                        <p className={cn('cn-text-body2 font-semibold flex-1 text-start', noneEnabled ? 'text-[var(--faint)]' : 'text-[var(--ink)]')} style={{ transition: 'color 0.2s' }}>
+                          {category.label}
+                        </p>
+                        <StatusChip
+                          tone={allEnabled ? 'ok' : noneEnabled ? 'neutral' : 'warn'}
+                          label={`${stats.enabled}/${stats.total}`}
+                          className="text-[0.7rem]"
+                        />
+                      </div>
+                    </AccordionTrigger>
                   </div>
-                  <p className={cn('cn-text-body2 font-semibold flex-1', noneEnabled ? 'text-[var(--faint)]' : 'text-[var(--ink)]')} style={{ transition: 'color 0.2s' }}>
-                    {category.label}
-                  </p>
-                  <StatusChip
-                    tone={allEnabled ? 'ok' : noneEnabled ? 'neutral' : 'warn'}
-                    label={`${stats.enabled}/${stats.total}`}
-                    className="text-[0.7rem]"
-                  />
-                  <Tooltip title={allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}>
-                    <Switch
-                      size="small"
-                      checked={!noneEnabled}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        e.stopPropagation();
-                        handleToggleCategory(category, noneEnabled ? true : false);
-                      }}
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                      color={allEnabled ? 'success' : 'warning'}
-                      sx={{ ml: 0.5 }}
-                    />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* span : TooltipTrigger asChild pose une ref DOM, que le
+                          Switch du kit (fonction, React 18) ne transmet pas. */}
+                      <span className="inline-flex me-3">
+                        <Switch
+                          size="sm"
+                          checked={!noneEnabled}
+                          onCheckedChange={() => handleToggleCategory(category, noneEnabled ? true : false)}
+                          className={allEnabled
+                            ? 'data-checked:bg-[var(--ok)]'
+                            : 'data-checked:bg-[var(--warn)]'}
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}
+                    </TooltipContent>
                   </Tooltip>
                 </div>
-              </AccordionSummary>
-              <AccordionDetails sx={{ pt: 0, pb: 1, opacity: noneEnabled ? 0.45 : 1, transition: 'opacity 0.2s' }}>
-                <List dense disablePadding>
-                  {category.keys.map((nKey) => (
-                    <ListItem key={nKey.key} sx={{ py: 0.25, px: 1 }}>
-                      <ListItemText
-                        primary={
-                          <p className="cn-text-body2 text-[0.82rem]">
+                <AccordionContent
+                  className={cn('px-3 pt-0 pb-1.5 [transition:opacity_0.2s]', noneEnabled && 'opacity-45')}
+                >
+                  <ItemGroup>
+                    {category.keys.map((nKey) => (
+                      <Item key={nKey.key} size="xs" className="px-1.5 py-[1.5px]">
+                        <ItemContent>
+                          <ItemTitle className="text-[0.82rem] font-normal">
                             {nKey.title}
-                          </p>
-                        }
-                        secondary={
-                          <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                          </ItemTitle>
+                          <ItemDescription className="text-[0.72rem]">
                             {nKey.description}
-                          </span>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <Switch
-                          edge="end"
-                          size="small"
-                          checked={preferences[nKey.key] !== false}
-                          onChange={(_, checked) => handleToggle(nKey.key, checked)}
-                        />
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-              </AccordionDetails>
+                          </ItemDescription>
+                        </ItemContent>
+                        <ItemActions>
+                          <Switch
+                            size="sm"
+                            checked={preferences[nKey.key] !== false}
+                            onCheckedChange={(checked) => handleToggle(nKey.key, checked)}
+                          />
+                        </ItemActions>
+                      </Item>
+                    ))}
+                  </ItemGroup>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           );
         })}

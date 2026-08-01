@@ -5,7 +5,18 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
-import { Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
+// CircularProgress reste MUI : le kit Baitly UI n'a pas de jauge circulaire
+// determinee (Spinner est indetermine), aucune traduction fidele n'est possible.
+import { CircularProgress } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -129,7 +140,7 @@ const TokenMonitoring: React.FC = () => {
   // Register page-header actions (refresh + cleanup) for this tab.
   useEffect(() => {
     setHeaderActions(
-      <Stack direction="row" spacing={1}>
+      <div className="flex flex-row gap-1.5">
         <BuiButton
           variant="outline"
           size="sm"
@@ -154,7 +165,7 @@ const TokenMonitoring: React.FC = () => {
           <Delete size={16} strokeWidth={1.75} />
           Nettoyer expirés
         </BuiButton>
-      </Stack>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, isLoading, loadTokenStats, cleanupTokens]);
@@ -240,23 +251,14 @@ const TokenMonitoring: React.FC = () => {
                   transition: 'color 300ms',
                 }}
               />
-              <Avatar
-                src={userAvatarSrc(user)}
-                alt={currentToken.username || currentToken.email || 'avatar'}
-                sx={{
-                  position: 'absolute',
-                  inset: 8,
-                  width: 'auto',
-                  height: 'auto',
-                  bgcolor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                {getInitials(currentToken.username || currentToken.email)}
+              <Avatar className="absolute inset-2 size-auto">
+                <AvatarImage
+                  src={userAvatarSrc(user)}
+                  alt={currentToken.username || currentToken.email || 'avatar'}
+                />
+                <AvatarFallback className="bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[1.5rem] tracking-[0.05em]">
+                  {getInitials(currentToken.username || currentToken.email)}
+                </AvatarFallback>
               </Avatar>
             </div>
 
@@ -270,7 +272,7 @@ const TokenMonitoring: React.FC = () => {
                       <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: tokenStatus.fg }} />
                     </span>} />
               </div>
-              <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
+              <div className="flex flex-row flex-wrap gap-x-3 gap-y-[3px] mb-1.5">
                 <div className="flex items-center gap-0.5">
                   <span className="inline-flex text-muted-foreground opacity-60">
                     <Email size={13} strokeWidth={1.75} />
@@ -287,18 +289,26 @@ const TokenMonitoring: React.FC = () => {
                     {currentToken.userId?.slice(0, 8) ?? '—'}
                   </p>
                   {currentToken.userId && (
-                    <Tooltip title={copied ? 'Copié !' : 'Copier l\'ID complet'}>
-                      <IconButton size="small" onClick={copyUserId} sx={{ p: 0.25 }}>
-                        {copied ? (
-                          <CheckCircle size={12} strokeWidth={2} color="var(--ok)" />
-                        ) : (
-                          <ContentCopy size={12} strokeWidth={1.75} />
-                        )}
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <BuiButton
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Copier l'ID complet"
+                          onClick={copyUserId}
+                        >
+                          {copied ? (
+                            <CheckCircle size={12} strokeWidth={2} color="var(--ok)" />
+                          ) : (
+                            <ContentCopy size={12} strokeWidth={1.75} />
+                          )}
+                        </BuiButton>
+                      </TooltipTrigger>
+                      <TooltipContent>{copied ? 'Copié !' : "Copier l'ID complet"}</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
-              </Stack>
+              </div>
               <div className="flex flex-wrap gap-0.5">
                 {currentToken.roles?.length ? (
                   currentToken.roles.map((role) => (
@@ -338,19 +348,12 @@ const TokenMonitoring: React.FC = () => {
                   })}
                 </p>
               )}
-              <LinearProgress
-                variant="determinate"
+              {/* La teinte de la barre est une valeur d'execution : elle passe par
+                  une variable CSS posee inline, lue par la classe du remplissage. */}
+              <Progress
                 value={remainingPct}
-                sx={{
-                  mt: 1,
-                  height: 4,
-                  borderRadius: 2,
-                  bgcolor: 'var(--hover)',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: tokenStatus.fg,
-                    borderRadius: 2,
-                  },
-                }}
+                style={{ '--bar': tokenStatus.fg } as React.CSSProperties}
+                className="mt-1.5 h-1 rounded-full bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--bar)] [&_[data-slot=progress-indicator]]:rounded-full"
               />
             </div>
           </div>
@@ -461,7 +464,7 @@ const TokenMonitoring: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <Stack spacing={1.25} sx={{ flex: 1 }}>
+              <div className="flex flex-col gap-[7.5px] flex-1">
                 {donutData.map((entry) => (
                   <div className="flex items-center gap-1.5" key={entry.name}>
                     <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: entry.color }} />
@@ -471,7 +474,7 @@ const TokenMonitoring: React.FC = () => {
                     </p>
                   </div>
                 ))}
-              </Stack>
+              </div>
             </div>
           )}
         </Card>
@@ -496,18 +499,14 @@ const TokenMonitoring: React.FC = () => {
                   {successRateNum.toFixed(1)}%
                 </p>
               </div>
-              <LinearProgress
-                variant="determinate"
+              <Progress
                 value={successRateNum}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  bgcolor: 'var(--hover)',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)',
-                    borderRadius: 3,
-                  },
-                }}
+                className={cn(
+                  'h-1.5 rounded-full bg-[var(--hover)] [&_[data-slot=progress-indicator]]:rounded-full',
+                  successRateNum >= 95
+                    ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
+                    : '[&_[data-slot=progress-indicator]]:bg-[var(--warn)]',
+                )}
               />
             </div>
           )}
@@ -546,19 +545,14 @@ const TokenMonitoring: React.FC = () => {
       </div>
 
       {/* ─── Architecture note ─────────────────────────────────────── */}
-      <Alert
-        severity="info"
-        icon={<Bolt size={16} strokeWidth={2} />}
-        sx={{
-          borderRadius: 1.5,
-          '& .MuiAlert-icon': { alignItems: 'center' },
-          '& .MuiAlert-message': { fontSize: '0.8125rem' },
-        }}
-      >
-        <strong>Architecture réactive</strong> — TokenService utilise le pattern Observer pour une
-        propagation événementielle des changements de session (renouvellement, expiration, échec
-        d'authentification).
-      </Alert>
+      <BuiAlert variant="info">
+        <Bolt size={16} strokeWidth={2} />
+        <AlertDescription className="text-[0.8125rem]">
+          <strong>Architecture réactive</strong> — TokenService utilise le pattern Observer pour une
+          propagation événementielle des changements de session (renouvellement, expiration, échec
+          d&apos;authentification).
+        </AlertDescription>
+      </BuiAlert>
     </div>
   );
 };

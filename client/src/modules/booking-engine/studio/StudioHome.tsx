@@ -1,7 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, MenuItem, Divider, Popover, InputBase, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
-import { Button } from '../../../components/ui';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Skeleton,
+} from '../../../components/ui';
 import {
   Plus, LayoutDashboard, ArrowUp, Search, Home, Layers, Sparkles, Languages, Feather, X,
   ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
@@ -255,11 +275,11 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   const [usps, setUsps] = useState<string[]>([]);
   const [location, setLocation] = useState<string>('');
   const [pages, setPages] = useState<string[]>(DEFAULT_PAGES);
-  // Champs actuellement ajoutés à la barre (Funnel par défaut) + ancres des menus (« + » / valeur / lieu).
+  // Champs actuellement ajoutés à la barre (Funnel par défaut). Les menus « + » et
+  // « valeur » sont ancrés par leur propre déclencheur ; seul le popover « Lieu »
+  // garde un état d'ouverture, car il se valide (OK / Entrée) au lieu de choisir.
   const [activeOptions, setActiveOptions] = useState<PromptOptionId[]>(['funnel', 'template']);
-  const [addAnchor, setAddAnchor] = useState<HTMLElement | null>(null);
-  const [optionAnchor, setOptionAnchor] = useState<{ id: PromptOptionId; el: HTMLElement } | null>(null);
-  const [locationAnchor, setLocationAnchor] = useState<HTMLElement | null>(null);
+  const [locationOpen, setLocationOpen] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
   // Liste
@@ -337,7 +357,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   // ── Constructeur de prompt : ajout / retrait de champs + libellé de valeur courante ──
   const addOption = (id: PromptOptionId) => {
     setActiveOptions((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    setAddAnchor(null);
     // Suggestion : ajouter « Devise » alors qu'un lieu est saisi → propose la devise locale (modifiable).
     if (id === 'currency' && !currency) {
       const s = suggestCurrency(location);
@@ -352,11 +371,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       if (d.tone && activeOptions.includes('tone') && !tone) setTone(d.tone);
       if (d.tier && activeOptions.includes('tier') && !tier) setTier(d.tier);
     }
-    setOptionAnchor(null);
   };
-  // Validation du lieu : ferme le popover et, si « Devise » est active et vide, propose la devise locale.
+  // Validation du lieu : si « Devise » est active et vide, propose la devise locale.
   const commitLocation = () => {
-    setLocationAnchor(null);
     if (activeOptions.includes('currency') && !currency) {
       const s = suggestCurrency(location);
       if (s) setCurrency(s);
@@ -370,13 +387,11 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     setTemplateId((t) => (t && templateFunnel(t) === id ? t : null));
     setGoal((g) => (g && goalConflicts(g, id) ? null : g));
     setPages((ps) => ps.filter((k) => !pageConflicts(k, id)));
-    setOptionAnchor(null);
   };
   // Choix d'un template : possible UNIQUEMENT après avoir choisi un funnel (gating). Le template filtré l'est déjà.
   const applyTemplate = (id: string) => {
     if (!funnelId) return;
     setTemplateId(id);
-    setOptionAnchor(null);
   };
   // Templates visibles = ceux du funnel sélectionné (vide tant qu'aucun funnel → section verrouillée/grisée).
   const visibleTemplates = funnelId ? GALLERY_TEMPLATES.filter((t) => templateFunnel(t.id) === funnelId) : [];
@@ -398,10 +413,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     if (id === 'tier') setTier(null);
     if (id === 'currency') setCurrency(null);
     if (id === 'usps') setUsps([]);
-    if (id === 'location') setLocation('');
+    if (id === 'location') { setLocation(''); setLocationOpen(false); }
     if (id === 'pages') setPages(DEFAULT_PAGES);
-    setOptionAnchor(null);
-    setLocationAnchor(null);
   };
   const optionValueLabel = (id: PromptOptionId): string => {
     switch (id) {
@@ -425,10 +438,157 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     }
   };
 
-  /** Ouvre le bon contrôle pour un champ : popover texte pour « Lieu », menu de valeurs sinon. */
-  const openOption = (id: PromptOptionId, el: HTMLElement) => {
-    if (id === 'location') setLocationAnchor(el);
-    else setOptionAnchor({ id, el });
+  /**
+   * Valeurs proposées pour un champ du constructeur de prompt.
+   * Choix unique → groupe radio (la sélection ferme le menu, comme avant) ;
+   * choix multiple → cases à cocher dont le `onSelect` annule la fermeture,
+   * sinon le menu se refermerait à chaque coche.
+   */
+  const renderOptionItems = (id: PromptOptionId) => {
+    switch (id) {
+      case 'funnel':
+        return (
+          <DropdownMenuRadioGroup value={funnelId ?? ''} onValueChange={applyFunnel}>
+            {BUILTIN_FUNNEL_PRESETS.map((f) => (
+              <DropdownMenuRadioItem key={f.id} value={f.id} className="text-[13px] gap-2">
+                <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))] text-[var(--accent,_#5453d6)] grid place-items-center overflow-hidden p-[4px] [&_svg]:w-full [&_svg]:h-full [&_svg]:block">
+                  <FunnelArt id={f.id} />
+                </span>
+                {f.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'template':
+        return (
+          <DropdownMenuRadioGroup value={templateId ?? ''} onValueChange={applyTemplate}>
+            {visibleTemplates.map((tpl) => (
+              <DropdownMenuRadioItem key={tpl.id} value={tpl.id} className="text-[13px] gap-2">
+                <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] relative overflow-hidden bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))]">
+                  <TemplateThumb tpl={tpl} />
+                </span>
+                {tpl.name}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'style':
+        return (
+          <DropdownMenuRadioGroup
+            value={styleId ?? '__auto__'}
+            onValueChange={(v) => setStyleId(v === '__auto__' ? null : v)}
+          >
+            <DropdownMenuRadioItem value="__auto__" className="text-[13px]">Automatique</DropdownMenuRadioItem>
+            {DESIGN_PRESETS.map((p) => (
+              <DropdownMenuRadioItem key={p.id} value={p.id} className="text-[13px] gap-1.5">
+                <span className="w-[12px] h-[12px] rounded-[3px] shrink-0" style={{ backgroundColor: p.primaryColor }} />
+                {styleLabel(p.id)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'tone':
+        return (
+          <DropdownMenuRadioGroup value={tone ?? ''} onValueChange={setTone}>
+            {TONE_CHOICES.map((c) => (
+              <DropdownMenuRadioItem key={c.id} value={c.id} className="text-[13px]">{c.label}</DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'languages':
+        return LANGUAGE_OPTIONS.map((l) => (
+          <DropdownMenuCheckboxItem
+            key={l.code}
+            checked={languages.includes(l.code)}
+            onSelect={(e) => {
+              e.preventDefault();
+              setLanguages((prev) => (prev.includes(l.code) ? prev.filter((c) => c !== l.code) : [...prev, l.code]));
+            }}
+            className="text-[13px]"
+          >
+            {l.label}
+          </DropdownMenuCheckboxItem>
+        ));
+      case 'audience':
+        return (
+          <DropdownMenuRadioGroup value={audience ?? ''} onValueChange={chooseAudience}>
+            {AUDIENCE_CHOICES.map((a) => (
+              <DropdownMenuRadioItem key={a} value={a} className="text-[13px]">{a}</DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'goal':
+        return (
+          <DropdownMenuRadioGroup value={goal ?? ''} onValueChange={setGoal}>
+            {GOAL_CHOICES.map((g) => {
+              const incompatible = !!funnelId && goalConflicts(g, funnelId);
+              return (
+                <DropdownMenuRadioItem
+                  key={g}
+                  value={g}
+                  disabled={incompatible}
+                  title={incompatible ? 'Incompatible avec le funnel choisi' : undefined}
+                  className="text-[13px]"
+                >
+                  {g}
+                </DropdownMenuRadioItem>
+              );
+            })}
+          </DropdownMenuRadioGroup>
+        );
+      case 'tier':
+        return (
+          <DropdownMenuRadioGroup value={tier ?? ''} onValueChange={setTier}>
+            {TIER_CHOICES.map((tr) => (
+              <DropdownMenuRadioItem key={tr} value={tr} className="text-[13px]">{tr}</DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'currency':
+        return (
+          <DropdownMenuRadioGroup value={currency ?? ''} onValueChange={setCurrency}>
+            {CURRENCY_CHOICES.map((c) => (
+              <DropdownMenuRadioItem key={c.code} value={c.code} className="text-[13px]">{c.label}</DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        );
+      case 'usps':
+        return USP_CHOICES.map((u) => (
+          <DropdownMenuCheckboxItem
+            key={u}
+            checked={usps.includes(u)}
+            onSelect={(e) => {
+              e.preventDefault();
+              setUsps((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]));
+            }}
+            className="text-[13px]"
+          >
+            {u}
+          </DropdownMenuCheckboxItem>
+        ));
+      case 'pages':
+        return PAGE_CHOICES.map((pg) => {
+          const incompatible = !!funnelId && pageConflicts(pg.key, funnelId);
+          return (
+            <DropdownMenuCheckboxItem
+              key={pg.key}
+              checked={pages.includes(pg.key)}
+              disabled={incompatible}
+              title={incompatible ? 'Sans objet pour un funnel mono-bien' : undefined}
+              onSelect={(e) => {
+                e.preventDefault();
+                setPages((prev) => (prev.includes(pg.key) ? prev.filter((x) => x !== pg.key) : [...prev, pg.key]));
+              }}
+              className="text-[13px]"
+            >
+              {pg.label}
+            </DropdownMenuCheckboxItem>
+          );
+        });
+      case 'location':
+        // Saisie libre : rendue par un popover, pas par un menu de valeurs.
+        return null;
+    }
   };
 
   /** Brief structuré assemblé depuis les champs ACTIFS (mémoïsé → identité stable tant que la modale est ouverte). */
@@ -547,7 +707,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
         {/* 2 · Champ IA */}
         {creating ? (
-          <Skeleton variant="rounded" height={170} sx={{ borderRadius: '20px', bgcolor: 'var(--hover)' }} />
+          <Skeleton className="h-[170px] rounded-[20px] bg-[var(--hover)]" />
         ) : (
           <div className="field">
             <textarea
@@ -562,9 +722,28 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAiSubmit(); }}
             />
             <div className="field__bar">
-              <button className="chip chip--icon" aria-label="Ajouter un champ au prompt" type="button" title="Ajouter un champ (style, ton, langues…)" onClick={(e) => setAddAnchor(e.currentTarget)}>
-                <Plus size={16} strokeWidth={2} />
-              </button>
+              {/* « + » : propose les champs non encore ajoutés pour un prompt complet et standardisé. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="chip chip--icon" aria-label="Ajouter un champ au prompt" type="button" title="Ajouter un champ (style, ton, langues…)">
+                    <Plus size={16} strokeWidth={2} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-auto min-w-[200px] max-h-[340px] overflow-y-auto">
+                  {PROMPT_OPTIONS.flatMap((o) => {
+                    if (activeOptions.includes(o.id)) return [];
+                    const Icon = o.icon;
+                    return [(
+                      <DropdownMenuItem key={o.id} onSelect={() => addOption(o.id)} className="text-[13px] gap-1.5">
+                        <Icon size={15} strokeWidth={2} /> {o.label}
+                      </DropdownMenuItem>
+                    )];
+                  })}
+                  {PROMPT_OPTIONS.every((o) => activeOptions.includes(o.id)) && (
+                    <DropdownMenuItem disabled className="text-[13px]">Tous les champs sont ajoutés</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {activeOptions.map((id) => {
                 const opt = PROMPT_OPTIONS.find((o) => o.id === id);
                 if (!opt) return null;
@@ -573,8 +752,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                 const shownTplId = id === 'template' ? (templateId ?? hoveredTemplateId) : null;
                 const shownTpl = shownTplId ? GALLERY_TEMPLATES.find((t) => t.id === shownTplId) : null;
                 const lockedTpl = id === 'template' && !funnelId;
-                return (
-                  <button key={id} className={'chip' + (lockedTpl ? ' chip--locked' : '')} type="button" disabled={lockedTpl} onClick={(e) => openOption(id, e.currentTarget)}>
+                const chip = (
+                  <button className={'chip' + (lockedTpl ? ' chip--locked' : '')} type="button" disabled={lockedTpl}>
                     {id === 'funnel' && (
                       <span className={'chip__slide' + (shownFunnel ? ' chip__slide--open' : '')}>
                         {shownFunnel && <span className="chip__art"><FunnelArt id={shownFunnel} /></span>}
@@ -592,6 +771,55 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                     <ChevronDown size={14} strokeWidth={2} />
                   </button>
                 );
+                // Champ « Lieu » : saisie libre (ville / région) en popover + retrait.
+                if (id === 'location') {
+                  return (
+                    <Popover
+                      key={id}
+                      open={locationOpen}
+                      onOpenChange={(open) => { setLocationOpen(open); if (!open) commitLocation(); }}
+                    >
+                      <PopoverTrigger asChild>{chip}</PopoverTrigger>
+                      <PopoverContent align="start" className="w-[260px] p-2">
+                        <div className="flex flex-col gap-1.5">
+                          <Input
+                            autoFocus
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { setLocationOpen(false); commitLocation(); } }}
+                            placeholder="Ex. Marrakech, Côte d'Azur…"
+                            className="text-[13px]"
+                          />
+                          <div className="flex justify-between items-center">
+                            <button className="inline-flex items-center gap-[3px] bg-[transparent] cursor-pointer text-[12.5px] text-[var(--err,_#c0392b)]" style={{ border: 0 }} type="button" onClick={() => { setLocationOpen(false); removeOption('location'); }}>
+                              <X size={14} strokeWidth={2} /> Retirer
+                            </button>
+                            <button className="bg-[transparent] cursor-pointer text-[12.5px] font-semibold text-[var(--accent)]" style={{ border: 0 }} type="button" onClick={() => { setLocationOpen(false); commitLocation(); }}>
+                              OK
+                            </button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                }
+                // Menu de valeur du champ cliqué (+ « Retirer ce champ », sauf Funnel / Template).
+                return (
+                  <DropdownMenu key={id}>
+                    <DropdownMenuTrigger asChild>{chip}</DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-auto min-w-[220px] max-h-[340px] overflow-y-auto">
+                      {renderOptionItems(id)}
+                      {opt.removable && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" className="text-[13px] gap-1.5" onSelect={() => removeOption(id)}>
+                            <X size={15} strokeWidth={2} /> Retirer ce champ
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
               })}
               <div className="field__spacer" />
               <button className="send" type="button" aria-label="Générer" disabled={creating} onClick={handleAiSubmit}>
@@ -601,145 +829,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </div>
         )}
 
-        {/* « + » : propose les champs non encore ajoutés pour un prompt complet et standardisé. */}
-        <Menu anchorEl={addAnchor} open={!!addAnchor} onClose={() => setAddAnchor(null)}>
-          {PROMPT_OPTIONS.flatMap((o) => {
-            if (activeOptions.includes(o.id)) return [];
-            const Icon = o.icon;
-            return [(
-              <MenuItem key={o.id} onClick={() => addOption(o.id)} sx={{ fontSize: 13, gap: 1 }}>
-                <Icon size={15} strokeWidth={2} /> {o.label}
-              </MenuItem>
-            )];
-          })}
-          {PROMPT_OPTIONS.every((o) => activeOptions.includes(o.id)) && (
-            <MenuItem disabled sx={{ fontSize: 13 }}>Tous les champs sont ajoutés</MenuItem>
-          )}
-        </Menu>
-
-        {/* Menu de valeur du champ cliqué (+ « Retirer ce champ », sauf Funnel par défaut). */}
-        <Menu anchorEl={optionAnchor?.el ?? null} open={!!optionAnchor} onClose={() => setOptionAnchor(null)}>
-          {optionAnchor?.id === 'funnel' && BUILTIN_FUNNEL_PRESETS.map((f) => (
-            <MenuItem key={f.id} selected={f.id === funnelId} onClick={() => applyFunnel(f.id)} sx={{ fontSize: 13, gap: 1.25, alignItems: 'center' }}>
-              <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))] text-[var(--accent,_#5453d6)] grid place-items-center overflow-hidden p-[4px] [&_svg]:w-full [&_svg]:h-full [&_svg]:block">
-                <FunnelArt id={f.id} />
-              </span>
-              {f.label}
-            </MenuItem>
-          ))}
-          {optionAnchor?.id === 'template' && visibleTemplates.map((tpl) => (
-            <MenuItem key={tpl.id} selected={tpl.id === templateId} onClick={() => applyTemplate(tpl.id)} sx={{ fontSize: 13, gap: 1.25, alignItems: 'center' }}>
-              <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] relative overflow-hidden bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))]">
-                <TemplateThumb tpl={tpl} />
-              </span>
-              {tpl.name}
-            </MenuItem>
-          ))}
-          {optionAnchor?.id === 'style' && [
-            <MenuItem key="auto" selected={!styleId} onClick={() => { setStyleId(null); setOptionAnchor(null); }} sx={{ fontSize: 13 }}>Automatique</MenuItem>,
-            ...DESIGN_PRESETS.map((p) => (
-              <MenuItem key={p.id} selected={p.id === styleId} onClick={() => { setStyleId(p.id); setOptionAnchor(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                <span className="w-[12px] h-[12px] rounded-[3px] shrink-0" style={{ backgroundColor: p.primaryColor }} />
-                {styleLabel(p.id)}
-              </MenuItem>
-            )),
-          ]}
-          {optionAnchor?.id === 'tone' && TONE_CHOICES.map((c) => (
-            <MenuItem key={c.id} selected={c.id === tone} onClick={() => { setTone(c.id); setOptionAnchor(null); }} sx={{ fontSize: 13 }}>{c.label}</MenuItem>
-          ))}
-          {optionAnchor?.id === 'languages' && LANGUAGE_OPTIONS.map((l) => (
-            <MenuItem
-              key={l.code}
-              selected={languages.includes(l.code)}
-              onClick={() => setLanguages((prev) => (prev.includes(l.code) ? prev.filter((c) => c !== l.code) : [...prev, l.code]))}
-              sx={{ fontSize: 13 }}
-            >
-              {l.label}
-            </MenuItem>
-          ))}
-          {optionAnchor?.id === 'audience' && AUDIENCE_CHOICES.map((a) => (
-            <MenuItem key={a} selected={a === audience} onClick={() => chooseAudience(a)} sx={{ fontSize: 13 }}>{a}</MenuItem>
-          ))}
-          {optionAnchor?.id === 'goal' && GOAL_CHOICES.map((g) => {
-            const incompatible = !!funnelId && goalConflicts(g, funnelId);
-            return (
-              <MenuItem
-                key={g}
-                selected={g === goal}
-                disabled={incompatible}
-                title={incompatible ? 'Incompatible avec le funnel choisi' : undefined}
-                onClick={() => { setGoal(g); setOptionAnchor(null); }}
-                sx={{ fontSize: 13 }}
-              >
-                {g}
-              </MenuItem>
-            );
-          })}
-          {optionAnchor?.id === 'tier' && TIER_CHOICES.map((tr) => (
-            <MenuItem key={tr} selected={tr === tier} onClick={() => { setTier(tr); setOptionAnchor(null); }} sx={{ fontSize: 13 }}>{tr}</MenuItem>
-          ))}
-          {optionAnchor?.id === 'currency' && CURRENCY_CHOICES.map((c) => (
-            <MenuItem key={c.code} selected={c.code === currency} onClick={() => { setCurrency(c.code); setOptionAnchor(null); }} sx={{ fontSize: 13 }}>{c.label}</MenuItem>
-          ))}
-          {optionAnchor?.id === 'usps' && USP_CHOICES.map((u) => (
-            <MenuItem
-              key={u}
-              selected={usps.includes(u)}
-              onClick={() => setUsps((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]))}
-              sx={{ fontSize: 13 }}
-            >
-              {u}
-            </MenuItem>
-          ))}
-          {optionAnchor?.id === 'pages' && PAGE_CHOICES.map((pg) => {
-            const incompatible = !!funnelId && pageConflicts(pg.key, funnelId);
-            return (
-              <MenuItem
-                key={pg.key}
-                selected={pages.includes(pg.key)}
-                disabled={incompatible}
-                title={incompatible ? 'Sans objet pour un funnel mono-bien' : undefined}
-                onClick={() => setPages((prev) => (prev.includes(pg.key) ? prev.filter((x) => x !== pg.key) : [...prev, pg.key]))}
-                sx={{ fontSize: 13 }}
-              >
-                {pg.label}
-              </MenuItem>
-            );
-          })}
-          {optionAnchor && PROMPT_OPTIONS.find((o) => o.id === optionAnchor.id)?.removable && [
-            <Divider key="div" sx={{ my: 0.5 }} />,
-            <MenuItem key="remove" onClick={() => removeOption(optionAnchor.id)} sx={{ fontSize: 13, gap: 1, color: 'var(--err, #c0392b)' }}>
-              <X size={15} strokeWidth={2} /> Retirer ce champ
-            </MenuItem>,
-          ]}
-        </Menu>
-
-        {/* Champ « Lieu » : saisie libre (ville / région) en popover + retrait. */}
-        <Popover
-          anchorEl={locationAnchor}
-          open={!!locationAnchor}
-          onClose={commitLocation}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        >
-          <div className="p-2 flex flex-col gap-1.5 w-[260px]">
-            <InputBase
-              autoFocus
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitLocation(); }}
-              placeholder="Ex. Marrakech, Côte d'Azur…"
-              sx={{ px: 1.25, py: 0.75, fontSize: 13, border: '1px solid var(--line)', borderRadius: 'var(--radius-md, 8px)', bgcolor: 'var(--field)' }}
-            />
-            <div className="flex justify-between items-center">
-              <button className="inline-flex items-center gap-[3px] bg-[transparent] cursor-pointer text-[12.5px] text-[var(--err,_#c0392b)]" style={{ border: 0 }} type="button" onClick={() => removeOption('location')}>
-                <X size={14} strokeWidth={2} /> Retirer
-              </button>
-              <button className="bg-[transparent] cursor-pointer text-[12.5px] font-semibold text-[var(--accent)]" style={{ border: 0 }} type="button" onClick={commitLocation}>
-                OK
-              </button>
-            </div>
-          </div>
-        </Popover>
         {/* 3 · Éventail de funnels */}
         <div className="fan-wrap">
           <p className="fan-lead">Ou partez d'un funnel prêt à l'emploi…</p>
@@ -848,7 +937,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             </div>
           </div>
 
-          {configs === null && !error && <Skeleton variant="rounded" height={132} sx={{ borderRadius: '14px', bgcolor: 'var(--hover)' }} />}
+          {configs === null && !error && <Skeleton className="h-[132px] rounded-[14px] bg-[var(--hover)]" />}
 
           {configs && configs.length === 0 && (
             <div className="text-center py-9 text-[var(--muted)] text-[14px]">
@@ -907,20 +996,25 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         </section>
       </div>
 
-      <Dialog open={!!confirmDelete} onClose={() => !deleting && setConfirmDelete(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Supprimer ce booking engine ?</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: 'var(--muted)' }}>
-            « {confirmDelete?.name} » sera définitivement supprimé, avec ses pages et son contenu. Cette action est irréversible.
-          </DialogContentText>
+      <Dialog
+        open={!!confirmDelete}
+        onOpenChange={(next) => { if (!next && !deleting) setConfirmDelete(null); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="pe-8 font-bold">Supprimer ce booking engine ?</DialogTitle>
+            <DialogDescription>
+              « {confirmDelete?.name} » sera définitivement supprimé, avec ses pages et son contenu. Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDelete(null)} disabled={deleting}>Annuler</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              <Trash2 size={16} strokeWidth={2} />
+              {deleting ? 'Suppression…' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="ghost" onClick={() => setConfirmDelete(null)} disabled={deleting}>Annuler</Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-            <Trash2 size={16} strokeWidth={2} />
-            {deleting ? 'Suppression…' : 'Supprimer'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

@@ -1,7 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Spinner } from '../../../components/ui';
-import { Alert, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
-import { CheckCircle, ErrorOutline, Close, Refresh } from '../../../icons';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Spinner,
+} from '../../../components/ui';
+import { CheckCircle, ErrorOutline, Refresh } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -46,7 +55,6 @@ export default function OpenWaQrScanDialog({
   onSuccess,
 }: OpenWaQrScanDialogProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   const [creating, setCreating] = useState(false);
   const [qrImage, setQrImage] = useState<string | null>(null);
@@ -178,33 +186,35 @@ export default function OpenWaQrScanDialog({
   const renderBody = () => {
     if (creating) {
       return (
-        <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
+        <div className="flex flex-col items-center gap-3 py-6">
           <Spinner className="size-8" />
           <p className="cn-text-body2 text-muted-foreground">
             {t('settings.whatsapp.qr.creating', 'Création de la session sur l\'instance OpenWA…')}
           </p>
-        </Stack>
+        </div>
       );
     }
 
     if (error) {
       return (
-        <Stack spacing={2} sx={{ py: 2 }}>
-          <Alert severity="error" icon={<ErrorOutline size={20} />}>
-            {error}
+        <div className="flex flex-col gap-3 py-3">
+          <Alert variant="destructive">
+            <ErrorOutline size={20} />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
           <Button variant="outline" size="sm" onClick={handleRetry}>
             <Refresh size={14} />
             {t('common.retry', 'Réessayer')}
           </Button>
-        </Stack>
+        </div>
       );
     }
 
     if (status === 'connected') {
       return (
-        <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
-          <div className="w-[72px] h-[72px] rounded-[50%] flex items-center justify-center" style={{ backgroundColor: alpha(theme.palette.success.main, 0.12), color: theme.palette.success.main }}>
+        <div className="flex flex-col items-center gap-3 py-6">
+          {/* alpha(success.main, 0.12) -> color-mix sur le jeton semantique. */}
+          <div className="w-[72px] h-[72px] rounded-[50%] flex items-center justify-center text-[var(--ok)] bg-[color-mix(in_srgb,var(--ok)_12%,transparent)]">
             <CheckCircle size={40} />
           </div>
           <div className="text-center">
@@ -217,30 +227,33 @@ export default function OpenWaQrScanDialog({
               </p>
             )}
           </div>
-        </Stack>
+        </div>
       );
     }
 
     if (status === 'failed') {
       return (
-        <Stack spacing={2} sx={{ py: 2 }}>
-          <Alert severity="error" icon={<ErrorOutline size={20} />}>
-            {t('settings.whatsapp.qr.failed',
-              "L'authentification WhatsApp a échoué. Le compte est peut-être banni ou nécessite une vérification 2FA.")}
+        <div className="flex flex-col gap-3 py-3">
+          <Alert variant="destructive">
+            <ErrorOutline size={20} />
+            <AlertDescription>
+              {t('settings.whatsapp.qr.failed',
+                "L'authentification WhatsApp a échoué. Le compte est peut-être banni ou nécessite une vérification 2FA.")}
+            </AlertDescription>
           </Alert>
           <Button variant="outline" size="sm" onClick={handleRetry}>
             <Refresh size={14} />
             {t('common.retry', 'Réessayer')}
           </Button>
-        </Stack>
+        </div>
       );
     }
 
     // qr_pending ou disconnected
     return (
-      <Stack alignItems="center" spacing={2.5}>
+      <div className="flex flex-col items-center gap-[15px]">
         {qrImage ? (
-          <div className="p-[15px] bg-[#fff] rounded-[16px]" style={{ border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }}>
+          <div className="p-[15px] bg-[#fff] rounded-[16px] border border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)]">
             <img className="block w-[240px] h-[240px]" src={qrImage} alt="QR code WhatsApp" />
           </div>
         ) : (
@@ -248,7 +261,7 @@ export default function OpenWaQrScanDialog({
             <Spinner className="size-7" />
           </div>
         )}
-        <Stack spacing={0.5} sx={{ textAlign: 'center', maxWidth: 360 }}>
+        <div className="flex flex-col gap-0.5 text-center max-w-[360px]">
           <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.qr.title', 'Scannez avec WhatsApp')}
           </h6>
@@ -256,7 +269,7 @@ export default function OpenWaQrScanDialog({
             {t('settings.whatsapp.qr.instructions',
               "Ouvrez WhatsApp sur votre téléphone → Paramètres → Appareils connectés → Connecter un appareil")}
           </span>
-        </Stack>
+        </div>
         <div className={cn(
           'flex items-center gap-1.5',
           status === 'qr_pending' ? 'text-[#D4A574]' : 'text-[var(--muted)]',
@@ -268,26 +281,25 @@ export default function OpenWaQrScanDialog({
               : t('settings.whatsapp.qr.pending', 'Initialisation…')}
           </span>
         </div>
-      </Stack>
+      </div>
     );
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>{t('settings.whatsapp.qr.dialogTitle', 'Connexion OpenWA')}</span>
-        <IconButton onClick={onClose} size="small" aria-label="close">
-          <Close size={18} />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* La croix de fermeture est rendue par DialogContent : l'IconButton
+          pose a la main dans le titre faisait doublon. */}
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>{t('settings.whatsapp.qr.dialogTitle', 'Connexion OpenWA')}</DialogTitle>
+        </DialogHeader>
         {renderBody()}
+        {status !== 'connected' && (
+          <DialogFooter>
+            <Button variant="ghost" onClick={onClose}>{t('common.close', 'Fermer')}</Button>
+          </DialogFooter>
+        )}
       </DialogContent>
-      {status !== 'connected' && (
-        <DialogActions>
-          <Button variant="ghost" onClick={onClose}>{t('common.close', 'Fermer')}</Button>
-        </DialogActions>
-      )}
     </Dialog>
   );
 }

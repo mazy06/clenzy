@@ -1,9 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, IconButton, Alert } from '@mui/material';
-import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import {
-  ExpandMore,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Alert,
+  AlertDescription,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
+import {
   ContentCopy,
+  Info,
   Person,
   Home,
   Build,
@@ -299,10 +317,6 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
 
-  const handleToggleCategory = (categoryId: string) => {
-    setExpandedCategory((prev) => (prev === categoryId ? null : categoryId));
-  };
-
   const handleCopyTag = (tag: string) => {
     navigator.clipboard.writeText('${' + tag + '}');
     setCopiedTag(tag);
@@ -331,19 +345,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
       </p>
 
       {/* Instructions — icone lucide ContentCopy inline (plus d'emoji) */}
-      <Alert
-        severity="info"
-        variant="outlined"
-        sx={{
-          mb: 3,
-          borderRadius: 1.5,
-          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
-          backgroundColor: 'var(--info-soft)',
-          color: 'text.primary',
-          '& .MuiAlert-icon': { color: 'var(--info)' },
-        }}
-      >
-        <p className="cn-text-body2 text-[0.8125rem] leading-[1.6]">
+      <Alert variant="info" className="mb-[18px]">
+        <Info />
+        <AlertDescription className="cn-text-body2 text-[0.8125rem] leading-[1.6]">
           <strong className="font-semibold">Comment utiliser les tags :</strong>{' '}
           Dans votre fichier .odt, insérez les tags sous la forme{' '}
           <code className={CODE_CHIP_CLASS}>{'${categorie.champ}'}</code>
@@ -354,40 +358,23 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
             <ContentCopy size={13} strokeWidth={1.75} />
           </span>{' '}
           à droite de chaque ligne pour copier un tag prêt à coller.
-        </p>
+        </AlertDescription>
       </Alert>
 
-      {/* Catégories de tags */}
+      {/* Catégories de tags — un seul Accordion pilote, une categorie ouverte a la fois */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedCategory ?? ''}
+        onValueChange={(value) => setExpandedCategory(value || null)}
+      >
       {filteredCategories.map((category) => (
-        <Accordion
+        <AccordionItem
           key={category.id}
-          expanded={expandedCategory === category.id}
-          onChange={() => handleToggleCategory(category.id)}
-          disableGutters
-          elevation={0}
-          sx={{
-            mb: 1,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '8px !important',
-            '&:before': { display: 'none' },
-            transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': { borderColor: 'text.disabled' },
-          }}
+          value={category.id}
+          className="mb-1.5 rounded-[8px] border border-solid border-[var(--line)] transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--faint)]"
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore size={18} strokeWidth={1.75} />}
-            sx={{
-              borderRadius: '8px',
-              cursor: 'pointer',
-              '&.Mui-expanded': {
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              },
-            }}
-          >
+          <AccordionTrigger className="cursor-pointer rounded-[8px] px-3 aria-expanded:rounded-b-none aria-expanded:border-b aria-expanded:border-solid aria-expanded:border-b-[var(--line)]">
             <div className="flex items-center gap-2 w-full min-w-0">
               {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
               <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: category.tone.bg, color: category.tone.c }}>
@@ -411,40 +398,25 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                 label={`${category.tags.length} tags`}
               />
             </div>
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow
-                    sx={{
-                      // Header de table tres subtil (au lieu de action.hover agressif)
-                      backgroundColor: 'background.default',
-                      '& th': {
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
-                        color: 'text.secondary',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.02em',
-                        py: 1,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                      },
-                    }}
-                  >
-                    <TableCell sx={{ width: '30%' }}>Tag</TableCell>
-                    <TableCell sx={{ width: '30%' }}>Description</TableCell>
-                    <TableCell sx={{ width: '10%' }}>Type</TableCell>
-                    <TableCell sx={{ width: '25%' }}>Exemple</TableCell>
-                    <TableCell sx={{ width: '5%' }} align="center">Copier</TableCell>
+          </AccordionTrigger>
+          <AccordionContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                {/* Header de table tres subtil (au lieu d'un survol agressif) */}
+                <TableHeader className="bg-[var(--bg)] [&_th]:py-1.5 [&_th]:text-[0.7rem] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-[var(--muted)] [&_th]:border-b [&_th]:border-solid [&_th]:border-b-[var(--line)]">
+                  <TableRow>
+                    <TableHead className="w-[30%]">Tag</TableHead>
+                    <TableHead className="w-[30%]">Description</TableHead>
+                    <TableHead className="w-[10%]">Type</TableHead>
+                    <TableHead className="w-[25%]">Exemple</TableHead>
+                    <TableHead className="w-[5%] text-center">Copier</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {category.tags.map((tagDef) => (
                     <TableRow
                       key={tagDef.tag}
-                      hover
-                      sx={{ '&:last-child td': { borderBottom: 0 } }}
+                      className="hover:bg-[var(--hover)] last:[&_td]:border-b-0"
                     >
                       <TableCell>
                         <code className={CODE_CHIP_CLASS}>
@@ -467,31 +439,37 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                           {tagDef.example}
                         </p>
                       </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title={copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'} arrow>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleCopyTag(tagDef.tag)}
-                            aria-label={`Copier le tag ${tagDef.tag}`}
-                            sx={{
-                              cursor: 'pointer',
-                              color: copiedTag === tagDef.tag ? 'var(--ok)' : 'text.secondary',
-                              transition: 'color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                              '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
-                            }}
-                          >
-                            <ContentCopy size={15} strokeWidth={1.75} />
-                          </IconButton>
+                      <TableCell className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => handleCopyTag(tagDef.tag)}
+                              aria-label={`Copier le tag ${tagDef.tag}`}
+                              className={cn(
+                                'transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                                'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
+                                copiedTag === tagDef.tag ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                              )}
+                            >
+                              <ContentCopy size={15} strokeWidth={1.75} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'}
+                          </TooltipContent>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
-          </AccordionDetails>
-        </Accordion>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       ))}
+      </Accordion>
 
       {filteredCategories.length === 0 && (
         <div className="text-center py-6">

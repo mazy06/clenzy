@@ -2,8 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner, Button, Textarea } from '../../components/ui';
-import { Paper, FormControl, InputLabel, Select, MenuItem, Rating, Collapse } from '@mui/material';
+import {
+  Spinner,
+  Button,
+  Textarea,
+  Collapsible,
+  CollapsibleContent,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+// Rating reste en MUI : aucun equivalent dans le kit, et reconstruire les demi-etoiles
+// (precision 0.5) serait deviner le rendu plutot que le porter.
+import { Rating } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
@@ -20,14 +32,10 @@ import type { Property } from '../../services/api/propertiesApi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 2,
-} as const;
+// `border-solid` est obligatoire : sans preflight Tailwind, `border` seul donne une
+// largeur mais un style `none` — bordure invisible.
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-3';
 
 const RATING_COLORS: Record<string, string> = {
   excellent: 'var(--ok)',
@@ -124,7 +132,7 @@ const ReviewsPage: React.FC = () => {
 
       {/* Stats bar */}
       <div className="flex gap-2 mb-2 flex-wrap">
-        <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
+        <div className={cn(CARD_CLASS, 'flex-1 min-w-[120px] text-center p-[9px]')}>
           <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.avgRating')}
           </p>
@@ -134,39 +142,41 @@ const ReviewsPage: React.FC = () => {
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
             </p>
           </div>
-        </Paper>
-        <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
+        </div>
+        <div className={cn(CARD_CLASS, 'flex-1 min-w-[120px] text-center p-[9px]')}>
           <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.totalReviews')}
           </p>
           <p className="cn-text-body1 font-[family-name:var(--font-display)] tabular-nums text-[1.375rem] font-semibold mt-0.5 text-[var(--ink)]">{reviews.length}</p>
-        </Paper>
+        </div>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
-          <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>
+          <div key={cat} className={cn(CARD_CLASS, 'flex-1 min-w-[100px] text-center p-[9px]')}>
             <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
               {t(`channels.reviews.${cat}`)}
             </p>
             <p className="cn-text-body1 tabular-nums text-[1.25rem] font-semibold mt-[3px]" style={{ fontFamily: 'var(--font-display)', color: RATING_COLORS[cat] }}>{count}</p>
-          </Paper>
+          </div>
         ))}
       </div>
 
       {/* Filter */}
       <div className="mb-2">
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('channels.reviews.filterByProperty')}</InputLabel>
-          <Select
+        {/* Largeur figee : le `w-full` du kit etirerait le champ sur toute la page. */}
+        <Field className="w-[200px]">
+          <FieldLabel htmlFor="reviews-property-filter">{t('channels.reviews.filterByProperty')}</FieldLabel>
+          <NativeSelect
+            id="reviews-property-filter"
+            size="sm"
+            className="w-full"
             value={selectedPropertyId}
-            label={t('channels.reviews.filterByProperty')}
-            onChange={(e) => setSelectedPropertyId(e.target.value as number | '')}
-            sx={{ fontSize: '0.8125rem' }}
+            onChange={(e) => setSelectedPropertyId(e.target.value === '' ? '' : Number(e.target.value))}
           >
-            <MenuItem value="">{t('common.all')}</MenuItem>
+            <NativeSelectOption value="">{t('common.all')}</NativeSelectOption>
             {properties.map((p) => (
-              <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+              <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
       </div>
 
       {/* Reviews list */}
@@ -228,7 +238,7 @@ function ReviewCard({
   const color = RATING_COLORS[category];
 
   return (
-    <Paper sx={{ ...CARD_SX, p: 1.5 }}>
+    <div className={cn(CARD_CLASS, 'p-[9px]')}>
       <div className="flex justify-between items-start mb-1">
         <div>
           <div className="flex items-center gap-1 mb-0.5">
@@ -264,34 +274,36 @@ function ReviewCard({
       {/* Reply form */}
       {!review.hostReply && (
         <>
-          <Collapse in={isReplying}>
-            <div className="flex flex-col gap-1 mt-0.5">
-              {/* Le champ n'a jamais porte de libelle visible : on lui donne un
-                  nom accessible, sinon il ne s'annonce plus du tout. */}
-              <Textarea
-                rows={2}
-                value={replyText}
-                onChange={(e) => onChangeReply(e.target.value)}
-                placeholder={t('channels.reviews.replyPlaceholder')}
-                aria-label={t('channels.reviews.reply')}
-                className="w-full text-[0.8125rem]"
-              />
-              <div className="flex gap-0.5 justify-end">
-                {/* Barre d'action de carte, tres dense : taille xs du kit plutot
-                    que sm — le sx d'origine rapetissait deja la typo. */}
-                <Button size="xs" variant="outline" onClick={onCancelReply}>
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  size="xs"
-                  onClick={onSubmitReply}
-                  disabled={replyLoading || !replyText.trim()}
-                >
-                  {replyLoading ? <Spinner className="size-3" /> : t('channels.reviews.sendReply')}
-                </Button>
+          <Collapsible open={isReplying}>
+            <CollapsibleContent>
+              <div className="flex flex-col gap-1 mt-0.5">
+                {/* Le champ n'a jamais porte de libelle visible : on lui donne un
+                    nom accessible, sinon il ne s'annonce plus du tout. */}
+                <Textarea
+                  rows={2}
+                  value={replyText}
+                  onChange={(e) => onChangeReply(e.target.value)}
+                  placeholder={t('channels.reviews.replyPlaceholder')}
+                  aria-label={t('channels.reviews.reply')}
+                  className="w-full text-[0.8125rem] min-h-[2lh]"
+                />
+                <div className="flex gap-0.5 justify-end">
+                  {/* Barre d'action de carte, tres dense : taille xs du kit plutot
+                      que sm — le sx d'origine rapetissait deja la typo. */}
+                  <Button size="xs" variant="outline" onClick={onCancelReply}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={onSubmitReply}
+                    disabled={replyLoading || !replyText.trim()}
+                  >
+                    {replyLoading ? <Spinner className="size-3" /> : t('channels.reviews.sendReply')}
+                  </Button>
+                </div>
               </div>
-            </div>
-          </Collapse>
+            </CollapsibleContent>
+          </Collapsible>
           {!isReplying && (
             <Button
               size="xs"
@@ -305,7 +317,7 @@ function ReviewCard({
           )}
         </>
       )}
-    </Paper>
+    </div>
   );
 }
 

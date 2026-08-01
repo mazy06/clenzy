@@ -2,8 +2,19 @@ import React from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+// Menu laisse en MUI : son ancre (`anchorEl`) est produite par `useTeamsList`
+// et par `TeamCard` — deux fichiers hors lot. Un DropdownMenu Radix exige que
+// le declencheur vive dans l'arbre du menu, ce qui n'est pas le cas ici.
+import { Menu, MenuItem, ListItemIcon } from '@mui/material';
 import {
   Add,
   Edit,
@@ -155,7 +166,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
         {/* Compteur d'équipes */}
         <div className="flex items-center gap-2">
-          <Divider sx={{ flex: 1 }} />
+          <Separator className="flex-1" />
           <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
             {filteredTeams.length} {filteredTeams.length > 1 ? t('teams.teams') : t('teams.team')} {t('teams.available')}
           </span>
@@ -236,19 +247,21 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
       </Menu>
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle sx={{ pb: 1 }}>{t('teams.confirmDelete')}</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
+      <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) handleCloseDeleteDialog(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('teams.confirmDelete')}</DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2">
             {t('teams.confirmDeleteMessage', { name: selectedTeam?.name })}
           </p>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={handleCloseDeleteDialog}>{t('teams.cancel')}</Button>
+            <Button variant="destructive" size="sm" onClick={confirmDelete}>
+              {t('teams.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button variant="ghost" size="sm" onClick={handleCloseDeleteDialog}>{t('teams.cancel')}</Button>
-          <Button variant="destructive" size="sm" onClick={confirmDelete}>
-            {t('teams.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

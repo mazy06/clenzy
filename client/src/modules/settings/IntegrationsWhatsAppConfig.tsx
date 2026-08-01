@@ -2,7 +2,17 @@ import React, { useState } from 'react';
 import { Spinner, Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Settings2 } from 'lucide-react';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '../../icons';
 import ServiceGridCard from './components/ServiceGridCard';
@@ -10,10 +20,6 @@ import IntegrationConfigDialog from './components/IntegrationConfigDialog';
 import WhatsAppProviderConfigSection from './WhatsAppProviderConfigSection';
 import { whatsAppConfigApi } from '../../services/api/whatsAppConfigApi';
 import { getServicesByCategory } from '../../services/integrations/servicesCatalog';
-
-const ACCENT = 'var(--ok)';
-const WARM = 'var(--warn)';
-const DANGER = 'var(--err)';
 
 /** Le service catalogue WhatsApp (source de vérité visuelle : nom, couleur, desc). */
 const WHATSAPP_SERVICE = getServicesByCategory('messaging').find(
@@ -67,45 +73,65 @@ export default function IntegrationsWhatsAppConfig() {
 
   // Icône config : warm tant que non configuré, neutre une fois configuré (même règle que Tuya/Netatmo).
   const configAction = (
-    <Tooltip title={configured ? 'Configuration WhatsApp · Modifier' : 'Configurer le compte WhatsApp'} arrow>
-      <IconButton
-        size="small"
-        onClick={() => setOpen(true)}
-        aria-label="Configurer WhatsApp"
-        sx={{ color: configured ? 'text.secondary' : WARM, '&:hover': { bgcolor: 'action.hover' } }}
-      >
-        <Settings2 size={16} strokeWidth={2} />
-      </IconButton>
+    <Tooltip>
+      {/* Le trigger enveloppe le bouton dans un span : les primitives du kit sont
+          des fonctions et ne transmettent pas la ref dont Radix a besoin. */}
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setOpen(true)}
+            aria-label="Configurer WhatsApp"
+            className={configured ? 'text-[var(--muted)]' : 'text-[var(--warn)]'}
+          >
+            <Settings2 size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {configured ? 'Configuration WhatsApp · Modifier' : 'Configurer le compte WhatsApp'}
+      </TooltipContent>
     </Tooltip>
   );
 
   // Icône connexion : lien vert pour connecter/activer, lien barré (rouge au hover) pour déconnecter.
   const connectionAction = connected ? (
-    <Tooltip title="Déconnecter (désactiver l'envoi WhatsApp)" arrow>
-      <span>
-        <IconButton
-          size="small"
-          onClick={() => setDisconnectOpen(true)}
-          disabled={disconnect.isPending}
-          aria-label="Déconnecter WhatsApp"
-          sx={{ color: 'text.secondary', '&:hover': { color: DANGER, bgcolor: 'var(--err-soft)' } }}
-        >
-          <LinkOffIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setDisconnectOpen(true)}
+            disabled={disconnect.isPending}
+            aria-label="Déconnecter WhatsApp"
+            className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+          >
+            <LinkOffIcon size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>Déconnecter (désactiver l'envoi WhatsApp)</TooltipContent>
     </Tooltip>
   ) : (
-    <Tooltip title={configured ? "Activer l'envoi WhatsApp" : 'Connecter le compte WhatsApp'} arrow>
-      <span>
-        <IconButton
-          size="small"
-          onClick={() => setOpen(true)}
-          aria-label="Connecter WhatsApp"
-          sx={{ color: ACCENT, '&:hover': { bgcolor: 'var(--ok-soft)' } }}
-        >
-          <LinkIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setOpen(true)}
+            aria-label="Connecter WhatsApp"
+            className="text-[var(--ok)] hover:bg-[var(--ok-soft)]"
+          >
+            <LinkIcon size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {configured ? "Activer l'envoi WhatsApp" : 'Connecter le compte WhatsApp'}
+      </TooltipContent>
     </Tooltip>
   );
 
@@ -175,26 +201,28 @@ export default function IntegrationsWhatsAppConfig() {
       </IntegrationConfigDialog>
 
       {/* Confirmation de déconnexion (désactivation de l'envoi). */}
-      <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)}>
-        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Déconnecter WhatsApp ?</DialogTitle>
+      <Dialog open={disconnectOpen} onOpenChange={(next) => { if (!next) setDisconnectOpen(false); }}>
         <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            L'envoi de messages WhatsApp sera désactivé pour toute la plateforme. Les identifiants
-            restent enregistrés : vous pourrez réactiver à tout moment.
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle className="font-semibold">Déconnecter WhatsApp ?</DialogTitle>
+            <DialogDescription>
+              L'envoi de messages WhatsApp sera désactivé pour toute la plateforme. Les identifiants
+              restent enregistrés : vous pourrez réactiver à tout moment.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDisconnectOpen(false)} variant="ghost" disabled={disconnect.isPending}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => disconnect.mutate()}
+              variant="destructive"
+              disabled={disconnect.isPending}
+            >
+              {disconnect.isPending ? <Spinner className="size-3.5" /> : 'Déconnecter'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDisconnectOpen(false)} variant="ghost" disabled={disconnect.isPending}>
-            Annuler
-          </Button>
-          <Button
-            onClick={() => disconnect.mutate()}
-            variant="destructive"
-            disabled={disconnect.isPending}
-          >
-            {disconnect.isPending ? <Spinner className="size-3.5" /> : 'Déconnecter'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );

@@ -6,7 +6,21 @@ import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  NativeSelect,
+  NativeSelectOption,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -212,27 +226,32 @@ const YieldRulesPanel: React.FC = () => {
       {/* ── Config org : kill-switch + mode ── */}
       <Card className="gap-0 py-0 p-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <FormControlLabel
-            control={
-              <Switch
-                checked={config?.enabled ?? false}
-                onChange={(_, checked) => config && void updateConfig({ ...config, enabled: checked })}
-              />
-            }
-            label={t('yieldRules.killSwitch', 'Yield automatique activé')}
-          />
-          <ToggleButtonGroup
-            size="small"
-            exclusive
+          <Field orientation="horizontal" className="w-auto">
+            <Switch
+              id="yield-kill-switch"
+              checked={config?.enabled ?? false}
+              onCheckedChange={(checked) => config && void updateConfig({ ...config, enabled: checked })}
+            />
+            <FieldLabel htmlFor="yield-kill-switch" className="flex-none font-normal">
+              {t('yieldRules.killSwitch', 'Yield automatique activé')}
+            </FieldLabel>
+          </Field>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            spacing={0}
             value={config?.mode ?? 'SIMULATION'}
-            onChange={(_, mode: YieldMode | null) =>
-              mode && config && void updateConfig({ ...config, mode })
+            // Radix renvoie '' quand on re-clique l'option active : le garde-fou
+            // evite de repousser une config sans mode.
+            onValueChange={(mode) =>
+              mode && config && void updateConfig({ ...config, mode: mode as YieldMode })
             }
           >
-            <ToggleButton value="SIMULATION">{t('yieldRules.mode.simulation', 'Simulation')}</ToggleButton>
-            <ToggleButton value="SUGGEST">{t('yieldRules.mode.suggest', 'Suggestion')}</ToggleButton>
-            <ToggleButton value="AUTO">{t('yieldRules.mode.auto', 'Automatique')}</ToggleButton>
-          </ToggleButtonGroup>
+            <ToggleGroupItem value="SIMULATION">{t('yieldRules.mode.simulation', 'Simulation')}</ToggleGroupItem>
+            <ToggleGroupItem value="SUGGEST">{t('yieldRules.mode.suggest', 'Suggestion')}</ToggleGroupItem>
+            <ToggleGroupItem value="AUTO">{t('yieldRules.mode.auto', 'Automatique')}</ToggleGroupItem>
+          </ToggleGroup>
           <p className="cn-text-body2 text-[var(--muted)]">
             {modeHelp[(config?.mode ?? 'SIMULATION') as YieldMode]}
           </p>
@@ -251,16 +270,17 @@ const YieldRulesPanel: React.FC = () => {
 
         {/* Orphan gap pricing */}
         <div className="flex items-center gap-3 flex-wrap">
-          <FormControlLabel
-            control={
-              <Switch
-                checked={config?.orphanGapEnabled ?? false}
-                onChange={(_, checked) =>
-                  config && void updateConfig({ ...config, orphanGapEnabled: checked })}
-              />
-            }
-            label={t('yieldRules.automations.orphanGap.toggle', 'Tarifer les nuits orphelines')}
-          />
+          <Field orientation="horizontal" className="w-auto">
+            <Switch
+              id="yield-orphan-gap-toggle"
+              checked={config?.orphanGapEnabled ?? false}
+              onCheckedChange={(checked) =>
+                config && void updateConfig({ ...config, orphanGapEnabled: checked })}
+            />
+            <FieldLabel htmlFor="yield-orphan-gap-toggle" className="flex-none font-normal">
+              {t('yieldRules.automations.orphanGap.toggle', 'Tarifer les nuits orphelines')}
+            </FieldLabel>
+          </Field>
           {config?.orphanGapEnabled && (
             <>
               <Field className="w-[130px]">
@@ -301,16 +321,17 @@ const YieldRulesPanel: React.FC = () => {
 
         {/* Min-stay dynamique */}
         <div className="flex items-center gap-3 flex-wrap">
-          <FormControlLabel
-            control={
-              <Switch
-                checked={config?.minStayAutoEnabled ?? false}
-                onChange={(_, checked) =>
-                  config && void updateConfig({ ...config, minStayAutoEnabled: checked })}
-              />
-            }
-            label={t('yieldRules.automations.minStay.toggle', 'Séjour minimum dynamique')}
-          />
+          <Field orientation="horizontal" className="w-auto">
+            <Switch
+              id="yield-minstay-toggle"
+              checked={config?.minStayAutoEnabled ?? false}
+              onCheckedChange={(checked) =>
+                config && void updateConfig({ ...config, minStayAutoEnabled: checked })}
+            />
+            <FieldLabel htmlFor="yield-minstay-toggle" className="flex-none font-normal">
+              {t('yieldRules.automations.minStay.toggle', 'Séjour minimum dynamique')}
+            </FieldLabel>
+          </Field>
           {config?.minStayAutoEnabled && (
             <>
               <Field className="w-[130px]">
@@ -415,16 +436,22 @@ const YieldRulesPanel: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell className="text-end whitespace-nowrap">
-                    <IconButton size="small" onClick={() => openEdit(rule)} sx={{ cursor: 'pointer' }}>
+                    <BuiButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('yieldRules.editRule', 'Modifier la règle')}
+                      onClick={() => openEdit(rule)}
+                    >
                       <Pencil size={15} />
-                    </IconButton>
-                    <IconButton
-                      size="small"
+                    </BuiButton>
+                    <BuiButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('common.delete', 'Supprimer')}
                       onClick={() => rule.id != null && void deleteRule(rule.id)}
-                      sx={{ cursor: 'pointer' }}
                     >
                       <Trash2 size={15} />
-                    </IconButton>
+                    </BuiButton>
                   </TableCell>
                 </TableRow>
               ))}
@@ -497,17 +524,23 @@ const YieldRulesPanel: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-end">
-                    <Tooltip title={t('yieldRules.saveBounds', 'Enregistrer les bornes')}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          disabled={!dirty}
-                          onClick={() => void saveBounds(b.propertyId)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <Save size={15} />
-                        </IconButton>
-                      </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {/* Un bouton desactive n'emet pas d'evenement de survol :
+                            l'enveloppe porte le declencheur a sa place. */}
+                        <span className="inline-flex">
+                          <BuiButton
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('yieldRules.saveBounds', 'Enregistrer les bornes')}
+                            disabled={!dirty}
+                            onClick={() => void saveBounds(b.propertyId)}
+                          >
+                            <Save size={15} />
+                          </BuiButton>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('yieldRules.saveBounds', 'Enregistrer les bornes')}</TooltipContent>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
@@ -587,13 +620,16 @@ const YieldRulesPanel: React.FC = () => {
       </Card>
 
       {/* ── Dialog règle ── */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingId != null
-            ? t('yieldRules.editRule', 'Modifier la règle')
-            : t('yieldRules.newRule', 'Nouvelle règle de yield')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingId != null
+                ? t('yieldRules.editRule', 'Modifier la règle')
+                : t('yieldRules.newRule', 'Nouvelle règle de yield')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
           <Field>
             <FieldLabel htmlFor="yield-rule-name">{t('yieldRules.field.name', 'Nom')}</FieldLabel>
             <Input
@@ -603,10 +639,12 @@ const YieldRulesPanel: React.FC = () => {
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
             />
           </Field>
-          <FormControl size="small" fullWidth>
-            <InputLabel>{t('yieldRules.field.scope', 'Périmètre')}</InputLabel>
-            <Select
-              label={t('yieldRules.field.scope', 'Périmètre')}
+          <Field>
+            <FieldLabel htmlFor="yield-rule-scope">{t('yieldRules.field.scope', 'Périmètre')}</FieldLabel>
+            <NativeSelect
+              id="yield-rule-scope"
+              size="sm"
+              className="w-full"
               value={draft.propertyId ?? ''}
               onChange={(e) =>
                 setDraft((d) => ({
@@ -615,28 +653,32 @@ const YieldRulesPanel: React.FC = () => {
                 }))
               }
             >
-              <MenuItem value="">{t('yieldRules.scopeAll', 'Tous les biens')}</MenuItem>
+              <NativeSelectOption value="">{t('yieldRules.scopeAll', 'Tous les biens')}</NativeSelectOption>
               {bounds.map((b) => (
-                <MenuItem key={b.propertyId} value={b.propertyId}>
+                <NativeSelectOption key={b.propertyId} value={b.propertyId}>
                   {b.propertyName}
-                </MenuItem>
+                </NativeSelectOption>
               ))}
-            </Select>
-          </FormControl>
+            </NativeSelect>
+          </Field>
           <div className="flex gap-3">
-            <FormControl size="small" sx={{ flex: 1 }}>
-              <InputLabel>{t('yieldRules.field.comparison', 'Si occupation')}</InputLabel>
-              <Select
-                label={t('yieldRules.field.comparison', 'Si occupation')}
+            <Field className="flex-1">
+              <FieldLabel htmlFor="yield-rule-comparison">
+                {t('yieldRules.field.comparison', 'Si occupation')}
+              </FieldLabel>
+              <NativeSelect
+                id="yield-rule-comparison"
+                size="sm"
+                className="w-full"
                 value={draft.comparison}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, comparison: e.target.value as YieldRuleV1['comparison'] }))
                 }
               >
-                <MenuItem value="BELOW">{t('yieldRules.below', 'Inférieure à (→ baisse)')}</MenuItem>
-                <MenuItem value="ABOVE">{t('yieldRules.above', 'Supérieure à (→ hausse)')}</MenuItem>
-              </Select>
-            </FormControl>
+                <NativeSelectOption value="BELOW">{t('yieldRules.below', 'Inférieure à (→ baisse)')}</NativeSelectOption>
+                <NativeSelectOption value="ABOVE">{t('yieldRules.above', 'Supérieure à (→ hausse)')}</NativeSelectOption>
+              </NativeSelect>
+            </Field>
             <Field className="w-[120px]">
               <FieldLabel htmlFor="yield-rule-threshold">
                 {t('yieldRules.field.threshold', 'Seuil (%)')}
@@ -698,23 +740,25 @@ const YieldRulesPanel: React.FC = () => {
                 onChange={(e) => setDraft((d) => ({ ...d, maxDailyChangePct: Number(e.target.value) }))}
               />
             </Field>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={draft.active}
-                  onChange={(_, checked) => setDraft((d) => ({ ...d, active: checked }))}
-                />
-              }
-              label={t('yieldRules.field.active', 'Active')}
-            />
+            <Field orientation="horizontal" className="w-auto">
+              <Switch
+                id="yield-rule-active"
+                checked={draft.active}
+                onCheckedChange={(checked) => setDraft((d) => ({ ...d, active: checked }))}
+              />
+              <FieldLabel htmlFor="yield-rule-active" className="flex-none font-normal">
+                {t('yieldRules.field.active', 'Active')}
+              </FieldLabel>
+            </Field>
           </div>
+          </div>
+          <DialogFooter>
+            <BuiButton variant="ghost" onClick={() => setDialogOpen(false)}>{t('common.cancel', 'Annuler')}</BuiButton>
+            <BuiButton onClick={() => void saveRule()} disabled={saving || !draft.name.trim()}>
+              {t('common.save', 'Enregistrer')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <BuiButton variant="ghost" onClick={() => setDialogOpen(false)}>{t('common.cancel', 'Annuler')}</BuiButton>
-          <BuiButton onClick={() => void saveRule()} disabled={saving || !draft.name.trim()}>
-            {t('common.save', 'Enregistrer')}
-          </BuiButton>
-        </DialogActions>
       </Dialog>
     </div>
   );

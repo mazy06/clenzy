@@ -2,7 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Button, Spinner } from '../../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input, Textarea } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Tooltip } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -246,34 +256,43 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
 
       {/* .fr-actions : filet top + boutons */}
       <div className="flex items-center gap-2.5 flex-wrap m-[26px 0 0] pt-5" style={{ borderTop: '1px solid var(--line)' }}>
-        {/* Le Button du kit ne transmet pas de ref : span intermediaire sous les Tooltip MUI. */}
+        {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+            porte le declencheur du Tooltip a sa place. */}
         {tpl && (
-          <Tooltip title={`Génère un PDF à partir du template « ${tpl.name} »`} placement="top" arrow>
-            <span className="inline-flex">
-              <Button
-                onClick={() => handleGeneratePdf()}
-                disabled={generateDocumentMutation.isPending}
-              >
-                {generateDocumentMutation.isPending
-                  ? <Spinner className="size-[13px]" />
-                  : <FileTextIcon size={15} strokeWidth={1.75} />}
-                {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
-              </Button>
-            </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  onClick={() => handleGeneratePdf()}
+                  disabled={generateDocumentMutation.isPending}
+                >
+                  {generateDocumentMutation.isPending
+                    ? <Spinner className="size-[13px]" />
+                    : <FileTextIcon size={15} strokeWidth={1.75} />}
+                  {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Génère un PDF à partir du template « ${tpl.name} »`}
+            </TooltipContent>
           </Tooltip>
         )}
         {canResend && (
-          <Tooltip title={`Renvoyer le devis à ${form.email}`} placement="top" arrow>
-            <span className="inline-flex">
-              <Button
-                variant="outline"
-                onClick={openResendModal}
-                disabled={generateDocumentMutation.isPending}
-              >
-                <SendIcon size={15} strokeWidth={1.75} />
-                Renvoyer
-              </Button>
-            </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="outline"
+                  onClick={openResendModal}
+                  disabled={generateDocumentMutation.isPending}
+                >
+                  <SendIcon size={15} strokeWidth={1.75} />
+                  Renvoyer
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{`Renvoyer le devis à ${form.email}`}</TooltipContent>
           </Tooltip>
         )}
         {form.status !== 'PROCESSED' && form.status !== 'ARCHIVED' && (
@@ -367,84 +386,99 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
       )}
 
       {/* ── Aperçu PDF inline ── */}
-      <Dialog
-        open={Boolean(previewUrl)}
-        onClose={closePreview}
-        fullWidth
-        maxWidth="lg"
-        PaperProps={{ sx: { height: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
-      >
-        <DialogTitle sx={{
-          display: 'flex', alignItems: 'center', gap: 1, py: 1.25, px: 2,
-          borderBottom: '1px solid var(--line)', bgcolor: 'var(--surface-2)',
-        }}>
-          <span className="inline-flex text-[var(--err)]">
-            <FileTextIcon size={18} strokeWidth={1.75} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="cn-text-body1 text-[13px] font-bold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
-              {previewMeta?.filename || 'Aperçu du document'}
-            </p>
-            {previewMeta?.createdAt && (
-              <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
-                Généré le {formatFormDate(previewMeta.createdAt)}
-              </p>
+      <Dialog open={Boolean(previewUrl)} onOpenChange={(next) => { if (!next) closePreview(); }}>
+        {/* Visionneuse plein cadre : padding annule, la croix maison remplace celle du kit. */}
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-5xl h-[92vh] flex flex-col gap-0 p-0 overflow-hidden"
+        >
+          <DialogHeader className="flex-row items-center gap-1.5 py-[7.5px] px-3 border-b border-solid border-b-[var(--line)] bg-[var(--surface-2)]">
+            <span className="inline-flex text-[var(--err)]">
+              <FileTextIcon size={18} strokeWidth={1.75} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-[13px] font-bold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
+                {previewMeta?.filename || 'Aperçu du document'}
+              </DialogTitle>
+              {previewMeta?.createdAt && (
+                <DialogDescription className="text-[11px] text-[var(--muted)]">
+                  Généré le {formatFormDate(previewMeta.createdAt)}
+                </DialogDescription>
+              )}
+            </div>
+            {previewUrl && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Ouvrir dans un nouvel onglet"
+                      onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
+                    >
+                      <OpenInNewIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Télécharger"
+                      onClick={() => {
+                        if (!previewMeta) return;
+                        const link = document.createElement('a');
+                        link.href = previewUrl;
+                        link.download = previewMeta.filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <DownloadIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Télécharger</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" aria-label="Fermer" onClick={closePreview}>
+                      <CloseIcon size={18} strokeWidth={1.75} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Fermer</TooltipContent>
+                </Tooltip>
+              </>
+            )}
+          </DialogHeader>
+          {/* #525659 : gris du visionneur PDF standard */}
+          <div className="flex-1 min-h-0 bg-[#525659]">
+            {previewUrl && (
+              <iframe className="w-full h-full border-none block" src={previewUrl} title={previewMeta?.filename || 'PDF'} />
             )}
           </div>
-          {previewUrl && (
-            <>
-              <Tooltip title="Ouvrir dans un nouvel onglet">
-                <IconButton size="small" onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}>
-                  <OpenInNewIcon size={16} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Télécharger">
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    if (!previewMeta) return;
-                    const link = document.createElement('a');
-                    link.href = previewUrl;
-                    link.download = previewMeta.filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <DownloadIcon size={16} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Fermer">
-                <IconButton size="small" onClick={closePreview}>
-                  <CloseIcon size={18} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, flex: 1, bgcolor: '#525659' /* gris viewer PDF standard */ }}>
-          {previewUrl && (
-            <iframe className="w-full h-full border-none block" src={previewUrl} title={previewMeta?.filename || 'PDF'} />
-          )}
         </DialogContent>
       </Dialog>
 
       {/* ── Éditeur de renvoi du devis (objet + corps modifiables) ── */}
       <Dialog
         open={resend.open}
-        onClose={() => setResend((r) => ({ ...r, open: false }))}
-        maxWidth="sm"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setResend((r) => ({ ...r, open: false })); }}
       >
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          Renvoyer le devis
+        <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-bold text-[1rem]">
+            Renvoyer le devis
+          </DialogTitle>
           {form.email ? (
-            <p className="cn-text-body2 text-[var(--muted)] mt-0.5">
+            <DialogDescription className="cn-text-body2 text-[var(--muted)]">
               À {form.email} — info@clenzy.fr en copie
-            </p>
+            </DialogDescription>
           ) : null}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
           {resend.loading ? (
             <div className="flex justify-center py-6">
               <Spinner className="size-[22px] text-[var(--accent)]" />
@@ -462,10 +496,11 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               </Field>
               <Field>
                 <FieldLabel htmlFor="resend-quote-body">Corps du message</FieldLabel>
+                {/* Le primitif pose field-sizing:content, qui neutralise `rows` :
+                    la hauteur de 6 lignes est garantie par min-h. */}
                 <Textarea
                   id="resend-quote-body"
-                  rows={6}
-                  className="w-full"
+                  className="w-full min-h-[6lh]"
                   value={resend.body}
                   onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
                 />
@@ -475,8 +510,8 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               </Field>
             </>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        </div>
+        <DialogFooter>
           <Button
             variant="ghost"
             className="me-auto"
@@ -494,31 +529,34 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           >
             Renvoyer
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Modale : message d'erreur de génération complet (la liste n'en montre que la 1re ligne). */}
       <Dialog
         open={errorDetail !== null}
-        onClose={() => setErrorDetail(null)}
-        maxWidth="sm"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setErrorDetail(null); }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: '1rem', color: 'var(--err)' }}>
-          <AlertTriangleIcon size={18} strokeWidth={1.75} />
-          Échec de génération
-          <IconButton size="small" onClick={() => setErrorDetail(null)} sx={{ ml: 'auto' }}>
-            <CloseIcon size={16} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {errorDetail?.date && (
-            <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-1.5">
-              {formatFormDate(errorDetail.date)}
-            </p>
-          )}
-          <div className="text-[12.5px] leading-[1.6] text-[var(--ink)] whitespace-pre-wrap break-words bg-[var(--err-soft)] border border-solid border-[var(--err)] rounded-[10px] p-[9px] max-h-[55vh] overflow-y-auto select-text" style={{ fontFamily: 'monospace' }}>
-            {errorDetail?.message}
+        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="flex-row items-center gap-1.5 pe-14">
+            <span className="inline-flex text-[var(--err)]">
+              <AlertTriangleIcon size={18} strokeWidth={1.75} />
+            </span>
+            <DialogTitle className="font-bold text-[1rem] text-[var(--err)]">
+              Échec de génération
+            </DialogTitle>
+          </DialogHeader>
+          <div>
+            {errorDetail?.date && (
+              <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-1.5">
+                {formatFormDate(errorDetail.date)}
+              </p>
+            )}
+            <div className="text-[12.5px] leading-[1.6] text-[var(--ink)] whitespace-pre-wrap break-words bg-[var(--err-soft)] border border-solid border-[var(--err)] rounded-[10px] p-[9px] max-h-[55vh] overflow-y-auto select-text" style={{ fontFamily: 'monospace' }}>
+              {errorDetail?.message}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

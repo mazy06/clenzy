@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
 import {
   Edit,
   Delete,
@@ -16,13 +15,22 @@ import {
   Bed as BedIcon,
   Bathroom as BathroomIcon,
   BroomFill,
-  Close,
   SquareFoot,
   Build,
   Logout,
   CheckCircle,
 } from '../../icons';
 import { Button } from '../../components/ui';
+import {
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
@@ -103,31 +111,13 @@ interface PropertyCardProps {
 }
 
 // Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
-const styles = {
-  // ── Card ── (.pr-card : hairline r14 du thème, hover border --line-2 + shadow-card)
-  cardRoot: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'border-color .14s, box-shadow .14s, transform .14s',
-    '&:hover': {
-      borderColor: 'var(--line-2)',
-      boxShadow: 'var(--shadow-card)',
-      transform: 'translateY(-2px)',
-    },
-    '@media (prefers-reduced-motion: reduce)': {
-      transition: 'none',
-      '&:hover': { transform: 'none' },
-    },
-  },
-  infoContent: {
-    flexGrow: 1,
-    p: 1.75,
-    pb: '12px !important',
-  },
-} as const;
+// `--card-spacing: 0px` neutralise le rembourrage vertical du primitif Card : la
+// carte logement colle son bandeau image au bord, comme l'ancienne Card MUI.
+const CARD_ROOT_CLASS =
+  'h-full cursor-pointer [--card-spacing:0px] '
+  + '[transition:border-color_.14s,box-shadow_.14s,transform_.14s] '
+  + 'hover:-translate-y-[2px] hover:shadow-[var(--shadow-card)] hover:ring-[color:var(--line-2)] '
+  + 'motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
 // Typographie de la carte et du dialogue, transcrite en classes.
 // `font-[family-name:var(...)]` et non `font-[var(...)]` : sur une valeur `var()`,
@@ -294,10 +284,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
   return (
     <>
       {/* Carte principale — Design moderne */}
-      <Card
-        sx={styles.cardRoot}
-        onClick={handleViewDetails}
-      >
+      <Card className={CARD_ROOT_CLASS} onClick={handleViewDetails}>
         {/* ─── .pr-img : bandeau dégradé déterministe + photo réelle en overlay ─── */}
         {/* Dégradé déterministe (placeholder) en base ; la vraie photo se superpose
             dessus en fallback. Tout le fond reste inline : la shorthand `background`
@@ -343,7 +330,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         </div>
 
         {/* ─── Zone info ─── */}
-        <CardContent sx={styles.infoContent}>
+        <CardContent className="flex-1 p-[10.5px] pb-3">
           {/* Nom + prix/nuit (si renseigné) */}
           <div className="flex items-center gap-1 min-w-0">
             <h6 className={NAME_CLASS} title={property.name}>
@@ -421,35 +408,29 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
       </Card>
 
       {/* ─── Dialog des détails complets ─── */}
-      <Dialog
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        maxWidth="md"
-        fullWidth
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-[11px] flex items-center justify-center bg-[var(--accent-soft)]">
+      <Dialog open={detailsOpen} onOpenChange={(next) => { if (!next) setDetailsOpen(false); }}>
+        {/* La carte parente est cliquable : on arrete la propagation ICI, la modale
+            etant portalisee, un clic dedans ne doit pas rouvrir le detail. */}
+        <DialogContent
+          className="max-w-[900px] max-h-[85vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <div className="flex items-center gap-2 pe-8">
+              <div className="w-10 h-10 rounded-[11px] flex items-center justify-center bg-[var(--accent-soft)] shrink-0">
                 {getPropertyTypeIcon(property.propertyType, 22)}
               </div>
-              <div>
-                <h2 className="cn-text-h6 leading-[1.2]">
+              <div className="min-w-0">
+                <DialogTitle className="cn-text-h6 leading-[1.2]">
                   {property.name}
-                </h2>
+                </DialogTitle>
                 <span className="cn-text-caption text-muted-foreground">
                   {getPropertyTypeLabel(property.propertyType, t)} • {getPropertyStatusLabel(property.status, t)}
                 </span>
               </div>
             </div>
-            <IconButton onClick={() => setDetailsOpen(false)} size="small">
-              <Close size={18} strokeWidth={1.75} />
-            </IconButton>
-          </div>
-        </DialogTitle>
+          </DialogHeader>
 
-        <DialogContent sx={{ pt: 1.5 }}>
           <div className="grid grid-cols-12 gap-3">
             {/* Adresse */}
             <div className="col-span-12">
@@ -462,7 +443,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </div>
 
             <div className="col-span-12">
-              <Divider />
+              <Separator />
             </div>
 
             {/* Caractéristiques */}
@@ -492,7 +473,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </div>
 
             <div className="col-span-12">
-              <Divider />
+              <Separator />
             </div>
 
             {/* Estimation ménage + prix nuit */}
@@ -527,7 +508,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             {property.amenities && property.amenities.length > 0 && (
               <>
                 <div className="col-span-12">
-                  <Divider />
+                  <Separator />
                 </div>
                 <div className="col-span-12">
                   <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
@@ -549,7 +530,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
             {/* Contact */}
             <div className="col-span-12">
-              <Divider />
+              <Separator />
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
               <p className={DIALOG_SECTION_TITLE_CLASS}>
@@ -575,20 +556,20 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               </div>
             )}
           </div>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          {canDelete && onDelete && (
-            <Button onClick={onDelete} variant="destructive" size="sm">
-              <Delete size={16} strokeWidth={1.75} />
-              Supprimer
+          <DialogFooter>
+            {/* `me-auto` remplace l'ancien ressort `flex-1` : DialogFooter empile en
+                colonne inversee sous 640px, ou un div vide creerait une ligne morte. */}
+            {canDelete && onDelete && (
+              <Button onClick={onDelete} variant="destructive" size="sm" className="sm:me-auto">
+                <Delete size={16} strokeWidth={1.75} />
+                Supprimer
+              </Button>
+            )}
+            <Button onClick={() => setDetailsOpen(false)} size="sm" variant="outline">
+              Fermer
             </Button>
-          )}
-          <div className="flex-1" />
-          <Button onClick={() => setDetailsOpen(false)} size="sm" variant="outline">
-            Fermer
-          </Button>
-        </DialogActions>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );

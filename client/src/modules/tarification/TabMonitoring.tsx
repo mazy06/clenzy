@@ -10,7 +10,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '../../components/ui';
-import { Box, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
+import { Separator, Switch } from '../../components/ui';
 import {
   VolumeUp,
   Handshake,
@@ -83,17 +83,14 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
         {/* MINUT — Abonnement mensuel                                     */}
         {/* ════════════════════════════════════════════════════════════════ */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              height: '100%',
-              border: '1.5px solid',
-              borderColor: config.monitoringMinutEnabled ? 'primary.main' : 'divider',
-              borderRadius: 2,
-              transition: 'border-color 0.2s',
-              opacity: config.monitoringMinutEnabled ? 1 : 0.75,
-            }}
+          <div
+            className={cn(
+              'h-full p-[15px] rounded-[16px] border-[1.5px] border-solid bg-[var(--card)]',
+              'transition-colors duration-200 motion-reduce:transition-none',
+              config.monitoringMinutEnabled
+                ? 'border-[var(--mui-primary)] opacity-100'
+                : 'border-[var(--line)] opacity-75',
+            )}
           >
             {/* Header */}
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -108,7 +105,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               {t('tarification.monitoring.minut.description')}
             </p>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Pricing model */}
             <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
@@ -136,27 +133,18 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   </InputGroup>
                 </Field>
               ) : (
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 1.5,
-                    bgcolor: 'grey.50',
-                    border: '1px dashed',
-                    borderColor: 'divider',
-                    textAlign: 'center',
-                  }}
-                >
+                <div className="p-[9px] rounded-[12px] bg-[var(--surface-2)] border border-dashed border-[var(--line)] text-center">
                   <h6 className="cn-text-h6 font-bold text-muted-foreground text-[1.1rem]">
                     {t('tarification.monitoring.minut.onQuote')}
                   </h6>
                   <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                     {t('tarification.monitoring.minut.onQuoteHint')}
                   </span>
-                </Box>
+                </div>
               )}
             </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Features */}
             <div className="mb-3">
@@ -166,46 +154,36 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               <FeatureItem text={t('tarification.monitoring.minut.feature4')} />
             </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Enable switch */}
-            <List disablePadding>
-              <ListItem disableGutters sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <span className={cn('inline-flex', config.monitoringMinutEnabled ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}><VolumeUp size={20} strokeWidth={1.75} /></span>
-                </ListItemIcon>
-                <ListItemText
-                  primary={t('tarification.monitoring.enable')}
-                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                />
-                <ListItemSecondaryAction>
-                  <Switch
-                    edge="end"
-                    checked={config.monitoringMinutEnabled}
-                    onChange={(e) => onUpdate({ monitoringMinutEnabled: e.target.checked })}
-                    disabled={!canEdit}
-                  />
-                </ListItemSecondaryAction>
-              </ListItem>
-            </List>
-          </Paper>
+            <Field orientation="horizontal">
+              <span className={cn('inline-flex w-9 shrink-0', config.monitoringMinutEnabled ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}><VolumeUp size={20} strokeWidth={1.75} /></span>
+              <FieldLabel htmlFor="monitoring-minut-enabled" className="flex-1 text-[0.875rem] font-semibold">
+                {t('tarification.monitoring.enable')}
+              </FieldLabel>
+              <Switch
+                id="monitoring-minut-enabled"
+                checked={config.monitoringMinutEnabled}
+                onCheckedChange={(checked) => onUpdate({ monitoringMinutEnabled: checked })}
+                disabled={!canEdit}
+              />
+            </Field>
+          </div>
         </div>
 
         {/* ════════════════════════════════════════════════════════════════ */}
         {/* CLENZY HARDWARE — Coût unique (Tuya OEM)                       */}
         {/* ════════════════════════════════════════════════════════════════ */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              height: '100%',
-              border: '1.5px solid',
-              borderColor: config.monitoringClenzyEnabled ? 'success.main' : 'divider',
-              borderRadius: 2,
-              transition: 'border-color 0.2s',
-              opacity: config.monitoringClenzyEnabled ? 1 : 0.75,
-            }}
+          <div
+            className={cn(
+              'h-full p-[15px] rounded-[16px] border-[1.5px] border-solid bg-[var(--card)]',
+              'transition-colors duration-200 motion-reduce:transition-none',
+              config.monitoringClenzyEnabled
+                ? 'border-[var(--ok)] opacity-100'
+                : 'border-[var(--line)] opacity-75',
+            )}
           >
             {/* Header */}
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -220,7 +198,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               {t('tarification.monitoring.clenzy.description')}
             </p>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Pricing model */}
             <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
@@ -324,7 +302,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               </h6>
             </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Features */}
             <div className="mb-3">
@@ -334,29 +312,22 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               <FeatureItem text={t('tarification.monitoring.clenzy.feature4')} />
             </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Enable switch */}
-            <List disablePadding>
-              <ListItem disableGutters sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <span className={cn('inline-flex', config.monitoringClenzyEnabled ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}><Memory size={20} strokeWidth={1.75} /></span>
-                </ListItemIcon>
-                <ListItemText
-                  primary={t('tarification.monitoring.enable')}
-                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                />
-                <ListItemSecondaryAction>
-                  <Switch
-                    edge="end"
-                    checked={config.monitoringClenzyEnabled}
-                    onChange={(e) => onUpdate({ monitoringClenzyEnabled: e.target.checked })}
-                    disabled={!canEdit}
-                  />
-                </ListItemSecondaryAction>
-              </ListItem>
-            </List>
-          </Paper>
+            <Field orientation="horizontal">
+              <span className={cn('inline-flex w-9 shrink-0', config.monitoringClenzyEnabled ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}><Memory size={20} strokeWidth={1.75} /></span>
+              <FieldLabel htmlFor="monitoring-clenzy-enabled" className="flex-1 text-[0.875rem] font-semibold">
+                {t('tarification.monitoring.enable')}
+              </FieldLabel>
+              <Switch
+                id="monitoring-clenzy-enabled"
+                checked={config.monitoringClenzyEnabled}
+                onCheckedChange={(checked) => onUpdate({ monitoringClenzyEnabled: checked })}
+                disabled={!canEdit}
+              />
+            </Field>
+          </div>
         </div>
       </div>
     </div>

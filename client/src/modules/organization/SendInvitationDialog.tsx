@@ -5,7 +5,11 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
+// Autocomplete MUI conserve : son `renderInput` recoit des props internes que
+// seul un TextField MUI sait consommer. Le Dialog reste MUI pour la meme
+// raison : le popper de l'Autocomplete se monte hors du contenu de la modale,
+// et le piege de focus d'un Dialog Radix le rendrait inatteignable.
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material';
 import {
   Field,
   FieldLabel,
@@ -16,6 +20,11 @@ import {
   InputGroupInput,
   NativeSelect,
   NativeSelectOption,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../components/ui';
 import {
   Send,
@@ -183,24 +192,28 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
         <h6 className="cn-text-h6 font-semibold">
           {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
         </h6>
-        <IconButton size="small" onClick={handleClose}>
+        <BuiButton variant="ghost" size="icon-sm" aria-label="Fermer" onClick={handleClose}>
           <Close />
-        </IconButton>
+        </BuiButton>
       </DialogTitle>
 
       <DialogContent dividers>
         {!result && !memberSuccess ? (
           <div className="flex flex-col gap-3.5 pt-1.5">
-            <ToggleButtonGroup
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
+              className="w-full [&>*]:flex-1"
               value={mode}
-              exclusive
-              onChange={(_, v) => { if (v) { setMode(v); setError(null); } }}
-              size="small"
-              fullWidth
+              // Radix renvoie '' quand on re-clique l'option active : le garde-fou
+              // evite de laisser le formulaire sans mode.
+              onValueChange={(v) => { if (v) { setMode(v as Mode); setError(null); } }}
             >
-              <ToggleButton value="email">Inviter par email</ToggleButton>
-              <ToggleButton value="existing">Membre existant</ToggleButton>
-            </ToggleButtonGroup>
+              <ToggleGroupItem value="email">Inviter par email</ToggleGroupItem>
+              <ToggleGroupItem value="existing">Membre existant</ToggleGroupItem>
+            </ToggleGroup>
 
             {mode === 'email' ? (
               <>
@@ -351,10 +364,19 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                     value={result?.invitationLink ?? ''}
                   />
                   <InputGroupAddon align="inline-end">
-                    <Tooltip title={copied ? 'Copie !' : 'Copier le lien'}>
-                      <IconButton onClick={handleCopyLink} size="small" color={copied ? 'success' : 'default'}>
-                        {copied ? <CheckCircle fontSize="small" /> : <ContentCopy fontSize="small" />}
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <BuiButton
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Copier le lien d'invitation"
+                          onClick={handleCopyLink}
+                          className={cn(copied && 'text-[var(--ok)]')}
+                        >
+                          {copied ? <CheckCircle size={16} /> : <ContentCopy size={16} />}
+                        </BuiButton>
+                      </TooltipTrigger>
+                      <TooltipContent>{copied ? 'Copie !' : 'Copier le lien'}</TooltipContent>
                     </Tooltip>
                   </InputGroupAddon>
                 </InputGroup>

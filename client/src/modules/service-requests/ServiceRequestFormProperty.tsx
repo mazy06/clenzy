@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
 import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
 import {
   Home,
   Person,
@@ -255,47 +255,42 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
             <Controller
               name="propertyId"
               control={control}
+              // Liste riche (pastille de logement par option) -> Select du kit :
+              // une <option> native ne peut porter aucun balisage.
               render={({ field, fieldState }) => {
                 const selectedProp = properties.find(p => p.id === field.value);
                 return (
-                  <FormControl fullWidth error={!!fieldState.error}>
-                    <InputLabel shrink>
+                  <Field>
+                    <FieldLabel htmlFor="service-request-property">
                       {t('serviceRequests.fields.property')}
-                    </InputLabel>
+                    </FieldLabel>
                     <Select
-                      value={field.value}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      onBlur={field.onBlur}
-                      label={t('serviceRequests.fields.property')}
-                      size="small"
-                      displayEmpty
-                      notched
-                      renderValue={() => (
-                        <div className="flex items-center gap-1">
-                          <span className={cn('inline-flex', selectedProp ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Home size={16} strokeWidth={1.75} /></span>
-                          <p className={cn('cn-text-body1 text-[12.5px]', selectedProp ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
-                            {selectedProp
-                              ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
-                              : t('serviceRequests.fields.selectProperty')}
-                          </p>
-                        </div>
-                      )}
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(value) => field.onChange(Number(value))}
                     >
-                      {properties.map((property) => (
-                        <MenuItem key={property.id} value={property.id}>
-                          <div className="flex items-center gap-1">
+                      <SelectTrigger
+                        id="service-request-property"
+                        size="sm"
+                        className="w-full *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-start"
+                        aria-invalid={!!fieldState.error}
+                        onBlur={field.onBlur}
+                      >
+                        <span className={cn('inline-flex shrink-0', selectedProp ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Home size={16} strokeWidth={1.75} /></span>
+                        <SelectValue placeholder={t('serviceRequests.fields.selectProperty')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {properties.map((property) => (
+                          <SelectItem key={property.id} value={String(property.id)}>
                             <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
-                            <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                            <span className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                               {property.name} - {property.address}, {property.city}
-                            </p>
-                          </div>
-                        </MenuItem>
-                      ))}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                    {fieldState.error && (
-                      <FormHelperText>{fieldState.error.message}</FormHelperText>
-                    )}
-                  </FormControl>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 );
               }}
             />
@@ -327,45 +322,38 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                   const selectedUser = users.find(u => u.id === field.value);
                   const hasValue = !!selectedUser;
                   return (
-                    <FormControl fullWidth error={!!fieldState.error}>
-                      <InputLabel shrink>
+                    <Field>
+                      <FieldLabel htmlFor="service-request-requestor">
                         {t('serviceRequests.fields.requestor')}
-                      </InputLabel>
+                      </FieldLabel>
                       <Select
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        onBlur={field.onBlur}
-                        label={t('serviceRequests.fields.requestor')}
+                        value={field.value ? String(field.value) : ''}
+                        onValueChange={(value) => field.onChange(Number(value))}
                         disabled={!isAdminOrManager}
-                        size="small"
-                        displayEmpty
-                        notched
-                        renderValue={() => (
-                          <div className="flex items-center gap-1">
-                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
-                            <p className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
-                              {hasValue
-                                ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                                : t('serviceRequests.fields.selectRequestor')}
-                            </p>
-                          </div>
-                        )}
                       >
-                        {users.map((u) => (
-                          <MenuItem key={u.id} value={u.id}>
-                            <div className="flex items-center gap-1">
+                        <SelectTrigger
+                          id="service-request-requestor"
+                          size="sm"
+                          className="w-full *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-start"
+                          aria-invalid={!!fieldState.error}
+                          onBlur={field.onBlur}
+                        >
+                          <span className={cn('inline-flex shrink-0', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
+                          <SelectValue placeholder={t('serviceRequests.fields.selectRequestor')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((u) => (
+                            <SelectItem key={u.id} value={String(u.id)}>
                               <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
-                              <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                              <span className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                                 {u.firstName} {u.lastName}
-                              </p>
-                            </div>
-                          </MenuItem>
-                        ))}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   );
                 }}
               />

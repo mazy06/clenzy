@@ -1,8 +1,14 @@
 import React from 'react';
-import { Badge } from '../../components/ui';
+import {
+  Badge,
+  Progress,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
-import { Paper, Divider, LinearProgress, Tooltip } from '@mui/material';
 import {
   LocationOn,
   Person,
@@ -64,13 +70,13 @@ const ICAL_SOURCE_LOGOS: Record<string, string> = {
 
 // ─── Stable sx constants (tokens DESIGN_BASELINE) ───────────────────────────
 
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 2,
-} as const;
+/**
+ * Peau de carte : hairline sur surface --card, r14, rembourrage 12 px
+ * (ex-`p: 2`). `border-solid` est indispensable — le projet n'a pas de preflight
+ * Tailwind, une bordure sans style declare reste invisible.
+ */
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-3';
 
 const SECTION_TITLE_SX = {
   fontSize: '10.5px',
@@ -194,10 +200,10 @@ function getStatusProgressColor(status: string): 'primary' | 'success' | 'error'
 }
 
 /**
- * La palette `LinearProgress color=...` reste un nom MUI, mais le texte l'a
- * besoin en VRAIE valeur CSS : hors de `sx`, `'success.main'` n'est plus resolu
- * par le theme et la declaration serait jetee sans erreur. Les ponts `--mui-*`
- * suivent deja le mode clair/sombre.
+ * `getStatusProgressColor` rend un nom de palette MUI ; la barre comme le texte
+ * ont besoin d'une VRAIE valeur CSS : `'success.main'` hors du theme donnerait
+ * une declaration jetee sans erreur. Les ponts `--mui-*` suivent deja le mode
+ * clair/sombre.
  */
 const PROGRESS_TONE_VAR: Record<'primary' | 'success' | 'error' | 'info', string> = {
   primary: 'var(--mui-primary)',
@@ -373,7 +379,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
     <div className="pt-1.5 flex-1 min-h-0 overflow-auto">
 
       {/* ── Status progress bar ──────────────────────────────────────── */}
-      <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5 }}>
+      <div className={cn(CARD_CLASS, 'p-[9px] mb-[9px]')}>
         <div className="flex items-center justify-between mb-1">
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
             {t('serviceRequests.details.progression')}
@@ -382,11 +388,12 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             {vm.statusLabel}
           </p>
         </div>
-        <LinearProgress
-          variant="determinate"
+        {/* La teinte depend du statut (valeur d'execution) : elle transite par une
+            variable CSS, une classe Tailwind ne pouvant pas naitre d'une variable. */}
+        <Progress
           value={statusProgress}
-          color={statusProgressColor}
-          sx={{ height: 6, borderRadius: 3, bgcolor: 'var(--field)' }}
+          className="h-1.5 rounded-[3px] bg-[var(--field)] [&_[data-slot=progress-indicator]]:bg-[var(--wo-progress-tone)]"
+          style={{ '--wo-progress-tone': statusToneColor } as React.CSSProperties}
         />
         <div className="flex justify-between mt-0.5">
           {progressSteps.map((label, i) => (
@@ -395,7 +402,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             </p>
           ))}
         </div>
-      </Paper>
+      </div>
 
       {/* ── Key metrics grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-12 gap-1.5 mb-[9px]">
@@ -445,17 +452,20 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                   ? t('workOrders.recommended.conform')
                   : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
                 return (
-                  <Tooltip title={`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`} arrow>
-                    <span
-                      className={cn(
-                        'mt-[3px] text-[10px] font-bold rounded-[7px] px-1.5 py-px whitespace-nowrap cursor-default tabular-nums',
-                        conform
-                          ? 'text-[var(--ok,_#4A9B8E)] bg-[color-mix(in_srgb,_var(--ok,_#4A9B8E)_12%,_transparent)]'
-                          : 'text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]',
-                      )}
-                    >
-                      {label}
-                    </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          'mt-[3px] text-[10px] font-bold rounded-[7px] px-1.5 py-px whitespace-nowrap cursor-default tabular-nums',
+                          conform
+                            ? 'text-[var(--ok,_#4A9B8E)] bg-[color-mix(in_srgb,_var(--ok,_#4A9B8E)_12%,_transparent)]'
+                            : 'text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]',
+                        )}
+                      >
+                        {label}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`}</TooltipContent>
                   </Tooltip>
                 );
               })()}
@@ -506,7 +516,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
           {/* Description */}
           {vm.description && (
-            <Paper sx={CARD_SX}>
+            <div className={CARD_CLASS}>
               <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                 <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.fields.detailedDescription')}
@@ -527,11 +537,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                   {vm.description}
                 </p>
               </div>
-            </Paper>
+            </div>
           )}
 
           {/* Propriété */}
-          <Paper sx={CARD_SX}>
+          <div className={CARD_CLASS}>
             <div className="flex items-center justify-between mb-1.5">
               <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
                 <Home size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
@@ -550,7 +560,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {(p.address || p.city) && (
               <>
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -563,7 +573,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {p.country && (
               <>
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Flag size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -576,7 +586,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {propertyTags.length > 0 && (
               <>
-                <Divider sx={{ my: 0.75 }} />
+                <Separator className="my-[4.5px]" />
                 <div className="flex flex-wrap gap-0.5 mt-0.5">
                   {propertyTags.map((tag) => (
                     <StatusChip
@@ -590,11 +600,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 </div>
               </>
             )}
-          </Paper>
+          </div>
 
           {/* Notes et Consignes */}
           {hasNotesSection && (
-            <Paper sx={CARD_SX}>
+            <div className={CARD_CLASS}>
               <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-[9px]')}>
                 <NoteAlt size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.details.notesInstructions')}
@@ -628,7 +638,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                   </p>
                 </div>
               )}
-            </Paper>
+            </div>
           )}
         </div>
 
@@ -637,7 +647,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
           {/* Personnes impliquées */}
           {(vm.requestor || vm.assignee) && (
-            <Paper sx={CARD_SX}>
+            <div className={CARD_CLASS}>
               <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                 {t('serviceRequests.peopleInvolved')}
               </p>
@@ -662,7 +672,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 </div>
               )}
 
-              {vm.requestor && vm.assignee && <Divider sx={{ my: 0.5 }} />}
+              {vm.requestor && vm.assignee && <Separator className="my-[3px]" />}
 
               {vm.assignee && (
                 <div className="flex items-center gap-1.5 py-[4.5px]">
@@ -698,11 +708,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                   </div>
                 </div>
               )}
-            </Paper>
+            </div>
           )}
 
           {/* Détail du temps */}
-          <Paper sx={CARD_SX}>
+          <div className={CARD_CLASS}>
             <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
               <AccessTime size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
               {t('serviceRequests.layout.timeDetail', 'Détail du temps')}
@@ -718,7 +728,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {vm.estimatedDurationHours != null && (
               <>
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -731,7 +741,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {vm.property.cleaningDurationMinutes != null && vm.property.cleaningDurationMinutes > 0 && (
               <>
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -748,7 +758,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {vm.extraTimeRows?.map((row) => (
               <React.Fragment key={`time-row-${row.label}`}>
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]">{row.icon}</span>
                   <div className="flex-1">
@@ -761,7 +771,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
             {vm.createdAt && (
               <>
-                <Divider sx={{ my: 0.5 }} />
+                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
@@ -771,7 +781,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 </div>
               </>
             )}
-          </Paper>
+          </div>
         </div>
       </div>
 

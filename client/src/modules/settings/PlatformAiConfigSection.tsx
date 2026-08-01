@@ -16,7 +16,22 @@ import {
   NativeSelectOption,
   NativeSelectOptGroup,
 } from '../../components/ui';
-import { Autocomplete, TextField, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Switch, Tooltip, useTheme, alpha } from '@mui/material';
+// Autocomplete MUI conserve : son `renderInput` injecte des props internes dans
+// un TextField, qu'aucun primitif du kit ne sait recevoir.
+import { Autocomplete, TextField } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import {
   Add,
   Edit,
@@ -167,11 +182,18 @@ MODELS_BY_PROVIDER.openai = [
 
 const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
 
+/**
+ * Fond doux d'une couleur connue seulement a l'execution (hex d'un provider,
+ * couleur d'une feature) — remplace le `alpha()` de MUI, retire avec lui.
+ */
+const softBg = (color: string, ratio: number): string =>
+  `color-mix(in srgb, ${color} ${Math.round(ratio * 100)}%, transparent)`;
+
 // ─── Feature Config ────────────────────────────────────────────────────────
 
 // Palette catégorielle par feature IA — hex DÉSATURÉS alignés sur les tokens
 // Signature (= valeurs de --ok/--warn/--err/--info + mauve planning + slate).
-// En hex littéral (non var()) car consommés via MUI alpha() (qui rejette var()).
+// En hex littéral (non var()) car ces couleurs partent en style inline calculé.
 const AI_FEATURES = [
   { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
   { key: 'ASSISTANT_SMALL', label: 'Assistant IA — tier éco', desc: "Modèle économique des rôles utilitaires (classification, résumés). Non assigné = tiering inactif ; ne s'applique que si le provider correspond au modèle résolu", icon: <AutoAwesome />, color: '#7BA3C2' }, // info
@@ -200,8 +222,6 @@ interface ModelDialogProps {
 
 function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const [name, setName] = useState('');
   const [provider, setProvider] = useState('');
@@ -337,22 +357,17 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ pb: 1 }}>
-        <h6 className="cn-text-h6 font-bold text-[1.05rem]">
-          {editModel
-            ? t('settings.ai.platform.editModel')
-            : t('settings.ai.platform.addModel')}
-        </h6>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="pe-8 font-bold text-[1.05rem]">
+            {editModel
+              ? t('settings.ai.platform.editModel')
+              : t('settings.ai.platform.addModel')}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent>
-        <div className="flex flex-col gap-3 mt-1.5">
+        <div className="flex flex-col gap-3">
           {/* Name — la teinte provider au focus est abandonnee : le kit porte
               son propre anneau de focus, un accent inline ne s'y greffe pas. */}
           <Field>
@@ -414,7 +429,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                       </span>
                       <StatusChip
                         size="sm"
-                        tokens={{ color, bg: alpha(color, 0.14) }}
+                        tokens={{ color, bg: softBg(color, 0.14) }}
                         label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
                         className="text-[0.6rem] shrink-0"
                       />
@@ -575,34 +590,34 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             </BuiAlert>
           )}
         </div>
-      </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <BuiButton variant="ghost" size="sm" onClick={onClose}>
-          {t('common.cancel')}
-        </BuiButton>
-        {/* « Tester » est un preambule au vrai but de la modale : action secondaire. */}
-        <BuiButton
-          variant="ghost"
-          size="sm"
-          onClick={handleTest}
-          disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
-          style={{ color: accent }}
-        >
-          {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
-          {t('settings.ai.platform.test')}
-        </BuiButton>
-        {/* Action principale de la modale. La teinte provider est abandonnee ici :
-            un fond pose en inline ecraserait aussi l'etat de survol du kit. */}
-        <BuiButton
-          size="sm"
-          onClick={handleSave}
-          disabled={!canSave || saveMutation.isPending}
-        >
-          {saveMutation.isPending && <Spinner className="size-3.5" />}
-          {t('settings.ai.platform.saveActivate')}
-        </BuiButton>
-      </DialogActions>
+        <DialogFooter>
+          <BuiButton variant="ghost" size="sm" onClick={onClose}>
+            {t('common.cancel')}
+          </BuiButton>
+          {/* « Tester » est un preambule au vrai but de la modale : action secondaire. */}
+          <BuiButton
+            variant="ghost"
+            size="sm"
+            onClick={handleTest}
+            disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
+            style={{ color: accent }}
+          >
+            {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
+            {t('settings.ai.platform.test')}
+          </BuiButton>
+          {/* Action principale de la modale. La teinte provider est abandonnee ici :
+              un fond pose en inline ecraserait aussi l'etat de survol du kit. */}
+          <BuiButton
+            size="sm"
+            onClick={handleSave}
+            disabled={!canSave || saveMutation.isPending}
+          >
+            {saveMutation.isPending && <Spinner className="size-3.5" />}
+            {t('settings.ai.platform.saveActivate')}
+          </BuiButton>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -618,8 +633,7 @@ interface ModelRowProps {
 
 function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const providerColor = PROVIDER_COLORS[model.provider] || '#888';
   const recheck = useRecheckPlatformModel();
 
@@ -648,7 +662,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       </p>
 
       {/* Provider chip */}
-      <StatusChip tokens={{ color: providerColor, bg: alpha(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} className="text-[0.65rem] shrink-0" />
+      <StatusChip tokens={{ color: providerColor, bg: softBg(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} className="text-[0.65rem] shrink-0" />
 
       {/* Model ID */}
       <span className="cn-text-caption text-muted-foreground text-[0.7rem] font-mono flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -662,42 +676,69 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
           return (
             // Repli en TOKEN, pas en chemin de theme MUI : ces couleurs partent
             // desormais en style inline, ou `text.secondary` ne veut rien dire.
-            <StatusChip tokens={{ color: featureConf?.color || 'var(--muted)', bg: alpha(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
+            <StatusChip tokens={{ color: featureConf?.color || 'var(--muted)', bg: softBg(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
           );
         })}
       </div>
 
       {/* Availability (live) — vert / rouge / gris + tooltip (dernier contrôle + erreur) */}
-      <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{avTip}</span>}>
-        {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-            (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-        <span className="inline-flex">
-          <StatusChip tokens={{ color: avColor, bg: alpha(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
-        </span>
+      {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
+          pas (React 18, composant fonction) : sans le span, rien ne s'ancre. */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <StatusChip tokens={{ color: avColor, bg: softBg(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="whitespace-pre-line">{avTip}</TooltipContent>
       </Tooltip>
 
       {/* Validated indicator */}
       {model.lastValidatedAt && (
-        <Tooltip title={`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}>
-          <span className="inline-flex shrink-0" style={{ color: providerColor }}><CheckCircle size={16} strokeWidth={1.75} /></span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex shrink-0" style={{ color: providerColor }}><CheckCircle size={16} strokeWidth={1.75} /></span>
+          </TooltipTrigger>
+          <TooltipContent>{`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}</TooltipContent>
         </Tooltip>
       )}
 
       {/* Actions */}
       <div className="flex gap-0.5 shrink-0">
-        <Tooltip title={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}>
-          <span>
-            <IconButton size="small" onClick={() => recheck.mutate(model.id)} disabled={recheck.isPending}>
-              {recheck.isPending ? <Spinner className="size-3.5" /> : <Refresh size={16} strokeWidth={1.75} />}
-            </IconButton>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <BuiButton
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}
+                onClick={() => recheck.mutate(model.id)}
+                disabled={recheck.isPending}
+              >
+                {recheck.isPending ? <Spinner className="size-3.5" /> : <Refresh size={16} strokeWidth={1.75} />}
+              </BuiButton>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}</TooltipContent>
         </Tooltip>
-        <IconButton size="small" onClick={() => onEdit(model)}>
+        <BuiButton
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t('settings.ai.platform.editModel')}
+          onClick={() => onEdit(model)}
+        >
           <Edit size={16} strokeWidth={1.75} />
-        </IconButton>
-        <IconButton size="small" onClick={() => onDelete(model.id)} disabled={isDeleting} color="error">
+        </BuiButton>
+        <BuiButton
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t('settings.ai.platform.delete', 'Supprimer')}
+          className="text-[var(--err)]"
+          onClick={() => onDelete(model.id)}
+          disabled={isDeleting}
+        >
           {isDeleting ? <Spinner className="size-3.5" /> : <Delete size={16} strokeWidth={1.75} />}
-        </IconButton>
+        </BuiButton>
       </div>
     </div>
   );
@@ -728,27 +769,14 @@ function UsageBreakdownTooltip({
     return children;
   }
   return (
-    <Tooltip
-      arrow
-      placement="left"
-      enterDelay={200}
-      enterNextDelay={150}
-      componentsProps={{
-        tooltip: {
-          sx: {
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: 'var(--shadow-pop)',
-            p: 0,
-            maxWidth: 360,
-            fontFamily: 'inherit',
-          },
-        },
-        arrow: { sx: { color: 'background.paper', '&::before': { border: '1px solid', borderColor: 'divider' } } },
-      }}
-      title={
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      {/* Panneau clair (pas l'infobulle sombre du kit) : le detail se lit comme une
+          carte. `[&>svg]` vise la fleche Radix, seul svg enfant direct du contenu. */}
+      <TooltipContent
+        side="left"
+        className="bg-[var(--card)] text-[var(--ink)] border border-solid border-[var(--line)] shadow-[var(--shadow-pop)] p-0 max-w-[360px] [&>svg]:fill-[var(--card)]"
+      >
         <div className="p-2 min-w-[280px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[var(--line)]">
@@ -780,9 +808,7 @@ function UsageBreakdownTooltip({
             );
           })}
         </div>
-      }
-    >
-      {children}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -815,8 +841,7 @@ const MODEL_VALUE_PREFIX = 'model:';
 
 function FeatureRow({ feature, models, connectedProviders, assignedModel, assignedProvider, budget, used, usageBreakdown, enabled, onAssign, onAssignProvider, onUnassign, onBudgetChange, onToggle, isAssigning }: FeatureRowProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
 
   // Budget editable : etat local + commit au blur / Entree. Sans ca, l'input
   // controle sur la valeur serveur sauvegardait a CHAQUE frappe et ecrasait la
@@ -867,22 +892,21 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       {/* Feature icon */}
       {/* Couleur derivee de la feature a l'execution : inline, pas de classe. */}
       <div
-        className="flex items-center justify-center w-[34px] h-[34px] rounded-[12px] shrink-0 [&_.MuiSvgIcon-root]:text-[18px]"
-        style={{ backgroundColor: alpha(feature.color, isDark ? 0.15 : 0.08), color: feature.color }}
+        className="flex items-center justify-center w-[34px] h-[34px] rounded-[12px] shrink-0"
+        style={{ backgroundColor: softBg(feature.color, isDark ? 0.15 : 0.08), color: feature.color }}
       >
         {feature.icon}
       </div>
 
-      {/* Toggle */}
+      {/* Toggle — la teinte « couleur de la feature » de l'ancien Switch MUI
+          visait ses classes internes ; le kit n'expose pas ce point d'accroche.
+          La couleur reste portee par la pastille d'icone juste a gauche. */}
       <Switch
+        size="sm"
+        className="shrink-0"
+        aria-label={feature.label}
         checked={enabled}
-        onChange={() => onToggle(feature.key, !enabled)}
-        size="small"
-        sx={{
-          flexShrink: 0,
-          '& .MuiSwitch-switchBase.Mui-checked': { color: feature.color },
-          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: feature.color },
-        }}
+        onCheckedChange={(next) => onToggle(feature.key, next)}
       />
 
       {/* Feature name + desc */}
@@ -976,7 +1000,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       })()}
 
       {/* Loading indicator */}
-      {isAssigning && <CircularProgress size={16} sx={{ flexShrink: 0 }} />}
+      {isAssigning && <Spinner className="size-4 shrink-0" />}
     </div>
   );
 }
@@ -986,8 +1010,6 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
 export default function PlatformAiConfigSection() {
   const { t } = useTranslation();
   const { hasPermissionAsync } = useAuth();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const [canManage, setCanManage] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1149,7 +1171,7 @@ export default function PlatformAiConfigSection() {
         <div className="-mx-3 min-[900px]:-mx-[18px] mb-3 border-t border-b border-[var(--line)]">
           {modelList.map((model, index) => (
             <React.Fragment key={model.id}>
-              {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
+              {index > 0 && <Separator className="w-auto mx-3 min-[900px]:mx-[18px]" />}
               <ModelRow
                 model={model}
                 onEdit={handleOpenEdit}
@@ -1183,7 +1205,7 @@ export default function PlatformAiConfigSection() {
       <div className="-mx-3 min-[900px]:-mx-[18px] border-t border-b border-[var(--line)]">
         {AI_FEATURES.map((feat, index) => (
           <React.Fragment key={feat.key}>
-            {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
+            {index > 0 && <Separator className="w-auto mx-3 min-[900px]:mx-[18px]" />}
             <FeatureRow
               feature={feat}
               models={modelList}
@@ -1270,13 +1292,16 @@ export default function PlatformAiConfigSection() {
       />
 
       {/* Confirmation de suppression — action destructive, affiche aussi l'erreur */}
-      <Dialog open={confirmDeleteId != null} onClose={() => setConfirmDeleteId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>
-          <h6 className="cn-text-h6 font-bold text-[1.05rem]">
-            {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
-          </h6>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={confirmDeleteId != null}
+        onOpenChange={(next) => { if (!next) setConfirmDeleteId(null); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="pe-8 font-bold text-[1.05rem]">
+              {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
+            </DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2 text-muted-foreground">
             {t('settings.ai.platform.deleteConfirmBody', {
               defaultValue: 'Le modèle « {{name}} » sera supprimé. Les features qui l’utilisent repasseront au modèle par défaut.',
@@ -1290,23 +1315,23 @@ export default function PlatformAiConfigSection() {
                 || t('settings.ai.platform.deleteError', 'Échec de la suppression.')}</AlertDescription>
             </BuiAlert>
           )}
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)}>
+              {t('common.cancel')}
+            </BuiButton>
+            <BuiButton
+              variant="destructive"
+              size="sm"
+              onClick={confirmDeleteModel}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending
+                ? <Spinner className="size-3.5" />
+                : <Delete size={16} strokeWidth={1.75} />}
+              {t('settings.ai.platform.delete', 'Supprimer')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <BuiButton variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)}>
-            {t('common.cancel')}
-          </BuiButton>
-          <BuiButton
-            variant="destructive"
-            size="sm"
-            onClick={confirmDeleteModel}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending
-              ? <Spinner className="size-3.5" />
-              : <Delete size={16} strokeWidth={1.75} />}
-            {t('settings.ai.platform.delete', 'Supprimer')}
-          </BuiButton>
-        </DialogActions>
       </Dialog>
     </AiSettingsCard>
   );

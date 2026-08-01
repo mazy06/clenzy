@@ -19,8 +19,19 @@ import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Divider, ButtonBase } from '@mui/material';
-import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
+import {
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
+import { Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
   channexApi,
@@ -72,7 +83,7 @@ export default function ChannexImportDiscoveryDialog({
 
   // Options du dropdown propertyType : source unique = PROPERTY_TYPES dans
   // utils/statusUtils.ts (synchronise avec l'enum PropertyType cote backend).
-  // Memoizee pour eviter le re-render des Select MUI a chaque map().
+  // Memoizee pour eviter de recalculer les options a chaque map().
   const propertyTypeOptions = React.useMemo(
     () => PROPERTY_TYPES.map((pt) => ({ value: pt.value, label: t(pt.i18nKey) })),
     [t],
@@ -353,41 +364,24 @@ export default function ChannexImportDiscoveryDialog({
 
   return (
     <>
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { minHeight: 'min(70vh, 700px)' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 2,
-          pb: 1.5,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-4xl min-h-[min(70vh,700px)] max-h-[90vh] overflow-y-auto flex flex-col">
+        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+        <DialogHeader className="flex-row items-start gap-2 pe-14">
           <div className="w-[32px] h-[32px] rounded-[8px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0" style={{ color: ACCENT }}>
             <Download size={18} />
           </div>
-          <div className="min-w-0">
-            <h6 className="cn-text-subtitle1 font-semibold leading-[1.3]">
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="cn-text-subtitle1 font-semibold leading-[1.3]">
               Importer une propriete deja en ligne
-            </h6>
-            <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
+            </DialogTitle>
+            <DialogDescription className="cn-text-caption block leading-[1.4]">
               Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Baitly
-            </span>
+            </DialogDescription>
           </div>
-        </Stack>
-        <IconButton onClick={onClose} size="small" aria-label="Fermer">
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
+        <div className="flex-1">
         {/* Phase 1 UX : Stepper visuel 3 etapes (Autoriser → Detecter → Synchroniser)
             qui montre ou en est l'utilisateur dans le flow Connect, base sur l'etat
             reel (nb OTAs connectes, nb properties detectees, nb importees). */}
@@ -400,16 +394,10 @@ export default function ChannexImportDiscoveryDialog({
         </div>
 
         {/* Banner d'aide */}
-        <Stack
-          direction="row"
-          alignItems="flex-start"
-          spacing={1}
-          sx={{
-            p: 1.25,
-            mb: 2,
-            borderRadius: 1,
-            bgcolor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
-            border: '1px solid',
+        <div
+          className="flex flex-row items-start gap-1.5 p-[7.5px] mb-3 rounded-[8px] border border-solid"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
             borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
           }}
         >
@@ -421,16 +409,16 @@ export default function ChannexImportDiscoveryDialog({
             tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
             Baitly — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
           </span>
-        </Stack>
+        </div>
 
         {/* Loading initial */}
         {loading && (
-          <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ py: 6 }}>
+          <div className="flex flex-col items-center justify-center gap-3 py-9">
             <Spinner className="size-6" />
             <p className="cn-text-body2 text-muted-foreground">
               Recherche des proprietes en ligne...
             </p>
-          </Stack>
+          </div>
         )}
 
         {/* Erreur */}
@@ -443,19 +431,17 @@ export default function ChannexImportDiscoveryDialog({
 
         {/* Recap apres import */}
         {importResult && (
-          <Alert
-            severity={importResult.errors > 0 ? 'warning' : 'success'}
-            variant="outlined"
-            sx={{ mb: 2 }}
-          >
-            <strong>{importResult.created}</strong> creees
-            {importResult.skipped > 0 && (
-              <> · <strong>{importResult.skipped}</strong> ignorees (deja mappees)</>
-            )}
-            {importResult.errors > 0 && (
-              <> · <strong>{importResult.errors}</strong> erreurs</>
-            )}
-          </Alert>
+          <UiAlert variant={importResult.errors > 0 ? 'warning' : 'success'} className="mb-3">
+            <AlertDescription>
+              <strong>{importResult.created}</strong> creees
+              {importResult.skipped > 0 && (
+                <> · <strong>{importResult.skipped}</strong> ignorees (deja mappees)</>
+              )}
+              {importResult.errors > 0 && (
+                <> · <strong>{importResult.errors}</strong> erreurs</>
+              )}
+            </AlertDescription>
+          </UiAlert>
         )}
 
         {/* Cas 1 : Hub vide (aucune propriete cote distribution)
@@ -464,7 +450,7 @@ export default function ChannexImportDiscoveryDialog({
             setup-oauth backend qui cree une property pivot + ouvre l'iframe. */}
         {!loading && !error && discovered.length === 0 && totalInHub === 0 && !importResult && (
           <div className="py-3 px-1.5">
-            <Stack alignItems="center" sx={{ mb: 2.5, textAlign: 'center' }}>
+            <div className="flex flex-col items-center text-center mb-[15px]">
               <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--accent-soft)] inline-flex items-center justify-center mb-[9px]" style={{ color: ACCENT }}>
                 <Info size={24} />
               </div>
@@ -476,11 +462,11 @@ export default function ChannexImportDiscoveryDialog({
                 Apres authentification, Baitly detectera automatiquement vos listings
                 et vous proposera de les importer.
               </span>
-            </Stack>
+            </div>
 
             {/* Picker OTA inline (5 cards horizontales en grid responsive)
                 + indication "Re-detecter" si un channel existe deja pour cet OTA */}
-            <Stack spacing={1} sx={{ mb: 2 }}>
+            <div className="flex flex-col gap-1.5 mb-3">
               {CHANNEX_OTA_OPTIONS.map((option) => {
                 const isLoading = settingUpOta === option.code;
                 const disabled = settingUpOta !== null && !isLoading;
@@ -490,45 +476,37 @@ export default function ChannexImportDiscoveryDialog({
                     || ota.otaName.toLowerCase() === option.name.toLowerCase()
                 );
                 return (
-                  <ButtonBase
+                  // La couleur de marque est une valeur d'execution : elle passe par une
+                  // variable CSS posee inline, que les classes hover/focus peuvent lire.
+                  <button
+                    type="button"
                     key={option.code}
                     onClick={() => handleSetupOauth(option.code, existing?.channelId)}
                     disabled={settingUpOta !== null}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      width: '100%',
-                      p: 1.25,
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: isLoading ? option.brandColor : 'divider',
-                      bgcolor: isLoading ? `${option.brandColor}08` : 'background.paper',
-                      textAlign: 'left',
-                      cursor: settingUpOta !== null ? 'wait' : 'pointer',
-                      opacity: disabled ? 0.45 : 1,
-                      transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                      '&:hover': settingUpOta === null ? {
-                        borderColor: option.brandColor,
-                        bgcolor: `${option.brandColor}08`,
-                        transform: 'translateX(2px)',
-                      } : {},
-                      '&:focus-visible': {
-                        outline: `2px solid ${option.brandColor}`,
-                        outlineOffset: 2,
-                      },
-                    }}
+                    style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
+                    className={cn(
+                      'flex items-center gap-2 w-full p-[7.5px] rounded-[12px] border border-solid text-start',
+                      'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                      'focus-visible:[outline:2px_solid_var(--ota-brand)] focus-visible:outline-offset-2',
+                      settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
+                      isLoading
+                        ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
+                        : 'border-[var(--line)] bg-[var(--card)]',
+                      settingUpOta === null
+                        && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)] hover:translate-x-[2px]',
+                      disabled && 'opacity-45',
+                    )}
                   >
-                    <img className="w-[40px] h-[40px] rounded-[1px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                    <img className="w-[40px] h-[40px] rounded-[1px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
                     <div className="flex-1 min-w-0">
-                      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
+                      <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px]">
                         <p className="cn-text-body2 font-semibold leading-[1.3]">
                           {existing ? `Re-detecter mes listings ${option.name}` : `Connecter ${option.name}`}
                         </p>
                         {existing && (
                           <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />OAuth fait</Badge>
                         )}
-                      </Stack>
+                      </div>
                       <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                         {isLoading
                           ? 'Preparation de la connexion...'
@@ -537,19 +515,19 @@ export default function ChannexImportDiscoveryDialog({
                             : option.description}
                       </span>
                     </div>
-                    <div className="shrink-0 flex items-center" style={{ color: isLoading ? option.brandColor : 'text.disabled' }}>
+                    <div className="shrink-0 flex items-center" style={{ color: isLoading ? option.brandColor : 'var(--faint)' }}>
                       {isLoading
-                        ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
+                        ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
                         : <span className="cn-text-caption font-semibold">→</span>}
                     </div>
-                  </ButtonBase>
+                  </button>
                 );
               })}
-            </Stack>
+            </div>
 
             {/* Action secondaire : si l'utilisateur prefere passer par une property Baitly existante */}
             {onRequestConnectExisting && (
-              <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
+              <div className="flex flex-row gap-1.5 justify-center mt-3">
                 <span className="cn-text-caption text-muted-foreground self-center">
                   Ou bien :
                 </span>
@@ -570,7 +548,7 @@ export default function ChannexImportDiscoveryDialog({
                   <RefreshCw size={12} />
                   Rafraichir
                 </Button>
-              </Stack>
+              </div>
             )}
           </div>
         )}
@@ -578,7 +556,7 @@ export default function ChannexImportDiscoveryDialog({
         {/* Cas 2 : Hub non vide mais tout deja importe */}
         {!loading && !error && discovered.length === 0 && totalInHub > 0 && !importResult && (
           <div className="py-6 px-3">
-            <Stack alignItems="center" sx={{ mb: 3, textAlign: 'center' }}>
+            <div className="flex flex-col items-center text-center mb-[18px]">
               <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] inline-flex items-center justify-center mb-2">
                 <CheckCircle2 size={24} />
               </div>
@@ -598,16 +576,16 @@ export default function ChannexImportDiscoveryDialog({
                 <RefreshCw size={14} />
                 Verifier a nouveau
               </Button>
-            </Stack>
+            </div>
 
             {/* Section "Re-detecter listings" : visible si au moins 1 OTA est connecte */}
             {connectedOtas.length > 0 && (
               <>
-                <Divider sx={{ my: 2 }} />
+                <Separator className="my-3" />
                 <span className="cn-text-caption text-muted-foreground font-semibold block mb-1.5 text-center">
                   Re-detecter de nouveaux listings ajoutes recemment cote OTA
                 </span>
-                <Stack spacing={1}>
+                <div className="flex flex-col gap-1.5">
                   {CHANNEX_OTA_OPTIONS
                     .flatMap((option) => {
                       const existing = connectedOtas.find(
@@ -617,30 +595,24 @@ export default function ChannexImportDiscoveryDialog({
                       if (!existing) return [];
                       const isLoading = settingUpOta === option.code;
                       return [
-                        <ButtonBase
+                        <button
+                          type="button"
                           key={option.code}
                           onClick={() => handleSetupOauth(option.code, existing.channelId)}
                           disabled={settingUpOta !== null}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            width: '100%',
-                            p: 1.25,
-                            borderRadius: 1.5,
-                            border: '1px solid',
-                            borderColor: isLoading ? option.brandColor : 'divider',
-                            bgcolor: isLoading ? `${option.brandColor}08` : 'background.paper',
-                            textAlign: 'left',
-                            cursor: settingUpOta !== null ? 'wait' : 'pointer',
-                            transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                            '&:hover': settingUpOta === null ? {
-                              borderColor: option.brandColor,
-                              bgcolor: `${option.brandColor}08`,
-                            } : {},
-                          }}
+                          style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
+                          className={cn(
+                            'flex items-center gap-2 w-full p-[7.5px] rounded-[12px] border border-solid text-start',
+                            'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                            settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
+                            isLoading
+                              ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
+                              : 'border-[var(--line)] bg-[var(--card)]',
+                            settingUpOta === null
+                              && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
+                          )}
                         >
-                          <img className="w-[36px] h-[36px] rounded-[1px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                          <img className="w-[36px] h-[36px] rounded-[1px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
                           <div className="flex-1 min-w-0">
                             <p className="cn-text-body2 font-semibold leading-[1.3]">
                               Re-detecter mes listings {option.name}
@@ -651,15 +623,15 @@ export default function ChannexImportDiscoveryDialog({
                                 : 'Rouvre le wizard onglet Listing pour mapper de nouveaux listings'}
                             </span>
                           </div>
-                          <div className="shrink-0" style={{ color: isLoading ? option.brandColor : 'text.disabled' }}>
+                          <div className="shrink-0" style={{ color: isLoading ? option.brandColor : 'var(--faint)' }}>
                             {isLoading
-                              ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
+                              ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
                               : <span className="cn-text-caption font-semibold">→</span>}
                           </div>
-                        </ButtonBase>,
+                        </button>,
                       ];
                     })}
-                </Stack>
+                </div>
               </>
             )}
           </div>
@@ -704,7 +676,7 @@ export default function ChannexImportDiscoveryDialog({
               </UiAlert>
             )}
 
-            <Stack spacing={0.5}>
+            <div className="flex flex-col gap-[3px]">
               {discovered.map((p) => {
                 const row = rows[p.channexPropertyId] ?? { selected: p.isImported, propertyType: 'APARTMENT' };
                 // Etat visuel par diff :
@@ -726,18 +698,21 @@ export default function ChannexImportDiscoveryDialog({
                 }
                 return (
                   <div className="flex items-start gap-[9px] p-[7.5px] rounded-[12px] border border-solid" style={{ borderColor: borderCol, backgroundColor: bgCol, transition: 'all 180ms ease-out' }} key={p.channexPropertyId}>
+                    {/* Teinte de la case cochee : deux jeux de classes LITTERAUX,
+                        une classe Tailwind ne pouvant pas naitre d'une variable. */}
                     <Checkbox
                       checked={row.selected}
-                      onChange={(e) => toggleRow(p.channexPropertyId, e.target.checked)}
-                      size="small"
-                      sx={{
-                        p: 0.5,
-                        color: p.isImported ? 'var(--ok)' : ACCENT,
-                        '&.Mui-checked': { color: p.isImported ? 'var(--ok)' : ACCENT },
-                      }}
+                      onCheckedChange={(checked) => toggleRow(p.channexPropertyId, checked === true)}
+                      aria-label={`Selectionner ${p.title || 'cette propriete'}`}
+                      className={cn(
+                        'mt-0.5',
+                        p.isImported
+                          ? 'data-checked:bg-[var(--ok)] data-checked:border-[var(--ok)]'
+                          : 'data-checked:bg-[var(--accent)] data-checked:border-[var(--accent)]',
+                      )}
                     />
                     <div className="flex-1 min-w-0">
-                      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25, flexWrap: 'wrap' }}>
+                      <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px] flex-wrap">
                         <p className="cn-text-body2 font-semibold truncate me-0.5">
                           {p.title || 'Sans titre'}
                         </p>
@@ -761,7 +736,7 @@ export default function ChannexImportDiscoveryDialog({
                         {p.photoCount > 0 && (
                           <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)] [&>svg]:text-[var(--info)] [&>svg]:ms-0.5"><ImageIcon size={11} />{`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}</Badge>
                         )}
-                      </Stack>
+                      </div>
                       <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
                         {[
                           p.country,
@@ -783,7 +758,7 @@ export default function ChannexImportDiscoveryDialog({
                         || p.otaCheckOutTime != null || p.otaGuestsIncluded != null
                         || p.otaCancellationPolicy || p.otaInstantBooking
                         || p.otaAllowsPets != null) && (
-                        <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ mt: 0.5, gap: 0.5 }}>
+                        <div className="flex flex-row flex-wrap items-center gap-[3px] mt-[3px]">
                           {/* Type listing brut (donnee structuree primaire) */}
                           {p.otaListingType && (
                             <StatusChip size="sm" tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Type OTA : ${p.otaListingType}`} className="text-[0.65rem] font-mono" />
@@ -835,62 +810,59 @@ export default function ChannexImportDiscoveryDialog({
                           {p.otaAllowsEvents === true && (
                             <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">evenements acceptes</Badge>
                           )}
-                        </Stack>
+                        </div>
                       )}
                     </div>
                     {/* Colonne droite : logos OTA + chip "Actif" en haut,
                         dropdown type Baitly en dessous. */}
-                    <Stack direction="column" spacing={1} alignItems="flex-end" sx={{ flexShrink: 0 }}>
+                    <div className="flex flex-col gap-1.5 items-end shrink-0">
                       {(p.connectedOtas?.length > 0 || p.hasActiveOta) && (
-                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <div className="flex flex-row items-center gap-[4.5px]">
                           {p.connectedOtas && p.connectedOtas.length > 0 && (
                             <OtaSyncBadges otas={p.connectedOtas} size={22} />
                           )}
                           {p.hasActiveOta && (
                             <Badge variant="secondary" className="h-[20px] text-[0.7rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />Actif</Badge>
                           )}
-                        </Stack>
+                        </div>
                       )}
                       {/* Dropdown type Baitly : visible UNIQUEMENT pour les nouveaux
                           imports (proprietes non-importees). */}
                       {!p.isImported && (
-                        <FormControl size="small" sx={{ minWidth: 130 }}>
-                          <Select
-                            value={row.propertyType}
-                            onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
-                            disabled={!row.selected}
-                            sx={{ fontSize: '0.8rem' }}
-                          >
-                            {propertyTypeOptions.map((opt) => (
-                              <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.85rem' }}>
-                                {opt.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <NativeSelect
+                          size="sm"
+                          className="min-w-[130px]"
+                          aria-label="Type de propriete Baitly"
+                          value={row.propertyType}
+                          onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
+                          disabled={!row.selected}
+                        >
+                          {propertyTypeOptions.map((opt) => (
+                            <NativeSelectOption key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
                       )}
-                    </Stack>
+                    </div>
                   </div>
                 );
               })}
-            </Stack>
+            </div>
 
             {/* Details du recap (errors / skipped) */}
             {importResult && importResult.details.some((d) => d.status !== 'CREATED') && (
               <div className="mt-3">
-                <Divider sx={{ mb: 1 }} />
+                <Separator className="mb-1.5" />
                 <span className="cn-text-caption text-muted-foreground font-semibold block mb-0.5">
                   Detail des cas particuliers
                 </span>
-                <Stack spacing={0.5}>
+                <div className="flex flex-col gap-[3px]">
                   {importResult.details
                     .flatMap((d) => d.status !== 'CREATED' ? [
-                      <Stack
+                      <div
                         key={d.channexPropertyId}
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                        sx={{ fontSize: '0.75rem' }}
+                        className="flex flex-row items-center gap-1.5 text-[0.75rem]"
                       >
                         <AlertCircle
                           size={12}
@@ -899,14 +871,14 @@ export default function ChannexImportDiscoveryDialog({
                         <span className="cn-text-caption text-muted-foreground flex-1 truncate">
                           {d.channexPropertyId.slice(0, 8)} : {d.message}
                         </span>
-                      </Stack>,
+                      </div>,
                     ] : [])}
-                </Stack>
+                </div>
               </div>
             )}
           </>
         )}
-      </DialogContent>
+        </div>
 
       {/* Footer avec bouton Import */}
       {!loading && discovered.length > 0 && (
@@ -915,68 +887,52 @@ export default function ChannexImportDiscoveryDialog({
               (SUPER_ADMIN / SUPER_MANAGER). Permet d'attribuer la property creee
               a une autre org + un autre user (sinon owner = self). */}
           {staffMode && diff.toImport.length > 0 ? (
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
+            <div className="flex flex-row items-center gap-1.5 flex-1 min-w-0">
               <span className="cn-text-caption text-muted-foreground font-semibold shrink-0">
                 Attribuer à :
               </span>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <Select
-                  value={targetOrgId}
-                  onChange={(e) => setTargetOrgId(e.target.value as number | '')}
-                  displayEmpty
-                  sx={{ fontSize: '0.8rem' }}
-                  renderValue={(v) => v
-                    ? (organizations.find((o) => o.id === v)?.name ?? `Org #${v}`)
-                    : 'Mon organisation'}
-                >
-                  <MenuItem value="" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                    Mon organisation (par défaut)
-                  </MenuItem>
-                  {organizations.map((o) => (
-                    <MenuItem key={o.id} value={o.id} sx={{ fontSize: '0.85rem' }}>
-                      {o.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              {/* Le placeholder de l'ancien renderValue devient la premiere option. */}
+              <NativeSelect
+                size="sm"
+                className="min-w-[160px]"
+                aria-label="Organisation cible"
+                value={targetOrgId === '' ? '' : String(targetOrgId)}
+                onChange={(e) => setTargetOrgId(e.target.value === '' ? '' : Number(e.target.value))}
+              >
+                <NativeSelectOption value="">Mon organisation (par défaut)</NativeSelectOption>
+                {organizations.map((o) => (
+                  <NativeSelectOption key={o.id} value={o.id}>
+                    {o.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
               {targetOrgId !== '' && (
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <Select
-                    value={targetOwnerId}
-                    onChange={(e) => setTargetOwnerId(e.target.value as number | '')}
-                    displayEmpty
-                    sx={{ fontSize: '0.8rem' }}
-                    renderValue={(v) => v
-                      ? (() => {
-                          const u = usersInOrg.find((x) => x.id === v);
-                          if (!u) return `User #${v}`;
-                          const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
-                          return name || u.email || `User #${v}`;
-                        })()
-                      : 'Choisir un owner'}
-                  >
-                    {usersInOrg.length === 0 && (
-                      <MenuItem value="" disabled sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                        Aucun user dans cette org
-                      </MenuItem>
-                    )}
-                    {usersInOrg.map((u) => {
-                      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
-                      const label = fullName ? `${fullName} (${u.email})` : u.email;
-                      return (
-                        <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.85rem' }}>
-                          {label}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
+                <NativeSelect
+                  size="sm"
+                  className="min-w-[160px]"
+                  aria-label="Owner cible"
+                  value={targetOwnerId === '' ? '' : String(targetOwnerId)}
+                  onChange={(e) => setTargetOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
+                >
+                  <NativeSelectOption value="">
+                    {usersInOrg.length === 0 ? 'Aucun user dans cette org' : 'Choisir un owner'}
+                  </NativeSelectOption>
+                  {usersInOrg.map((u) => {
+                    const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+                    const label = fullName ? `${fullName} (${u.email})` : u.email;
+                    return (
+                      <NativeSelectOption key={u.id} value={u.id}>
+                        {label}
+                      </NativeSelectOption>
+                    );
+                  })}
+                </NativeSelect>
               )}
-            </Stack>
+            </div>
           ) : (
             <div className="flex-1" />
           )}
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+          <div className="flex flex-row items-center gap-1.5 shrink-0">
           <Button variant="ghost" size="sm" onClick={onClose} className="text-[var(--muted)]">
             Fermer
           </Button>
@@ -997,9 +953,10 @@ export default function ChannexImportDiscoveryDialog({
                     ? `Importer ${diff.toImport.length} propriete${diff.toImport.length > 1 ? 's' : ''}`
                     : `Desimporter ${diff.toDisconnect.length} propriete${diff.toDisconnect.length > 1 ? 's' : ''}`}
           </Button>
-          </Stack>
+          </div>
         </div>
       )}
+      </DialogContent>
     </Dialog>
 
     {/* iframe OAuth pour la connexion OTA "globale" depuis l'etat Hub vide.

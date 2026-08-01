@@ -5,15 +5,30 @@ import { Info } from 'lucide-react';
 import {
   Spinner,
   Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
   Input,
   NativeSelect,
+  Switch,
   Textarea,
 } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
+// Rescapes MUI. `Snackbar` + `Alert` flottante : changer le mecanisme de
+// notification depasse la migration. `Menu`/`MenuItem` : le menu d'actions par
+// ligne est declenche par un `anchorEl` fourni par <ServicesCatalog>, un
+// DropdownMenu exigerait de deplacer le declencheur dans ce composant tiers ;
+// les deux menus de filtre restent en MUI pour que les trois popups du meme
+// ecran gardent le meme rendu. `TextField select multiple` : cf. commentaire
+// au point d'usage.
+import { Alert, Menu, MenuItem, Snackbar, TextField } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -638,11 +653,13 @@ const UpsellsAdmin: React.FC = () => {
       {headerFilters}
 
       {/* Aperçu guest d'un service : carte telle que le voyageur la voit (livret / booking engine). */}
-      <Dialog open={!!previewOffer} onClose={() => setPreviewOffer(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={!!previewOffer} onOpenChange={(next) => !next && setPreviewOffer(null)}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
+          </DialogHeader>
           {previewOffer && (
-            <div className="border border-[var(--line)] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
+            <div className="border border-solid border-[var(--line)] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
               <div
                 className="h-[150px] bg-[var(--hover)] bg-cover bg-center"
                 style={{ backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none' }}
@@ -659,19 +676,22 @@ const UpsellsAdmin: React.FC = () => {
               </div>
             </div>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       {/* Commissions (résumé activités + ma part conciergerie) — dans un dialog pour libérer l'écran. */}
-      <Dialog open={commissionsOpen} onClose={() => setCommissionsOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('upsells.commissions.dialogTitle', 'Commissions & ma part')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={commissionsOpen} onOpenChange={(next) => !next && setCommissionsOpen(false)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>{t('upsells.commissions.dialogTitle', 'Commissions & ma part')}</DialogTitle>
+          </DialogHeader>
+          <div>
       {commissionSummary ? (
-        <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+        <Card className="mb-3">
+          <CardContent>
             <SectionHeading
               icon={<Percent size={17} strokeWidth={1.75} />}
               title={t('upsells.commissions.title', 'Commissions activités')}
@@ -704,10 +724,11 @@ const UpsellsAdmin: React.FC = () => {
           'Votre part sur les upsells se règle dans Paramètres › Paiement, onglet « Services & activités ».',
         )}</AlertDescription>
       </UiAlert>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
@@ -718,12 +739,15 @@ const UpsellsAdmin: React.FC = () => {
       </div>
 
       {/* Éditeur d'offre */}
-      <Dialog open={edit.open} onClose={() => setEdit(emptyEdit)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {edit.id == null ? t('upsells.form.createTitle', 'Nouveau service') : t('upsells.form.editTitle', 'Modifier le service')}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 0.5 }}>
+      <Dialog open={edit.open} onOpenChange={(next) => !next && setEdit(emptyEdit)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>
+              {edit.id == null ? t('upsells.form.createTitle', 'Nouveau service') : t('upsells.form.editTitle', 'Modifier le service')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="-mx-4 max-h-[60vh] overflow-y-auto px-4">
+          <div className="flex flex-col gap-3 mt-[3px]">
             <div className="flex gap-2 flex-wrap">
               <Field className="w-auto min-w-[180px]">
                 <FieldLabel htmlFor="upsell-type">{t('upsells.fields.type', 'Catégorie')}</FieldLabel>
@@ -877,33 +901,43 @@ const UpsellsAdmin: React.FC = () => {
                 ) : null}
               </div>
             </div>
-            <FormControlLabel
-              control={<Switch checked={edit.active} onChange={(e) => setEdit((s) => ({ ...s, active: e.target.checked }))} />}
-              label={t('upsells.fields.active', 'Service actif (visible sur le livret)')}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'space-between' }}>
-          {editingOffer ? (
-            <Button variant="destructive" onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
-              <Delete size={15} strokeWidth={1.75} />
-              {t('upsells.actions.delete', 'Supprimer')}
-            </Button>
-          ) : <span />}
-          <div className="flex gap-1.5">
-            <Button variant="ghost" onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
-              {t('upsells.actions.save', 'Enregistrer')}
-            </Button>
+            <Field orientation="horizontal" className="gap-1.5">
+              <Switch
+                id="upsell-active"
+                checked={edit.active}
+                onCheckedChange={(checked) => setEdit((s) => ({ ...s, active: checked }))}
+              />
+              <FieldLabel htmlFor="upsell-active" className="font-normal">
+                {t('upsells.fields.active', 'Service actif (visible sur le livret)')}
+              </FieldLabel>
+            </Field>
           </div>
-        </DialogActions>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            {editingOffer ? (
+              <Button variant="destructive" onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
+                <Delete size={15} strokeWidth={1.75} />
+                {t('upsells.actions.delete', 'Supprimer')}
+              </Button>
+            ) : <span />}
+            <div className="flex gap-1.5">
+              <Button variant="ghost" onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+                {t('upsells.actions.save', 'Enregistrer')}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Ventes */}
-      <Dialog open={ordersOpen} onClose={() => setOrdersOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('upsells.orders.title', 'Ventes de services')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={ordersOpen} onOpenChange={(next) => !next && setOrdersOpen(false)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>{t('upsells.orders.title', 'Ventes de services')}</DialogTitle>
+          </DialogHeader>
+          <div className="-mx-4 max-h-[60vh] overflow-y-auto px-4">
           {ordersLoading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
@@ -913,7 +947,7 @@ const UpsellsAdmin: React.FC = () => {
               {t('upsells.orders.empty', 'Aucune vente pour le moment.')}
             </p>
           ) : (
-            <Stack spacing={1.25}>
+            <div className="flex flex-col gap-[7.5px]">
               {orders.map((order: UpsellOrder) => (
                 <div className="border-b border-[var(--line)] pb-1.5" key={order.id}>
                   <div className="flex justify-between items-center gap-1.5">
@@ -939,12 +973,13 @@ const UpsellsAdmin: React.FC = () => {
                   </div>
                 </div>
               ))}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       <ConfirmationModal

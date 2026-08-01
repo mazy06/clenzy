@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Divider, Stack } from '@mui/material';
+import { Separator } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import { API_CONFIG } from '../../config/api';
 
@@ -114,7 +114,9 @@ export default function PublicOwnerConstellation() {
 
   if (state === 'notfound' || state === 'error' || !view) {
     return (
-      <Container maxWidth="sm" sx={{ py: 10, textAlign: 'center' }}>
+      // Report du Container MUI maxWidth="sm" : largeur bornee 600px, centree,
+      // gouttiere 16px puis 24px au-dela de 600px (breakpoints MUI).
+      <div className="mx-auto w-full max-w-[600px] px-4 min-[600px]:px-6 py-[60px] text-center">
         <h6 className="cn-text-h6 mb-[0.35em]">
           {t('ownerConstellation.invalidTitle', 'Lien invalide ou expiré')}
         </h6>
@@ -124,7 +126,7 @@ export default function PublicOwnerConstellation() {
             'Ce lien de suivi n’est plus actif. Contactez votre conciergerie pour en obtenir un nouveau.'
           )}
         </p>
-      </Container>
+      </div>
     );
   }
 
@@ -133,9 +135,10 @@ export default function PublicOwnerConstellation() {
   const accent = brandingPrimaryColor || '#6B8A9A';
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 3, md: 6 } }}>
+    // Report du Container MUI maxWidth="md" (900px) — mêmes gouttières.
+    <div className="mx-auto w-full max-w-[900px] px-4 min-[600px]:px-6 py-[18px] min-[900px]:py-9">
       {/* En-tête white-label : uniquement la conciergerie */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'baseline' }} spacing={1}>
+      <div className="flex flex-col min-[600px]:flex-row justify-between min-[600px]:items-baseline gap-1.5">
         <div>
           {brandingLogoUrl && (
             <img className="max-h-[44px] max-w-[220px] block mb-1.5" src={brandingLogoUrl} alt={conciergerieName} />
@@ -151,12 +154,12 @@ export default function PublicOwnerConstellation() {
         <span className="cn-text-caption text-muted-foreground">
           {t('ownerConstellation.readOnly', 'Consultation seule')}
         </span>
-      </Stack>
+      </div>
 
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
 
       {/* KPIs de l'année (tableau de bord propriétaire) */}
-      <Stack direction="row" spacing={4} useFlexGap flexWrap="wrap">
+      <div className="flex flex-row flex-wrap gap-6">
         <KpiValue label={t('ownerConstellation.grossRevenue', 'Revenus bruts')} value={euros(dashboard.totalRevenue)} />
         <KpiValue label={t('ownerConstellation.commissions', 'Commissions')} value={euros(dashboard.totalCommissions)} />
         <KpiValue label={t('ownerConstellation.netRevenue', 'Net propriétaire')} value={euros(dashboard.netRevenue)} />
@@ -164,9 +167,9 @@ export default function PublicOwnerConstellation() {
           label={t('ownerConstellation.occupancy', 'Occupation')}
           value={`${Math.round((dashboard.averageOccupancy ?? 0) * 100) / 100} %`}
         />
-      </Stack>
+      </div>
 
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
 
       {/* Activité des agents, par bien */}
       <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">
@@ -179,10 +182,10 @@ export default function PublicOwnerConstellation() {
         </p>
       )}
 
-      <Stack spacing={3} sx={{ mt: 1 }}>
+      <div className="flex flex-col gap-[18px] mt-1.5">
         {agentActivity.map((property) => (
           <div key={property.propertyId}>
-            <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+            <div className="flex flex-row justify-between items-baseline">
               <h6 className="cn-text-subtitle2">{property.propertyName}</h6>
               <span className="cn-text-caption text-muted-foreground tabular-nums">
                 {t('ownerConstellation.counters', '{{actions}} actions · {{suggestions}} suggestions', {
@@ -190,31 +193,36 @@ export default function PublicOwnerConstellation() {
                   suggestions: property.suggestionsLast30Days,
                 })}
               </span>
-            </Stack>
-            <Stack spacing={0.75} sx={{ mt: 1, pl: 1.5, borderLeft: '1px solid', borderColor: accent }}>
+            </div>
+            {/* La teinte du filet vient du branding white-label (valeur runtime) :
+                style inline, une classe Tailwind ne peut pas en naitre. */}
+            <div
+              className="flex flex-col gap-[4.5px] mt-1.5 pl-[9px] border-l border-solid"
+              style={{ borderLeftColor: accent }}
+            >
               {property.recent.length === 0 && (
                 <p className="cn-text-body2 text-muted-foreground">
                   {t('ownerConstellation.noPropertyActivity', 'Rien à signaler sur ce bien.')}
                 </p>
               )}
               {property.recent.map((line, index) => (
-                <Stack key={index} direction="row" spacing={1.5} alignItems="baseline">
+                <div key={index} className="flex flex-row gap-[9px] items-baseline">
                   <span className="cn-text-caption text-muted-foreground whitespace-nowrap tabular-nums">
                     {dateLabel(line.createdAt)}
                   </span>
                   <p className="cn-text-body2">{line.summary || line.moduleKey}</p>
-                </Stack>
+                </div>
               ))}
-            </Stack>
+            </div>
           </div>
         ))}
-      </Stack>
+      </div>
 
-      <Divider sx={{ my: 4 }} />
+      <Separator className="my-6" />
 
       <span className="cn-text-caption text-muted-foreground">
         {t('ownerConstellation.footer', 'Rapport préparé par {{name}}.', { name: conciergerieName })}
       </span>
-    </Container>
+    </div>
   );
 }

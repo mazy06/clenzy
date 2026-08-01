@@ -20,9 +20,19 @@ import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, ButtonBase, Alert, Stack, Divider, Tooltip } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../../components/ui';
-import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
@@ -96,12 +106,15 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
   }, [status]);
 
   return (
-    <Tooltip title={meta.description} placement="top" arrow>
-      {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-          (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-      <span className="inline-flex">
-        <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-[0.7rem]" />
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+            (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+        <span className="inline-flex">
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-[0.7rem]" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{meta.description}</TooltipContent>
     </Tooltip>
   );
 }
@@ -109,22 +122,13 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
 // Carte d'action « choix » — style Signature (tokens, hover accent, sans
 // transform). NB : `${ACCENT}1A` était invalide (var() + alpha) → on utilise
 // les tokens dédiés var(--accent-soft).
-const choiceCardSx = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1.5,
-  width: '100%',
-  p: '14px 16px',
-  borderRadius: '12px',
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  textAlign: 'left',
-  cursor: 'pointer',
-  transition: 'border-color .15s, background-color .15s',
-  '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-} as const;
+const CHOICE_CARD_CLASS = [
+  'flex items-center gap-[9px] w-full py-[14px] px-[16px] rounded-[12px]',
+  'border border-solid border-[var(--line)] bg-[var(--card)] text-start cursor-pointer',
+  'transition-[border-color,background-color] duration-150 motion-reduce:transition-none',
+  'hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]',
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+].join(' ');
 
 const CHOICE_ICON_CLASS = 'w-10 h-10 rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center shrink-0';
 
@@ -464,55 +468,47 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 2,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            py: 1.5,
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+      <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          {/* La croix de fermeture vient de DialogContent : `pe-10` lui reserve sa place. */}
+          <DialogHeader className="flex-row items-center gap-1.5 -mx-4 px-4 pb-[9px] pe-10 border-b border-solid border-[var(--line)]">
             {view !== 'CHOICE' && (
-              <Tooltip title="Retour au choix initial">
-                <IconButton
-                  size="small"
-                  onClick={() => setView('CHOICE')}
-                  sx={{ flexShrink: 0 }}
-                >
-                  <ArrowLeft size={18} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Retour au choix initial"
+                      onClick={() => setView('CHOICE')}
+                    >
+                      <ArrowLeft size={18} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Retour au choix initial</TooltipContent>
               </Tooltip>
             )}
             <div className="min-w-0 flex-1">
-              <p className="cn-text-body1 text-[0.95rem] font-bold">
+              <DialogTitle className="text-[0.95rem] font-bold">
                 {view === 'CHOICE'
                   ? (guided
                     ? t('channexGuided.title', 'Distribuez vos logements')
                     : 'Distribution OTA — Que voulez-vous faire ?')
                   : 'Connecter mes proprietes aux OTAs'}
-              </p>
-              <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+              </DialogTitle>
+              <DialogDescription className="text-[0.75rem]">
                 {view === 'CHOICE'
                   ? (guided
                     ? t('channexGuided.subtitle', 'Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.')
                     : 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Baitly.')
                   : 'Selectionnez une propriete pour l\'enregistrer dans le hub puis y brancher Airbnb, Booking, etc.'}
-              </p>
+              </DialogDescription>
             </div>
-          </Stack>
-          <IconButton onClick={onClose} size="small" sx={{ flexShrink: 0 }}>
-            <X size={18} />
-          </IconButton>
-        </DialogTitle>
+          </DialogHeader>
 
-        <DialogContent sx={{ pt: 2 }}>
           {view === 'CHOICE' ? (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               {/* Mode guide (end-user) : on masque le diagnostic technique et le
                   health panel par defaut (trop techniques) et on les expose
                   derriere un toggle discret. En mode Integrations (non guide),
@@ -522,17 +518,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   {/* Note calme de degradation gracieuse : si un appel Channex a
                       echoue (API incomplete), on ne montre PAS d'erreur technique. */}
                   {guidedDegraded && (
-                    <Alert
-                      severity="info"
-                      variant="outlined"
-                      icon={<Clock size={16} />}
-                      sx={{ fontSize: '0.78rem', alignItems: 'center' }}
-                    >
-                      {t(
-                        'channexGuided.configuringNote',
-                        'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
-                      )}
-                    </Alert>
+                    <UiAlert variant="info" className="text-[0.78rem]">
+                      <Clock size={16} />
+                      <AlertDescription>
+                        {t(
+                          'channexGuided.configuringNote',
+                          'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
+                        )}
+                      </AlertDescription>
+                    </UiAlert>
                   )}
                 </>
               ) : (
@@ -579,9 +573,10 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               )}
 
               {/* Card 1 : Importer une propriete deja en ligne dans un OTA */}
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => setImportDialogOpen(true)}
-                sx={choiceCardSx}
+                className={CHOICE_CARD_CLASS}
               >
                 <div className={CHOICE_ICON_CLASS}>
                   <Globe size={22} />
@@ -601,12 +596,13 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 <div className="text-muted-foreground opacity-60 shrink-0 self-center">
                   <ChevronRight size={18} />
                 </div>
-              </ButtonBase>
+              </button>
 
               {/* Card 2 : Connecter une propriete deja dans le PMS */}
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => setView('CONNECT_EXISTING')}
-                sx={choiceCardSx}
+                className={CHOICE_CARD_CLASS}
               >
                 <div className={CHOICE_ICON_CLASS}>
                   <Home size={22} />
@@ -626,12 +622,13 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 <div className="text-muted-foreground opacity-60 shrink-0 self-center">
                   <ChevronRight size={18} />
                 </div>
-              </ButtonBase>
+              </button>
 
               {/* Card 3 : Gerer les OTAs connectes (voir/deconnecter Airbnb, Booking, etc.) */}
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => setView('MANAGE_OTAS')}
-                sx={choiceCardSx}
+                className={CHOICE_CARD_CLASS}
               >
                 <div className={CHOICE_ICON_CLASS}>
                   <Link2 size={22} />
@@ -651,7 +648,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 <div className="text-muted-foreground opacity-60 shrink-0 self-center">
                   <ChevronRight size={18} />
                 </div>
-              </ButtonBase>
+              </button>
 
               {/* Mode guide : diagnostic technique masque derriere un toggle
                   discret. Jamais auto-affiche (pas de HTTP 401 / CHANNEX_API_KEY
@@ -672,23 +669,21 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 </div>
               )}
               {guided && showTechStatus && <ChannexPreflightBanner defaultCollapsed />}
-            </Stack>
+            </div>
           ) : view === 'MANAGE_OTAS' ? (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               {/* Mode guide : si la liste des OTAs n'a pas pu charger (API
                   incomplete), note calme au lieu d'une erreur technique. */}
               {guided && guidedDegraded && (
-                <Alert
-                  severity="info"
-                  variant="outlined"
-                  icon={<Clock size={16} />}
-                  sx={{ fontSize: '0.78rem', alignItems: 'center' }}
-                >
-                  {t(
-                    'channexGuided.configuringNote',
-                    'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
-                  )}
-                </Alert>
+                <UiAlert variant="info" className="text-[0.78rem]">
+                  <Clock size={16} />
+                  <AlertDescription>
+                    {t(
+                      'channexGuided.configuringNote',
+                      'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
+                    )}
+                  </AlertDescription>
+                </UiAlert>
               )}
               {!guided && otasError && (
                 <UiAlert variant="destructive" className="text-[0.78rem]">
@@ -742,7 +737,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                           {initials}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.25, flexWrap: 'wrap' }}>
+                          <div className="flex flex-row items-center gap-1.5 mb-[1.5px] flex-wrap">
                             <p className="cn-text-body2 font-semibold truncate">
                               {otaOption?.name ?? ota.otaName} — {ota.title || 'Sans titre'}
                             </p>
@@ -753,26 +748,33 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                             ) : (
                               <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">Non authentifie</Badge>
                             )}
-                          </Stack>
+                          </div>
                           <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                             Lie a : {ota.attachedPropertyTitle || '(aucune)'}
                           </span>
                         </div>
-                        <Tooltip title="Deconnecter cet OTA (supprime tokens OAuth)">
-                          <IconButton
-                            size="small"
-                            onClick={() => setDisconnectOtaConfirm(ota)}
-                            sx={{ color: 'var(--err)' }}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Deconnecter cet OTA"
+                                onClick={() => setDisconnectOtaConfirm(ota)}
+                                className="text-[var(--err)]"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Deconnecter cet OTA (supprime tokens OAuth)</TooltipContent>
                         </Tooltip>
                       </div>
                     );
                   })}
                 </>
               )}
-            </Stack>
+            </div>
           ) : (
             <>
           {globalError && (
@@ -791,12 +793,14 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               Aucune propriete dans votre organisation.
             </p>
           ) : (
-            <Stack divider={<Divider />} spacing={0}>
+            // Le separateur du Stack MUI devient une bordure haute par ligne
+            // (la premiere n'en porte pas) : meme trait, sans composant intercale.
+            <div className="flex flex-col">
               {properties.map((property) => {
                 const mapping = mappings.get(property.id);
                 const isBusy = busyPropertyId === property.id;
                 return (
-                  <div className="py-2 flex items-center justify-between gap-3" key={property.id}>
+                  <div className="py-2 flex items-center justify-between gap-3 border-t border-solid border-[var(--line)] first:border-t-0" key={property.id}>
                     <div className="flex-1 min-w-0">
                       <p className="cn-text-body1 text-[0.85rem] font-semibold truncate">
                         {property.name}
@@ -808,15 +812,18 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                         {mapping && <StatusBadge status={mapping.syncStatus} />}
                       </div>
                       {mapping?.lastSyncError && (
-                        <Tooltip title={mapping.lastSyncError} arrow>
-                          <p className="cn-text-body1 text-[0.7rem] text-[var(--err)] mt-0.5 italic max-w-[360px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            {mapping.lastSyncError}
-                          </p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <p className="cn-text-body1 text-[0.7rem] text-[var(--err)] mt-0.5 italic max-w-[360px] overflow-hidden text-ellipsis whitespace-nowrap">
+                              {mapping.lastSyncError}
+                            </p>
+                          </TooltipTrigger>
+                          <TooltipContent>{mapping.lastSyncError}</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
 
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <div className="flex flex-row gap-1.5 items-center">
                       {!mapping ? (
                         <Button
                           size="sm"
@@ -837,7 +844,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                               (o) => o.attachedPropertyId === mapping.channexPropertyId,
                             );
                             return (
-                              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: 0.5 }}>
+                              <div className="flex flex-row gap-[3px] items-center me-[3px]">
                                 {CHANNEX_OTA_OPTIONS.map((opt) => {
                                   const conn = propertyOtas.find(
                                     (o) => o.otaName.toLowerCase() === opt.apiChannelName.toLowerCase()
@@ -851,112 +858,141 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                       ? `${opt.name} · OAuth fait, mapping a finaliser`
                                       : `${opt.name} · Cliquer pour connecter`;
                                   const logo = OTA_LOGO_BY_CODE[opt.code];
+                                  // Meme contenu pour les deux formes ; seule l'enveloppe change
+                                  // (element inerte quand l'OTA est deja synchronise, bouton sinon).
+                                  const badgeInner = (
+                                    <>
+                                      {logo && (
+                                        <img className="w-full h-full rounded-[4px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5" src={logo} alt={opt.name} />
+                                      )}
+                                      {isActive && (
+                                        <div className="absolute w-[11px] h-[11px] rounded-[50%] bg-[var(--ok)] text-[var(--on-accent)] flex items-center justify-center border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }}>
+                                          <CheckCircle2 size={7} strokeWidth={4} />
+                                        </div>
+                                      )}
+                                      {!isActive && hasToken && (
+                                        <div className="absolute w-[9px] h-[9px] rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }} />
+                                      )}
+                                    </>
+                                  );
                                   return (
-                                    <Tooltip key={opt.code} title={tooltipLabel} arrow>
-                                      <Box
-                                        component={isActive ? 'div' : 'button'}
-                                        onClick={isActive ? undefined : () => setPickerDialog({ open: true, property })}
-                                        disabled={isActive ? undefined : isBusy}
-                                        sx={{
-                                          position: 'relative',
-                                          display: 'inline-flex',
-                                          width: 22,
-                                          height: 22,
-                                          p: 0,
-                                          border: 'none',
-                                          background: 'transparent',
-                                          cursor: isActive ? 'default' : 'pointer',
-                                          opacity: isActive ? 1 : 0.35,
-                                          filter: isActive ? 'none' : 'grayscale(100%)',
-                                          transition: 'opacity 150ms ease, filter 150ms ease',
-                                          '&:hover': isActive ? {} : { opacity: 0.7, filter: 'grayscale(50%)' },
-                                        }}
-                                      >
-                                        {logo && (
-                                          <img className="w-full h-full rounded-[4px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5" src={logo} alt={opt.name} />
+                                    <Tooltip key={opt.code}>
+                                      <TooltipTrigger asChild>
+                                        {isActive ? (
+                                          <span className="relative inline-flex w-[22px] h-[22px] p-0 cursor-default">
+                                            {badgeInner}
+                                          </span>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => setPickerDialog({ open: true, property })}
+                                            disabled={isBusy}
+                                            aria-label={tooltipLabel}
+                                            className="relative inline-flex w-[22px] h-[22px] p-0 border-none bg-transparent cursor-pointer opacity-35 grayscale transition-[opacity,filter] duration-150 hover:opacity-70 hover:grayscale-[50%]"
+                                          >
+                                            {badgeInner}
+                                          </button>
                                         )}
-                                        {isActive && (
-                                          <div className="absolute w-[11px] h-[11px] rounded-[50%] bg-[var(--ok)] text-[var(--on-accent)] flex items-center justify-center border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }}>
-                                            <CheckCircle2 size={7} strokeWidth={4} />
-                                          </div>
-                                        )}
-                                        {!isActive && hasToken && (
-                                          <div className="absolute w-[9px] h-[9px] rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }} />
-                                        )}
-                                      </Box>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{tooltipLabel}</TooltipContent>
                                     </Tooltip>
                                   );
                                 })}
-                              </Stack>
+                              </div>
                             );
                           })()}
-                          <Tooltip title="Re-sync contenu OTA (nom, commodités) — re-scrape Airbnb + applique vos aliases">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handleResyncContent(property)}
-                                sx={{ color: '#8B5CF6' }}
-                              >
-                                <Sparkles size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Re-sync contenu OTA"
+                                  disabled={isBusy}
+                                  onClick={() => handleResyncContent(property)}
+                                  className="text-[#8B5CF6]"
+                                >
+                                  <Sparkles size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Re-sync contenu OTA (nom, commodités) — re-scrape Airbnb + applique vos aliases</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Re-pousser prix + dispo Baitly vers les OTAs (6 mois)">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handleResync(property)}
-                                sx={{ color: ACCENT }}
-                              >
-                                {isBusy ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Re-pousser prix et disponibilites"
+                                  disabled={isBusy}
+                                  onClick={() => handleResync(property)}
+                                  className="text-[var(--accent)]"
+                                >
+                                  {isBusy ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Re-pousser prix + dispo Baitly vers les OTAs (6 mois)</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Importer les bookings OTA existants (Airbnb / Booking / ...)">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handlePullBookings(property)}
-                                sx={{ color: 'var(--info)' }}
-                              >
-                                <Download size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Importer les bookings OTA existants"
+                                  disabled={isBusy}
+                                  onClick={() => handlePullBookings(property)}
+                                  className="text-[var(--info)]"
+                                >
+                                  <Download size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Importer les bookings OTA existants (Airbnb / Booking / ...)</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Push pricing settings (weekend / occupancy / LOS / min-max nights) vers Channex">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handlePushPricingSettings(property)}
-                                sx={{ color: 'var(--ok)' }}
-                              >
-                                <SettingsIcon size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Push pricing settings vers Channex"
+                                  disabled={isBusy}
+                                  onClick={() => handlePushPricingSettings(property)}
+                                  className="text-[var(--ok)]"
+                                >
+                                  <SettingsIcon size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Push pricing settings (weekend / occupancy / LOS / min-max nights) vers Channex</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Deconnecter">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handleDisconnect(property)}
-                                sx={{ color: 'var(--err)' }}
-                              >
-                                <Trash2 size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Deconnecter"
+                                  disabled={isBusy}
+                                  onClick={() => handleDisconnect(property)}
+                                  className="text-[var(--err)]"
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Deconnecter</TooltipContent>
                           </Tooltip>
                         </>
                       )}
-                    </Stack>
+                    </div>
                   </div>
                 );
               })}
-            </Stack>
+            </div>
           )}
             </>
           )}
@@ -966,21 +1002,19 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       {/* Sub-dialog: connect form */}
       <Dialog
         open={connectForm.open}
-        onClose={() => setConnectForm(initialConnectForm)}
-        maxWidth="sm"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setConnectForm(initialConnectForm); }}
       >
-        <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider', py: 1.5 }}>
-          <p className="cn-text-body1 text-[0.9rem] font-bold">
-            Connecter "{connectForm.property?.name}" au hub de distribution
-          </p>
-          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">
-            {connectForm.mode === 'AUTO_CREATE'
-              ? "Baitly va creer Property + Room Type + Rate Plan automatiquement dans le hub"
-              : "Renseignez les 3 identifiants du hub (visibles dans votre dashboard)"}
-          </p>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="-mx-4 px-4 pb-[9px] pe-10 border-b border-solid border-[var(--line)]">
+            <DialogTitle className="text-[0.9rem] font-bold">
+              Connecter "{connectForm.property?.name}" au hub de distribution
+            </DialogTitle>
+            <DialogDescription className="text-[0.72rem] mt-0.5">
+              {connectForm.mode === 'AUTO_CREATE'
+                ? "Baitly va creer Property + Room Type + Rate Plan automatiquement dans le hub"
+                : "Renseignez les 3 identifiants du hub (visibles dans votre dashboard)"}
+            </DialogDescription>
+          </DialogHeader>
           {connectForm.error && (
             <UiAlert variant="destructive" className="mb-3 text-[0.78rem]">
               <TriangleAlert />
@@ -989,7 +1023,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           )}
 
           {/* Mode toggle */}
-          <Stack spacing={1} sx={{ mb: 2 }}>
+          <div className="flex flex-col gap-1.5 mb-3">
             <div
               role="button"
               tabIndex={0}
@@ -1003,7 +1037,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               style={{ transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
             >
               <div className="flex items-center gap-1.5">
-                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider', backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent' }} />
+                {/* `divider` etait un jeton MUI dans un style inline : declaration
+                    invalide, silencieusement ignoree. Le trait du kit est --line. */}
+                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'var(--line)', backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent' }} />
                 <p className="cn-text-body1 text-[0.8rem] font-semibold">
                   Creation automatique <span style={{ color: ACCENT, fontSize: '0.75rem', fontWeight: 700 }}>RECOMMANDE</span>
                 </p>
@@ -1026,7 +1062,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               style={{ transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
             >
               <div className="flex items-center gap-1.5">
-                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider', backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent' }} />
+                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'var(--line)', backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent' }} />
                 <p className="cn-text-body1 text-[0.8rem] font-semibold">
                   Importer des IDs existants
                 </p>
@@ -1035,11 +1071,11 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 Vous avez deja cree la propriete dans le hub de distribution et possedez les 3 UUIDs.
               </p>
             </div>
-          </Stack>
+          </div>
 
           {/* Champs IDs : visibles uniquement en mode IMPORT */}
           {connectForm.mode === 'IMPORT_EXISTING' && (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               <Field>
                 <FieldLabel htmlFor="channex-property-id">Property ID (hub)</FieldLabel>
                 <Input
@@ -1082,7 +1118,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 />
                 <FieldDescription>Rate Plan par defaut utilise pour pousser les prix</FieldDescription>
               </Field>
-            </Stack>
+            </div>
           )}
 
           {/* Recap mode AUTO_CREATE */}
@@ -1256,45 +1292,41 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       {/* Confirmation de deconnexion OTA (suppression channel + tokens OAuth) */}
       <Dialog
         open={disconnectOtaConfirm !== null}
-        onClose={() => setDisconnectOtaConfirm(null)}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setDisconnectOtaConfirm(null); }}
       >
-        <DialogTitle
-          sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}
-        >
-          <div className="w-[32px] h-[32px] rounded-[1px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
-            <AlertCircle size={18} />
-          </div>
-          <div className="min-w-0">
-            <h6 className="cn-text-subtitle1 font-semibold leading-[1.3]">
-              Deconnecter cet OTA&nbsp;?
-            </h6>
-          </div>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 1, pb: 1.5 }}>
-          <p className="cn-text-body2 text-muted-foreground mb-2">
+        <DialogContent>
+          <DialogHeader className="flex-row items-start gap-1.5 pe-10">
+            <div className="w-[32px] h-[32px] rounded-[1px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle size={18} />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="font-semibold leading-[1.3]">
+                Deconnecter cet OTA&nbsp;?
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <DialogDescription>
             <strong>{disconnectOtaConfirm?.otaName}</strong> sera deconnecte du hub.
             Les tokens OAuth seront supprimes et vous devrez refaire toute l'authentification
             pour reconnecter cet OTA. Les bookings deja synchronises restent dans Baitly.
-          </p>
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              onClick={() => setDisconnectOtaConfirm(null)}
+              size="sm"
+              variant="outline"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleDisconnectOta}
+              size="sm"
+              variant="destructive"
+            >
+              Deconnecter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <div className="flex justify-end gap-1.5 px-4 pb-3">
-          <Button
-            onClick={() => setDisconnectOtaConfirm(null)}
-            size="sm"
-            variant="outline"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleDisconnectOta}
-            size="sm"
-            variant="destructive"
-          >
-            Deconnecter
-          </Button>
-        </div>
       </Dialog>
     </>
   );

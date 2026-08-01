@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from './StatusChip';
-import { Alert as UiAlert, AlertDescription } from './ui';
+import {
+  Alert as UiAlert,
+  AlertAction,
+  AlertDescription,
+  Button,
+  Card,
+  CardContent,
+  Progress,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from './ui';
-import { Button } from './ui';
-import { Card, CardContent, Alert, IconButton, Tooltip, LinearProgress } from '@mui/material';
 import { cn } from '../utils/cn';
 import {
   TrendingUp,
@@ -32,6 +41,16 @@ const SEM_TOKEN: Record<'success' | 'warning' | 'error', { fg: string; bg: strin
 
 /** Grosse valeur de carte : display + tabular-nums (pattern StatTile) */
 const DISPLAY_VALUE_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
+
+/**
+ * Barre de couverture : la teinte depend du niveau atteint. Les trois branches sont
+ * ecrites en litteral — une classe Tailwind ne peut pas naitre d'une variable.
+ */
+const COVERAGE_BAR_CLASS: Record<'success' | 'warning' | 'error', string> = {
+  success: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-[var(--ok)]',
+  warning: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-[var(--warn)]',
+  error: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-[var(--err)]',
+};
 
 const getStatusColor = (value: number, threshold: number) => {
   if (value <= threshold * 0.7) return 'success';
@@ -90,10 +109,17 @@ const KeycloakMetrics: React.FC = () => {
   // Register page-header actions and last-update timestamp.
   useEffect(() => {
     setHeaderActions(
-      <Tooltip title="Actualiser les métriques">
-        <IconButton onClick={handleRefresh} size="small">
-          <Refresh size={20} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        {/* Radix pose sa ref d'ancrage sur l'enfant : un <span> hote, le Button
+            du kit etant une fonction qui ne transmet pas de ref (React 18). */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button variant="ghost" size="icon-sm" onClick={handleRefresh} aria-label="Actualiser les métriques">
+              <Refresh size={20} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Actualiser les métriques</TooltipContent>
       </Tooltip>,
     );
     return () => setHeaderActions(null);
@@ -115,13 +141,15 @@ const KeycloakMetrics: React.FC = () => {
   // l'alerte, un bouton sans cadre disparaitrait.
   if (error) {
     return (
-      <Alert severity="error" action={
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          Réessayer
-        </Button>
-      }>
-        {error}
-      </Alert>
+      <UiAlert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Réessayer
+          </Button>
+        </AlertAction>
+      </UiAlert>
     );
   }
 
@@ -139,7 +167,7 @@ const KeycloakMetrics: React.FC = () => {
       <div className="grid grid-cols-12 gap-[18px]">
         {/* Utilisateurs */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card variant="outlined">
+          <Card>
             <CardContent>
               <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
                 <span className="inline-flex me-1.5 text-[var(--accent)]"><Group size={20} strokeWidth={1.75} /></span>
@@ -179,7 +207,7 @@ const KeycloakMetrics: React.FC = () => {
 
         {/* Sessions / Tokens */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card variant="outlined">
+          <Card>
             <CardContent>
               <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
                 <span className="inline-flex me-1.5 text-[var(--accent)]"><Wifi size={20} strokeWidth={1.75} /></span>
@@ -219,7 +247,7 @@ const KeycloakMetrics: React.FC = () => {
 
         {/* Performance */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card variant="outlined">
+          <Card>
             <CardContent>
               <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
                 <span className="inline-flex me-1.5 text-[var(--accent)]"><TrendingUp size={20} strokeWidth={1.75} /></span>
@@ -260,7 +288,7 @@ const KeycloakMetrics: React.FC = () => {
 
         {/* Sécurité */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card variant="outlined">
+          <Card>
             <CardContent>
               <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
                 <span className="inline-flex me-1.5 text-[var(--accent)]"><Security size={20} strokeWidth={1.75} /></span>
@@ -302,7 +330,7 @@ const KeycloakMetrics: React.FC = () => {
         {/* Couverture de tests */}
         {coverage && coverage.available && (
           <div className="col-span-12">
-            <Card variant="outlined">
+            <Card>
               <CardContent>
                 <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
                   <span className="inline-flex me-1.5 text-[var(--accent)]"><BugReport size={20} strokeWidth={1.75} /></span>
@@ -322,11 +350,9 @@ const KeycloakMetrics: React.FC = () => {
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Lignes
                         </p>
-                        <LinearProgress
-                          variant="determinate"
+                        <Progress
                           value={Math.min(coverage.linePercent, 100)}
-                          color={getCoverageColor(coverage.linePercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.linePercent)]}
                         />
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.lineCovered}/{coverage.lineTotal}
@@ -344,11 +370,9 @@ const KeycloakMetrics: React.FC = () => {
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Branches
                         </p>
-                        <LinearProgress
-                          variant="determinate"
+                        <Progress
                           value={Math.min(coverage.branchPercent, 100)}
-                          color={getCoverageColor(coverage.branchPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.branchPercent)]}
                         />
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.branchCovered}/{coverage.branchTotal}
@@ -366,11 +390,9 @@ const KeycloakMetrics: React.FC = () => {
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Instructions
                         </p>
-                        <LinearProgress
-                          variant="determinate"
+                        <Progress
                           value={Math.min(coverage.instructionPercent, 100)}
-                          color={getCoverageColor(coverage.instructionPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.instructionPercent)]}
                         />
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.instructionCovered}/{coverage.instructionTotal}
@@ -388,11 +410,9 @@ const KeycloakMetrics: React.FC = () => {
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Méthodes
                         </p>
-                        <LinearProgress
-                          variant="determinate"
+                        <Progress
                           value={Math.min(coverage.methodPercent, 100)}
-                          color={getCoverageColor(coverage.methodPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.methodPercent)]}
                         />
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.methodCovered}/{coverage.methodTotal}
@@ -410,11 +430,9 @@ const KeycloakMetrics: React.FC = () => {
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Classes
                         </p>
-                        <LinearProgress
-                          variant="determinate"
+                        <Progress
                           value={Math.min(coverage.classPercent, 100)}
-                          color={getCoverageColor(coverage.classPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.classPercent)]}
                         />
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.classCovered}/{coverage.classTotal}
@@ -432,11 +450,9 @@ const KeycloakMetrics: React.FC = () => {
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Complexité
                         </p>
-                        <LinearProgress
-                          variant="determinate"
+                        <Progress
                           value={Math.min(coverage.complexityPercent, 100)}
-                          color={getCoverageColor(coverage.complexityPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.complexityPercent)]}
                         />
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.complexityCovered}/{coverage.complexityTotal}
@@ -453,9 +469,12 @@ const KeycloakMetrics: React.FC = () => {
         {/* Message si couverture non disponible */}
         {coverage && !coverage.available && (
           <div className="col-span-12">
-            <Alert severity="info" icon={<BugReport size={20} strokeWidth={1.75} />}>
-              {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
-            </Alert>
+            <UiAlert variant="info">
+              <BugReport size={20} strokeWidth={1.75} />
+              <AlertDescription>
+                {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
+              </AlertDescription>
+            </UiAlert>
           </div>
         )}
       </div>

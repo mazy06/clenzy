@@ -18,7 +18,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Skeleton, Stack, Tooltip } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../../components/ui';
 import { X, Link2, Info, RefreshCw } from 'lucide-react';
 
 import {
@@ -171,67 +182,54 @@ export default function ChannexEmbedDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{ sx: { height: 'min(90vh, 900px)' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          py: 1.5,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-          <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.85rem]" style={{ backgroundColor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)', color: selectedOta ? selectedOta.brandColorFg : '#0F766E' }}>
-            {selectedOta ? selectedOta.initials : <Link2 size={18} />}
-          </div>
-          <div className="min-w-0">
-            <h6 className="cn-text-subtitle1 font-semibold truncate leading-[1.2]">
-              {selectedOta
-                ? `Connecter ${selectedOta.name} — ${propertyName}`
-                : `Connecter les OTAs — ${propertyName}`}
-            </h6>
-            <span className="cn-text-caption text-muted-foreground block leading-[1.2]">
-              {selectedOta
-                ? `${selectedOta.description} · via le hub de distribution`
-                : 'Airbnb · Booking.com · Vrbo · Expedia — via le hub'}
-            </span>
-          </div>
-        </Stack>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-          {embedUrl && (
-            <Tooltip title="Rafraichir l'iframe (utile si bloque sur 'Await your action' apres OAuth)">
-              <IconButton
-                onClick={() => setIframeKey((k) => k + 1)}
-                size="small"
-                aria-label="Rafraichir"
-              >
-                <RefreshCw size={16} />
-              </IconButton>
-            </Tooltip>
-          )}
-          <IconButton onClick={handleClose} size="small" aria-label="Fermer">
-            <X size={18} />
-          </IconButton>
-        </Stack>
-      </DialogTitle>
-
+    // `onOpenChange` remplace `onClose` : seule la fermeture doit declencher
+    // handleClose (qui notifie le parent d'un eventuel pullBookings).
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent
-        sx={{
-          p: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-        }}
+        showCloseButton={false}
+        className="sm:max-w-[1200px] h-[min(90vh,900px)] flex flex-col gap-0 p-0 overflow-hidden bg-[var(--bg)]"
       >
+        <DialogHeader className="flex-row items-center justify-between gap-3 border-b border-solid border-[var(--line)] px-6 py-[9px] bg-[var(--card)]">
+          <div className="flex flex-row items-center gap-[9px] min-w-0 flex-1">
+            <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.85rem]" style={{ backgroundColor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)', color: selectedOta ? selectedOta.brandColorFg : '#0F766E' }}>
+              {selectedOta ? selectedOta.initials : <Link2 size={18} />}
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="cn-text-subtitle1 font-semibold truncate leading-[1.2]">
+                {selectedOta
+                  ? `Connecter ${selectedOta.name} — ${propertyName}`
+                  : `Connecter les OTAs — ${propertyName}`}
+              </DialogTitle>
+              <DialogDescription className="cn-text-caption text-muted-foreground block leading-[1.2]">
+                {selectedOta
+                  ? `${selectedOta.description} · via le hub de distribution`
+                  : 'Airbnb · Booking.com · Vrbo · Expedia — via le hub'}
+              </DialogDescription>
+            </div>
+          </div>
+          <div className="flex flex-row items-center gap-[3px] shrink-0">
+            {embedUrl && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setIframeKey((k) => k + 1)}
+                    aria-label="Rafraichir"
+                  >
+                    <RefreshCw size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Rafraichir l&apos;iframe (utile si bloque sur &laquo;&nbsp;Await your action&nbsp;&raquo; apres OAuth)</TooltipContent>
+              </Tooltip>
+            )}
+            <Button variant="ghost" size="icon-sm" onClick={handleClose} aria-label="Fermer">
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="flex flex-col flex-1 min-h-0">
         {/* Banner d'aide : guide vers le bouton + Create de Channex si la
             liste s'affiche au lieu du wizard. Channex ne supporte pas toujours
             un deep-link direct vers le formulaire de creation. */}
@@ -254,7 +252,7 @@ export default function ChannexEmbedDialog({
                   </span>{' '}
                   deja actif — suivez ces 3 etapes pour mapper vos listings :
                 </span>
-                <Stack spacing={0.5}>
+                <div className="flex flex-col gap-[3px]">
                   {[
                     {
                       step: 1,
@@ -311,16 +309,16 @@ export default function ChannexEmbedDialog({
                       ),
                     },
                   ].map(({ step, content }) => (
-                    <Stack key={step} direction="row" spacing={0.875} alignItems="flex-start">
+                    <div key={step} className="flex flex-row items-start gap-[5.25px]">
                       <div className="w-[16px] h-[16px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center text-[0.65rem] font-bold shrink-0 mt-0.5">
                         {step}
                       </div>
                       <span className="cn-text-caption text-muted-foreground leading-[1.55] flex-1">
                         {content}
                       </span>
-                    </Stack>
+                    </div>
                   ))}
-                </Stack>
+                </div>
               </div>
             ) : (
               <span className="cn-text-caption text-muted-foreground leading-[1.5]">
@@ -374,23 +372,17 @@ export default function ChannexEmbedDialog({
         )}
 
         {loading && (
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            spacing={2}
-            sx={{ flex: 1, p: 4 }}
-          >
+          <div className="flex flex-row items-center justify-center gap-3 flex-1 p-6">
             <Spinner className="size-6" />
             <p className="cn-text-body2 text-muted-foreground">
               Generation de la session de connexion...
             </p>
-          </Stack>
+          </div>
         )}
 
         {!loading && !error && !embedUrl && (
           <div className="p-3">
-            <Skeleton variant="rectangular" height="60vh" sx={{ borderRadius: 1 }} />
+            <Skeleton className="h-[60vh] w-full rounded-lg" />
           </div>
         )}
 
@@ -414,6 +406,7 @@ export default function ChannexEmbedDialog({
             allow="clipboard-write; popups"
           />
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

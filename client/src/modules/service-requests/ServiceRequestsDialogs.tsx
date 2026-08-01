@@ -1,6 +1,22 @@
 import React from 'react';
-import { Spinner, Button } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Select, FormControl, InputLabel, MenuItem, Radio, RadioGroup, FormControlLabel, FormLabel } from '@mui/material';
+import {
+  Spinner,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  NativeSelect,
+  NativeSelectOption,
+  RadioGroup,
+  RadioGroupItem,
+} from '../../components/ui';
 import {
   CheckCircle,
   Cancel,
@@ -21,19 +37,21 @@ interface DeleteConfirmDialogProps {
 
 export function DeleteConfirmDialog({ open, onClose, onConfirm, requestTitle, t }: DeleteConfirmDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>{t('serviceRequests.confirmDelete')}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
-        <p className="cn-text-body2">
-          {t('serviceRequests.confirmDeleteMessage', { title: requestTitle })}
-        </p>
+        <DialogHeader>
+          <DialogTitle>{t('serviceRequests.confirmDelete')}</DialogTitle>
+          <DialogDescription>
+            {t('serviceRequests.confirmDeleteMessage', { title: requestTitle })}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
+          <Button onClick={onConfirm} variant="destructive" size="sm">
+            {t('serviceRequests.delete')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
-        <Button onClick={onConfirm} variant="destructive" size="sm">
-          {t('serviceRequests.delete')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -64,38 +82,41 @@ export function StatusChangeDialog({
   t,
 }: StatusChangeDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>{t('serviceRequests.changeStatus')}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
-        <span className="cn-text-caption mb-2 text-[0.75rem]">
-          {t('serviceRequests.changeStatusMessage', { title: requestTitle })}
-        </span>
-        <FormControl fullWidth>
-          <InputLabel>{t('serviceRequests.newStatus')}</InputLabel>
-          <Select
+        <DialogHeader>
+          <DialogTitle>{t('serviceRequests.changeStatus')}</DialogTitle>
+          <DialogDescription>
+            {t('serviceRequests.changeStatusMessage', { title: requestTitle })}
+          </DialogDescription>
+        </DialogHeader>
+        <Field>
+          <FieldLabel htmlFor="service-request-new-status">{t('serviceRequests.newStatus')}</FieldLabel>
+          <NativeSelect
+            id="service-request-new-status"
+            className="w-full"
+            size="sm"
             value={newStatus}
             onChange={(e) => onStatusChange(e.target.value)}
-            label="Nouveau statut"
-            size="small"
           >
             {statuses.flatMap((status) =>
               status.value === 'all'
                 ? []
                 : [
-                    <MenuItem key={status.value} value={status.value}>
+                    <NativeSelectOption key={status.value} value={status.value}>
                       {status.label}
-                    </MenuItem>,
+                    </NativeSelectOption>,
                   ],
             )}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
+          <Button onClick={onConfirm} size="sm">
+            {t('common.confirm')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="ghost" size="sm">{t('common.cancel')}</Button>
-        <Button onClick={onConfirm} size="sm">
-          {t('common.confirm')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -138,100 +159,112 @@ export function AssignDialog({
   t,
 }: AssignDialogProps) {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        {t('serviceRequests.assign')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('serviceRequests.assign')}</DialogTitle>
+          <DialogDescription>
+            {t('serviceRequests.assignDescription')}
+          </DialogDescription>
+        </DialogHeader>
+
         {selectedRequest && (
-          <div className="mb-3">
-            <p className="cn-text-body2 text-muted-foreground mb-1.5">
-              {t('serviceRequests.assign')}: <strong>{selectedRequest.title}</strong>
-            </p>
-            <span className="cn-text-caption text-muted-foreground">
-              {t('serviceRequests.assignDescription')}
-            </span>
-          </div>
+          <p className="cn-text-body2 text-muted-foreground">
+            {t('serviceRequests.assign')}: <strong>{selectedRequest.title}</strong>
+          </p>
         )}
 
-        <FormControl component="fieldset" sx={{ width: '100%', mt: 2 }}>
-          <FormLabel component="legend">{t('serviceRequests.assignmentType')}</FormLabel>
+        <FieldSet className="w-full mt-3">
+          <FieldLegend variant="label">{t('serviceRequests.assignmentType')}</FieldLegend>
           <RadioGroup
             value={assignmentType}
-            onChange={(e) => {
-              onAssignmentTypeChange(e.target.value as 'team' | 'user' | 'none');
-            }}
+            onValueChange={(value) => onAssignmentTypeChange(value as 'team' | 'user' | 'none')}
           >
-            <FormControlLabel value="team" control={<Radio />} label={t('serviceRequests.fields.team')} />
+            <Field orientation="horizontal">
+              <RadioGroupItem value="team" id="assign-type-team" />
+              <FieldLabel htmlFor="assign-type-team" className="font-normal">
+                {t('serviceRequests.fields.team')}
+              </FieldLabel>
+            </Field>
             {assignmentType === 'team' && (
-              <FormControl fullWidth sx={{ ml: 4, mt: 1, mb: 2 }}>
-                <InputLabel>{t('serviceRequests.fields.team')}</InputLabel>
-                <Select
-                  value={selectedTeamId || ''}
-                  onChange={(e) => onTeamChange(e.target.value as number)}
-                  label={t('serviceRequests.fields.team')}
+              <Field className="ms-6 mt-1.5 mb-3">
+                <FieldLabel htmlFor="assign-team-select">{t('serviceRequests.fields.team')}</FieldLabel>
+                <NativeSelect
+                  id="assign-team-select"
+                  className="w-full"
+                  value={selectedTeamId ?? ''}
+                  // Le choix vide est le placeholder : on ignore la selection plutot
+                  // que de remonter un identifiant 0 au parent (prop typee `number`).
+                  onChange={(e) => { if (e.target.value) onTeamChange(Number(e.target.value)); }}
                   disabled={loadingData}
                 >
-                  {teams.length === 0 && !loadingData && (
-                    <MenuItem disabled>{t('serviceRequests.noTeamsAvailable')}</MenuItem>
-                  )}
+                  <NativeSelectOption value="">
+                    {teams.length === 0 && !loadingData ? t('serviceRequests.noTeamsAvailable') : '—'}
+                  </NativeSelectOption>
                   {teams.map((team) => (
-                    <MenuItem key={team.id} value={team.id}>
+                    <NativeSelectOption key={team.id} value={team.id}>
                       {team.name}
-                    </MenuItem>
+                    </NativeSelectOption>
                   ))}
-                </Select>
-              </FormControl>
+                </NativeSelect>
+              </Field>
             )}
 
-            <FormControlLabel value="user" control={<Radio />} label={t('serviceRequests.fields.assignedToUser')} />
+            <Field orientation="horizontal">
+              <RadioGroupItem value="user" id="assign-type-user" />
+              <FieldLabel htmlFor="assign-type-user" className="font-normal">
+                {t('serviceRequests.fields.assignedToUser')}
+              </FieldLabel>
+            </Field>
             {assignmentType === 'user' && (
-              <FormControl fullWidth sx={{ ml: 4, mt: 1, mb: 2 }}>
-                <InputLabel>{t('serviceRequests.fields.assignedToUser')}</InputLabel>
-                <Select
-                  value={selectedUserId || ''}
-                  onChange={(e) => onUserChange(e.target.value as number)}
-                  label={t('serviceRequests.fields.assignedToUser')}
+              <Field className="ms-6 mt-1.5 mb-3">
+                <FieldLabel htmlFor="assign-user-select">{t('serviceRequests.fields.assignedToUser')}</FieldLabel>
+                <NativeSelect
+                  id="assign-user-select"
+                  className="w-full"
+                  value={selectedUserId ?? ''}
+                  onChange={(e) => { if (e.target.value) onUserChange(Number(e.target.value)); }}
                   disabled={loadingData}
                 >
-                  {users.length === 0 && !loadingData && (
-                    <MenuItem disabled>{t('serviceRequests.noUsersAvailable')}</MenuItem>
-                  )}
+                  <NativeSelectOption value="">
+                    {users.length === 0 && !loadingData ? t('serviceRequests.noUsersAvailable') : '—'}
+                  </NativeSelectOption>
                   {users.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
+                    <NativeSelectOption key={user.id} value={user.id}>
                       {user.firstName} {user.lastName} ({user.role})
-                    </MenuItem>
+                    </NativeSelectOption>
                   ))}
-                </Select>
-              </FormControl>
+                </NativeSelect>
+              </Field>
             )}
 
-            <FormControlLabel value="none" control={<Radio />} label={t('serviceRequests.fields.noAssignment')} />
+            <Field orientation="horizontal">
+              <RadioGroupItem value="none" id="assign-type-none" />
+              <FieldLabel htmlFor="assign-type-none" className="font-normal">
+                {t('serviceRequests.fields.noAssignment')}
+              </FieldLabel>
+            </Field>
           </RadioGroup>
-        </FormControl>
+        </FieldSet>
 
         {loadingData && (
           <div className="flex justify-center py-3">
             <Spinner className="size-6" />
           </div>
         )}
+
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost">
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={loadingData || (assignmentType === 'team' && !selectedTeamId) || (assignmentType === 'user' && !selectedUserId)}
+          >
+            {t('serviceRequests.assign')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="ghost">
-          {t('common.cancel')}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          disabled={loadingData || (assignmentType === 'team' && !selectedTeamId) || (assignmentType === 'user' && !selectedUserId)}
-        >
-          {t('serviceRequests.assign')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -253,28 +286,25 @@ interface ErrorDialogProps {
 
 export function ErrorDialog({ open, onClose, message, t }: ErrorDialogProps) {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
-        <span className="inline-flex text-destructive"><Cancel size={20} strokeWidth={1.75} /></span>
-        {t('common.error')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
-        <p className="cn-text-body2">
-          {message}
-        </p>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5 text-[var(--err)]">
+            <span className="inline-flex text-destructive"><Cancel size={20} strokeWidth={1.75} /></span>
+            {t('common.error')}
+          </DialogTitle>
+          <DialogDescription>
+            {message}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          {/* Fermer n'est pas une action destructive : c'est la seule action de la modale, donc `default`.
+              La tonalite d'erreur est deja portee par le titre. */}
+          <Button onClick={onClose} size="sm">
+            {t('common.close')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        {/* Fermer n'est pas une action destructive : c'est la seule action de la modale, donc `default`.
-            La tonalite d'erreur est deja portee par le titre. */}
-        <Button onClick={onClose} size="sm">
-          {t('common.close')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -292,27 +322,24 @@ interface SuccessDialogProps {
 
 export function SuccessDialog({ open, onClose, message, t }: SuccessDialogProps) {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
-        <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span>
-        {t('common.success')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
-        <p className="cn-text-body2">
-          {message}
-        </p>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5 text-[var(--ok)]">
+            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span>
+            {t('common.success')}
+          </DialogTitle>
+          <DialogDescription>
+            {message}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          {/* Seule action de la modale de succes -> `default`, la tonalite verte reste sur le titre. */}
+          <Button onClick={onClose} size="sm">
+            {t('common.close')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        {/* Seule action de la modale de succes -> `default`, la tonalite verte reste sur le titre. */}
-        <Button onClick={onClose} size="sm">
-          {t('common.close')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

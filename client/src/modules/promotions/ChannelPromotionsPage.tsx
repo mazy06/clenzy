@@ -3,7 +3,22 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
 import {
@@ -56,12 +71,11 @@ const PROMOTION_TYPE_OPTIONS: { value: PromotionType; label: string }[] = [
   { value: 'country_rate', label: 'Country Rate' },
 ];
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-} as const;
+/** Surface de carte du kit : bordure --line, rayon 12px, sans ombre. */
+const CARD_CLASS = 'rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]';
+
+/** Valeur sentinelle du filtre : le Select du kit interdit la chaine vide. */
+const ALL_PROPERTIES = 'ALL';
 
 const channelColor = (name: string) =>
   CHANNEL_OPTIONS.find((c) => c.value === name)?.color ?? '#666';
@@ -201,28 +215,29 @@ const ChannelPromotionsPage: React.FC = () => {
       />
 
       {/* ── Filter ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5 }}>
-        <FormControl size="small" sx={{ minWidth: 220 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>
+      <div className={`${CARD_CLASS} p-3 mb-[9px]`}>
+        <Field className="w-fit">
+          <FieldLabel htmlFor="promotions-filter-property" className="text-[0.8125rem]">
             {t('promotions.filterProperty', 'Filtrer par propriete')}
-          </InputLabel>
+          </FieldLabel>
           <Select
-            value={selectedPropertyId}
-            onChange={(e) => setSelectedPropertyId(e.target.value as number | '')}
-            label={t('promotions.filterProperty', 'Filtrer par propriete')}
-            sx={{ fontSize: '0.8125rem' }}
+            value={selectedPropertyId === '' ? ALL_PROPERTIES : String(selectedPropertyId)}
+            onValueChange={(v) => setSelectedPropertyId(v === ALL_PROPERTIES ? '' : Number(v))}
           >
-            <MenuItem value="">
-              <em>{t('common.all', 'Toutes')}</em>
-            </MenuItem>
-            {properties.map((p: Property) => (
-              <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                {p.name}
-              </MenuItem>
-            ))}
+            <SelectTrigger id="promotions-filter-property" size="sm" className="min-w-[220px] text-[0.8125rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PROPERTIES}>{t('common.all', 'Toutes')}</SelectItem>
+              {properties.map((p: Property) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </FormControl>
-      </Paper>
+        </Field>
+      </div>
 
       {/* ── Alerts ── */}
       {syncMutation.isSuccess && (
@@ -248,7 +263,7 @@ const ChannelPromotionsPage: React.FC = () => {
           <AlertDescription>{t('promotions.error', 'Erreur lors du chargement des promotions')}</AlertDescription>
         </BuiAlert>
       ) : promotions.length === 0 ? (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
+        <div className={`${CARD_CLASS} p-6 text-center`}>
           <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CampaignIcon size={48} strokeWidth={1.75} /></span>
           <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
             {t('promotions.empty', 'Aucune promotion configuree')}
@@ -262,7 +277,7 @@ const ChannelPromotionsPage: React.FC = () => {
             <AddIcon />
             {t('promotions.create', 'Nouvelle promotion')}
           </BuiButton>
-        </Paper>
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
           <Table>
@@ -304,23 +319,49 @@ const ChannelPromotionsPage: React.FC = () => {
                   </TableCell>
                   <TableCell className="text-center">
                     <Switch
-                      size="small"
+                      size="sm"
                       checked={promo.enabled}
-                      onChange={() => handleToggle(promo.id)}
+                      onCheckedChange={() => handleToggle(promo.id)}
                       disabled={toggleMutation.isPending}
+                      aria-label={t('promotions.col.enabled', 'Active')}
                     />
                   </TableCell>
                   <TableCell className="text-end">
-                    <Tooltip title={t('common.edit', 'Modifier')}>
-                      <IconButton size="small" onClick={() => handleOpenEdit(promo)}>
-                        <EditIcon size={'1rem'} strokeWidth={1.75} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={t('common.delete', 'Supprimer')}>
-                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(promo)}>
-                        <DeleteIcon size={'1rem'} strokeWidth={1.75} />
-                      </IconButton>
-                    </Tooltip>
+                    <div className="inline-flex items-center gap-0.5">
+                      {/* Le Button du kit est une fonction : il ne transmet pas de ref
+                          (React 18). L'enveloppe porte l'ancre du Tooltip a sa place. */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('common.edit', 'Modifier')}
+                              onClick={() => handleOpenEdit(promo)}
+                            >
+                              <EditIcon size={'1rem'} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('common.delete', 'Supprimer')}
+                              onClick={() => setDeleteTarget(promo)}
+                              className="text-[var(--err)]"
+                            >
+                              <DeleteIcon size={'1rem'} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
+                      </Tooltip>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -332,70 +373,83 @@ const ChannelPromotionsPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           Create / Edit Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
-          {editingPromo
-            ? t('promotions.editTitle', 'Modifier la promotion')
-            : t('promotions.createTitle', 'Nouvelle promotion OTA')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('promotions.form.property', 'Propriete')}</InputLabel>
+      <Dialog open={formOpen} onOpenChange={(next) => { if (!next) setFormOpen(false); }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[0.9375rem] font-bold">
+              {editingPromo
+                ? t('promotions.editTitle', 'Modifier la promotion')
+                : t('promotions.createTitle', 'Nouvelle promotion OTA')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+          <Field>
+            <FieldLabel htmlFor="promotion-property" className="text-[0.8125rem]">
+              {t('promotions.form.property', 'Propriete')}
+            </FieldLabel>
             <Select
-              value={formData.propertyId || ''}
-              onChange={(e) => setFormData({ ...formData, propertyId: Number(e.target.value) })}
-              label={t('promotions.form.property', 'Propriete')}
-              sx={{ fontSize: '0.8125rem' }}
+              value={formData.propertyId ? String(formData.propertyId) : ''}
+              onValueChange={(v) => setFormData({ ...formData, propertyId: Number(v) })}
               disabled={!!editingPromo}
             >
-              {properties.map((p: Property) => (
-                <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                  {p.name}
-                </MenuItem>
-              ))}
+              <SelectTrigger id="promotion-property" size="sm" className="w-full text-[0.8125rem]">
+                <SelectValue placeholder={t('promotions.form.property', 'Propriete')} />
+              </SelectTrigger>
+              <SelectContent>
+                {properties.map((p: Property) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
+          </Field>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('promotions.form.channel', 'Channel')}</InputLabel>
+          <Field>
+            <FieldLabel htmlFor="promotion-channel" className="text-[0.8125rem]">
+              {t('promotions.form.channel', 'Channel')}
+            </FieldLabel>
             <Select
               value={formData.channelName}
-              onChange={(e) => setFormData({ ...formData, channelName: e.target.value as ChannelName })}
-              label={t('promotions.form.channel', 'Channel')}
-              sx={{ fontSize: '0.8125rem' }}
+              onValueChange={(v) => setFormData({ ...formData, channelName: v as ChannelName })}
             >
-              {CHANNEL_OPTIONS.map((c) => (
-                <MenuItem key={c.value} value={c.value} sx={{ fontSize: '0.8125rem' }}>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: c.color }} />
-                    {c.label}
-                  </div>
-                </MenuItem>
-              ))}
+              <SelectTrigger id="promotion-channel" size="sm" className="w-full text-[0.8125rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CHANNEL_OPTIONS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    <div className="flex items-center gap-1.5">
+                      {/* Teinte de marque resolue a l'execution -> style inline. */}
+                      <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: c.color }} />
+                      {c.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
+          </Field>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('promotions.form.type', 'Type')}</InputLabel>
+          <Field>
+            <FieldLabel htmlFor="promotion-type" className="text-[0.8125rem]">
+              {t('promotions.form.type', 'Type')}
+            </FieldLabel>
             <Select
               value={formData.promotionType}
-              onChange={(e) => setFormData({ ...formData, promotionType: e.target.value as PromotionType })}
-              label={t('promotions.form.type', 'Type')}
-              sx={{ fontSize: '0.8125rem' }}
+              onValueChange={(v) => setFormData({ ...formData, promotionType: v as PromotionType })}
             >
-              {PROMOTION_TYPE_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.8125rem' }}>
-                  {o.label}
-                </MenuItem>
-              ))}
+              <SelectTrigger id="promotion-type" size="sm" className="w-full text-[0.8125rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROMOTION_TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
+          </Field>
 
           <Field>
             <FieldLabel htmlFor="promotion-discount" className="text-[0.8125rem]">
@@ -441,19 +495,20 @@ const ChannelPromotionsPage: React.FC = () => {
               />
             </Field>
           </div>
+          </div>
+          <DialogFooter>
+            <BuiButton variant="outline" size="sm" onClick={() => setFormOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            <BuiButton
+              size="sm"
+              onClick={handleSubmit}
+              disabled={isMutating || !formData.propertyId}
+            >
+              {isMutating ? <Spinner className="size-4" /> : editingPromo ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <BuiButton variant="outline" size="sm" onClick={() => setFormOpen(false)}>
-            {t('common.cancel', 'Annuler')}
-          </BuiButton>
-          <BuiButton
-            size="sm"
-            onClick={handleSubmit}
-            disabled={isMutating || !formData.propertyId}
-          >
-            {isMutating ? <Spinner className="size-4" /> : editingPromo ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
-          </BuiButton>
-        </DialogActions>
       </Dialog>
 
       {/* ── Delete confirmation ── */}

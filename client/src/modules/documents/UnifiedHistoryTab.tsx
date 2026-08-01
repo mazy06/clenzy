@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X } from 'lucide-react';
+import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import {
   Download,
   Lock,
@@ -146,8 +156,7 @@ const formatFileSize = (bytes?: number) => {
 
 const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [generateOpen, setGenerateOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
@@ -383,13 +392,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         </AlertAction>
       </BuiAlert>}
       {verifyResult && (
-        <Alert
-          severity={verifyResult.includes('verifiee') ? 'success' : 'error'}
-          sx={{ mb: 2 }}
-          onClose={() => setVerifyResult(null)}
-        >
-          {verifyResult}
-        </Alert>
+        <BuiAlert variant={verifyResult.includes('verifiee') ? 'success' : 'destructive'} className="mb-3">
+          {verifyResult.includes('verifiee') ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>{verifyResult}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setVerifyResult(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* Filtres — primitive partagée FilterChipRow ('' = Tous) */}
@@ -451,12 +462,17 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   )}
                 >
                   {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
-                  <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
-                    <div className="w-[34px] h-[34px] rounded-[9px] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--err)' : pastille.bg }}>
-                      {isFailed
-                        ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
-                        : row.kind === 'document' ? 'PDF' : pastille.icon}
-                    </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="w-[34px] h-[34px] rounded-[9px] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--err)' : pastille.bg }}>
+                        {isFailed
+                          ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
+                          : row.kind === 'document' ? 'PDF' : pastille.icon}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')}
+                    </TooltipContent>
                   </Tooltip>
 
                   {/* Nom + méta */}
@@ -481,39 +497,61 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
                   {/* Statut -soft + actions */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <Tooltip title={row.errorMessage || ''} arrow>
-                      {/* Le span porte la ref que Tooltip pose sur son enfant :
-                          StatusChip est une fonction et n'en transmet pas. */}
-                      <span className="inline-flex">
-                        <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
-                      </span>
-                    </Tooltip>
+                    {/* Sans message d'erreur, aucune infobulle : le Tooltip du kit
+                        afficherait une bulle vide la ou MUI n'en montrait aucune. */}
+                    {row.errorMessage ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que TooltipTrigger pose sur son enfant :
+                              StatusChip est une fonction et n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{row.errorMessage}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                    )}
 
                     {/* ── Message : « Aperçu → » accent + actions d'échec ── */}
                     {row.kind === 'message' && row.messageLog && (
                       <>
                         {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
-                          <Tooltip title="Modifier l'email et renvoyer" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setEditEmailLog(row.messageLog!);
-                                setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
-                              }}
-                              aria-label="Modifier l'email"
-                              sx={{ cursor: 'pointer', color: 'var(--muted)', '&:hover': { color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' } }}
-                            >
-                              <EditIcon size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Le span porte la ref : Button du kit ne la transmet pas. */}
+                              <span className="inline-flex">
+                                <BuiButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => {
+                                    setEditEmailLog(row.messageLog!);
+                                    setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
+                                  }}
+                                  aria-label="Modifier l'email"
+                                  className="text-[var(--muted)] hover:bg-[var(--warn-soft)] hover:text-[var(--warn)]"
+                                >
+                                  <EditIcon size={16} strokeWidth={1.75} />
+                                </BuiButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Modifier l&apos;email et renvoyer</TooltipContent>
                           </Tooltip>
                         )}
                         {row.messageLog.status === 'FAILED' && !row.messageLog.guestId && (
-                          <Tooltip title="Réservation anonymisée (iCal Airbnb/Booking) — l'email du voyageur n'est pas exposé par le canal. Crée un guest manuel pour pouvoir envoyer le message.">
-                            <span>
-                              <IconButton size="small" disabled>
-                                <EditIcon size={16} strokeWidth={1.75} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <BuiButton variant="ghost" size="icon-sm" disabled aria-label="Modifier l'email">
+                                  <EditIcon size={16} strokeWidth={1.75} />
+                                </BuiButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Réservation anonymisée (iCal Airbnb/Booking) — l&apos;email du voyageur n&apos;est pas exposé par le canal.
+                              Crée un guest manuel pour pouvoir envoyer le message.
+                            </TooltipContent>
                           </Tooltip>
                         )}
                         {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (() => {
@@ -522,24 +560,28 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                             ? "Renvoyer le message"
                             : "Pas de destinataire — ajoute un email guest avant de renvoyer";
                           return (
-                            <Tooltip title={tip} arrow>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  disabled={!canResend || resendingId === row.messageLog!.id}
-                                  onClick={() => canResend && handleResend(row.messageLog!)}
-                                  aria-label="Renvoyer"
-                                  sx={{
-                                    cursor: canResend ? 'pointer' : 'not-allowed',
-                                    color: canResend ? 'var(--ok)' : 'var(--faint)',
-                                    '&:hover': canResend ? { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' } : {},
-                                  }}
-                                >
-                                  {resendingId === row.messageLog!.id
-                                    ? <Spinner className="size-4" />
-                                    : <Replay size={16} strokeWidth={1.75} />}
-                                </IconButton>
-                              </span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <BuiButton
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    disabled={!canResend || resendingId === row.messageLog!.id}
+                                    onClick={() => canResend && handleResend(row.messageLog!)}
+                                    aria-label="Renvoyer"
+                                    className={cn(
+                                      canResend
+                                        ? 'text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]'
+                                        : 'text-[var(--faint)]',
+                                    )}
+                                  >
+                                    {resendingId === row.messageLog!.id
+                                      ? <Spinner className="size-4" />
+                                      : <Replay size={16} strokeWidth={1.75} />}
+                                  </BuiButton>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{tip}</TooltipContent>
                             </Tooltip>
                           );
                         })()}
@@ -559,20 +601,29 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     {row.kind === 'document' && row.documentGeneration && (
                       <>
                         {row.locked && row.documentHash && (
-                          <Tooltip title="Verifier l'integrite" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleVerify(row.documentGeneration!)}
-                              aria-label="Verifier l'integrite"
-                              sx={{ cursor: 'pointer', color: 'var(--muted)', '&:hover': { color: 'var(--info)', backgroundColor: 'var(--info-soft)' } }}
-                            >
-                              <Fingerprint size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <BuiButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => handleVerify(row.documentGeneration!)}
+                                  aria-label="Verifier l'integrite"
+                                  className="text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                                >
+                                  <Fingerprint size={16} strokeWidth={1.75} />
+                                </BuiButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Verifier l&apos;integrite</TooltipContent>
                           </Tooltip>
                         )}
                         {row.correctsId && (
-                          <Tooltip title={`Correction du document #${row.correctsId}`}>
-                            <span className="inline-flex text-[var(--muted)]"><VerifiedUser size={16} strokeWidth={1.75} /></span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex text-[var(--muted)]"><VerifiedUser size={16} strokeWidth={1.75} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent>{`Correction du document #${row.correctsId}`}</TooltipContent>
                           </Tooltip>
                         )}
                         {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
@@ -609,9 +660,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       )}
 
       {/* ── Detail dialog ── */}
-      <Dialog open={!!detailLog} onClose={() => setDetailLog(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Details du message</DialogTitle>
-        <DialogContent>
+      <Dialog open={!!detailLog} onOpenChange={(next) => { if (!next) setDetailLog(null); }}>
+        <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Details du message</DialogTitle>
+          </DialogHeader>
           {detailLog && (
             <div className="flex flex-col gap-2 pt-1.5">
               <p className="cn-text-body2"><strong>Template :</strong> {detailLog.templateName || '—'}</p>
@@ -662,8 +715,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               )}
             </div>
           )}
-        </DialogContent>
-        <DialogActions>
+        <DialogFooter>
           {detailLog?.status === 'FAILED' && detailLog.guestId && (
             <BuiButton
               variant="outline"
@@ -679,36 +731,42 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           )}
           {detailLog?.status === 'FAILED' && detailLog.templateId && (() => {
             const canResend = hasRecipient(detailLog);
-            return (
-              <Tooltip
-                title={canResend ? '' : "Pas de destinataire — ajoute un email guest avant de renvoyer"}
-                disableHoverListener={canResend}
+            const resendButton = (
+              <BuiButton
+                variant="outline"
+                className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                disabled={!canResend || resendingId === detailLog.id}
+                onClick={() => {
+                  if (!canResend) return;
+                  handleResend(detailLog);
+                  setDetailLog(null);
+                }}
               >
-                <span>
-                  <BuiButton
-                    variant="outline"
-                    className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
-                    disabled={!canResend || resendingId === detailLog.id}
-                    onClick={() => {
-                      if (!canResend) return;
-                      handleResend(detailLog);
-                      setDetailLog(null);
-                    }}
-                  >
-                    Renvoyer
-                  </BuiButton>
-                </span>
+                Renvoyer
+              </BuiButton>
+            );
+            // L'infobulle n'existait que dans le cas bloque (`disableHoverListener`
+            // quand l'envoi est possible) : on ne monte le Tooltip que la.
+            return canResend ? resendButton : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">{resendButton}</span>
+                </TooltipTrigger>
+                <TooltipContent>Pas de destinataire — ajoute un email guest avant de renvoyer</TooltipContent>
               </Tooltip>
             );
           })()}
           <BuiButton variant="ghost" onClick={() => setDetailLog(null)}>Fermer</BuiButton>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* ── Edit email dialog ── */}
-      <Dialog open={!!editEmailLog} onClose={() => setEditEmailLog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
-        <DialogContent>
+      <Dialog open={!!editEmailLog} onOpenChange={(next) => { if (!next) setEditEmailLog(null); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2 text-muted-foreground mb-3">
             Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
             Le message sera automatiquement renvoye apres la mise a jour.
@@ -724,30 +782,27 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               placeholder="voyageur@example.com"
             />
           </Field>
+          <DialogFooter>
+            <BuiButton variant="outline" onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
+              Annuler
+            </BuiButton>
+            <BuiButton
+              disabled={!editEmailValue.trim() || editEmailLoading}
+              onClick={handleUpdateEmailAndResend}
+            >
+              {editEmailLoading ? <Spinner className="size-5" /> : 'Enregistrer et renvoyer'}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <BuiButton variant="outline" onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
-            Annuler
-          </BuiButton>
-          <BuiButton
-            disabled={!editEmailValue.trim() || editEmailLoading}
-            onClick={handleUpdateEmailAndResend}
-          >
-            {editEmailLoading ? <Spinner className="size-5" /> : 'Enregistrer et renvoyer'}
-          </BuiButton>
-        </DialogActions>
       </Dialog>
 
       {/* ── Apercu PDF (deep-link notification document) ── */}
-      <Dialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdf}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { height: '85vh' } }}
-      >
-        <DialogTitle>{t('documents.history.pdfPreview', 'Apercu du document')}</DialogTitle>
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <Dialog open={pdfDialogOpen} onOpenChange={(next) => { if (!next) handleClosePdf(); }}>
+        <DialogContent className="max-w-[900px] h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{t('documents.history.pdfPreview', 'Apercu du document')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex min-h-0 flex-col overflow-hidden">
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
               <Spinner className="size-10 text-[var(--accent)]" />
@@ -773,10 +828,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               </p>
             </div>
           )}
+          </div>
+          <DialogFooter>
+            <BuiButton variant="ghost" onClick={handleClosePdf}>{t('common.close', 'Fermer')}</BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <BuiButton variant="ghost" onClick={handleClosePdf}>{t('common.close', 'Fermer')}</BuiButton>
-        </DialogActions>
       </Dialog>
 
       <GenerateDialog open={generateOpen} onClose={() => setGenerateOpen(false)} onSuccess={() => setGenerateOpen(false)} />

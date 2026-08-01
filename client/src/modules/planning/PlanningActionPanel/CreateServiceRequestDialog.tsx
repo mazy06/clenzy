@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
-import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { Alert as UiAlert, AlertTitle, AlertDescription, Button } from '../../../components/ui';
+import { TriangleAlert, CircleCheck, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, InputBase, Alert, Link, Stepper, Step, StepLabel } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+} from '../../../components/ui';
+// Stepper : aucun equivalent dans le kit Baitly UI — laisse en MUI plutot que
+// d'inventer un composant de navigation par etapes.
+import { Stepper, Step, StepLabel } from '@mui/material';
 import {
   Close,
   Send,
@@ -794,20 +804,21 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { maxHeight: '85vh' } }}
-    >
-      {/* ── Title ── */}
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 1, pt: 2, px: 2.5 }}>
+    // `aria-describedby={undefined}` : la modale n'a pas de texte descriptif
+    // unique, on evite l'avertissement Radix plutot que d'en inventer un.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="sm:max-w-[900px] max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden"
+      >
+        {/* ── Title ── */}
+        <DialogHeader className="flex-row items-center gap-3 pb-1.5 pt-3 px-[15px]">
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="inline-flex text-[var(--accent)]"><Send size={20} strokeWidth={1.75} /></span>
-          <h6 className="cn-text-h6 font-bold text-[1rem]">
+          <DialogTitle className="cn-text-h6 font-bold text-[1rem]">
             {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
-          </h6>
+          </DialogTitle>
         </div>
         {/* Stepper à droite, sur la même ligne que le titre */}
         <Stepper
@@ -826,12 +837,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
             </Step>
           ))}
         </Stepper>
-        <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0 }}>
+        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer" className="shrink-0">
           <Close size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+        </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
+        <div className="px-[15px] flex-1 min-h-0 overflow-y-auto">
         {/* ── Header: Property info + Title + Requestor ── */}
         <div className="mb-3 pb-3 border-b border-[var(--line)]">
           {/* Property name + address */}
@@ -855,18 +866,21 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Titre de la demande *
               </p>
+              {/* La ref react-hook-form reste portee par l'enveloppe, comme le
+                  faisait le root de l'InputBase MUI : les primitifs du kit sont
+                  des fonctions et ne transmettent pas de ref (React 18). */}
               <Controller
                 name="title"
                 control={control}
-                render={({ field, fieldState }) => (
+                render={({ field: { ref: fieldRef, ...field }, fieldState }) => (
                   <>
-                    <div className="flex items-center gap-[4.5px] px-[7.5px] py-[4.5px] rounded-[11px] bg-[var(--field)] min-h-[40px]" style={{ border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}` }}>
+                    <div ref={fieldRef} className="flex items-center gap-[4.5px] px-[7.5px] py-[4.5px] rounded-[11px] bg-[var(--field)] min-h-[40px]" style={{ border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}` }}>
                       <span className="inline-flex text-[var(--accent)]"><Send size={16} strokeWidth={1.75} /></span>
-                      <InputBase
+                      <Input
                         {...field}
-                        fullWidth
+                        value={field.value ?? ''}
                         placeholder="Ex: Détartrage ballon d'eau chaude"
-                        sx={{ fontSize: '0.8125rem', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+                        className="flex-1 h-auto border-0 bg-transparent px-0 py-0 text-[0.8125rem] text-[var(--ink)] placeholder:text-[var(--faint)] placeholder:opacity-100 focus-visible:ring-0"
                       />
                     </div>
                     {fieldState.error && (
@@ -1016,89 +1030,80 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
                 {/* ── Team conflict ── */}
                 {!conflictLoading && hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
-                  <Alert
-                    severity="error"
-                    icon={<WarningIcon size={20} strokeWidth={1.75} />}
-                    sx={{
-                      mt: 1.5,
-                      fontSize: '0.75rem',
-                      '& .MuiAlert-message': { fontSize: '0.75rem' },
-                    }}
-                  >
-                    <p className="cn-text-body1 font-bold text-[0.8125rem] mb-0.5">
+                  <UiAlert variant="destructive" className="mt-[9px] text-[0.75rem]">
+                    <WarningIcon size={20} strokeWidth={1.75} />
+                    <AlertTitle className="font-bold text-[0.8125rem]">
                       Conflit de planification détecté
-                    </p>
-                    <p className="cn-text-body1 text-[0.75rem] mb-1.5">
-                      L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
-                      {conflictInfo.teamConflictCount > 0
-                        ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
-                        : 'des membres occupés'}{' '}
-                      sur ce créneau. Choisissez une autre équipe ou une autre date.
-                    </p>
-                    {conflictMembers.length > 0 && (
-                      <div className="mt-0.5 ps-0.5">
-                        {conflictMembers.map((member) => (
-                          <div className="flex items-center gap-1 py-0.5" key={member.userId}>
-                            <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--err)]')}><Person size={12} strokeWidth={1.75} /></span>
-                            <p className="cn-text-body1 text-[0.6875rem]">
-                              {member.firstName} {member.lastName}
-                              {!member.available && (
-                                <span className="text-[0.6875rem] text-[var(--err)] font-semibold">
-                                  {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Alert>
+                    </AlertTitle>
+                    <AlertDescription className="text-[0.75rem]">
+                      <p className="mb-1.5">
+                        L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
+                        {conflictInfo.teamConflictCount > 0
+                          ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
+                          : 'des membres occupés'}{' '}
+                        sur ce créneau. Choisissez une autre équipe ou une autre date.
+                      </p>
+                      {conflictMembers.length > 0 && (
+                        <div className="mt-0.5 ps-0.5">
+                          {conflictMembers.map((member) => (
+                            <div className="flex items-center gap-1 py-0.5" key={member.userId}>
+                              <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--err)]')}><Person size={12} strokeWidth={1.75} /></span>
+                              <p className="cn-text-body1 text-[0.6875rem]">
+                                {member.firstName} {member.lastName}
+                                {!member.available && (
+                                  <span className="text-[0.6875rem] text-[var(--err)] font-semibold">
+                                    {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {!conflictLoading && !hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
-                  <Alert
-                    severity="success"
-                    sx={{ mt: 1.5, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5, fontSize: '0.6875rem' } }}
-                  >
-                    L'équipe <strong>{conflictInfo.teamName}</strong> est disponible sur ce créneau
-                  </Alert>
+                  <UiAlert variant="success" className="mt-[9px] text-[0.6875rem]">
+                    <CircleCheck />
+                    <AlertDescription className="text-[0.6875rem]">
+                      L'équipe <strong>{conflictInfo.teamName}</strong> est disponible sur ce créneau
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {/* ── User conflict ── */}
                 {!conflictLoading && hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
-                  <Alert
-                    severity="error"
-                    icon={<WarningIcon size={20} strokeWidth={1.75} />}
-                    sx={{
-                      mt: 1.5,
-                      fontSize: '0.75rem',
-                      '& .MuiAlert-message': { fontSize: '0.75rem' },
-                    }}
-                  >
-                    <p className="cn-text-body1 font-bold text-[0.8125rem] mb-0.5">
+                  <UiAlert variant="destructive" className="mt-[9px] text-[0.75rem]">
+                    <WarningIcon size={20} strokeWidth={1.75} />
+                    <AlertTitle className="font-bold text-[0.8125rem]">
                       Conflit de planification détecté
-                    </p>
-                    <p className="cn-text-body1 text-[0.75rem]">
+                    </AlertTitle>
+                    <AlertDescription className="text-[0.75rem]">
                       <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> a déjà{' '}
                       {userConflictInfo.conflictCount} intervention{userConflictInfo.conflictCount > 1 ? 's' : ''}{' '}
                       sur ce créneau. Choisissez un autre intervenant ou une autre date.
-                    </p>
-                  </Alert>
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {!conflictLoading && !hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
-                  <Alert
-                    severity="success"
-                    sx={{ mt: 1.5, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5, fontSize: '0.6875rem' } }}
-                  >
-                    <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> est disponible sur ce créneau
-                  </Alert>
+                  <UiAlert variant="success" className="mt-[9px] text-[0.6875rem]">
+                    <CircleCheck />
+                    <AlertDescription className="text-[0.6875rem]">
+                      <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> est disponible sur ce créneau
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {/* Workflow info */}
-                <Alert severity="info" sx={{ fontSize: '0.6875rem', mt: 2, '& .MuiAlert-message': { fontSize: '0.6875rem' } }}>
-                  La demande sera soumise au workflow : validation → assignation → paiement → intervention planifiée.
-                </Alert>
+                <UiAlert variant="info" className="mt-3 text-[0.6875rem]">
+                  <Info size={16} strokeWidth={1.75} />
+                  <AlertDescription className="text-[0.6875rem]">
+                    La demande sera soumise au workflow : validation → assignation → paiement → intervention planifiée.
+                  </AlertDescription>
+                </UiAlert>
               </div>
             )}
           </div>
@@ -1115,15 +1120,19 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         {createdId && (
           <UiAlert variant="success" className="text-[0.75rem] mt-2">
             <CircleCheck />
-            <AlertDescription>Demande créée.{' '}<Link component="button" onClick={() => navigate(`/service-requests/${createdId}`)} sx={{ fontSize: '0.75rem' }}>
+            <AlertDescription>Demande créée.{' '}<button
+              type="button"
+              onClick={() => navigate(`/service-requests/${createdId}`)}
+              className="text-[0.75rem] underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0 text-inherit"
+            >
               Voir la demande
-            </Link></AlertDescription>
+            </button></AlertDescription>
           </UiAlert>
         )}
-      </DialogContent>
+        </div>
 
-      {/* ── Actions ── */}
-      <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5, justifyContent: 'space-between' }}>
+        {/* ── Actions ── */}
+        <DialogFooter className="flex-row justify-between sm:justify-between mx-0 mb-0 px-[15px] pb-3 pt-[9px] bg-transparent">
         <Button variant="ghost" size="sm" onClick={onClose}>
           Annuler
         </Button>
@@ -1155,7 +1164,8 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
             </Button>
           )}
         </div>
-      </DialogActions>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

@@ -1,5 +1,4 @@
-import { Skeleton, Paper } from '@mui/material';
-import { Card, TableRow, TableCell } from '../components/ui';
+import { Card, TableRow, TableCell, Skeleton } from './ui';
 
 interface ListSkeletonProps {
   /** Nombre de lignes/cards à simuler. Default : 6. */
@@ -18,7 +17,7 @@ interface ListSkeletonProps {
 }
 
 /**
- * Skeleton screen générique — remplace les `<CircularProgress />` centrés
+ * Skeleton screen générique — remplace les `<Spinner />` centrés
  * (anti-pattern Taste : *"Replace generic circular spinners with skeleton
  * loaders that match the layout shape"*).
  *
@@ -38,7 +37,8 @@ export default function ListSkeleton({
           <TableRow key={idx}>
             {Array.from({ length: columns }).map((__, colIdx) => (
               <TableCell key={colIdx}>
-                <Skeleton variant="text" width={colIdx === 0 ? '80%' : '60%'} height={18} />
+                {/* Largeur calculee au rendu : Tailwind n'emet pas de classe depuis une valeur runtime. */}
+                <Skeleton className="h-[18px]" style={{ width: colIdx === 0 ? '80%' : '60%' }} />
               </TableCell>
             ))}
           </TableRow>
@@ -53,11 +53,11 @@ export default function ListSkeleton({
         {Array.from({ length: rows }).map((_, idx) => (
           <Card className="gap-0 py-0 p-2" key={idx}>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Skeleton variant="rounded" width={26} height={26} />
-              <Skeleton variant="text" width="50%" height={12} />
+              <Skeleton className="size-[26px]" />
+              <Skeleton className="h-3 w-1/2" />
             </div>
-            <Skeleton variant="text" width="40%" height={22} />
-            <Skeleton variant="text" width="65%" height={12} sx={{ mt: 0.5 }} />
+            <Skeleton className="h-[22px] w-2/5" />
+            <Skeleton className="h-3 w-[65%] mt-[3px]" />
           </Card>
         ))}
       </div>
@@ -68,25 +68,19 @@ export default function ListSkeleton({
   return (
     <div className="flex flex-col gap-1">
       {Array.from({ length: rows }).map((_, idx) => (
-        <Paper
+        <div
           key={idx}
-          variant="outlined"
-          sx={{
-            height: rowHeight,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.25,
-            px: 1.5,
-          }}
+          className="flex items-center gap-[7.5px] px-[9px] rounded-lg border border-solid border-[var(--line)] bg-[var(--card)]"
+          style={{ height: rowHeight }}
         >
-          <Skeleton variant="rounded" width={36} height={36} />
+          <Skeleton className="size-9" />
           <div className="flex-1 flex flex-col gap-0.5">
-            <Skeleton variant="text" width="40%" height={14} />
-            <Skeleton variant="text" width="65%" height={10} />
+            <Skeleton className="h-3.5 w-2/5" />
+            <Skeleton className="h-2.5 w-[65%]" />
           </div>
-          <Skeleton variant="rounded" width={60} height={18} />
-          <Skeleton variant="circular" width={24} height={24} />
-        </Paper>
+          <Skeleton className="h-[18px] w-[60px]" />
+          <Skeleton className="size-6 rounded-full" />
+        </div>
       ))}
     </div>
   );

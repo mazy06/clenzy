@@ -5,9 +5,23 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Button, Spinner } from '../../components/ui';
-import { Card as BuiCard } from '../../components/ui';
+import { Card as BuiCard, CardContent } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Skeleton,
+  Switch,
+  Tooltip as BuiTooltip,
+  TooltipContent as BuiTooltipContent,
+  TooltipTrigger as BuiTooltipTrigger,
+} from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, CardActionArea, CardContent, Typography, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
+// CircularProgress conserve : la jauge de score est un cercle de progression
+// DETERMINE, dont le kit Baitly n'a pas d'equivalent (Progress est lineaire,
+// Spinner est indetermine). Le reste du fichier ne depend plus de MUI.
+import { CircularProgress } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -84,7 +98,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
     : 'var(--err)';
 
   return (
-    <Card sx={{ textAlign: 'center', py: 3 }}>
+    <BuiCard className="text-center py-[18px]">
       <CardContent>
         <div className="relative inline-flex">
           <CircularProgress
@@ -110,12 +124,13 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
                 <Shield size={32} strokeWidth={1.75} />
               )}
             </span>
-            <Typography
-              variant="h3"
-              sx={{ fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}
+            {/* Echelle h3 du theme (1rem / 1.125 / 1.25 selon le palier). */}
+            <p
+              className="text-[1rem] min-[1200px]:text-[1.125rem] min-[1536px]:text-[1.25rem] font-semibold leading-[1.25] tracking-[-0.015em] tabular-nums"
+              style={{ color }}
             >
               {criticalFailed ? '0' : Math.round(score)}
-            </Typography>
+            </p>
             <span className="cn-text-caption text-[var(--muted)]">/ 100</span>
           </div>
         </div>
@@ -126,7 +141,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
           <Badge variant="secondary" className="mt-1.5 text-[var(--err)] bg-[var(--err-soft)]">KPI CRITIQUE EN ECHEC</Badge>
         )}
       </CardContent>
-    </Card>
+    </BuiCard>
   );
 };
 
@@ -164,7 +179,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
     : kpi.target;
 
   const cardContent = (
-    <CardContent sx={{ pb: '12px !important' }}>
+    <CardContent className="pb-3">
       <div className="flex justify-between items-start mb-1.5 gap-0.5">
         {/* Label en overline (pattern entête de tuile KPI) */}
         <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
@@ -198,40 +213,38 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
 
   // Carte plate hairline (statut porté par valeur + chip, pas par la bordure)
   const card = (
-    <Card
-      variant="outlined"
-      sx={{
-        height: '100%',
-        ...(onClick && {
-          cursor: 'pointer',
-          '&:hover': { borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-card)' },
-        }),
-      }}
+    <BuiCard
+      className={cn(
+        'h-full',
+        onClick && 'cursor-pointer hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+      )}
     >
       {onClick ? (
-        <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
+        // Remplace CardActionArea : bouton nu qui couvre la carte, sans gabarit
+        // de bouton (le style vit deja sur la carte).
+        <button
+          type="button"
+          onClick={onClick}
+          className="h-full w-full cursor-pointer border-0 bg-transparent p-0 text-start"
+        >
           {cardContent}
-        </CardActionArea>
+        </button>
       ) : (
         cardContent
       )}
-    </Card>
+    </BuiCard>
   );
 
   if (tooltipContent) {
     return (
-      <MuiTooltip
-        title={tooltipContent}
-        arrow
-        placement="top"
-        slotProps={{
-          tooltip: {
-            sx: { maxWidth: 360, fontSize: '0.75rem', p: 1.5 },
-          },
-        }}
-      >
-        <div className="h-full">{card}</div>
-      </MuiTooltip>
+      <BuiTooltip>
+        <BuiTooltipTrigger asChild>
+          <div className="h-full">{card}</div>
+        </BuiTooltipTrigger>
+        <BuiTooltipContent side="top" className="max-w-[360px] text-[0.75rem]">
+          {tooltipContent}
+        </BuiTooltipContent>
+      </BuiTooltip>
     );
   }
 
@@ -416,16 +429,16 @@ const KpiReadinessPage: React.FC = () => {
         <div className="mt-4">
           <div className="grid grid-cols-12 gap-[18px]">
             <div className="col-span-12 min-[900px]:col-span-4">
-              <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
+              <Skeleton className="h-[260px] rounded-[14px]" />
             </div>
             <div className="col-span-12 min-[900px]:col-span-8">
-              <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
+              <Skeleton className="h-[260px] rounded-[14px]" />
             </div>
           </div>
           <div className="grid grid-cols-12 gap-3 mt-[3px]">
             {Array.from({ length: 8 }).map((_, i) => (
               <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
-                <Skeleton variant="rounded" height={120} sx={{ borderRadius: '14px' }} />
+                <Skeleton className="h-[120px] rounded-[14px]" />
               </div>
             ))}
           </div>
@@ -452,16 +465,15 @@ const KpiReadinessPage: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={autoRefresh}
-                          onChange={(e) => setAutoRefresh(e.target.checked)}
-                          size="small"
-                        />
-                      }
-                      label="Auto-refresh"
-                    />
+                    <Field orientation="horizontal" className="w-auto gap-1.5">
+                      <Switch
+                        id="kpi-auto-refresh"
+                        size="sm"
+                        checked={autoRefresh}
+                        onCheckedChange={setAutoRefresh}
+                      />
+                      <FieldLabel htmlFor="kpi-auto-refresh">Auto-refresh</FieldLabel>
+                    </Field>
                     <Button size="sm" onClick={handleManualRefresh} disabled={refreshing}>
                       {refreshing ? <Spinner className="size-4" /> : <Refresh />}
                       Rafraichir
@@ -504,18 +516,19 @@ const KpiReadinessPage: React.FC = () => {
               <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
                 Tendance historique
               </h6>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Periode</InputLabel>
-                <Select
-                  value={historyHours}
-                  label="Periode"
-                  onChange={(e) => setHistoryHours(Number(e.target.value))}
-                >
-                  <MenuItem value={24}>24 heures</MenuItem>
-                  <MenuItem value={168}>7 jours</MenuItem>
-                  <MenuItem value={720}>30 jours</MenuItem>
-                </Select>
-              </FormControl>
+              {/* Filtre sans libelle visible (il jouxte le titre de la carte) :
+                  l'aria-label reste la seule etiquette. */}
+              <NativeSelect
+                size="sm"
+                className="min-w-[120px]"
+                aria-label="Periode"
+                value={historyHours}
+                onChange={(e) => setHistoryHours(Number(e.target.value))}
+              >
+                <NativeSelectOption value={24}>24 heures</NativeSelectOption>
+                <NativeSelectOption value={168}>7 jours</NativeSelectOption>
+                <NativeSelectOption value={720}>30 jours</NativeSelectOption>
+              </NativeSelect>
             </div>
 
             {chartData.length > 0 ? (

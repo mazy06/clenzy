@@ -5,7 +5,13 @@ import { Spinner } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
+import {
+  Switch,
+  Separator,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -165,7 +171,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
   return (
     <div className="flex gap-[9px] items-start flex-wrap min-[1200px]:flex-nowrap">
       {/* ── Formulaire (création / édition) ── */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 5, minWidth: 300 }}>
+      <Card className="gap-0 p-3 flex-[5] min-w-[300px]">
         <div className="flex items-center justify-between mb-2">
           <p className="cn-text-body1 text-[0.8rem] font-bold tracking-[0.01em]">
             {editingId != null
@@ -173,13 +179,18 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
               : t('restrictions.newTitle', 'Nouvelle restriction')}
           </p>
           {editingId != null && (
-            <Tooltip title={t('common.cancel', 'Annuler')}>
-              <IconButton size="small" onClick={resetForm}><X size={15} /></IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" onClick={resetForm} aria-label={t('common.cancel', 'Annuler')}>
+                  <X size={15} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('common.cancel', 'Annuler')}</TooltipContent>
             </Tooltip>
           )}
         </div>
 
-        <Stack spacing={1.5}>
+        <div className="flex flex-col gap-[9px]">
           <div className="flex gap-1.5">
             <Field>
               <FieldLabel htmlFor="restriction-start-date">{t('restrictions.start', 'Début')}</FieldLabel>
@@ -224,24 +235,36 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </Field>
           </div>
 
-          <Stack direction="row" spacing={2}>
-            <FormControlLabel
-              control={<Switch size="small" checked={form.closedToArrival}
-                onChange={(e) => setForm((s) => ({ ...s, closedToArrival: e.target.checked }))} />}
-              label={<p className="cn-text-body1 text-[0.78rem]">{t('restrictions.cta', 'Arrivée fermée (CTA)')}</p>}
-            />
-            <FormControlLabel
-              control={<Switch size="small" checked={form.closedToDeparture}
-                onChange={(e) => setForm((s) => ({ ...s, closedToDeparture: e.target.checked }))} />}
-              label={<p className="cn-text-body1 text-[0.78rem]">{t('restrictions.ctd', 'Départ fermé (CTD)')}</p>}
-            />
-          </Stack>
+          <div className="flex flex-row gap-3">
+            <Field orientation="horizontal" className="w-auto">
+              <Switch
+                id="restriction-cta"
+                size="sm"
+                checked={form.closedToArrival}
+                onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToArrival: checked }))}
+              />
+              <FieldLabel htmlFor="restriction-cta" className="text-[0.78rem] font-normal">
+                {t('restrictions.cta', 'Arrivée fermée (CTA)')}
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal" className="w-auto">
+              <Switch
+                id="restriction-ctd"
+                size="sm"
+                checked={form.closedToDeparture}
+                onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToDeparture: checked }))}
+              />
+              <FieldLabel htmlFor="restriction-ctd" className="text-[0.78rem] font-normal">
+                {t('restrictions.ctd', 'Départ fermé (CTD)')}
+              </FieldLabel>
+            </Field>
+          </div>
 
           <div>
             <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
               {t('restrictions.daysOfWeek', 'Jours concernés (vide = tous)')}
             </p>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+            <div className="flex flex-row flex-wrap gap-[3px]">
               {DOW.map((d) => (
                 <StatusChip
                   key={d.v}
@@ -254,7 +277,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                   className="border-solid text-[0.7rem] h-6"
                 />
               ))}
-            </Stack>
+            </div>
           </div>
 
           <Field className="max-w-[180px]">
@@ -282,11 +305,11 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
               {editingId != null ? t('common.save', 'Enregistrer') : t('restrictions.add', 'Ajouter')}
             </Button>
           </div>
-        </Stack>
-      </Paper>
+        </div>
+      </Card>
 
       {/* ── Liste des restrictions ── */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 7, minWidth: 320 }}>
+      <Card className="gap-0 p-3 flex-[7] min-w-[320px]">
         <p className="cn-text-body1 text-[0.8rem] font-bold mb-2">
           {t('restrictions.listTitle', 'Restrictions actives')}{' '}
           <span className="text-[0.72rem] text-muted-foreground tabular-nums">
@@ -304,14 +327,18 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </p>
           </div>
         ) : (
-          <Stack divider={<Divider flexItem />} spacing={0}>
-            {restrictions.map((r) => (
-              <div className="flex items-center gap-1.5 py-1.5" key={r.id}>
+          // Le `divider` du Stack MUI n'a pas d'equivalent declaratif : le filet
+          // est insere explicitement entre deux lignes.
+          <div className="flex flex-col">
+            {restrictions.map((r, idx) => (
+              <React.Fragment key={r.id}>
+                {idx > 0 && <Separator />}
+                <div className="flex items-center gap-1.5 py-1.5">
                 <div className="flex-1 min-w-0">
                   <p className="cn-text-body1 text-[0.8rem] font-semibold tabular-nums">
                     {r.startDate} → {r.endDate}
                   </p>
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+                  <div className="flex flex-row flex-wrap gap-[3px] mt-[3px]">
                     {r.minStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`min ${r.minStay}`}</Badge>}
                     {r.maxStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`max ${r.maxStay}`}</Badge>}
                     {r.closedToArrival && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTA</Badge>}
@@ -319,24 +346,41 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                     {!!r.daysOfWeek?.length && (
                       <Badge variant="outline" className="text-[0.68rem] h-[20px]">{r.daysOfWeek.map((d) => DOW.find((x) => x.v === d)?.label).join(' ')}</Badge>
                     )}
-                  </Stack>
+                  </div>
                 </div>
-                <Tooltip title={t('common.edit', 'Modifier')}>
-                  <IconButton size="small" onClick={() => handleEdit(r)}><Pencil size={14} /></IconButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(r)} aria-label={t('common.edit', 'Modifier')}>
+                      <Pencil size={14} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
                 </Tooltip>
-                <Tooltip title={t('common.delete', 'Supprimer')}>
-                  <span>
-                    <IconButton size="small" onClick={() => deleteMutation.mutate(r.id)}
-                      disabled={deleteMutation.isPending} sx={{ color: 'var(--err, #C97A7A)' }}>
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </span>
+                {/* Le span garde l'infobulle atteignable quand le bouton est
+                    desactive (un bouton disabled n'emet plus d'evenement). */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => deleteMutation.mutate(r.id)}
+                        disabled={deleteMutation.isPending}
+                        aria-label={t('common.delete', 'Supprimer')}
+                        className="text-[var(--err,_#C97A7A)]"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
                 </Tooltip>
-              </div>
+                </div>
+              </React.Fragment>
             ))}
-          </Stack>
+          </div>
         )}
-      </Paper>
+      </Card>
     </div>
   );
 };

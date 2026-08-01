@@ -3,7 +3,10 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Button, Spinner } from '../../../components/ui';
-import { LinearProgress, Stepper, Step, StepLabel, StepContent, Checkbox, FormControlLabel } from '@mui/material';
+import { Checkbox, Field, FieldLabel, Progress } from '../../../components/ui';
+// Stepper / Step / StepLabel / StepContent restent MUI : le kit Baitly UI n'a
+// pas de primitif d'etapes verticales, aucune traduction fidele n'est possible.
+import { Stepper, Step, StepLabel, StepContent } from '@mui/material';
 import {
   PlayArrow,
   CheckCircle,
@@ -132,11 +135,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
           <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="h-[20px]" />
           ); })()}
         </div>
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{ height: 6, borderRadius: 3 }}
-        />
+        <Progress value={progress} className="h-1.5 rounded-full" />
       </div>
 
       {/* Start button */}
@@ -206,21 +205,18 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
             </div>
           </StepLabel>
           <StepContent>
-            <div className="flex flex-col gap-0">
+            <div className="flex flex-col gap-1">
               {roomNames.map((name, i) => (
-                <FormControlLabel
-                  key={i}
-                  control={
-                    <Checkbox
-                      checked={validatedRooms.has(i)}
-                      size="small"
-                      disabled={!isStarted}
-                      sx={{ p: 0.25 }}
-                    />
-                  }
-                  label={<p className="cn-text-body1 text-[0.6875rem]">{name}</p>}
-                  sx={{ ml: 0, mr: 0 }}
-                />
+                <Field key={i} orientation="horizontal" className="w-auto gap-2">
+                  <Checkbox
+                    id={`room-validated-${i}`}
+                    checked={validatedRooms.has(i)}
+                    disabled={!isStarted}
+                  />
+                  <FieldLabel htmlFor={`room-validated-${i}`} className="flex-none font-normal text-[0.6875rem]">
+                    {name}
+                  </FieldLabel>
+                </Field>
               ))}
             </div>
           </StepContent>

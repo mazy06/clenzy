@@ -10,10 +10,17 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  NativeSelect,
+  Switch,
   Textarea,
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, FormHelperText } from '@mui/material';
+// Reste en MUI : l'Autocomplete multi-select des proprietes (son renderInput
+// recoit des props internes que le TextField seul sait consommer) et, par
+// ricochet, le Dialog qui l'entoure — une modale Radix pose `pointer-events:
+// none` sur le body et traite la liste deroulante portalisee de l'Autocomplete
+// comme un clic exterieur, ce qui la rendrait inutilisable en silence.
+import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Autocomplete } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -212,18 +219,19 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
             </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.status')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="voucher-status">{t('vouchers.editor.status')}</FieldLabel>
+              <NativeSelect
+                id="voucher-status"
+                className="w-full"
                 value={form.status}
-                label={t('vouchers.editor.status')}
                 onChange={(e) => update('status', e.target.value as VoucherStatus)}
               >
-                <MenuItem value="DRAFT">{t('vouchers.status.DRAFT')}</MenuItem>
-                <MenuItem value="ACTIVE">{t('vouchers.status.ACTIVE')}</MenuItem>
-                <MenuItem value="PAUSED">{t('vouchers.status.PAUSED')}</MenuItem>
-              </Select>
-            </FormControl>
+                <option value="DRAFT">{t('vouchers.status.DRAFT')}</option>
+                <option value="ACTIVE">{t('vouchers.status.ACTIVE')}</option>
+                <option value="PAUSED">{t('vouchers.status.PAUSED')}</option>
+              </NativeSelect>
+            </Field>
           </div>
 
           <div className="col-span-12">
@@ -241,21 +249,22 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
 
           {/* Type + Code */}
           <div className="col-span-12 min-[900px]:col-span-6">
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.type')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="voucher-type">{t('vouchers.editor.type')}</FieldLabel>
+              <NativeSelect
+                id="voucher-type"
+                className="w-full"
                 value={form.type}
-                label={t('vouchers.editor.type')}
                 onChange={(e) => update('type', e.target.value as VoucherType)}
                 disabled={isEdit}
               >
-                <MenuItem value="MANUAL_CODE">{t('vouchers.typeManual')}</MenuItem>
-                <MenuItem value="AUTO_CAMPAIGN">{t('vouchers.typeAuto')}</MenuItem>
-              </Select>
-              <FormHelperText>
+                <option value="MANUAL_CODE">{t('vouchers.typeManual')}</option>
+                <option value="AUTO_CAMPAIGN">{t('vouchers.typeAuto')}</option>
+              </NativeSelect>
+              <FieldDescription>
                 {isAuto ? t('vouchers.editor.typeAutoHelper') : t('vouchers.editor.typeManualHelper')}
-              </FormHelperText>
-            </FormControl>
+              </FieldDescription>
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-6">
             {!isAuto && (
@@ -276,20 +285,21 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
 
           {/* Discount */}
           <div className="col-span-12 min-[900px]:col-span-4">
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.discountType')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="voucher-discount-type">{t('vouchers.editor.discountType')}</FieldLabel>
+              <NativeSelect
+                id="voucher-discount-type"
+                className="w-full"
                 value={form.discountType}
-                label={t('vouchers.editor.discountType')}
                 onChange={(e) => update('discountType', e.target.value as VoucherDiscountType)}
               >
-                <MenuItem value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</MenuItem>
-                <MenuItem value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</MenuItem>
-                <MenuItem value="FREE_NIGHTS" disabled>
+                <option value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</option>
+                <option value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</option>
+                <option value="FREE_NIGHTS" disabled>
                   {t('vouchers.editor.discountFreeNights')} ({t('vouchers.editor.comingSoon')})
-                </MenuItem>
-              </Select>
-            </FormControl>
+                </option>
+              </NativeSelect>
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
             <Field>
@@ -307,20 +317,21 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
             </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.channelScope')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="voucher-channel-scope">{t('vouchers.editor.channelScope')}</FieldLabel>
+              <NativeSelect
+                id="voucher-channel-scope"
+                className="w-full"
                 value={form.channelScope}
-                label={t('vouchers.editor.channelScope')}
                 onChange={(e) => update('channelScope', e.target.value as VoucherChannelScope)}
               >
-                <MenuItem value="ALL">{t('vouchers.editor.channelAll')}</MenuItem>
-                <MenuItem value="BOOKING_ENGINE">{t('vouchers.editor.channelBookingEngine')}</MenuItem>
-                <MenuItem value="DIRECT_LINK">{t('vouchers.editor.channelDirectLink')}</MenuItem>
-                <MenuItem value="WHATSAPP">WhatsApp</MenuItem>
-                <MenuItem value="EMAIL">Email</MenuItem>
-              </Select>
-            </FormControl>
+                <option value="ALL">{t('vouchers.editor.channelAll')}</option>
+                <option value="BOOKING_ENGINE">{t('vouchers.editor.channelBookingEngine')}</option>
+                <option value="DIRECT_LINK">{t('vouchers.editor.channelDirectLink')}</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="EMAIL">Email</option>
+              </NativeSelect>
+            </Field>
           </div>
 
           {/* Validite */}
@@ -421,15 +432,16 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
 
           {/* Scope properties */}
           <div className="col-span-12">
-            <Stack direction="row" spacing={1} alignItems="center">
+            <div className="flex flex-row items-center gap-1.5">
               <Switch
+                id="voucher-apply-to-all"
                 checked={form.applyToAllProperties}
-                onChange={(e) => update('applyToAllProperties', e.target.checked)}
+                onCheckedChange={(checked) => update('applyToAllProperties', checked)}
               />
-              <p className="cn-text-body2">
+              <FieldLabel htmlFor="voucher-apply-to-all" className="cn-text-body2 font-normal">
                 {t('vouchers.editor.applyToAll')}
-              </p>
-            </Stack>
+              </FieldLabel>
+            </div>
             {!form.applyToAllProperties && (
               <Autocomplete
                 multiple

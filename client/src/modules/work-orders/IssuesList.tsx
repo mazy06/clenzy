@@ -4,7 +4,19 @@ import { CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Tooltip } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+// Snackbar laisse en MUI : changer le mecanisme de notification depasse le
+// perimetre de cette migration.
+import { Snackbar } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Field,
@@ -224,10 +236,20 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
 
   const actionButtons = (
     <>
-      <Tooltip title={t('common.refresh', 'Rafraîchir')}>
-        <IconButton onClick={load} size="small" sx={{ cursor: 'pointer' }}>
-          <Refresh fontSize="small" />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <BuiButton
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.refresh', 'Rafraîchir')}
+              onClick={load}
+            >
+              <Refresh size={16} strokeWidth={1.75} />
+            </BuiButton>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('common.refresh', 'Rafraîchir')}</TooltipContent>
       </Tooltip>
       <BuiButton size="sm" onClick={openCreate}>
         <Add />
@@ -313,19 +335,22 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
       {!embedded && (
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <div className="flex flex-row items-center justify-between mb-[9px]">
           {filterBar}
           {actionButtons}
-        </Stack>
+        </div>
       )}
 
       {content}
 
       {/* ── Dialog de création (signalement depuis le web) ── */}
-      <Dialog open={createOpen} onClose={() => !creating && setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('issues.create.title', 'Signaler une anomalie')}</DialogTitle>
-        <DialogContent dividers>
-          <Stack gap={2} sx={{ pt: 0.5 }}>
+      <Dialog open={createOpen} onOpenChange={(next) => { if (!next && !creating) setCreateOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{t('issues.create.title', 'Signaler une anomalie')}</DialogTitle>
+          </DialogHeader>
+          {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+          <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
             <Field>
               <FieldLabel htmlFor="issue-create-property">{t('issues.create.property', 'Logement')}</FieldLabel>
               <NativeSelect
@@ -357,15 +382,17 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               <FieldLabel htmlFor="issue-create-description">
                 {t('issues.create.description', 'Description (optionnelle)')}
               </FieldLabel>
+              {/* min-h-[2lh] : le primitif pose `field-sizing: content`, qui
+                  neutralise `rows`. */}
               <Textarea
                 id="issue-create-description"
-                className="w-full"
+                className="w-full min-h-[2lh]"
                 rows={2}
                 value={createDescription}
                 onChange={(e) => setCreateDescription(e.target.value)}
               />
             </Field>
-            <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
+            <div className="flex flex-col min-[600px]:flex-row gap-[9px]">
               <Field>
                 <FieldLabel htmlFor="issue-create-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
                 <NativeSelect
@@ -395,23 +422,23 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                   ))}
                 </NativeSelect>
               </Field>
-            </Stack>
+            </div>
             {createError && (
               <p className="cn-text-body2 text-[var(--err)]">{createError}</p>
             )}
-          </Stack>
+          </div>
+          <DialogFooter>
+            <BuiButton variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            <BuiButton
+              onClick={handleCreate}
+              disabled={creating || createPropertyId === '' || createTitle.trim() === ''}
+            >
+              {t('issues.create.submit', 'Signaler')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <BuiButton variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
-            {t('common.cancel', 'Annuler')}
-          </BuiButton>
-          <BuiButton
-            onClick={handleCreate}
-            disabled={creating || createPropertyId === '' || createTitle.trim() === ''}
-          >
-            {t('issues.create.submit', 'Signaler')}
-          </BuiButton>
-        </DialogActions>
       </Dialog>
 
       <Snackbar
@@ -432,19 +459,20 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
       </Snackbar>
 
       {/* ── Panneau détail / qualification ── */}
-      <Dialog open={selected != null} onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
+      <Dialog open={selected != null} onOpenChange={(next) => { if (!next) setSelected(null); }}>
+        <DialogContent className="sm:max-w-[600px]">
         {selected && (
           <>
-            <DialogTitle sx={{ pb: 1 }}>
-              <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                <span className="cn-text-h6 flex-1 min-w-0">
+            <DialogHeader>
+              <DialogTitle className="flex flex-row items-center gap-1.5 flex-wrap">
+                <span className="flex-1 min-w-0">
                   {selected.title}
                 </span>
                 <StatusChip tone={STATUS_TONES[selected.status]} label={statusLabel(selected.status)} />
-              </Stack>
-            </DialogTitle>
-            <DialogContent dividers>
-              <Stack gap={2}>
+              </DialogTitle>
+            </DialogHeader>
+            {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+            <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
                 <div>
                   <span className="cn-text-caption text-[var(--muted)]">
                     {selected.propertyName ?? '—'}
@@ -477,11 +505,11 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 )}
 
                 {canManage && isActionable && (
-                  <Stack gap={1.5}>
+                  <div className="flex flex-col gap-[9px]">
                     <h6 className="cn-text-subtitle2">
                       {t('issues.qualifySection', 'Qualification')}
                     </h6>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
+                    <div className="flex flex-col min-[600px]:flex-row gap-[9px]">
                       <Field>
                         <FieldLabel htmlFor="issue-edit-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
                         <Input
@@ -519,8 +547,8 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                           onChange={(e) => setEditCost(e.target.value.replace(',', '.'))}
                         />
                       </Field>
-                    </Stack>
-                  </Stack>
+                    </div>
+                  </div>
                 )}
 
                 {canManage && isActionable && confirmConvert && (
@@ -552,9 +580,8 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 {error && (
                   <p className="cn-text-body2 text-[var(--err)]">{error}</p>
                 )}
-              </Stack>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+            </div>
+            <DialogFooter className="gap-1.5">
               <BuiButton variant="ghost" onClick={() => setSelected(null)} disabled={saving}>
                 {t('common.close', 'Fermer')}
               </BuiButton>
@@ -579,9 +606,10 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                   )}
                 </>
               )}
-            </DialogActions>
+            </DialogFooter>
           </>
         )}
+        </DialogContent>
       </Dialog>
     </div>
   );

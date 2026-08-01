@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
-import { Button } from '../../components/ui';
+// Menu laisse en MUI : son ancre (`anchorEl`) est produite par `useServiceRequestsList`
+// et par les vues enfant (grille / tableau / carte) — tous hors lot. Un DropdownMenu
+// Radix exige que le declencheur vive dans l'arbre du menu, ce qui n'est pas le cas ici.
+import { Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   Add,
   Edit,
@@ -42,15 +45,10 @@ interface ServiceRequestsListProps {
 
 // Icon-button d'action principale : contour accent + fond accent-soft au survol
 // (pattern boutons baseline — jamais d'aplat plein).
-const createButtonSx = {
-  p: 0.5,
-  borderRadius: '9px',
-  border: '1px solid var(--accent)',
-  color: 'var(--accent)',
-  bgcolor: 'transparent',
-  transition: 'background-color .14s, border-color .14s, color .14s',
-  '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent-deep)', color: 'var(--accent-deep)' },
-} as const;
+const CREATE_BUTTON_CLASS =
+  'rounded-[9px] border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] '
+  + 'transition-[background-color,border-color,color] duration-[140ms] '
+  + 'hover:bg-[var(--accent-soft)] hover:border-[var(--accent-deep)] hover:text-[var(--accent-deep)]';
 
 export default function ServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
   const {
@@ -269,14 +267,22 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         fileName="demandes-service"
         variant="icon"
       />
-      <Tooltip title={t('serviceRequests.create')}>
-        <IconButton
-          size="small"
-          onClick={() => navigate('/service-requests/new')}
-          sx={createButtonSx}
-        >
-          <Add size={20} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        {/* Span intercalaire : le kit ne transmet pas de ref, Radix en a besoin. */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('serviceRequests.create')}
+              onClick={() => navigate('/service-requests/new')}
+              className={CREATE_BUTTON_CLASS}
+            >
+              <Add size={20} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('serviceRequests.create')}</TooltipContent>
       </Tooltip>
     </div>
   );

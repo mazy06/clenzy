@@ -3,13 +3,23 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid, TextField, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
+// Autocomplete MUI conserve : son `renderInput` injecte des props internes dans
+// un TextField, qu'aucun primitif du kit ne sait recevoir.
+import { Autocomplete, TextField } from '@mui/material';
 import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import {
-  Autocomplete,
-  IconButton,
-  Chip,
-} from '@mui/material';
+  Avatar,
+  AvatarFallback,
+  Card,
+  CardContent,
+  NativeSelect,
+  NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import {
   Save,
   Cancel,
@@ -146,6 +156,10 @@ const TeamEdit: React.FC = () => {
   }, [teamQuery.data]);
 
   const availableUsers = usersQuery.data ?? [];
+  // Utilisateurs proposables = ceux qui ne sont pas deja membres de l'equipe.
+  const assignableUsers = availableUsers.filter(
+    (user) => !(formData.members || []).some((m) => m.userId === user.id),
+  );
   const loading = teamQuery.isLoading || usersQuery.isLoading;
 
   // ─── Update mutation ──────────────────────────────────────────────────
@@ -312,14 +326,14 @@ const TeamEdit: React.FC = () => {
       )}
 
       <Card>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent>
           <form onSubmit={handleSubmit}>
             <h6 className="cn-text-h6 mb-4 text-[var(--ink)]">
               Informations de base
             </h6>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} md={8}>
+            <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px] mb-6">
+              <div className="min-[900px]:col-span-2">
                 <Field>
                   <FieldLabel htmlFor="team-name">Nom de l'équipe *</FieldLabel>
                   <Input
@@ -330,44 +344,49 @@ const TeamEdit: React.FC = () => {
                     placeholder="Ex: Équipe Nettoyage Premium"
                   />
                 </Field>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>Type de service *</InputLabel>
+              </div>
+              <div>
+                {/* Liste riche (une icone par categorie) : le Select du kit, pas
+                    le select natif qui ne sait rendre que du texte. */}
+                <Field>
+                  <FieldLabel htmlFor="team-intervention-type">Type de service *</FieldLabel>
                   <Select
                     value={formData.interventionType}
-                    onChange={(e) => handleInputChange('interventionType', e.target.value)}
-                    label="Type de service *"
+                    onValueChange={(value) => handleInputChange('interventionType', value)}
                   >
-                    {teamServiceCategories.map((cat) => (
-                      <MenuItem key={cat.value} value={cat.value}>
-                        <div className="flex items-center gap-1">
-                          {cat.icon}
-                          <p className="cn-text-body2">{cat.label}</p>
-                        </div>
-                      </MenuItem>
-                    ))}
+                    <SelectTrigger id="team-intervention-type" className="w-full">
+                      <SelectValue placeholder="Choisir un type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teamServiceCategories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          <span className="flex items-center gap-1">
+                            {cat.icon}
+                            {cat.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+                </Field>
+              </div>
+            </div>
 
             <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Description</h6>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12}>
-                <Field>
-                  <FieldLabel htmlFor="team-description">Description de l'équipe</FieldLabel>
-                  <Textarea
-                    id="team-description"
-                    rows={4}
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Décrivez votre équipe..."
-                  />
-                </Field>
-              </Grid>
-            </Grid>
+            <div className="mb-6">
+              <Field>
+                <FieldLabel htmlFor="team-description">Description de l'équipe</FieldLabel>
+                {/* min-h en `lh` : le primitif pose field-sizing:content, qui neutralise `rows`. */}
+                <Textarea
+                  id="team-description"
+                  className="min-h-[4lh]"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Décrivez votre équipe..."
+                />
+              </Field>
+            </div>
 
             {/* ─── Coverage Zones ─────────────────────────────────────── */}
             <div className="flex items-center justify-between mb-3">
@@ -406,8 +425,8 @@ const TeamEdit: React.FC = () => {
                   const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                   return (
-                    <Grid container spacing={2} key={index} sx={{ mb: 1.5, alignItems: 'center' }}>
-                      <Grid item xs={12} md={3}>
+                    <div key={index} className="grid grid-cols-1 min-[900px]:grid-cols-12 gap-3 mb-[9px] items-center">
+                      <div className="min-[900px]:col-span-3">
                         <Autocomplete
                           size="small"
                           options={COVERAGE_COUNTRIES}
@@ -424,10 +443,10 @@ const TeamEdit: React.FC = () => {
                             <TextField {...params} label="Pays" />
                           )}
                         />
-                      </Grid>
+                      </div>
                       {isFr ? (
                         <>
-                          <Grid item xs={12} md={showArr ? 4 : 7}>
+                          <div className={showArr ? 'min-[900px]:col-span-4' : 'min-[900px]:col-span-7'}>
                             <Autocomplete
                               size="small"
                               options={FRENCH_DEPARTMENTS}
@@ -443,9 +462,9 @@ const TeamEdit: React.FC = () => {
                                 <TextField {...params} label="Departement" placeholder="Selectionner un departement" />
                               )}
                             />
-                          </Grid>
+                          </div>
                           {showArr && (
-                            <Grid item xs={12} md={4}>
+                            <div className="min-[900px]:col-span-4">
                               <Autocomplete
                                 size="small"
                                 options={arrOptions}
@@ -458,11 +477,11 @@ const TeamEdit: React.FC = () => {
                                   <TextField {...params} label="Arrondissement" placeholder="Tous les arrondissements" />
                                 )}
                               />
-                            </Grid>
+                            </div>
                           )}
                         </>
                       ) : (
-                        <Grid item xs={12} md={7}>
+                        <div className="min-[900px]:col-span-7">
                           <Autocomplete
                             size="small"
                             options={cityOptions}
@@ -478,21 +497,24 @@ const TeamEdit: React.FC = () => {
                               <TextField {...params} label="Ville" placeholder="Saisir ou selectionner une ville" />
                             )}
                           />
-                        </Grid>
+                        </div>
                       )}
-                      <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <div className="min-[900px]:col-span-2 flex items-center gap-1.5">
                         {isFr && deptObj && (
                           <Badge variant="secondary" className="text-[0.72rem]">{deptObj.code}</Badge>
                         )}
-                        <IconButton
-                          size="small"
-                          color="error"
+                        <BuiButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Supprimer cette zone de couverture"
+                          className="text-[var(--err)]"
                           onClick={() => removeCoverageZone(index)}
                         >
                           <DeleteOutlined size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
+                        </BuiButton>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -500,47 +522,45 @@ const TeamEdit: React.FC = () => {
 
             <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Membres de l'équipe</h6>
 
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Utilisateur</InputLabel>
-                  <Select
+            <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-3 mb-[18px] items-end">
+              <div>
+                <Field>
+                  <FieldLabel htmlFor="team-add-user">Utilisateur</FieldLabel>
+                  {/* Option vide desactivee : sans elle le select natif afficherait
+                      le premier utilisateur alors que l'etat vaut encore ''. */}
+                  <NativeSelect
+                    id="team-add-user"
+                    className="w-full"
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    label="Utilisateur"
                   >
-                    {availableUsers && availableUsers.length > 0 ? (
-                      availableUsers
-                        .flatMap((user) =>
-                          (formData.members || []).some(m => m.userId === user.id)
-                            ? []
-                            : [
-                                <MenuItem key={user.id} value={user.id.toString()}>
-                                  {user.firstName} {user.lastName} ({user.email})
-                                </MenuItem>,
-                              ],
-                        )
-                    ) : (
-                      <MenuItem disabled>Aucun utilisateur disponible</MenuItem>
-                    )}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Rôle</InputLabel>
-                  <Select
+                    <NativeSelectOption value="" disabled>
+                      {assignableUsers.length > 0 ? 'Choisir un utilisateur' : 'Aucun utilisateur disponible'}
+                    </NativeSelectOption>
+                    {assignableUsers.map((user) => (
+                      <NativeSelectOption key={user.id} value={user.id.toString()}>
+                        {`${user.firstName} ${user.lastName} (${user.email})`}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
+              <div>
+                <Field>
+                  <FieldLabel htmlFor="team-add-role">Rôle</FieldLabel>
+                  <NativeSelect
+                    id="team-add-role"
+                    className="w-full"
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
-                    label="Rôle"
                   >
                     {roleOptions.map((role) => (
-                      <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
+                      <NativeSelectOption key={role.value} value={role.value}>{role.label}</NativeSelectOption>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
+                  </NativeSelect>
+                </Field>
+              </div>
+              <div>
                 <BuiButton
                   type="button"
                   variant="outline"
@@ -549,51 +569,53 @@ const TeamEdit: React.FC = () => {
                 >
                   Ajouter
                 </BuiButton>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {(formData.members || []).length > 0 && (
               <div className="mb-6">
                 <h6 className="cn-text-subtitle1 mb-3">
                   Membres actuels ({(formData.members || []).length})
                 </h6>
-                <List>
+                <div className="flex flex-col gap-1.5">
                   {(formData.members || []).map((member) => (
-                    <React.Fragment key={member.userId}>
-                      <ListItem sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
-                        <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px' }}>
-                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={`${member.firstName} ${member.lastName}`}
-                          secondary={member.email}
-                        />
-                        <div className="flex items-center gap-3">
-                          <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <Select
-                              value={member.role}
-                              onChange={(e) => updateMemberRole(member.userId, e.target.value)}
-                            >
-                              {roleOptions.map((role) => (
-                                <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                          <BuiButton
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => removeMember(member.userId)}
-                          >
-                            Retirer
-                          </BuiButton>
-                        </div>
-                      </ListItem>
-                    </React.Fragment>
+                    <div
+                      key={member.userId}
+                      className="flex items-center gap-2 border border-solid border-[var(--line)] rounded-[8px] px-2 py-1.5"
+                    >
+                      <Avatar className="rounded-[10px]">
+                        <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold">
+                          {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="cn-text-body1 truncate">{member.firstName} {member.lastName}</p>
+                        <p className="cn-text-body2 text-muted-foreground truncate">{member.email}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <NativeSelect
+                          size="sm"
+                          aria-label={`Rôle de ${member.firstName} ${member.lastName}`}
+                          className="min-w-[120px]"
+                          value={member.role}
+                          onChange={(e) => updateMemberRole(member.userId, e.target.value)}
+                        >
+                          {roleOptions.map((role) => (
+                            <NativeSelectOption key={role.value} value={role.value}>{role.label}</NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                        <BuiButton
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeMember(member.userId)}
+                        >
+                          Retirer
+                        </BuiButton>
+                      </div>
+                    </div>
                   ))}
-                </List>
+                </div>
               </div>
             )}
           </form>

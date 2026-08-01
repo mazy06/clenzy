@@ -1,7 +1,17 @@
 import React from 'react';
 import { Spinner } from '../../components/ui';
-import { Paper, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
-import { Button } from '../../components/ui';
+import {
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  Field,
+  FieldLabel,
+  Separator,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
@@ -14,7 +24,11 @@ import {
 } from '../../icons';
 import type { AirbnbListingMapping } from '../../services/api/airbnbApi';
 import type { Property } from '../../services/api/propertiesApi';
-import { CARD_SX } from './channelsPageConstants';
+
+// Equivalent classes de CARD_SX (hairline r14 sur --card) : la constante etait un
+// objet `sx`, elle n'a plus de porteur maintenant que le Paper est un <div>.
+const CARD_CLS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-3 mb-[9px]';
 
 interface LinkFormState {
   airbnbListingId: string;
@@ -64,17 +78,25 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
   onCancelLink,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
+  <div className={CARD_CLS}>
     <div className="flex items-center justify-between cursor-pointer" onClick={onToggleExpand}>
       <p className="cn-text-body1 text-[0.875rem] font-bold">
         {t('channels.listings.title')} ({listings.length})
       </p>
-      <IconButton size="small">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        type="button"
+        aria-label={expanded
+          ? t('common.collapse', { defaultValue: 'Réduire' })
+          : t('common.expand', { defaultValue: 'Développer' })}
+      >
         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-      </IconButton>
+      </Button>
     </div>
 
-    <Collapse in={expanded}>
+    <Collapsible open={expanded}>
+      <CollapsibleContent>
       {listingsLoading ? (
         <div className="flex justify-center py-3">
           <Spinner className="size-6" />
@@ -101,8 +123,8 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
 
       {/* Link new property */}
       {unlinkableProperties.length > 0 && (
-        <div className="mt-2">
-          <Divider sx={{ mb: 1.5 }} />
+        <div className="mt-3">
+          <Separator className="mb-[9px]" />
           {linkingPropertyId === null ? (
             <Button
               size="sm"
@@ -128,8 +150,9 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
           )}
         </div>
       )}
-    </Collapse>
-  </Paper>
+      </CollapsibleContent>
+    </Collapsible>
+  </div>
 );
 
 export default AirbnbListingsSection;
@@ -157,17 +180,23 @@ function ListingCard({
         <p className="cn-text-body1 text-[0.8125rem] font-semibold flex items-center gap-0.5">
           {listing.airbnbListingTitle || `Listing ${listing.airbnbListingId}`}
           {listing.airbnbListingUrl && (
-            <Tooltip title={t('channels.listings.viewOnAirbnb')}>
-              <IconButton
-                size="small"
-                href={listing.airbnbListingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                component="a"
-                sx={{ p: 0.25 }}
-              >
-                <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              {/* Le declencheur est un <span> natif : les primitives du kit sont des
+                  fonctions sans forwardRef, le tooltip n'aurait pas d'ancre (React 18). */}
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-xs" asChild aria-label={t('channels.listings.viewOnAirbnb')}>
+                    <a
+                      href={listing.airbnbListingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
+                    </a>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('channels.listings.viewOnAirbnb')}</TooltipContent>
             </Tooltip>
           )}
         </p>
@@ -177,48 +206,61 @@ function ListingCard({
       </div>
 
       <div className="flex items-center gap-2">
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.syncEnabled}
-              onChange={(_, checked) => onToggleSync(listing.propertyId, checked)}
-            />
-          }
-          label={<p className="cn-text-body1 text-[0.6875rem]">{t('channels.listings.sync')}</p>}
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.autoCreateInterventions}
-              onChange={(_, checked) => onToggleAutoInterventions(listing.propertyId, checked)}
-            />
-          }
-          label={
-            <p className="cn-text-body1 text-[0.6875rem] flex items-center gap-0.5">
-              <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
-            </p>
-          }
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.autoPushPricing ?? false}
-              onChange={(_, checked) => onToggleAutoPushPricing(listing.propertyId, checked)}
-            />
-          }
-          label={
-            <p className="cn-text-body1 text-[0.6875rem] flex items-center gap-0.5">
-              <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
-            </p>
-          }
-        />
-        <Tooltip title={t('channels.listings.unlink')}>
-          <IconButton size="small" color="error" onClick={() => onUnlink(listing.propertyId)}>
-            <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
-          </IconButton>
+        <Field orientation="horizontal" className="w-auto gap-1.5">
+          <Switch
+            size="sm"
+            id={`airbnb-sync-${listing.propertyId}`}
+            checked={listing.syncEnabled}
+            onCheckedChange={(checked) => onToggleSync(listing.propertyId, checked)}
+          />
+          <FieldLabel htmlFor={`airbnb-sync-${listing.propertyId}`} className="text-[0.6875rem] font-normal">
+            {t('channels.listings.sync')}
+          </FieldLabel>
+        </Field>
+        <Field orientation="horizontal" className="w-auto gap-1.5">
+          <Switch
+            size="sm"
+            id={`airbnb-autoclean-${listing.propertyId}`}
+            checked={listing.autoCreateInterventions}
+            onCheckedChange={(checked) => onToggleAutoInterventions(listing.propertyId, checked)}
+          />
+          <FieldLabel
+            htmlFor={`airbnb-autoclean-${listing.propertyId}`}
+            className="flex items-center gap-0.5 text-[0.6875rem] font-normal"
+          >
+            <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
+          </FieldLabel>
+        </Field>
+        <Field orientation="horizontal" className="w-auto gap-1.5">
+          <Switch
+            size="sm"
+            id={`airbnb-autopricing-${listing.propertyId}`}
+            checked={listing.autoPushPricing ?? false}
+            onCheckedChange={(checked) => onToggleAutoPushPricing(listing.propertyId, checked)}
+          />
+          <FieldLabel
+            htmlFor={`airbnb-autopricing-${listing.propertyId}`}
+            className="flex items-center gap-0.5 text-[0.6875rem] font-normal"
+          >
+            <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
+          </FieldLabel>
+        </Field>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                aria-label={t('channels.listings.unlink')}
+                className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                onClick={() => onUnlink(listing.propertyId)}
+              >
+                <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('channels.listings.unlink')}</TooltipContent>
         </Tooltip>
       </div>
     </div>

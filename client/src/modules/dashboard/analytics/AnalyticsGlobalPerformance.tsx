@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Card, CardContent, Skeleton } from '@mui/material';
+import { Card, Skeleton } from '../../../components/ui';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
   CalendarMonth, ShowChart, AccountBalance, Home,
@@ -29,29 +29,18 @@ interface KpiItem {
   tooltip?: string;
 }
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const HERO_CARD_SX = {
-  height: '100%',
-  transition: 'border-color 0.2s ease, transform 0.2s ease',
-  '&:hover': { borderColor: 'primary.main', transform: 'translateY(-2px)' },
-} as const;
+// Le contour de la Card du kit est un `ring`, pas un `border` : le survol
+// teinte donc le ring (et la transition porte sur box-shadow).
+// `p: 2` / `p: 1.5` du CardContent MUI = 12 px / 9 px (theme.spacing vaut 6).
+const HERO_CARD_CLASS =
+  'h-full gap-0 py-0 p-3 transition-[box-shadow,transform] duration-200 hover:ring-[var(--mui-primary)] hover:-translate-y-[2px]';
 
-const SECONDARY_CARD_SX = {
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+const SECONDARY_CARD_CLASS =
+  'gap-0 py-0 p-[9px] transition-[box-shadow] duration-150 hover:ring-[var(--muted)]';
 
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: 'text.disabled',
-  mb: 1,
-} as const;
-
-/** Report en classes de `SECTION_LABEL_SX` (mb: 1 = 6 px, theme.spacing vaut 6). */
+/** mb: 1 = 6 px, theme.spacing vaut 6. */
 const SECTION_LABEL_CLASS =
   'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
 
@@ -61,16 +50,15 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const isUp = value > 0;
   const isDown = value < 0;
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
-  const color = isUp ? 'success.main' : isDown ? 'error.main' : 'text.disabled';
-  // Les jetons du `sx` ci-dessus, ecrits en classes : Tailwind ne peut pas les
-  // fabriquer depuis la variable `color`.
+  // Jetons semantiques en classes litterales : Tailwind ne peut pas fabriquer
+  // une classe depuis une variable.
   const colorClass = isUp ? 'text-[var(--ok)]' : isDown ? 'text-[var(--err)]' : 'text-[var(--faint)]';
 
   return (
     <div className="inline-flex items-center gap-0.5 mt-0.5">
-      <Box component="span" sx={{ display: 'inline-flex', color }}>
+      <span className={cn('inline-flex', colorClass)}>
         <Icon size={12} strokeWidth={1.75} />
-      </Box>
+      </span>
       <p className={cn('cn-text-body1 text-[0.625rem] font-semibold tabular-nums', colorClass)}>
         {isUp ? '+' : ''}{value}%
       </p>
@@ -81,13 +69,12 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
 // ─── Hero KPI Card ──────────────────────────────────────────────────────────
 
 const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Card sx={HERO_CARD_SX}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+  <Card className={HERO_CARD_CLASS}>
       {loading ? (
         <div>
-          <Skeleton variant="text" width="50%" height={14} />
-          <Skeleton variant="text" width="70%" height={28} sx={{ mt: 0.5 }} />
-          <Skeleton variant="text" width="40%" height={12} sx={{ mt: 0.5 }} />
+          <Skeleton className="h-[14px] w-1/2" />
+          <Skeleton className="h-[28px] w-[70%] mt-[3px]" />
+          <Skeleton className="h-[12px] w-2/5 mt-[3px]" />
         </div>
       ) : (
         <>
@@ -115,7 +102,6 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
         </>
       )}
-    </CardContent>
   </Card>
 );
 
@@ -136,7 +122,7 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
     </div>
     <div className="text-end shrink-0">
       {loading ? (
-        <Skeleton variant="text" width={48} height={18} />
+        <Skeleton className="h-[18px] w-12" />
       ) : (
         <>
           <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] tabular-nums">
@@ -263,35 +249,31 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Financial group */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card sx={SECONDARY_CARD_SX}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <p className={SECTION_LABEL_CLASS}>
-                {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
-              </p>
-              {financialKpis.map((kpi, i) => (
-                <React.Fragment key={kpi.key}>
-                  {i > 0 && <div className="border-t border-[var(--line)]" />}
-                  <SecondaryKpiRow item={kpi} loading={loading} />
-                </React.Fragment>
-              ))}
-            </CardContent>
+          <Card className={SECONDARY_CARD_CLASS}>
+            <p className={SECTION_LABEL_CLASS}>
+              {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
+            </p>
+            {financialKpis.map((kpi, i) => (
+              <React.Fragment key={kpi.key}>
+                {i > 0 && <div className="border-t border-solid border-[var(--line)]" />}
+                <SecondaryKpiRow item={kpi} loading={loading} />
+              </React.Fragment>
+            ))}
           </Card>
         </div>
 
         {/* Operational group */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card sx={SECONDARY_CARD_SX}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <p className={SECTION_LABEL_CLASS}>
-                {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}
-              </p>
-              {operationalKpis.map((kpi, i) => (
-                <React.Fragment key={kpi.key}>
-                  {i > 0 && <div className="border-t border-[var(--line)]" />}
-                  <SecondaryKpiRow item={kpi} loading={loading} />
-                </React.Fragment>
-              ))}
-            </CardContent>
+          <Card className={SECONDARY_CARD_CLASS}>
+            <p className={SECTION_LABEL_CLASS}>
+              {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}
+            </p>
+            {operationalKpis.map((kpi, i) => (
+              <React.Fragment key={kpi.key}>
+                {i > 0 && <div className="border-t border-solid border-[var(--line)]" />}
+                <SecondaryKpiRow item={kpi} loading={loading} />
+              </React.Fragment>
+            ))}
           </Card>
         </div>
       </div>

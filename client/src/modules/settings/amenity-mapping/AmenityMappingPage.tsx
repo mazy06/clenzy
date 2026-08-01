@@ -20,7 +20,27 @@ import { cn } from '../../../utils/cn';
 import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Box, Stack, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+// Le Snackbar reste MUI : remplacer le mecanisme de notification de la page
+// (le fichier n'utilise pas sonner) depasse la migration des primitives.
+import { Snackbar } from '@mui/material';
 import {
   Search,
   Plus,
@@ -291,34 +311,46 @@ export default function AmenityMappingPage() {
   // Voir SettingsHeaderContext.tsx pour le pattern.
   const headerActionsPortal = useSettingsHeaderActions(
     <>
-      <Tooltip title="Re-scrape Airbnb pour TOUTES vos propriétés importées (récupère nom + commodités fraîches)" arrow>
-        <span className="inline-flex">
-          {/* Teinte violette conservee : elle distingue le re-scrape (appel sortant
-              vers airbnb.com, couteux) du simple re-traitement local juste a cote. */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setConfirmRescrape(true)}
-            disabled={rescraping}
-            className="border-[#8B5CF6] text-[#8B5CF6] hover:border-[#7C3AED] hover:bg-[color-mix(in_srgb,#8B5CF6_10%,transparent)] hover:text-[#7C3AED]"
-          >
-            <Sparkles size={14} />
-            {rescraping ? 'Re-scrape en cours…' : 'Re-scrape OTA'}
-          </Button>
-        </span>
+      <Tooltip>
+        {/* Le <span> reste le declencheur : les primitives du kit sont des fonctions
+            sans forwardRef (React 18), le tooltip n'aurait pas d'ancre. */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            {/* Teinte violette conservee : elle distingue le re-scrape (appel sortant
+                vers airbnb.com, couteux) du simple re-traitement local juste a cote. */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmRescrape(true)}
+              disabled={rescraping}
+              className="border-[#8B5CF6] text-[#8B5CF6] hover:border-[#7C3AED] hover:bg-[color-mix(in_srgb,#8B5CF6_10%,transparent)] hover:text-[#7C3AED]"
+            >
+              <Sparkles size={14} />
+              {rescraping ? 'Re-scrape en cours…' : 'Re-scrape OTA'}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          Re-scrape Airbnb pour TOUTES vos propriétés importées (récupère nom + commodités fraîches)
+        </TooltipContent>
       </Tooltip>
-      <Tooltip title="Applique tous vos aliases + ignored sur les propriétés existantes (utile après modifications)" arrow>
-        <span className="inline-flex">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setConfirmReprocess(true)}
-            disabled={reprocessing || (aliases.length === 0 && ignored.length === 0)}
-          >
-            <RotateCcw size={14} />
-            Re-traiter
-          </Button>
-        </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmReprocess(true)}
+              disabled={reprocessing || (aliases.length === 0 && ignored.length === 0)}
+            >
+              <RotateCcw size={14} />
+              Re-traiter
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          Applique tous vos aliases + ignored sur les propriétés existantes (utile après modifications)
+        </TooltipContent>
       </Tooltip>
     </>
   );
@@ -330,16 +362,12 @@ export default function AmenityMappingPage() {
       {headerActionsPortal}
 
       {/* KPIs */}
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ mb: 3, flexWrap: 'wrap', gap: 1.5 }}
-      >
+      <div className="flex flex-row flex-wrap gap-[9px] mb-[18px]">
         <KpiTile label="À mapper"        value={unmapped.length}                color={WARN}    loading={loading} />
         <KpiTile label="Mappings actifs" value={aliases.length}                  color={SUCCESS} loading={loading} />
         <KpiTile label="Custom"          value={customs.length}                  color={PRIMARY} loading={loading} />
         <KpiTile label="Propriétés concernées" value={totalAffectedProperties}  color={ACCENT}  loading={loading} />
-      </Stack>
+      </div>
 
       {/* Tabs */}
       <div className="border-b border-[var(--line)] mb-3">
@@ -372,8 +400,8 @@ export default function AmenityMappingPage() {
 
       {/* TAB : À mapper ─────────────────────────────────────────────── */}
       {tab === 'unmapped' && (
-        <Stack spacing={2}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-row flex-wrap items-center gap-1.5">
             {/* Champ sans libelle visible : aria-label sinon le champ n'a plus
                 de nom accessible (le placeholder n'en fait pas office). */}
             <InputGroup className="w-auto min-w-[240px]">
@@ -389,36 +417,27 @@ export default function AmenityMappingPage() {
             </InputGroup>
             <div className="flex-1" />
             {selectedRaw.size > 0 && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{
-                px: 1.5, py: 0.75,
-                borderRadius: 1,
-                bgcolor: 'var(--accent-soft)',
-                border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
-              }}>
+              <div className="flex flex-row items-center gap-1.5 px-[9px] py-[4.5px] rounded-[8px] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)]">
                 <span className="cn-text-caption font-semibold" style={{ color: ACCENT }}>
                   {selectedRaw.size} sélectionné{selectedRaw.size > 1 ? 's' : ''}
                 </span>
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <Select
-                    value={bulkCode}
-                    onChange={(e) => setBulkCode(e.target.value)}
-                    displayEmpty
-                    sx={{ fontSize: '0.8rem' }}
-                    renderValue={(v) => v ? codeLabelOf(v) : 'Mapper la sélection sur…'}
-                  >
-                    <MenuItem value="" disabled sx={{ fontSize: '0.85rem' }}>
-                      Mapper sur…
-                    </MenuItem>
+                <Select value={bulkCode} onValueChange={setBulkCode}>
+                  <SelectTrigger size="sm" className="min-w-[200px] text-[0.8rem]" aria-label="Mapper la sélection sur">
+                    <SelectValue placeholder="Mapper la sélection sur…" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {allCodeOptions.map((opt) => (
-                      <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.85rem' }}>
-                        {opt.label}
-                        {opt.isCustom && (
-                          <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
-                        )}
-                      </MenuItem>
+                      <SelectItem key={opt.value} value={opt.value} className="text-[0.85rem]">
+                        <span className="inline-flex items-center">
+                          {opt.label}
+                          {opt.isCustom && (
+                            <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
+                          )}
+                        </span>
+                      </SelectItem>
                     ))}
-                  </Select>
-                </FormControl>
+                  </SelectContent>
+                </Select>
                 <Button
                   variant="default"
                   size="sm"
@@ -428,16 +447,16 @@ export default function AmenityMappingPage() {
                   <Wand2 size={14} />
                   Appliquer
                 </Button>
-              </Stack>
+              </div>
             )}
-          </Stack>
+          </div>
 
           {loading ? (
-            <Stack spacing={1}>
-              <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
-            </Stack>
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-20 rounded-[8px]" />
+              <Skeleton className="h-20 rounded-[8px]" />
+              <Skeleton className="h-20 rounded-[8px]" />
+            </div>
           ) : filteredUnmapped.length === 0 ? (
             <EmptyState
               title={search.trim() ? 'Aucun résultat' : 'Toutes vos commodités sont mappées'}
@@ -446,7 +465,7 @@ export default function AmenityMappingPage() {
                 : 'Les commodités détectées sur vos listings OTA ont toutes un mapping. Bien joué.'}
             />
           ) : (
-            <Stack spacing={1}>
+            <div className="flex flex-col gap-1.5">
               {filteredUnmapped.map((u) => (
                 <UnmappedRow
                   key={u.rawOtaName}
@@ -469,16 +488,16 @@ export default function AmenityMappingPage() {
                   onIgnore={() => handleIgnore(u)}
                 />
               ))}
-            </Stack>
+            </div>
           )}
-        </Stack>
+        </div>
       )}
 
       {/* TAB : Mes mappings ─────────────────────────────────────────── */}
       {tab === 'aliases' && (
-        <Stack spacing={1}>
+        <div className="flex flex-col gap-1.5">
           {loading ? (
-            <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
+            <Skeleton className="h-[300px] rounded-[8px]" />
           ) : aliases.length === 0 ? (
             <EmptyState
               title="Aucun mapping créé"
@@ -488,7 +507,7 @@ export default function AmenityMappingPage() {
             aliases.map((a) => (
               <div key={a.id} className={CLASS_LIST_ROW}>
                 <div className="flex-1 min-w-0">
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <div className="flex flex-row items-center gap-1.5">
                     <p className="cn-text-body1 font-mono text-[0.85rem] font-medium">
                       {a.rawOtaName}
                     </p>
@@ -497,25 +516,31 @@ export default function AmenityMappingPage() {
                     {a.otaSource && (
                       <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{a.otaSource}</Badge>
                     )}
-                  </Stack>
+                  </div>
                   <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
                     Créé le {new Date(a.createdAt).toLocaleDateString('fr-FR')}
                     {a.createdByEmail && ` · par ${a.createdByEmail}`}
                   </span>
                 </div>
-                <IconButton size="small" onClick={() => handleDeleteAlias(a.id)} sx={{ color: 'var(--err)' }}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => handleDeleteAlias(a.id)}
+                  aria-label={t('common.delete', 'Supprimer')}
+                  className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                >
                   <Trash2 size={14} />
-                </IconButton>
+                </Button>
               </div>
             ))
           )}
-        </Stack>
+        </div>
       )}
 
       {/* TAB : Custom ────────────────────────────────────────────────── */}
       {tab === 'custom' && (
-        <Stack spacing={1}>
-          <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-row justify-end mb-1.5">
             <Button
               variant="default"
               size="sm"
@@ -524,9 +549,9 @@ export default function AmenityMappingPage() {
               <Plus size={14} />
               Nouvelle commodité
             </Button>
-          </Stack>
+          </div>
           {loading ? (
-            <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
+            <Skeleton className="h-[300px] rounded-[8px]" />
           ) : customs.length === 0 ? (
             <EmptyState
               title={t('settings.amenities.custom.emptyTitle', 'Aucune commodité custom')}
@@ -539,23 +564,26 @@ export default function AmenityMappingPage() {
               return (
                 <div key={c.id} className={CLASS_LIST_ROW}>
                   {/* Icone (cliquable = ouvre le picker) — meme pattern que tab Reference */}
-                  <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
-                    <div
-                      onClick={() => setIconPicker({ open: true, code: c.code, label: c.labelFr })}
-                      className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
-                    >
-                      <Icon size={18} strokeWidth={1.75} />
-                    </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        onClick={() => setIconPicker({ open: true, code: c.code, label: c.labelFr })}
+                        className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
+                      >
+                        <Icon size={18} strokeWidth={1.75} />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('settings.amenities.changeIcon', "Changer l'icône")}</TooltipContent>
                   </Tooltip>
 
                   <div className="flex-1 min-w-0">
-                    <Stack direction="row" alignItems="center" spacing={1}>
+                    <div className="flex flex-row items-center gap-1.5">
                       <p className="cn-text-body1 text-[0.9rem] font-semibold">{c.labelFr}</p>
                       {c.labelEn && (
                         <span className="cn-text-caption text-muted-foreground">/ {c.labelEn}</span>
                       )}
                       <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category} className="text-[0.65rem]" />
-                    </Stack>
+                    </div>
                     <span className="cn-text-caption block font-mono text-muted-foreground opacity-60 mt-0.5">
                       {c.code}
                     </span>
@@ -563,41 +591,47 @@ export default function AmenityMappingPage() {
 
                   {/* Reset icon (uniquement si override actif) */}
                   {isOverridden && (
-                    <Tooltip title={t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")} arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => resetIconOverride(c.code)}
-                        aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
-                        sx={{
-                          width: 22, height: 22, cursor: 'pointer', color: 'text.secondary',
-                          '&:hover': { color: PRIMARY, backgroundColor: 'var(--info-soft)' },
-                        }}
-                      >
-                        <RotateCcw size={12} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => resetIconOverride(c.code)}
+                            aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
+                            className="size-[22px] cursor-pointer text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                          >
+                            <RotateCcw size={12} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
+                      </TooltipContent>
                     </Tooltip>
                   )}
 
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => handleDeleteCustom(c.id)}
                     aria-label={t('common.delete', 'Supprimer')}
-                    sx={{ cursor: 'pointer', color: 'var(--err)' }}
+                    className="cursor-pointer text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
                   >
                     <Trash2 size={14} />
-                  </IconButton>
+                  </Button>
                 </div>
               );
             })
           )}
-        </Stack>
+        </div>
       )}
 
       {/* TAB : Ignored ───────────────────────────────────────────────── */}
       {tab === 'ignored' && (
-        <Stack spacing={1}>
+        <div className="flex flex-col gap-1.5">
           {loading ? (
-            <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 1 }} />
+            <Skeleton className="h-[300px] rounded-[8px]" />
           ) : ignored.length === 0 ? (
             <EmptyState
               title={t('settings.amenities.ignored.emptyTitle', 'Aucune amenity ignorée')}
@@ -607,28 +641,41 @@ export default function AmenityMappingPage() {
             ignored.map((i) => (
               <div key={i.id} className={CLASS_LIST_ROW}>
                 <div className="flex-1 min-w-0">
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <div className="flex flex-row items-center gap-1.5">
                     <Ban size={14} color="var(--faint)" />
                     <p className="cn-text-body1 font-mono text-[0.85rem]">{i.rawOtaName}</p>
                     {i.otaSource && (
                       <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{i.otaSource}</Badge>
                     )}
-                  </Stack>
+                  </div>
                 </div>
-                <Tooltip title={t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}>
-                  <IconButton size="small" onClick={() => handleDeleteIgnored(i.id)} sx={{ color: ACCENT }}>
-                    <RotateCcw size={14} />
-                  </IconButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDeleteIgnored(i.id)}
+                        aria-label={t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}
+                        className="text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+                      >
+                        <RotateCcw size={14} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}
+                  </TooltipContent>
                 </Tooltip>
               </div>
             ))
           )}
-        </Stack>
+        </div>
       )}
 
       {/* TAB : Référentiel Baitly (grille compacte avec icones editables) ─── */}
       {tab === 'reference' && (
-        <Stack spacing={2}>
+        <div className="flex flex-col gap-3">
           <Alert variant="info" className="text-[0.78rem] py-0.5">
             <Info />
             <AlertDescription>{t(
@@ -643,46 +690,40 @@ export default function AmenityMappingPage() {
             if (items.length === 0) return null;
             return (
               <div key={cat}>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.875 }}>
+                <div className="flex flex-row items-center gap-1.5 mb-[5.25px]">
                   <p className="cn-text-body1 text-[0.78rem] font-semibold text-foreground">
                     {AMENITY_CATEGORY_LABELS[cat]}
                   </p>
                   <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={items.length} className="text-[0.65rem]" />
-                </Stack>
+                </div>
                 <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1200px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
                   {items.map((a) => {
                     const Icon = resolveAmenityIcon(a.code, iconOverrides);
                     const isOverridden = a.code in iconOverrides && iconOverrides[a.code] !== DEFAULT_AMENITY_ICONS[a.code];
                     const label = t(`properties.amenities.items.${a.i18nKey}`);
                     return (
-                      <Box
+                      // `group` remplace le selecteur descendant du sx : le crayon
+                      // n'apparait qu'au survol de la carte.
+                      <div
                         key={a.code}
-                        sx={{
-                          position: 'relative',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          px: 1.25,
-                          py: 0.875,
-                          borderRadius: 1,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          backgroundColor: 'background.paper',
-                          transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                          '&:hover': {
-                            borderColor: ACCENT,
-                            '& .icon-edit-btn': { opacity: 1 },
-                          },
-                        }}
+                        className={cn(
+                          'group relative flex items-center gap-1.5 px-[7.5px] py-[5.25px] rounded-[8px]',
+                          'border border-solid border-[var(--line)] bg-[var(--card)]',
+                          'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                          'hover:border-[var(--accent)]',
+                        )}
                       >
                         {/* Icone (cliquable = ouvre le picker) */}
-                        <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
-                          <div
-                            onClick={() => setIconPicker({ open: true, code: a.code, label })}
-                            className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
-                          >
-                            <Icon size={18} strokeWidth={1.75} />
-                          </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              onClick={() => setIconPicker({ open: true, code: a.code, label })}
+                              className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
+                            >
+                              <Icon size={18} strokeWidth={1.75} />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('settings.amenities.changeIcon', "Changer l'icône")}</TooltipContent>
                         </Tooltip>
 
                         {/* Label + code */}
@@ -699,53 +740,57 @@ export default function AmenityMappingPage() {
                         </div>
 
                         {/* Edit pencil (visible au hover) + badge override si actif */}
-                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
+                        <div className="flex flex-row items-center gap-[3px] shrink-0">
                           {isOverridden && (
-                            <Tooltip title={t('settings.amenities.reference.customizedTooltip', "Icône personnalisée — revenir à l'icône par défaut")} arrow>
-                              <IconButton
-                                size="small"
-                                onClick={() => resetIconOverride(a.code)}
-                                aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
-                                sx={{
-                                  width: 22,
-                                  height: 22,
-                                  cursor: 'pointer',
-                                  color: 'text.secondary',
-                                  '&:hover': { color: PRIMARY, backgroundColor: 'var(--info-soft)' },
-                                }}
-                              >
-                                <RotateCcw size={12} strokeWidth={1.75} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => resetIconOverride(a.code)}
+                                    aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
+                                    className="size-[22px] cursor-pointer text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                                  >
+                                    <RotateCcw size={12} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {t('settings.amenities.reference.customizedTooltip', "Icône personnalisée — revenir à l'icône par défaut")}
+                              </TooltipContent>
                             </Tooltip>
                           )}
-                          <Tooltip title={t('settings.amenities.changeIcon', "Changer l'icône")} arrow>
-                            <IconButton
-                              className="icon-edit-btn"
-                              size="small"
-                              onClick={() => setIconPicker({ open: true, code: a.code, label })}
-                              aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
-                              sx={{
-                                width: 22,
-                                height: 22,
-                                opacity: 0,
-                                cursor: 'pointer',
-                                color: 'text.secondary',
-                                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': { color: ACCENT, backgroundColor: 'var(--accent-soft)' },
-                              }}
-                            >
-                              <Pencil size={12} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() => setIconPicker({ open: true, code: a.code, label })}
+                                  aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
+                                  className={cn(
+                                    'size-[22px] cursor-pointer text-[var(--muted)] opacity-0',
+                                    'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                                    'group-hover:opacity-100 focus-visible:opacity-100',
+                                    'hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]',
+                                  )}
+                                >
+                                  <Pencil size={12} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('settings.amenities.changeIcon', "Changer l'icône")}</TooltipContent>
                           </Tooltip>
-                        </Stack>
-                      </Box>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
               </div>
             );
           })}
-        </Stack>
+        </div>
       )}
 
       {/* Dialog : icon picker (catalogue lucide groupé par theme + recherche) */}
@@ -771,48 +816,52 @@ export default function AmenityMappingPage() {
         onCreated={() => { void loadAll(); setToast('Commodité créée'); }}
       />
 
-      <Dialog open={confirmReprocess} onClose={() => setConfirmReprocess(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5 }}>
-          <AlertCircle size={18} color={WARN} />
-          <h6 className="cn-text-subtitle1 font-semibold">Re-traiter les propriétés ?</h6>
-        </DialogTitle>
+      <Dialog open={confirmReprocess} onOpenChange={(next) => !next && setConfirmReprocess(false)}>
         <DialogContent>
-          <p className="cn-text-body2 text-muted-foreground">
-            Cette action applique <strong>{aliases.length}</strong> alias et <strong>{ignored.length}</strong> ignored à
-            toutes les propriétés de votre organisation. Les commodités OTA brutes seront soit converties en codes
-            Baitly, soit retirées si ignorées. Sans effet sur les amenities déjà mappées manuellement.
-          </p>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <AlertCircle size={18} color={WARN} />
+              Re-traiter les propriétés ?
+            </DialogTitle>
+            <DialogDescription>
+              Cette action applique <strong>{aliases.length}</strong> alias et <strong>{ignored.length}</strong> ignored à
+              toutes les propriétés de votre organisation. Les commodités OTA brutes seront soit converties en codes
+              Baitly, soit retirées si ignorées. Sans effet sur les amenities déjà mappées manuellement.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmReprocess(false)}>Annuler</Button>
+            <Button variant="default" size="sm" onClick={handleReprocess}>
+              Re-traiter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 1.5 }}>
-          <Button variant="ghost" size="sm" onClick={() => setConfirmReprocess(false)}>Annuler</Button>
-          <Button variant="default" size="sm" onClick={handleReprocess}>
-            Re-traiter
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Dialog open={confirmRescrape} onClose={() => setConfirmRescrape(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5 }}>
-          <Sparkles size={18} color="#8B5CF6" />
-          <h6 className="cn-text-subtitle1 font-semibold">Re-scrape les pages Airbnb ?</h6>
-        </DialogTitle>
+      <Dialog open={confirmRescrape} onOpenChange={(next) => !next && setConfirmRescrape(false)}>
         <DialogContent>
-          <p className="cn-text-body2 text-muted-foreground">
-            Cette action <strong>re-télécharge la page publique Airbnb</strong> de chaque propriété
-            de votre organisation pour récupérer le nom à jour + les commodités JSON-LD,
-            puis applique automatiquement vos {aliases.length} alias et {ignored.length} ignored.
-          </p>
-          <span className="cn-text-caption text-muted-foreground opacity-60 block mt-2">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <Sparkles size={18} color="#8B5CF6" />
+              Re-scrape les pages Airbnb ?
+            </DialogTitle>
+            <DialogDescription>
+              Cette action <strong>re-télécharge la page publique Airbnb</strong> de chaque propriété
+              de votre organisation pour récupérer le nom à jour + les commodités JSON-LD,
+              puis applique automatiquement vos {aliases.length} alias et {ignored.length} ignored.
+            </DialogDescription>
+          </DialogHeader>
+          <span className="cn-text-caption text-muted-foreground opacity-60 block">
             Peut prendre quelques secondes par propriété (1 HTTP GET vers airbnb.com).
             Les amenities déjà cochées manuellement sont préservées.
           </span>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmRescrape(false)}>Annuler</Button>
+            <Button variant="default" size="sm" onClick={handleRescrape}>
+              Lancer le re-scrape
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 1.5 }}>
-          <Button variant="ghost" size="sm" onClick={() => setConfirmRescrape(false)}>Annuler</Button>
-          <Button variant="default" size="sm" onClick={handleRescrape}>
-            Lancer le re-scrape
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar
@@ -843,7 +892,7 @@ function KpiTile({ label, value, color, loading }: {
         {label}
       </span>
       {loading ? (
-        <Skeleton width={40} height={32} />
+        <Skeleton className="w-10 h-8" />
       ) : (
         // `color` vient des props : une classe Tailwind ne peut pas naitre
         // d'une variable, la teinte passe donc par le style inline.
@@ -885,13 +934,12 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
         : 'border-[var(--line)] bg-[var(--card)]',
     )}>
       <Checkbox
-        size="small"
         checked={selected}
-        onChange={(e) => onToggleSelect(e.target.checked)}
-        sx={{ p: 0.5, color: ACCENT, '&.Mui-checked': { color: ACCENT } }}
+        onCheckedChange={(checked) => onToggleSelect(checked === true)}
+        aria-label={`Sélectionner ${item.rawOtaName}`}
       />
       <div className="flex-1 min-w-0">
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.25 }}>
+        <div className="flex flex-row items-center gap-1.5 mb-[1.5px]">
           <p className="cn-text-body1 font-mono text-[0.9rem] font-medium me-0.5">
             {item.rawOtaName}
           </p>
@@ -899,7 +947,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
             <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{item.otaSources[0]}</Badge>
           )}
           <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}</Badge>
-        </Stack>
+        </div>
         {item.affectedProperties.length > 0 && (
           <span className="cn-text-caption text-muted-foreground truncate">
             {item.affectedProperties.slice(0, 3).map((p) => p.name).join(' · ')}
@@ -908,42 +956,63 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
           </span>
         )}
       </div>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <Select
-            value={pendingCode}
-            onChange={(e) => {
-              const code = e.target.value;
-              setPendingCode(code);
-              if (code) onMap(code);
-            }}
-            displayEmpty
-            sx={{ fontSize: '0.8rem' }}
-            renderValue={() => 'Mapper sur…'}
-          >
-            <MenuItem value="" disabled sx={{ fontSize: '0.85rem' }}>Mapper sur…</MenuItem>
+      <div className="flex flex-row items-center gap-1.5 shrink-0">
+        <Select
+          value={pendingCode}
+          onValueChange={(code) => {
+            setPendingCode(code);
+            if (code) onMap(code);
+          }}
+        >
+          <SelectTrigger size="sm" className="min-w-[180px] text-[0.8rem]" aria-label="Mapper sur">
+            <SelectValue placeholder="Mapper sur…" />
+          </SelectTrigger>
+          <SelectContent>
             {allCodeOptions.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.85rem' }}>
-                {opt.label}
-                {opt.isCustom && (
-                  <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
-                )}
-              </MenuItem>
+              <SelectItem key={opt.value} value={opt.value} className="text-[0.85rem]">
+                <span className="inline-flex items-center">
+                  {opt.label}
+                  {opt.isCustom && (
+                    <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
+                  )}
+                </span>
+              </SelectItem>
             ))}
-          </Select>
-        </FormControl>
-        <Tooltip title="Créer une nouvelle commodité Baitly à partir de ce nom">
-          <IconButton size="small" onClick={onCreateCustom}
-                      sx={{ color: ACCENT, border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}>
-            <Plus size={14} />
-          </IconButton>
+          </SelectContent>
+        </Select>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onCreateCustom}
+                aria-label="Créer une nouvelle commodité Baitly à partir de ce nom"
+                className="text-[var(--accent)] border border-solid border-[color-mix(in_srgb,var(--accent)_25%,transparent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+              >
+                <Plus size={14} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Créer une nouvelle commodité Baitly à partir de ce nom</TooltipContent>
         </Tooltip>
-        <Tooltip title="Ignorer définitivement (sera masqué et retiré des propriétés)">
-          <IconButton size="small" onClick={onIgnore} sx={{ color: 'text.secondary' }}>
-            <Ban size={14} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onIgnore}
+                aria-label="Ignorer définitivement (sera masqué et retiré des propriétés)"
+                className="text-[var(--muted)]"
+              >
+                <Ban size={14} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Ignorer définitivement (sera masqué et retiré des propriétés)</TooltipContent>
         </Tooltip>
-      </Stack>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,23 @@
 import React, { useState, useCallback } from 'react';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+// Seul rescape MUI du fichier : la barre INDETERMINEE de progression. Le
+// primitif Progress du kit n'a pas de mode indetermine (il traduit un
+// pourcentage), une conversion afficherait une barre vide.
+import { LinearProgress } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
-  Close as CloseIcon,
   CloudUpload,
   InsertDriveFile,
   CheckCircle,
@@ -80,44 +93,23 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
   const canImport = selectedFile && category && !importMutation.isPending;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          pb: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <div className="flex items-center gap-1.5">
-          <CloudUpload color="primary" />
-          <div className="cn-text-h6">
+    <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader className="flex-row items-center gap-1.5 border-b pb-2">
+          <CloudUpload className="text-[var(--mui-primary)]" />
+          <DialogTitle className="cn-text-h6">
             Importer des prospects
-          </div>
-        </div>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 3, pb: 2 }}>
         {/* Success message */}
         {successCount !== null && (
-          <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }}>
-            <p className="cn-text-body1">
+          <UiAlert variant="success" className="mb-3">
+            <CheckCircle />
+            <AlertDescription>
               <strong>{successCount}</strong> prospects importes avec succes !
-            </p>
-          </Alert>
+            </AlertDescription>
+          </UiAlert>
         )}
 
         {/* Error message */}
@@ -129,21 +121,25 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
         )}
 
         {/* Category selector */}
-        <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel>Categorie</InputLabel>
-          <Select
+        <Field className="mb-[18px]">
+          <FieldLabel htmlFor="prospect-import-category">Categorie</FieldLabel>
+          <NativeSelect
+            id="prospect-import-category"
+            className="w-full"
             value={category}
-            label="Categorie"
             onChange={(e) => setCategory(e.target.value)}
             disabled={importMutation.isPending}
           >
+            {/* Option vide : le select natif afficherait sinon la 1re categorie
+                sans que l'etat ait change (le bouton Importer resterait bloque). */}
+            <NativeSelectOption value="">—</NativeSelectOption>
             {CATEGORY_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
+              <NativeSelectOption key={opt.value} value={opt.value}>
                 {opt.label}
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
 
         {/* File drop zone */}
         <div
@@ -171,7 +167,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           />
           {selectedFile ? (
             <div className="flex items-center justify-center gap-1.5">
-              <InsertDriveFile color="primary" />
+              <InsertDriveFile className="text-[var(--mui-primary)]" />
               <p className="cn-text-body1 text-foreground">
                 {selectedFile.name}
               </p>
@@ -194,19 +190,19 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
 
         {/* Progress */}
         {importMutation.isPending && <LinearProgress sx={{ mt: 2 }} />}
-      </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3, gap: 1, justifyContent: 'flex-end' }}>
-        <Button onClick={handleClose} variant="outline" disabled={importMutation.isPending}>
-          {successCount !== null ? 'Fermer' : 'Annuler'}
-        </Button>
-        {successCount === null && (
-          <Button onClick={handleImport} disabled={!canImport}>
-            <CloudUpload />
-            {importMutation.isPending ? 'Import en cours...' : 'Importer'}
+        <DialogFooter className="gap-2">
+          <Button onClick={handleClose} variant="outline" disabled={importMutation.isPending}>
+            {successCount !== null ? 'Fermer' : 'Annuler'}
           </Button>
-        )}
-      </DialogActions>
+          {successCount === null && (
+            <Button onClick={handleImport} disabled={!canImport}>
+              <CloudUpload />
+              {importMutation.isPending ? 'Import en cours...' : 'Importer'}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

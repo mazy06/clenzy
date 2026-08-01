@@ -3,15 +3,23 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Autocomplete } from '@mui/material';
+// Autocomplete (et son renderInput, qui recoit des props internes MUI) n'a pas
+// d'equivalent dans le kit : laisse en MUI.
+import { TextField, Autocomplete } from '@mui/material';
 import {
   Field,
+  FieldDescription,
   FieldLabel,
   Input,
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '../../components/ui';
 import {
   Save,
@@ -424,68 +432,74 @@ const UserEdit: React.FC = () => {
             disableGrid
           >
             <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
-              <FormControl fullWidth required size="small">
-                <InputLabel>Rôle</InputLabel>
+              <Field>
+                <FieldLabel htmlFor="user-role">Rôle</FieldLabel>
+                {/* SelectValue avec enfants = report du `renderValue` MUI : la
+                    pastille reste compacte dans le declencheur alors que l'option
+                    deroulee porte en plus sa description. `h-auto` car la pastille
+                    (22px) depasse la hauteur fixe du declencheur. */}
                 <Select
                   value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  label="Rôle"
-                  renderValue={(value) => {
-                    const r = getRoleEntry(value as string);
-                    if (!r) return null;
-                    return (
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <RoleIconBadge role={r.value} size={22} />
-                        <p className="cn-text-body2 font-medium">{r.label}</p>
-                      </div>
-                    );
-                  }}
+                  onValueChange={(value) => handleInputChange('role', value)}
                 >
-                  {USER_ROLES.map((role) => (
-                    <MenuItem key={role.value} value={role.value} sx={{ py: 1 }}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <RoleIconBadge role={role.value} size={26} />
-                        <div className="min-w-0">
-                          <p className="cn-text-body2 font-medium leading-[1.2]">
-                            {role.label}
-                          </p>
-                          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
-                            {role.description}
-                          </p>
+                  <SelectTrigger id="user-role" className="w-full h-auto min-h-9">
+                    <SelectValue placeholder="Sélectionner un rôle">
+                      {selectedRoleInfo && (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <RoleIconBadge role={selectedRoleInfo.value} size={22} />
+                          <p className="cn-text-body2 font-medium">{selectedRoleInfo.label}</p>
                         </div>
-                      </div>
-                    </MenuItem>
-                  ))}
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {USER_ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value} textValue={role.label} className="py-1.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <RoleIconBadge role={role.value} size={26} />
+                          <div className="min-w-0">
+                            <p className="cn-text-body2 font-medium leading-[1.2]">
+                              {role.label}
+                            </p>
+                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
+                              {role.description}
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-                <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                <FieldDescription className="text-[0.7rem]">
                   Le rôle détermine les permissions de l'utilisateur
-                </FormHelperText>
-              </FormControl>
+                </FieldDescription>
+              </Field>
 
-              <FormControl fullWidth required size="small">
-                <InputLabel>Statut</InputLabel>
+              <Field>
+                <FieldLabel htmlFor="user-status">Statut</FieldLabel>
                 <Select
                   value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  label="Statut"
-                  renderValue={(value) => {
-                    const s = userStatuses.find((x) => x.value === value);
-                    if (!s) return null;
-                    return (
-                      <StatusChip tokens={semTokens(s.color)} label={s.label} />
-                    );
-                  }}
+                  onValueChange={(value) => handleInputChange('status', value)}
                 >
-                  {userStatuses.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>
-                      <StatusChip tokens={semTokens(status.color)} label={status.label} />
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger id="user-status" className="w-full h-auto min-h-9">
+                    <SelectValue placeholder="Sélectionner un statut">
+                      {selectedStatusInfo && (
+                        <StatusChip tokens={semTokens(selectedStatusInfo.color)} label={selectedStatusInfo.label} />
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userStatuses.map((status) => (
+                      <SelectItem key={status.value} value={status.value} textValue={status.label}>
+                        <StatusChip tokens={semTokens(status.color)} label={status.label} />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-                <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                <FieldDescription className="text-[0.7rem]">
                   Le statut détermine si l'utilisateur peut se connecter
-                </FormHelperText>
-              </FormControl>
+                </FieldDescription>
+              </Field>
             </div>
 
             {/* Aperçu inline du rôle sélectionné — utilise le même badge que la liste */}
@@ -556,9 +570,9 @@ const UserEdit: React.FC = () => {
                 )}
                 noOptionsText="Aucune organisation"
               />
-              <FormHelperText sx={{ fontSize: '0.7rem', mt: 0.5 }}>
+              <FieldDescription className="text-[0.7rem] mt-[3px]">
                 Organisation à laquelle l'utilisateur est rattaché
-              </FormHelperText>
+              </FieldDescription>
             </div>
           </DetailSection>
 

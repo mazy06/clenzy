@@ -2,7 +2,18 @@ import React, { useMemo, useState, useRef, useCallback } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, IconButton, Divider, TextField } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../../components/ui';
+// TextField laisse en MUI : `inputRef` porte ici le comportement (focus du champ
+// au passage en edition). Les primitives du kit sont des fonctions et ne
+// transmettent pas de ref sous React 18 — la conversion casserait le focus.
+import { TextField } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   Close,
@@ -138,33 +149,25 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          pb: 0.5,
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        className="sm:max-w-[600px]"
+        showCloseButton={false}
+        aria-describedby={undefined}
       >
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-[var(--accent)]"><Person size={20} strokeWidth={1.75} /></span>
-          <p className="cn-text-body1 text-[0.9375rem] font-bold">
+        <DialogHeader className="flex-row items-center justify-between gap-0">
+          <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold">
+            <span className="inline-flex text-[var(--accent)]"><Person size={20} strokeWidth={1.75} /></span>
             Fiche client
-          </p>
-        </div>
-        <IconButton size="small" onClick={onClose}>
-          <Close size={'1rem'} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+          <Button variant="ghost" size="icon-sm" aria-label="Fermer" onClick={onClose}>
+            <Close size={'1rem'} strokeWidth={1.75} />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
-        <div className="flex flex-col gap-2">
+        {/* max-h + scroll : le Dialog MUI faisait defiler son contenu, la coque du
+            kit ne borne pas la hauteur — sans cela la fiche deborde de l'ecran. */}
+        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
           {/* Header — Avatar + Name + Contact */}
           <div className="flex items-start gap-3">
             {/* Avatar initiales : pattern messagerie (carré arrondi r13, accent,
@@ -231,9 +234,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       sx={{ '& input': { fontSize: '0.75rem' } }}
                     />
                     {saving ? <Spinner className="size-3" /> : (
-                      <IconButton size="small" onClick={commitEdit} sx={{ p: 0.25 }}>
+                      <Button variant="ghost" size="icon-xs" aria-label="Valider l'email" onClick={commitEdit}>
                         <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>
-                      </IconButton>
+                      </Button>
                     )}
                   </div>
                 ) : (
@@ -320,7 +323,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
             />
           </div>
 
-          <Divider />
+          <Separator />
 
           {/* Current reservation */}
           <div>
@@ -379,7 +382,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
           {/* Reservation history */}
           {guestReservations.length > 1 && (
             <>
-              <Divider />
+              <Separator />
               <div>
                 <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground mb-1">
                   <span className="inline-flex me-[1.5px] align-[middle]">
@@ -414,7 +417,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
 
           {reservation.confirmationCode && (
             <>
-              <Divider />
+              <Separator />
               <div className="flex items-center gap-1.5">
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   Code de confirmation :

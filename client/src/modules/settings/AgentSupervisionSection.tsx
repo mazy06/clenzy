@@ -3,8 +3,10 @@ import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, Divider, Select, MenuItem, Snackbar, useTheme, alpha } from '@mui/material';
-import { Input } from '../../components/ui';
+// Reste en MUI : le Snackbar de confirmation — changer le mecanisme de
+// notification de l'ecran depasse le cadre de cette migration.
+import { Snackbar } from '@mui/material';
+import { Input, NativeSelect, Separator, Switch } from '../../components/ui';
 import AiSettingsCard from './AiSettingsCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -39,8 +41,6 @@ function ModuleDot({ moduleKey }: { moduleKey: string }) {
  */
 export default function AgentSupervisionSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const { hasAnyRole } = useAuth();
   // Écriture réservée aux admins d'org (aligné sur le PUT backend).
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST']);
@@ -108,9 +108,11 @@ export default function AgentSupervisionSection() {
           {/* ── Master : activation de la feature ── */}
           <div className="flex items-center py-2">
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body2 font-semibold">
+              {/* Le titre du reglage EST le libelle de l'interrupteur : rendu en
+                  <label> pour que le clic et le lecteur d'ecran l'atteignent. */}
+              <label htmlFor="supervision-master" className="cn-text-body2 font-semibold block">
                 {t('settings.ai.supervision.master.label', 'Activer le superviseur')}
-              </p>
+              </label>
               <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.master.description',
@@ -119,21 +121,22 @@ export default function AgentSupervisionSection() {
               </span>
             </div>
             <Switch
+              id="supervision-master"
               checked={config.enabled}
-              onChange={(e) => handleMaster(e.target.checked)}
+              onCheckedChange={handleMaster}
               disabled={!canEdit || busy}
-              size="small"
+              size="sm"
             />
           </div>
 
-          <Divider />
+          <Separator />
 
           {/* ── Pause globale ── */}
           <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body2 font-semibold">
+              <label htmlFor="supervision-paused" className="cn-text-body2 font-semibold block">
                 {t('settings.ai.supervision.paused.label', 'Mettre en pause')}
-              </p>
+              </label>
               <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.paused.description',
@@ -142,14 +145,15 @@ export default function AgentSupervisionSection() {
               </span>
             </div>
             <Switch
+              id="supervision-paused"
               checked={config.paused}
-              onChange={(e) => handlePaused(e.target.checked)}
+              onCheckedChange={handlePaused}
               disabled={!canEdit || busy || !config.enabled}
-              size="small"
+              size="sm"
             />
           </div>
 
-          <Divider />
+          <Separator />
 
           {/* ── Budget (plafond de scans automatiques) ── */}
           <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
@@ -179,7 +183,7 @@ export default function AgentSupervisionSection() {
             />
           </div>
 
-          <Divider sx={{ mb: 1 }} />
+          <Separator className="mb-1.5" />
 
           {/* ── Modules ── */}
           <span className="cn-text-overline text-muted-foreground mt-1.5 mb-0.5 font-bold tracking-[0.04em]">
@@ -190,7 +194,7 @@ export default function AgentSupervisionSection() {
             const disabled = !canEdit || busy || !config.enabled;
             return (
               <React.Fragment key={module.key}>
-                {index > 0 && <Divider sx={{ ml: 3 }} />}
+                {index > 0 && <Separator className="ms-[18px] data-horizontal:w-auto" />}
                 <div className={cn('flex items-center gap-[9px] py-[7.5px]', config.enabled && module.enabled ? 'opacity-100' : 'opacity-55')} style={{ transition: 'opacity 0.15s ease' }}>
                   <ModuleDot moduleKey={module.key} />
                   <div className="flex-1 min-w-0">
@@ -200,30 +204,27 @@ export default function AgentSupervisionSection() {
                   </div>
 
                   {/* Niveau d'autonomie */}
-                  <Select
+                  <NativeSelect
+                    aria-label={t('settings.ai.supervision.modules.autonomyLabel', "Niveau d'autonomie")}
+                    className="min-w-[168px] shrink-0 [&_select]:text-[0.8rem]"
                     value={module.autonomy}
                     onChange={(e) => handleModule(module.key, { autonomy: e.target.value as AutonomyLevel })}
                     disabled={disabled || !module.enabled}
-                    size="small"
-                    sx={{
-                      minWidth: 168,
-                      fontSize: '0.8rem',
-                      bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.015),
-                    }}
                   >
                     {AUTONOMY_LEVELS.map((level) => (
-                      <MenuItem key={level} value={level} sx={{ fontSize: '0.8rem' }}>
+                      <option key={level} value={level}>
                         {t(AUTONOMY_LABEL_KEY[level], level)}
-                      </MenuItem>
+                      </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
 
                   {/* Activer/désactiver le module */}
                   <Switch
+                    aria-label={t(module.labelKey, module.key)}
                     checked={module.enabled}
-                    onChange={(e) => handleModule(module.key, { enabled: e.target.checked })}
+                    onCheckedChange={(checked) => handleModule(module.key, { enabled: checked })}
                     disabled={disabled}
-                    size="small"
+                    size="sm"
                   />
                 </div>
               </React.Fragment>

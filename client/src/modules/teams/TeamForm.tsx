@@ -3,7 +3,23 @@ import { Badge, Button, Field, FieldLabel, FieldError, Input, Textarea } from '.
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, TextField, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import {
+  Avatar,
+  AvatarFallback,
+  Card,
+  CardContent,
+  NativeSelect,
+  NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+} from '../../components/ui';
+// Autocomplete (et le TextField que son `renderInput` alimente en props internes)
+// restent MUI : le kit n'a pas d'equivalent qui accepte ce contrat de rendu.
+import { TextField, Autocomplete } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {
@@ -285,8 +301,8 @@ const TeamForm: React.FC = () => {
 
           {/* ─── Colonne gauche : Informations de l'équipe ─── */}
           <div className="col-span-12 min-[900px]:col-span-8">
-            <Card>
-              <CardContent sx={{ p: 2 }}>
+            <Card className="[--card-spacing:12px]">
+              <CardContent>
                 <h6 className="cn-text-subtitle1 font-semibold mb-2">
                   {t('teams.sections.teamInfo')}
                 </h6>
@@ -340,21 +356,32 @@ const TeamForm: React.FC = () => {
                     <Controller
                       name="interventionType"
                       control={control}
+                      // Liste riche (icone par categorie) -> Select du kit : une
+                      // <option> native ne peut porter aucun balisage.
                       render={({ field, fieldState }) => (
-                        <FormControl fullWidth error={!!fieldState.error}>
-                          <InputLabel>{t('teams.fields.interventionType')} *</InputLabel>
-                          <Select {...field} label={`${t('teams.fields.interventionType')} *`} size="small">
-                            {teamServiceCategories.map((cat) => (
-                              <MenuItem key={cat.value} value={cat.value}>
-                                <div className="flex items-center gap-1">
+                        <Field>
+                          <FieldLabel htmlFor="team-intervention-type">{`${t('teams.fields.interventionType')} *`}</FieldLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger
+                              id="team-intervention-type"
+                              size="sm"
+                              className="w-full"
+                              aria-invalid={!!fieldState.error}
+                              onBlur={field.onBlur}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {teamServiceCategories.map((cat) => (
+                                <SelectItem key={cat.value} value={cat.value}>
                                   {getCategoryIcon(cat.value, 18)}
-                                  <p className="cn-text-body2">{cat.label}</p>
-                                </div>
-                              </MenuItem>
-                            ))}
+                                  {cat.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
                           </Select>
-                          {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                        </FormControl>
+                          {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                        </Field>
                       )}
                     />
                   </div>
@@ -365,8 +392,8 @@ const TeamForm: React.FC = () => {
 
           {/* ─── Colonne droite : Aperçu catégorie ─── */}
           <div className="col-span-12 min-[900px]:col-span-4">
-            <Card>
-              <CardContent sx={{ p: 0 }}>
+            <Card className="[--card-spacing:0px]">
+              <CardContent>
                 {/* Bandeau catégorie : panneau plat -soft (badge icône + libellés) */}
                 {selectedCategory && (
                   <div className="flex items-center gap-[7.5px] px-[9px] py-[7.5px]" style={{ backgroundColor: `${selectedCategory.color}18`, borderBottom: '1px solid var(--line)' }}>
@@ -395,7 +422,7 @@ const TeamForm: React.FC = () => {
                     ))}
                   </div>
 
-                  <Divider sx={{ my: 1 }} />
+                  <Separator className="my-1.5" />
 
                   {/* Compteur utilisateurs */}
                   <div className="flex items-center gap-1">
@@ -416,8 +443,8 @@ const TeamForm: React.FC = () => {
 
           {/* ─── Zones de couverture ─── */}
           <div className="col-span-12">
-            <Card>
-              <CardContent sx={{ p: 2 }}>
+            <Card className="[--card-spacing:12px]">
+              <CardContent>
                 <div className="flex items-center justify-between mb-2">
                   <h6 className="cn-text-subtitle1 font-semibold flex items-center gap-1">
                     <span className="inline-flex text-[var(--accent)]"><MapIcon size={18} strokeWidth={1.75} /></span>
@@ -570,13 +597,16 @@ const TeamForm: React.FC = () => {
                             </div>
                           )}
 
-                          <IconButton
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('teams.removeCoverageZone', { defaultValue: 'Supprimer la zone' })}
                             onClick={() => removeZone(index)}
-                            size="small"
-                            sx={{ p: 0.5, color: 'var(--faint)', flexShrink: 0, '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' } }}
+                            className="shrink-0 text-[var(--faint)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
                           >
                             <DeleteOutlined size={18} strokeWidth={1.75} />
-                          </IconButton>
+                          </Button>
                         </div>
                       );
                     })}
@@ -588,8 +618,8 @@ const TeamForm: React.FC = () => {
 
           {/* ─── Membres de l'équipe (pleine largeur) ─── */}
           <div className="col-span-12">
-            <Card>
-              <CardContent sx={{ p: 2 }}>
+            <Card className="[--card-spacing:12px]">
+              <CardContent>
                 <div className="flex items-center justify-between mb-2">
                   <h6 className="cn-text-subtitle1 font-semibold">
                     {t('teams.sections.teamMembers')}
@@ -638,23 +668,18 @@ const TeamForm: React.FC = () => {
                         )}
                       >
                         {/* Avatar */}
-                        <Avatar
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '10px',
-                            fontSize: '0.7rem',
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 600,
-                            color: 'var(--on-accent)',
-                            bgcolor: field.userId ? 'var(--accent)' : 'var(--faint)',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {field.firstName && field.lastName
-                            ? `${field.firstName.charAt(0)}${field.lastName.charAt(0)}`
-                            : <Person size={18} strokeWidth={1.75} />
-                          }
+                        <Avatar className="size-8 shrink-0 rounded-[10px] after:rounded-[10px]">
+                          <AvatarFallback
+                            className={cn(
+                              'rounded-[10px] font-[family-name:var(--font-display)] text-[0.7rem] font-semibold text-[var(--on-accent)]',
+                              field.userId ? 'bg-[var(--accent)]' : 'bg-[var(--faint)]',
+                            )}
+                          >
+                            {field.firstName && field.lastName
+                              ? `${field.firstName.charAt(0)}${field.lastName.charAt(0)}`
+                              : <Person size={18} strokeWidth={1.75} />
+                            }
+                          </AvatarFallback>
                         </Avatar>
 
                         {/* User select */}
@@ -680,8 +705,10 @@ const TeamForm: React.FC = () => {
                                 renderOption={(props, user) => (
                                   <li {...props}>
                                     <div className="flex items-center gap-1">
-                                      <Avatar sx={{ width: 24, height: 24, borderRadius: '8px', fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--on-accent)', bgcolor: 'var(--accent)' }}>
-                                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                                      <Avatar className="size-6 shrink-0 rounded-[8px] after:rounded-[8px]">
+                                        <AvatarFallback className="rounded-[8px] bg-[var(--accent)] font-[family-name:var(--font-display)] text-[0.6rem] font-semibold text-[var(--on-accent)]">
+                                          {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                                        </AvatarFallback>
                                       </Avatar>
                                       <div>
                                         <p className="cn-text-body2 text-[0.8125rem]">{user.firstName} {user.lastName}</p>
@@ -700,33 +727,39 @@ const TeamForm: React.FC = () => {
                           <Controller
                             name={`members.${index}.role`}
                             control={control}
-                            render={({ field: roleField, fieldState }) => (
-                              <FormControl fullWidth size="small" error={!!fieldState.error}>
-                                <InputLabel>{t('teams.fields.roleInTeam')}</InputLabel>
-                                <Select {...roleField} label={t('teams.fields.roleInTeam')}>
+                            // Le `ref` de react-hook-form est ecarte : NativeSelect du
+                            // kit est un composant fonction sans forwardRef (React 18).
+                            render={({ field: { ref: _roleRef, ...roleField }, fieldState }) => (
+                              <Field>
+                                <FieldLabel htmlFor={`member-role-${index}`}>{t('teams.fields.roleInTeam')}</FieldLabel>
+                                <NativeSelect
+                                  {...roleField}
+                                  id={`member-role-${index}`}
+                                  className="w-full"
+                                  value={roleField.value ?? ''}
+                                  aria-invalid={!!fieldState.error}
+                                >
                                   {availableRoles.map((role) => (
-                                    <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
+                                    <NativeSelectOption key={role.value} value={role.value}>{role.label}</NativeSelectOption>
                                   ))}
-                                </Select>
-                                {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                              </FormControl>
+                                </NativeSelect>
+                                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                              </Field>
                             )}
                           />
                         </div>
 
                         {/* Delete button */}
-                        <IconButton
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('teams.fields.removeMember', { defaultValue: 'Retirer le membre' })}
                           onClick={() => remove(index)}
-                          size="small"
-                          sx={{
-                            p: 0.5,
-                            color: 'var(--faint)',
-                            flexShrink: 0,
-                            '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' },
-                          }}
+                          className="shrink-0 text-[var(--faint)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
                         >
                           <Delete size={18} strokeWidth={1.75} />
-                        </IconButton>
+                        </Button>
                       </div>
                     ))}
                   </div>

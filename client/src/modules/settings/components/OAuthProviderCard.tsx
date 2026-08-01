@@ -2,7 +2,21 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { X } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
@@ -170,7 +184,7 @@ export default function OAuthProviderCard({
   if (loading) {
     return (
       <Card className="gap-0 py-0 border-border p-4 flex justify-center">
-        <CircularProgress size={28} sx={{ color: ACCENT }} />
+        <Spinner className="size-7 text-[var(--ok)]" />
       </Card>
     );
   }
@@ -193,35 +207,45 @@ export default function OAuthProviderCard({
     : (labels.connect ?? `Se connecter via ${label}`);
 
   // Bouton d'action principal en icône seule (libellé porté par le tooltip).
+  // Le <span> reste : un bouton desactive n'emet pas d'evenement de pointeur,
+  // le tooltip ne s'ouvrirait jamais si le declencheur etait le bouton lui-meme.
   const mainAction = notConfigured ? null : isConnected ? (
-    <Tooltip title={labels.disconnect ?? `Déconnecter ${label}`} arrow>
-      <span>
-        <IconButton
-          size="small"
-          onClick={() => setDisconnectOpen(true)}
-          disabled={actionLoading}
-          aria-label={labels.disconnect ?? `Déconnecter ${label}`}
-          sx={{ color: 'text.secondary', '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' } }}
-        >
-          <LinkOffIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setDisconnectOpen(true)}
+            disabled={actionLoading}
+            aria-label={labels.disconnect ?? `Déconnecter ${label}`}
+            className="text-[var(--muted)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+          >
+            <LinkOffIcon size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{labels.disconnect ?? `Déconnecter ${label}`}</TooltipContent>
     </Tooltip>
   ) : (
-    <Tooltip title={connectTooltip} arrow>
-      <span>
-        <IconButton
-          size="small"
-          onClick={handleConnect}
-          disabled={actionLoading || mainActionDisabled}
-          aria-label={connectTooltip}
-          sx={{ color: ACCENT, '&:hover': { bgcolor: 'var(--ok-soft)' } }}
-        >
-          {actionLoading
-            ? <CircularProgress size={16} sx={{ color: ACCENT }} />
-            : <LinkIcon size={16} strokeWidth={2} />}
-        </IconButton>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleConnect}
+            disabled={actionLoading || mainActionDisabled}
+            aria-label={connectTooltip}
+            className="text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+          >
+            {actionLoading
+              ? <Spinner className="size-4 text-[var(--ok)]" />
+              : <LinkIcon size={16} strokeWidth={2} />}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{connectTooltip}</TooltipContent>
     </Tooltip>
   );
 
@@ -259,40 +283,45 @@ export default function OAuthProviderCard({
 
       {message && (
         <div className="px-3 pb-[9px] mt-[-3px]">
-          <Alert
-            severity={message.type}
-            variant="outlined"
-            sx={{ borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
-            onClose={() => setMessage(null)}
-          >
-            {message.text}
+          <Alert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-[0.75rem]">
+            <AlertDescription>{message.text}</AlertDescription>
+            <AlertAction>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Fermer le message"
+                onClick={() => setMessage(null)}
+              >
+                <X size={14} strokeWidth={2} />
+              </Button>
+            </AlertAction>
           </Alert>
         </div>
       )}
 
       {/* Dialog confirmation */}
-      <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)}>
-        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>
-          {labels.confirmDisconnect ?? `Déconnecter ${label} ?`}
-        </DialogTitle>
+      <Dialog open={disconnectOpen} onOpenChange={(next) => !next && setDisconnectOpen(false)}>
         <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            {labels.confirmDisconnectMessage ??
-              `Cette action révoquera le token et déconnectera ${label} de votre organisation. Vous pourrez vous reconnecter à tout moment.`}
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>{labels.confirmDisconnect ?? `Déconnecter ${label} ?`}</DialogTitle>
+            <DialogDescription>
+              {labels.confirmDisconnectMessage ??
+                `Cette action révoquera le token et déconnectera ${label} de votre organisation. Vous pourrez vous reconnecter à tout moment.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisconnectOpen(false)} disabled={actionLoading}>
+              {labels.cancel ?? 'Annuler'}
+            </Button>
+            <Button
+              onClick={handleDisconnect}
+              variant="destructive"
+              disabled={actionLoading}
+            >
+              {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? 'Déconnecter')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setDisconnectOpen(false)} disabled={actionLoading}>
-            {labels.cancel ?? 'Annuler'}
-          </Button>
-          <Button
-            onClick={handleDisconnect}
-            variant="destructive"
-            disabled={actionLoading}
-          >
-            {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? 'Déconnecter')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </Card>
   );

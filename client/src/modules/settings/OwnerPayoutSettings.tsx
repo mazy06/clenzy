@@ -2,7 +2,22 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import StatusChip from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
-import { Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+// Snackbar (et l'Alert qu'il porte) laisses en MUI : changer le mecanisme de
+// notification depasse le perimetre de cette migration.
+import { Snackbar, Alert as MuiAlert } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
@@ -49,6 +64,12 @@ const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
 // --faint .05em pour l'en-tete) : cet ecran etait deja regle plus dense.
 const CELL_CLASS = 'text-[0.8125rem] py-[7.5px]';
 const HEAD_CELL_CLASS = 'text-[0.7rem] tracking-[0.06em] text-[var(--muted)]';
+
+/** Bouton d'action de ligne : 28px hairline, hover teinte accent (report du sx). */
+const ROW_ACTION_CLASS =
+  'rounded-[7px] text-[var(--muted)] transition-[color,border-color,background-color] duration-150 '
+  + 'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] '
+  + 'hover:border-[color-mix(in_srgb,_var(--accent)_40%,_transparent)]';
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
@@ -215,23 +236,19 @@ export default function OwnerPayoutSettings() {
 
           const isCritical = expired.length > 0;
           return (
-            <Alert
-              severity={isCritical ? 'error' : 'warning'}
-              sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}
-            >
-              <div>
-                <p className="cn-text-body1 text-[0.85rem] font-semibold mb-0.5">
-                  Open Banking — {expired.length} consent{expired.length > 1 ? 's' : ''} expiré{expired.length > 1 ? 's' : ''}
-                  {expired.length > 0 && expiringSoon.length > 0 ? ', ' : ''}
-                  {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
-                </p>
-                <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
-                  Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
-                  <strong> Mes reversements </strong>
-                  pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
-                  engrenage (Configurer la méthode).
-                </p>
-              </div>
+            <Alert variant={isCritical ? 'destructive' : 'warning'} className="mb-3 text-[0.85rem]">
+              <Warning size={16} strokeWidth={1.75} />
+              <AlertTitle className="text-[0.85rem] font-semibold">
+                Open Banking — {expired.length} consent{expired.length > 1 ? 's' : ''} expiré{expired.length > 1 ? 's' : ''}
+                {expired.length > 0 && expiringSoon.length > 0 ? ', ' : ''}
+                {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
+              </AlertTitle>
+              <AlertDescription className="text-[0.78rem]">
+                Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
+                <strong> Mes reversements </strong>
+                pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
+                engrenage (Configurer la méthode).
+              </AlertDescription>
             </Alert>
           );
         })()}
@@ -302,84 +319,59 @@ export default function OwnerPayoutSettings() {
                       </TableCell>
                       <TableCell className={`${CELL_CLASS} text-end pe-[7.5px]`}>
                         <div className="inline-flex items-center gap-0.5 justify-end">
-                          <Tooltip title={t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}>
-                            <IconButton
-                              size="small"
-                              onClick={() => openMethodDialog(config)}
-                              aria-label={t('settings.ownerPayout.changeMethod', 'Changer la méthode')}
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '7px',
-                                color: 'text.secondary',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': {
-                                  color: 'var(--accent)',
-                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                  backgroundColor: 'var(--accent-soft)',
-                                },
-                                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                              }}
-                            >
-                              <SettingsIcon size={13} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => openMethodDialog(config)}
+                                  aria-label={t('settings.ownerPayout.changeMethod', 'Changer la méthode')}
+                                  className={ROW_ACTION_CLASS}
+                                >
+                                  <SettingsIcon size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}
+                            </TooltipContent>
                           </Tooltip>
                           {config.payoutMethod === 'SEPA_TRANSFER' && (
-                            <Tooltip title={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}>
-                              <IconButton
-                                size="small"
-                                onClick={() => openSepaDialog(config)}
-                                aria-label={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}
-                                sx={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '7px',
-                                  color: 'text.secondary',
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  transition:
-                                    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                  '&:hover': {
-                                    color: 'var(--accent)',
-                                    borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                    backgroundColor: 'var(--accent-soft)',
-                                  },
-                                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                                }}
-                              >
-                                <EditIcon size={13} strokeWidth={1.75} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="outline"
+                                    size="icon-sm"
+                                    onClick={() => openSepaDialog(config)}
+                                    aria-label={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}
+                                    className={ROW_ACTION_CLASS}
+                                  >
+                                    <EditIcon size={13} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('settings.ownerPayout.editSepa', 'Modifier SEPA')}</TooltipContent>
                             </Tooltip>
                           )}
                           {!config.verified && (
-                            <Tooltip title={t('settings.ownerPayout.verify', 'Vérifier')}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleVerify(config.ownerId)}
-                                disabled={verifyMutation.isPending}
-                                aria-label={t('settings.ownerPayout.verify', 'Vérifier')}
-                                sx={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '7px',
-                                  color: 'text.secondary',
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  transition:
-                                    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                  '&:hover': {
-                                    color: 'var(--accent)',
-                                    borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                    backgroundColor: 'var(--accent-soft)',
-                                  },
-                                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                                }}
-                              >
-                                <CheckCircle size={13} strokeWidth={1.75} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="outline"
+                                    size="icon-sm"
+                                    onClick={() => handleVerify(config.ownerId)}
+                                    disabled={verifyMutation.isPending}
+                                    aria-label={t('settings.ownerPayout.verify', 'Vérifier')}
+                                    className={ROW_ACTION_CLASS}
+                                  >
+                                    <CheckCircle size={13} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('settings.ownerPayout.verify', 'Vérifier')}</TooltipContent>
                             </Tooltip>
                           )}
                         </div>
@@ -400,17 +392,14 @@ export default function OwnerPayoutSettings() {
       </SettingsSection>
 
       {/* ── SEPA Edit Dialog ── */}
-      <Dialog
-        open={sepaOpen}
-        onClose={() => setSepaOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '12px' } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.005em' }}>
-          {t('settings.ownerPayout.editSepaTitle', 'Coordonnées bancaires SEPA')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: '16px !important' }}>
+      <Dialog open={sepaOpen} onOpenChange={(next) => { if (!next) setSepaOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px] rounded-[12px]">
+          <DialogHeader>
+            <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+              {t('settings.ownerPayout.editSepaTitle', 'Coordonnées bancaires SEPA')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-[9px]">
           <Field>
             <FieldLabel htmlFor="sepa-iban">{t('settings.ownerPayout.iban', 'IBAN')}</FieldLabel>
             <Input
@@ -461,8 +450,8 @@ export default function OwnerPayoutSettings() {
               onChange={(e) => setSepaHolder(e.target.value)}
             />
           </Field>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+          </div>
+          <DialogFooter>
           <Button
             variant="ghost"
             size="sm"
@@ -493,7 +482,8 @@ export default function OwnerPayoutSettings() {
             )}
             {t('common.save', 'Enregistrer')}
           </Button>
-        </DialogActions>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <PayoutMethodEditDialog
@@ -517,13 +507,13 @@ export default function OwnerPayoutSettings() {
         autoHideDuration={4000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
-        <Alert
+        <MuiAlert
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           severity={snackbar.severity}
           sx={{ borderRadius: '8px' }}
         >
           {snackbar.message}
-        </Alert>
+        </MuiAlert>
       </Snackbar>
     </div>
   );

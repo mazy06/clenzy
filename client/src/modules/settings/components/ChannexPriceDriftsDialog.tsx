@@ -15,11 +15,23 @@
  * Sans propertyId : montre TOUS les drifts actifs de l'organisation.</p>
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   X,
   TrendingDown,
@@ -115,7 +127,7 @@ function DriftRow({
       </div>
 
       {/* Boutons d'action */}
-      <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
+      <div className="flex flex-row gap-1.5 mt-[7.5px]">
         {(['KEEP_CLENZY', 'KEEP_OTA', 'DISMISSED'] as ChannexPriceDriftResolution[]).map((r) => {
           const isBusy = busyResolution === r;
           const anyBusy = busyResolution !== null;
@@ -143,7 +155,7 @@ function DriftRow({
             </Button>
           );
         })}
-      </Stack>
+      </div>
     </div>
   );
 }
@@ -224,83 +236,96 @@ export default function ChannexPriceDriftsDialog({
   }, [drifts, propertyId]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}>
-        <div className="w-[36px] h-[36px] rounded-[1px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
-          <AlertTriangle size={20} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
-            Conflits de prix Baitly ↔ Channex
-          </h6>
-          <span className="cn-text-caption text-muted-foreground block mt-0.5">
-            {drifts.length === 0 && !loading
-              ? 'Aucun conflit actif'
-              : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
-          </span>
-        </div>
-        <Tooltip title="Rafraichir" arrow placement="top">
-          <span>
-            <IconButton size="small" disabled={loading} onClick={() => void fetchDrifts()}>
-              {loading ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
-            </IconButton>
-          </span>
-        </Tooltip>
-        <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 1, pb: 2 }}>
-        {loading && drifts.length === 0 && (
-          <Stack spacing={1}>
-            <Skeleton variant="rounded" height={100} />
-            <Skeleton variant="rounded" height={100} />
-          </Stack>
-        )}
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 1.5 }} action={
-            <Button variant="ghost" size="sm" onClick={() => void fetchDrifts()}>
-              Reessayer
-            </Button>
-          }>
-            {error}
-          </Alert>
-        )}
-
-        {!loading && drifts.length === 0 && !error && (
-          <div className="text-center py-6">
-            <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
-            <p className="cn-text-body2 mt-2 text-muted-foreground">
-              Tous les prix sont alignes entre Baitly et Channex.
-            </p>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+        <DialogHeader className="flex-row items-start gap-1.5 pe-14">
+          <div className="w-[36px] h-[36px] rounded-[1px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
+            <AlertTriangle size={20} />
           </div>
-        )}
+          <div className="flex-1 min-w-0">
+            <DialogTitle className="font-semibold leading-[1.3] text-[1.05rem]">
+              Conflits de prix Baitly ↔ Channex
+            </DialogTitle>
+            <DialogDescription className="cn-text-caption block mt-0.5">
+              {drifts.length === 0 && !loading
+                ? 'Aucun conflit actif'
+                : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
+            </DialogDescription>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+                  porte le declencheur a sa place. */}
+              <span className="inline-flex shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Rafraichir"
+                  disabled={loading}
+                  onClick={() => void fetchDrifts()}
+                >
+                  {loading ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">Rafraichir</TooltipContent>
+          </Tooltip>
+        </DialogHeader>
 
-        {drifts.length > 0 && (
-          <Stack spacing={1.25}>
-            {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
-              <div key={groupLabel}>
-                {propertyId == null && (
-                  <span className="cn-text-caption block mb-[4.5px] font-bold uppercase text-[var(--muted)] tracking-[0.4px]">
-                    {groupLabel} · {groupDrifts.length} drift{groupDrifts.length > 1 ? 's' : ''}
-                  </span>
-                )}
-                <Stack spacing={1}>
-                  {groupDrifts.map((d) => (
-                    <DriftRow
-                      key={d.id}
-                      drift={d}
-                      busyResolution={busyResolutions.get(d.id) ?? null}
-                      onResolve={(r) => void handleResolve(d, r)}
-                    />
-                  ))}
-                </Stack>
-              </div>
-            ))}
-          </Stack>
-        )}
+        <div>
+          {loading && drifts.length === 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-[100px] rounded-lg" />
+              <Skeleton className="h-[100px] rounded-lg" />
+            </div>
+          )}
+
+          {error && (
+            <Alert variant="destructive" className="mb-2">
+              <AlertTriangle />
+              <AlertDescription>{error}</AlertDescription>
+              <AlertAction>
+                <Button variant="ghost" size="sm" onClick={() => void fetchDrifts()}>
+                  Reessayer
+                </Button>
+              </AlertAction>
+            </Alert>
+          )}
+
+          {!loading && drifts.length === 0 && !error && (
+            <div className="text-center py-6">
+              <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
+              <p className="cn-text-body2 mt-2 text-muted-foreground">
+                Tous les prix sont alignes entre Baitly et Channex.
+              </p>
+            </div>
+          )}
+
+          {drifts.length > 0 && (
+            <div className="flex flex-col gap-[7.5px]">
+              {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
+                <div key={groupLabel}>
+                  {propertyId == null && (
+                    <span className="cn-text-caption block mb-[4.5px] font-bold uppercase text-[var(--muted)] tracking-[0.4px]">
+                      {groupLabel} · {groupDrifts.length} drift{groupDrifts.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    {groupDrifts.map((d) => (
+                      <DriftRow
+                        key={d.id}
+                        drift={d}
+                        busyResolution={busyResolutions.get(d.id) ?? null}
+                        onResolve={(r) => void handleResolve(d, r)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

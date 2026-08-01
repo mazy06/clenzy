@@ -1,6 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Card, CardContent, List, ListItem, ListItemAvatar, ListItemText, Avatar, Divider, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import {
+  Avatar,
+  AvatarFallback,
+  Button,
+  Card,
+  CardContent,
+  Separator,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
 import {
   Delete,
   SortByAlpha,
@@ -109,8 +118,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     return sorted;
   }, [members, sortBy]);
 
-  const handleSortChange = (_: React.MouseEvent<HTMLElement>, newSort: SortBy | null) => {
-    if (newSort !== null) {
+  // ToggleGroup rend une chaine vide quand on deselectionne l'item actif :
+  // on ignore ce cas pour garder un tri toujours defini (equivalent du
+  // `newSort !== null` de ToggleButtonGroup).
+  const handleSortChange = (newSort: string) => {
+    if (newSort === 'name' || newSort === 'role') {
       setSortBy(newSort);
     }
   };
@@ -130,25 +142,32 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
 
   return (
     <Card>
-      <CardContent sx={{ p: 3 }}>
+      <CardContent className="p-[18px]">
         <div className="flex justify-between items-center mb-3">
           <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
             {t('teams.members.title')} ({members.length})
           </h6>
-          <ToggleButtonGroup value={sortBy} exclusive onChange={handleSortChange} size="small">
-            <ToggleButton value="name" sx={{ px: 1.5, py: 0.5 }}>
-              <span className="inline-flex me-0.5"><SortByAlpha size={16} strokeWidth={1.75} /></span>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={sortBy}
+            onValueChange={handleSortChange}
+          >
+            <ToggleGroupItem value="name">
+              <SortByAlpha size={16} strokeWidth={1.75} />
               <span className="cn-text-caption">{t('teams.members.sortByName')}</span>
-            </ToggleButton>
-            <ToggleButton value="role" sx={{ px: 1.5, py: 0.5 }}>
-              <span className="inline-flex me-0.5"><Badge size={16} strokeWidth={1.75} /></span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="role">
+              <Badge size={16} strokeWidth={1.75} />
               <span className="cn-text-caption">{t('teams.members.sortByRole')}</span>
-            </ToggleButton>
-          </ToggleButtonGroup>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {sortedMembers.length > 0 ? (
-          <List>
+          <div>
             {sortedMembers.map((member, index) => {
               const memberId = member.userId || member.id;
               const interventionCount = memberInterventionCounts.counts[memberId] || 0;
@@ -157,52 +176,50 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
 
               return (
                 <React.Fragment key={memberId}>
-                  <ListItem
-                    sx={{ px: 1, py: 1.5 }}
-                    secondaryAction={
-                      canEdit && onRemoveMember ? (
-                        <IconButton edge="end" color="error" size="small" onClick={() => onRemoveMember(memberId)}>
-                          <Delete size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      ) : undefined
-                    }
-                  >
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px', width: 36, height: 36 }}>
+                  <div className="flex items-center gap-3 px-1.5 py-[9px]">
+                    <Avatar className="size-9 rounded-[10px] shrink-0">
+                      <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold">
                         {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="cn-text-body1 font-medium">
-                            {member.firstName} {member.lastName}
-                          </p>
-                          {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
-                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getRoleLabel(member.roleInTeam || member.role)} className="h-[24px] text-[0.7rem]" />
-                          ); })()}
-                          {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
-                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')} className="h-[24px] text-[0.7rem]" />
-                          ); })()}
-                        </div>
-                      }
-                      secondary={
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <p className="cn-text-body2 text-muted-foreground">
-                            {member.email || member.userEmail}
-                          </p>
-                          <span className="cn-text-caption text-muted-foreground">
-                            - {interventionCount} {t('teams.members.interventionCount')}
-                          </span>
-                        </div>
-                      }
-                    />
-                  </ListItem>
-                  {index < sortedMembers.length - 1 && <Divider />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="cn-text-body1 font-medium">
+                          {member.firstName} {member.lastName}
+                        </p>
+                        {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
+                          <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getRoleLabel(member.roleInTeam || member.role)} className="h-[24px] text-[0.7rem]" />
+                        ); })()}
+                        {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
+                          <StatusChip tokens={{ color: c, bg: `${c}18` }} label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')} className="h-[24px] text-[0.7rem]" />
+                        ); })()}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="cn-text-body2 text-muted-foreground">
+                          {member.email || member.userEmail}
+                        </p>
+                        <span className="cn-text-caption text-muted-foreground">
+                          - {interventionCount} {t('teams.members.interventionCount')}
+                        </span>
+                      </div>
+                    </div>
+                    {canEdit && onRemoveMember && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t('teams.members.removeMember', 'Retirer le membre')}
+                        className="shrink-0 text-[var(--err)] hover:text-[var(--err)]"
+                        onClick={() => onRemoveMember(memberId)}
+                      >
+                        <Delete size={18} strokeWidth={1.75} />
+                      </Button>
+                    )}
+                  </div>
+                  {index < sortedMembers.length - 1 && <Separator />}
                 </React.Fragment>
               );
             })}
-          </List>
+          </div>
         ) : (
           <div className="text-center py-6">
             <p className="cn-text-body1 text-muted-foreground">

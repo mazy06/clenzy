@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StatusChip from './StatusChip';
-import { Alert as BuiAlert, AlertDescription, Button, Field, FieldLabel, Input } from './ui';
-import { Info as BuiInfo } from 'lucide-react';
+import { Alert as BuiAlert, AlertAction, AlertDescription, Button, Field, FieldLabel, Input } from './ui';
+import { Info as BuiInfo, TriangleAlert } from 'lucide-react';
 import { Spinner } from './ui';
-import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, Divider, Alert } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import {
   Info,
   Warning,
@@ -131,10 +140,22 @@ const AuditLogging: React.FC = () => {
     setHeaderActions(
       <div className="flex items-center gap-1.5">
         {loading && <Spinner className="size-4" />}
-        <Tooltip title="Actualiser les logs">
-          <IconButton onClick={handleRefresh} size="small">
-            <Refresh size={20} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Le span porte la ref que Radix pose sur son enfant : Button est
+                une fonction, il n'en transmet pas. */}
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Actualiser les logs"
+                onClick={handleRefresh}
+              >
+                <Refresh size={20} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Actualiser les logs</TooltipContent>
         </Tooltip>
       </div>,
     );
@@ -165,13 +186,15 @@ const AuditLogging: React.FC = () => {
 
   if (error && !page) {
     return (
-      <Alert severity="error" action={
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          Réessayer
-        </Button>
-      }>
-        {error}
-      </Alert>
+      <BuiAlert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Réessayer
+          </Button>
+        </AlertAction>
+      </BuiAlert>
     );
   }
 
@@ -182,45 +205,49 @@ const AuditLogging: React.FC = () => {
   return (
     <div>
       {/* Filtres */}
-      <Card variant="outlined" sx={{ mb: 3 }}>
+      <Card className="mb-[18px]">
         <CardContent>
           <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Filtres
           </h6>
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <FormControl fullWidth size="small">
-                <InputLabel>Type d'événement</InputLabel>
-                <Select
+              <Field>
+                <FieldLabel htmlFor="audit-event-type">Type d'événement</FieldLabel>
+                <NativeSelect
+                  id="audit-event-type"
+                  size="sm"
+                  className="w-full"
                   value={filters.eventType}
-                  label="Type d'événement"
                   onChange={(e) => handleFilterChange('eventType', e.target.value)}
                 >
-                  <MenuItem value="">Tous</MenuItem>
-                  <MenuItem value="LOGIN_SUCCESS">Connexion réussie</MenuItem>
-                  <MenuItem value="LOGIN_FAILURE">Échec de connexion</MenuItem>
-                  <MenuItem value="PERMISSION_DENIED">Accès refusé</MenuItem>
-                  <MenuItem value="DATA_ACCESS">Accès aux données</MenuItem>
-                  <MenuItem value="ADMIN_ACTION">Action admin</MenuItem>
-                  <MenuItem value="SECRET_ROTATION">Rotation de secret</MenuItem>
-                  <MenuItem value="SUSPICIOUS_ACTIVITY">Activité suspecte</MenuItem>
-                </Select>
-              </FormControl>
+                  <NativeSelectOption value="">Tous</NativeSelectOption>
+                  <NativeSelectOption value="LOGIN_SUCCESS">Connexion réussie</NativeSelectOption>
+                  <NativeSelectOption value="LOGIN_FAILURE">Échec de connexion</NativeSelectOption>
+                  <NativeSelectOption value="PERMISSION_DENIED">Accès refusé</NativeSelectOption>
+                  <NativeSelectOption value="DATA_ACCESS">Accès aux données</NativeSelectOption>
+                  <NativeSelectOption value="ADMIN_ACTION">Action admin</NativeSelectOption>
+                  <NativeSelectOption value="SECRET_ROTATION">Rotation de secret</NativeSelectOption>
+                  <NativeSelectOption value="SUSPICIOUS_ACTIVITY">Activité suspecte</NativeSelectOption>
+                </NativeSelect>
+              </Field>
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <FormControl fullWidth size="small">
-                <InputLabel>Résultat</InputLabel>
-                <Select
+              <Field>
+                <FieldLabel htmlFor="audit-result">Résultat</FieldLabel>
+                <NativeSelect
+                  id="audit-result"
+                  size="sm"
+                  className="w-full"
                   value={filters.result}
-                  label="Résultat"
                   onChange={(e) => handleFilterChange('result', e.target.value)}
                 >
-                  <MenuItem value="">Tous</MenuItem>
-                  <MenuItem value="SUCCESS">Succès</MenuItem>
-                  <MenuItem value="DENIED">Refusé</MenuItem>
-                  <MenuItem value="ERROR">Erreur</MenuItem>
-                </Select>
-              </FormControl>
+                  <NativeSelectOption value="">Tous</NativeSelectOption>
+                  <NativeSelectOption value="SUCCESS">Succès</NativeSelectOption>
+                  <NativeSelectOption value="DENIED">Refusé</NativeSelectOption>
+                  <NativeSelectOption value="ERROR">Erreur</NativeSelectOption>
+                </NativeSelect>
+              </Field>
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <Field>
@@ -244,7 +271,7 @@ const AuditLogging: React.FC = () => {
       </Card>
 
       {/* Logs */}
-      <Card variant="outlined">
+      <Card>
         <CardContent>
           <div className="flex justify-between items-center mb-3">
             <h6 className="cn-text-h6 text-[var(--ink)]">
@@ -261,58 +288,54 @@ const AuditLogging: React.FC = () => {
               <AlertDescription>Aucun log d'audit trouvé pour les filtres sélectionnés</AlertDescription>
             </BuiAlert>
           ) : (
-            <List>
+            <div className="flex flex-col">
               {logs.map((log, index) => (
                 <React.Fragment key={log.id}>
-                  <ListItem alignItems="flex-start">
-                    <ListItemIcon>
+                  <div className="flex items-start gap-2 py-1.5">
+                    <span className="flex w-9 shrink-0 items-center justify-start pt-0.5">
                       {getEventTypeIcon(log.eventType)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="cn-text-subtitle2">
-                            {log.action || formatEventType(log.eventType)}
-                          </span>
-                          <StatusChip tokens={{ color: eventToken(log.eventType).fg, bg: eventToken(log.eventType).bg }} label={formatEventType(log.eventType)} />
-                          {log.result && (
-                            <StatusChip tokens={{ color: resultToken(log.result).fg, bg: resultToken(log.result).bg }} label={log.result} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="cn-text-subtitle2">
+                          {log.action || formatEventType(log.eventType)}
+                        </span>
+                        <StatusChip tokens={{ color: eventToken(log.eventType).fg, bg: eventToken(log.eventType).bg }} label={formatEventType(log.eventType)} />
+                        {log.result && (
+                          <StatusChip tokens={{ color: resultToken(log.result).fg, bg: resultToken(log.result).bg }} label={log.result} />
+                        )}
+                      </div>
+                      <div className="mt-1.5">
+                        {log.details && (
+                          <p className="cn-text-body2 text-[var(--body)] mb-[0.35em]">
+                            {log.details}
+                          </p>
+                        )}
+                        {/* Meta technique : mono compact sur fond --field */}
+                        <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[8px]">
+                          {log.actorEmail && (
+                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
+                              {log.actorEmail}
+                            </span>
+                          )}
+                          {log.actorIp && (
+                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
+                              IP {log.actorIp}
+                            </span>
+                          )}
+                          {log.timestamp && (
+                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)] tabular-nums">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </span>
                           )}
                         </div>
-                      }
-                      secondary={
-                        <div className="mt-1.5">
-                          {log.details && (
-                            <p className="cn-text-body2 text-[var(--body)] mb-[0.35em]">
-                              {log.details}
-                            </p>
-                          )}
-                          {/* Meta technique : mono compact sur fond --field */}
-                          <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-[var(--field)] border border-[var(--field-line)] rounded-[8px]">
-                            {log.actorEmail && (
-                              <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
-                                {log.actorEmail}
-                              </span>
-                            )}
-                            {log.actorIp && (
-                              <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
-                                IP {log.actorIp}
-                              </span>
-                            )}
-                            {log.timestamp && (
-                              <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)] tabular-nums">
-                                {new Date(log.timestamp).toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      }
-                    />
-                  </ListItem>
-                  {index < logs.length - 1 && <Divider variant="inset" component="li" />}
+                      </div>
+                    </div>
+                  </div>
+                  {index < logs.length - 1 && <Separator />}
                 </React.Fragment>
               ))}
-            </List>
+            </div>
           )}
 
           {totalPages > 1 && (

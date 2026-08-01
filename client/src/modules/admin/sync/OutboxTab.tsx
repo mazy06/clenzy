@@ -2,7 +2,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
-import { Checkbox, Skeleton, Tooltip } from '@mui/material';
+import {
+  Checkbox,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -98,10 +104,13 @@ const renderStatusTooltip = (status: string) => {
 const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) => (
   <div className="inline-flex items-center gap-0.5">
     <span>{label}</span>
-    <Tooltip arrow title={hint}>
-      <span className="inline-flex text-[var(--faint)] cursor-help hover:text-[var(--muted)]">
-        <InfoOutlined size={13} strokeWidth={1.75} />
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex text-[var(--faint)] cursor-help hover:text-[var(--muted)]">
+          <InfoOutlined size={13} strokeWidth={1.75} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{hint}</TooltipContent>
     </Tooltip>
   </div>
 );
@@ -251,37 +260,40 @@ const OutboxTab: React.FC = () => {
     setHeaderActions(
       <div className="flex items-center gap-1.5">
         {OUTBOX_HELP}
-        <Tooltip
-          arrow
-          title="Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot d'événements après avoir corrigé la cause (topic créé, broker remonté, etc.)."
-        >
-          <span className="inline-flex">
-            <Button size="sm" variant="outline" onClick={handleSelectAllFailed}>
-              Select All Failed
-            </Button>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button size="sm" variant="outline" onClick={handleSelectAllFailed}>
+                Select All Failed
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot
+            d&apos;événements après avoir corrigé la cause (topic créé, broker remonté, etc.).
+          </TooltipContent>
         </Tooltip>
-        <Tooltip
-          arrow
-          title={
-            selectedIds.size === 0
-              ? "Sélectionne au moins un event FAILED pour pouvoir le relancer."
-              : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."
-          }
-        >
-          <span className="inline-flex">
-            {/* Teinte warn posee en classes : le kit n'a pas de variante « warning ». */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
-              onClick={handleRetry}
-              disabled={selectedIds.size === 0 || retrying}
-            >
-              {retrying ? <Spinner className="size-4" /> : <Replay />}
-              Retry Selected ({selectedIds.size})
-            </Button>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              {/* Teinte warn posee en classes : le kit n'a pas de variante « warning ». */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                onClick={handleRetry}
+                disabled={selectedIds.size === 0 || retrying}
+              >
+                {retrying ? <Spinner className="size-4" /> : <Replay />}
+                Retry Selected ({selectedIds.size})
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {selectedIds.size === 0
+              ? 'Sélectionne au moins un event FAILED pour pouvoir le relancer.'
+              : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."}
+          </TooltipContent>
         </Tooltip>
       </div>,
     );
@@ -305,31 +317,47 @@ const OutboxTab: React.FC = () => {
       {stats && (
         <div className="grid grid-cols-12 gap-3 mb-[18px]">
           <div className="col-span-6 min-[600px]:col-span-3">
-            <Tooltip arrow title="Events qui attendent d'être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.">
-              <div>
-                <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
-              </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                Events qui attendent d&apos;être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.
+              </TooltipContent>
             </Tooltip>
           </div>
           <div className="col-span-6 min-[600px]:col-span-3">
-            <Tooltip arrow title="Events publiés avec succès dans Kafka. Aucune action requise.">
-              <div>
-                <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
-              </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Events publiés avec succès dans Kafka. Aucune action requise.</TooltipContent>
             </Tooltip>
           </div>
           <div className="col-span-6 min-[600px]:col-span-3">
-            <Tooltip arrow title="Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).">
-              <div>
-                <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
-              </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).
+              </TooltipContent>
             </Tooltip>
           </div>
           <div className="col-span-6 min-[600px]:col-span-3">
-            <Tooltip arrow title="Total cumulé d'events écrits dans l'outbox depuis sa création.">
-              <div>
-                <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
-              </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Total cumulé d&apos;events écrits dans l&apos;outbox depuis sa création.</TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -347,7 +375,7 @@ const OutboxTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
           ))}
         </div>
       ) : (
@@ -358,10 +386,15 @@ const OutboxTab: React.FC = () => {
                 <TableRow>
                   {/* Gabarit MuiTableCell padding="checkbox" : 48px de large, 0 0 0 4px. */}
                   <TableHead className="w-12 p-0 ps-1">
-                    <Tooltip arrow title="Une case n'apparaît que sur les lignes FAILED. Cochez puis cliquez 'Retry Selected'.">
-                      <span className="inline-flex cursor-help">
-                        <InfoOutlined size={14} strokeWidth={1.75} />
-                      </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex cursor-help">
+                          <InfoOutlined size={14} strokeWidth={1.75} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Une case n&apos;apparaît que sur les lignes FAILED. Cochez puis cliquez &apos;Retry Selected&apos;.
+                      </TooltipContent>
                     </Tooltip>
                   </TableHead>
                   <TableHead>
@@ -426,7 +459,8 @@ const OutboxTab: React.FC = () => {
                         {evt.status === 'FAILED' && (
                           <Checkbox
                             checked={selectedIds.has(evt.id)}
-                            onChange={() => handleToggleSelect(evt.id)}
+                            onCheckedChange={() => handleToggleSelect(evt.id)}
+                            aria-label={`Sélectionner l'event ${evt.id}`}
                           />
                         )}
                       </TableCell>
@@ -435,28 +469,31 @@ const OutboxTab: React.FC = () => {
                       <TableCell>{evt.eventType}</TableCell>
                       <TableCell>{evt.topic}</TableCell>
                       <TableCell>
-                        <Tooltip arrow placement="right" title={renderStatusTooltip(evt.status)}>
-                          {/* Le span porte la ref que Tooltip pose sur son enfant :
-                              StatusChip est une fonction et n'en transmet pas. */}
-                          <span className="inline-flex">
-                            <StatusChip
-                              tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
-                              label={evt.status}
-                              className="cursor-help"
-                            />
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Le span porte la ref que TooltipTrigger pose sur son enfant :
+                                StatusChip est une fonction et n'en transmet pas. */}
+                            <span className="inline-flex">
+                              <StatusChip
+                                tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
+                                label={evt.status}
+                                className="cursor-help"
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{renderStatusTooltip(evt.status)}</TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <Tooltip
-                          arrow
-                          title={
-                            evt.retryCount === 0
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{evt.retryCount}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {evt.retryCount === 0
                               ? "Aucune tentative supplémentaire — c'est encore le premier essai."
-                              : `${evt.retryCount} tentative(s) après échec(s) précédent(s).`
-                          }
-                        >
-                          <span className="cursor-help">{evt.retryCount}</span>
+                              : `${evt.retryCount} tentative(s) après échec(s) précédent(s).`}
+                          </TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>

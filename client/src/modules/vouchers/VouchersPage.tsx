@@ -5,7 +5,22 @@ import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui'
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Alert, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Snackbar, Stack, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+// Snackbar + son Alert flottante restent MUI : changer le mecanisme de
+// notification de la page depasse la migration des primitives.
+import { Alert, Snackbar } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -145,32 +160,47 @@ export default function VouchersPage({
   // Actions et filtres extraits pour pouvoir etre portales dans le
   // PageHeader du parent (mode embedded) ou rendus inline (mode standalone).
   const actions = (
-    <Stack direction="row" spacing={1}>
-      <Tooltip title={t('common.refresh')}>
-        <IconButton onClick={() => refetch()} size="small" sx={{ cursor: 'pointer' }}>
-          <Refresh size={18} strokeWidth={1.75} />
-        </IconButton>
+    <div className="flex flex-row items-center gap-1.5">
+      <Tooltip>
+        {/* Declencheur = <span> natif : les primitives du kit ne transmettent
+            pas de ref (React 18), le tooltip n'aurait pas d'ancre. */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => refetch()}
+              aria-label={t('common.refresh')}
+              className="cursor-pointer"
+            >
+              <Refresh size={18} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('common.refresh')}</TooltipContent>
       </Tooltip>
       <Button size="sm" onClick={() => setCreating(true)}>
         <Add size={16} strokeWidth={2} />
         {t('vouchers.createButton')}
       </Button>
-    </Stack>
+    </div>
   );
 
   const filterBar = (
-    <ToggleButtonGroup
+    <ToggleGroup
+      type="single"
       value={filter}
-      exclusive
-      onChange={(_, v) => v && setFilter(v)}
-      size="small"
+      onValueChange={(v) => v && setFilter(v as FilterMode)}
+      variant="outline"
+      size="sm"
+      spacing={0}
     >
-      <ToggleButton value="all">{t('vouchers.filter.all')}</ToggleButton>
-      <ToggleButton value="ACTIVE">{t('vouchers.filter.active')}</ToggleButton>
-      <ToggleButton value="DRAFT">{t('vouchers.filter.draft')}</ToggleButton>
-      <ToggleButton value="PAUSED">{t('vouchers.filter.paused')}</ToggleButton>
-      <ToggleButton value="EXPIRED">{t('vouchers.filter.expired')}</ToggleButton>
-    </ToggleButtonGroup>
+      <ToggleGroupItem value="all">{t('vouchers.filter.all')}</ToggleGroupItem>
+      <ToggleGroupItem value="ACTIVE">{t('vouchers.filter.active')}</ToggleGroupItem>
+      <ToggleGroupItem value="DRAFT">{t('vouchers.filter.draft')}</ToggleGroupItem>
+      <ToggleGroupItem value="PAUSED">{t('vouchers.filter.paused')}</ToggleGroupItem>
+      <ToggleGroupItem value="EXPIRED">{t('vouchers.filter.expired')}</ToggleGroupItem>
+    </ToggleGroup>
   );
 
   return (
@@ -265,28 +295,28 @@ export default function VouchersPage({
 
       <Dialog
         open={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => !next && setPendingDelete(null)}
       >
-        <DialogTitle>{t('vouchers.deleteConfirmTitle', 'Supprimer ce voucher ?')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            {pendingDelete && t('vouchers.deleteConfirm', { name: pendingDelete.name })}
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>{t('vouchers.deleteConfirmTitle', 'Supprimer ce voucher ?')}</DialogTitle>
+            <DialogDescription>
+              {pendingDelete && t('vouchers.deleteConfirm', { name: pendingDelete.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              autoFocus
+            >
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setPendingDelete(null)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={confirmDelete}
-            autoFocus
-          >
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar
@@ -330,14 +360,14 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
   return (
     <TableRow>
       <TableCell>
-        <Stack spacing={0.25}>
+        <div className="flex flex-col gap-[1.5px]">
           <p className="cn-text-body2 font-semibold">{v.name}</p>
           {v.description && (
             <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
               {v.description.slice(0, 80)}{v.description.length > 80 ? '…' : ''}
             </span>
           )}
-        </Stack>
+        </div>
       </TableCell>
       <TableCell>
         {v.code ? (
@@ -381,34 +411,66 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
         />
       </TableCell>
       <TableCell className="text-end">
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+        <div className="flex flex-row justify-end gap-[3px]">
           {canPause && (
-            <Tooltip title={t('vouchers.pause')} arrow>
-              <IconButton size="small" onClick={onPause} sx={{ cursor: 'pointer' }}>
-                <Pause size={16} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-sm" onClick={onPause} aria-label={t('vouchers.pause')} className="cursor-pointer">
+                    <Pause size={16} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('vouchers.pause')}</TooltipContent>
             </Tooltip>
           )}
           {canResume && (
-            <Tooltip title={t('vouchers.resume')} arrow>
-              <IconButton size="small" onClick={onResume} sx={{ cursor: 'pointer' }}>
-                <Play size={16} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-sm" onClick={onResume} aria-label={t('vouchers.resume')} className="cursor-pointer">
+                    <Play size={16} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('vouchers.resume')}</TooltipContent>
             </Tooltip>
           )}
-          <Tooltip title={t('common.edit')} arrow>
-            <IconButton size="small" onClick={onEdit} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}>
-              <Edit size={16} strokeWidth={1.75} />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onEdit}
+                  aria-label={t('common.edit')}
+                  className="cursor-pointer hover:text-[var(--accent)]"
+                >
+                  <Edit size={16} strokeWidth={1.75} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.edit')}</TooltipContent>
           </Tooltip>
           {canDelete && (
-            <Tooltip title={t('common.delete')} arrow>
-              <IconButton size="small" onClick={onDelete} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--err)' } }}>
-                <Trash size={16} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onDelete}
+                    aria-label={t('common.delete')}
+                    className="cursor-pointer hover:text-[var(--err)]"
+                  >
+                    <Trash size={16} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('common.delete')}</TooltipContent>
             </Tooltip>
           )}
-        </Stack>
+        </div>
       </TableCell>
     </TableRow>
   );

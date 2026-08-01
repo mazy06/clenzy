@@ -4,7 +4,11 @@ import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Card, CardContent } from './ui';
+// Reste en MUI : le couple Snackbar + Alert flottante (changer le mecanisme de
+// notification depasse cette migration) et le Box de la ligne de permission,
+// dont le fond `success.light` n'a pas de jeton equivalent dans la palette.
+import { Box, Alert, Snackbar } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -27,7 +31,6 @@ import {
   Description as DescriptionIcon,
   EventNote as EventNoteIcon,
   TrendingUp as TrendingUpIcon,
-  ExpandMore as ExpandMoreIcon,
   Payment as PaymentIcon,
   SettingsInputAntenna as ChannelsIcon,
   Chat as ChatIcon,
@@ -395,8 +398,8 @@ const PermissionConfig: React.FC = () => {
 
       {/* Résumé du rôle sélectionné */}
       {selectedRole && (
-        <Card sx={{ mb: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <Card className="mb-3 ring-0 border border-solid border-[var(--line)] bg-[var(--card)] [--card-spacing:9px]">
+          <CardContent>
             <div className="flex items-center gap-3 flex-wrap">
               <p className="cn-text-body2 text-muted-foreground">
                 Rôle sélectionné : <strong>{selectedRole}</strong>
@@ -419,8 +422,8 @@ const PermissionConfig: React.FC = () => {
 
       {/* Résumé des permissions (chiffres clés) */}
       {selectedRole && rolePermissions && (
-        <Card sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 3 }}>
+        <Card className="mb-[18px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] [--card-spacing:18px]">
+          <CardContent>
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <h6 className="cn-text-subtitle2 text-muted-foreground font-medium">
@@ -482,7 +485,7 @@ const PermissionConfig: React.FC = () => {
       )}
 
       {/* Onglets pour la configuration et la démonstration */}
-      <Card sx={{ mb: 3 }}>
+      <Card className="mb-[18px]">
         <CardContent>
           <div className="mb-3">
             <PageTabs
@@ -530,94 +533,80 @@ const PermissionConfig: React.FC = () => {
                     const noneActive = activeCount === 0;
 
                     return (
-                      <Accordion
-                        key={moduleName}
-                        disableGutters
-                        sx={{
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: '8px !important',
-                          '&:before': { display: 'none' },
-                          boxShadow: 'none',
-                          overflow: 'hidden',
-                          '&.Mui-expanded': {
-                            borderColor: 'primary.main',
-                            boxShadow: 1,
-                          },
-                        }}
-                      >
-                        <AccordionSummary
-                          expandIcon={<ExpandMoreIcon />}
-                          sx={{
-                            minHeight: 48,
-                            px: 2,
-                            '& .MuiAccordionSummary-content': {
-                              alignItems: 'center',
-                              gap: 1.5,
-                              my: 0.75,
-                            },
-                          }}
+                      // Un accordeon par module : chaque bloc s'ouvre et se ferme
+                      // independamment, comme le faisaient les Accordion MUI isoles.
+                      // L'ombre portee de l'etat ouvert (`boxShadow: 1`, un INDICE
+                      // dans theme.shadows) n'a pas d'equivalent : seule la bordure
+                      // accentuee marque l'ouverture.
+                      <Accordion key={moduleName} type="single" collapsible>
+                        <AccordionItem
+                          value={moduleName}
+                          className="border border-solid border-[var(--line)] rounded-[8px] overflow-hidden data-[state=open]:border-[var(--mui-primary)]"
                         >
-                          <div className="p-0.5 bg-[var(--hover)] rounded-[4px] flex items-center justify-center">
-                            {getModuleIcon(moduleName)}
-                          </div>
-                          <h6 className="cn-text-subtitle2 font-semibold flex-1">
-                            {moduleName}
-                          </h6>
-                          <StatusChip
-                            tone={allActive ? 'ok' : noneActive ? 'neutral' : 'accent'}
-                            label={`${activeCount}/${permissions.length}`}
-                            className="me-1 text-[0.72rem] tabular-nums"
-                          />
-                        </AccordionSummary>
-                        <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
-                          <div className="flex flex-col gap-1">
-                            {permissions.map((permission) => {
-                              const isActive = rolePermissionSet.has(permission);
-                              return (
-                                <Box
-                                  key={permission}
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1.5,
-                                    p: 1.25,
-                                    borderRadius: 1,
-                                    bgcolor: isActive ? 'success.light' : 'grey.50',
-                                    border: '1px solid',
-                                    borderColor: isActive ? 'success.main' : 'grey.200',
-                                  }}
-                                >
-                                  {/* Le survol jouait un `scale(1.05)` : la puce
-                                      poussait ses voisines a chaque passage de
-                                      souris. StatusChip attenue l'opacite, sans
-                                      deplacer la ligne. */}
-                                  <StatusChip
-                                    tone={isActive ? 'ok' : 'neutral'}
-                                    label={permission}
-                                    pressed={isActive}
-                                    onClick={() => togglePermission(permission)}
-                                  />
-                                  <div className="flex items-center gap-0.5 ms-auto">
-                                    {isActive ? (
-                                      <span className="inline-flex text-muted-foreground"><CheckCircleIcon size={16} strokeWidth={1.75} /></span>
-                                    ) : (
-                                      <span className="inline-flex text-muted-foreground"><ErrorIcon size={16} strokeWidth={1.75} /></span>
-                                    )}
-                                    <span
-                                      className={cn(
-                                        'cn-text-caption font-medium text-[0.7rem]',
-                                        isActive ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                          <AccordionTrigger className="min-h-[48px] items-center px-3 hover:no-underline">
+                            <span className="flex flex-1 items-center gap-[9px] text-start">
+                              <span className="p-0.5 bg-[var(--hover)] rounded-[4px] flex items-center justify-center">
+                                {getModuleIcon(moduleName)}
+                              </span>
+                              <span className="cn-text-subtitle2 font-semibold flex-1">
+                                {moduleName}
+                              </span>
+                              <StatusChip
+                                tone={allActive ? 'ok' : noneActive ? 'neutral' : 'accent'}
+                                label={`${activeCount}/${permissions.length}`}
+                                className="me-1 text-[0.72rem] tabular-nums"
+                              />
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-3 pb-3">
+                            <div className="flex flex-col gap-1">
+                              {permissions.map((permission) => {
+                                const isActive = rolePermissionSet.has(permission);
+                                return (
+                                  <Box
+                                    key={permission}
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 1.5,
+                                      p: 1.25,
+                                      borderRadius: 1,
+                                      bgcolor: isActive ? 'success.light' : 'grey.50',
+                                      border: '1px solid',
+                                      borderColor: isActive ? 'success.main' : 'grey.200',
+                                    }}
+                                  >
+                                    {/* Le survol jouait un `scale(1.05)` : la puce
+                                        poussait ses voisines a chaque passage de
+                                        souris. StatusChip attenue l'opacite, sans
+                                        deplacer la ligne. */}
+                                    <StatusChip
+                                      tone={isActive ? 'ok' : 'neutral'}
+                                      label={permission}
+                                      pressed={isActive}
+                                      onClick={() => togglePermission(permission)}
+                                    />
+                                    <div className="flex items-center gap-0.5 ms-auto">
+                                      {isActive ? (
+                                        <span className="inline-flex text-muted-foreground"><CheckCircleIcon size={16} strokeWidth={1.75} /></span>
+                                      ) : (
+                                        <span className="inline-flex text-muted-foreground"><ErrorIcon size={16} strokeWidth={1.75} /></span>
                                       )}
-                                    >
-                                      {isActive ? 'Actif' : 'Inactif'}
-                                    </span>
-                                  </div>
-                                </Box>
-                              );
-                            })}
-                          </div>
-                        </AccordionDetails>
+                                      <span
+                                        className={cn(
+                                          'cn-text-caption font-medium text-[0.7rem]',
+                                          isActive ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                                        )}
+                                      >
+                                        {isActive ? 'Actif' : 'Inactif'}
+                                      </span>
+                                    </div>
+                                  </Box>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       </Accordion>
                     );
                   })}

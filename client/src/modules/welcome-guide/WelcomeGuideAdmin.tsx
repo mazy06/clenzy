@@ -4,17 +4,38 @@ import StatusChip from '../../components/StatusChip';
 import {
   Badge,
   Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
   Input,
   NativeSelect,
   NativeSelectOption,
+  Separator,
+  Switch,
   Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip } from '@mui/material';
+// Restent en MUI, faute d'equivalent sur ce qui porte le comportement :
+// - Snackbar + Alert : changer le mecanisme de notification depasse la migration
+//   (ce fichier ne dispose pas de sonner).
+// - Menu + MenuItem (+ le Divider qui les separe) : l'ancre est un `anchorEl`
+//   memorise dans l'etat, alors qu'un DropdownMenu Radix exige que le
+//   declencheur vive dans son propre arbre.
+// - TextField : `select` avec `renderValue` (IconSelect), et le champ du mot
+//   d'accueil dont l'`inputRef` sert a inserer un tag a la position du curseur.
+import { Menu, MenuItem, Snackbar, Alert, TextField, Divider as MenuDivider } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -929,7 +950,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   <Edit size={16} strokeWidth={2} /> {t('welcomeGuide.actions.edit', 'Modifier')}
                 </MenuItem>,
                 ...(isStaff ? [
-                  <Divider key="div" sx={{ my: 0.5 }} />,
+                  <MenuDivider key="div" sx={{ my: 0.5 }} />,
                   <MenuItem key="del" onClick={() => { handleDelete(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
                     <Delete size={16} strokeWidth={2} /> {t('welcomeGuide.actions.delete', 'Supprimer')}
                   </MenuItem>,
@@ -1088,7 +1109,8 @@ const WelcomeGuideAdmin: React.FC = () => {
             const active = i === step;
             const done = i < step;
             return (
-              <Tooltip key={label} title={label} arrow>
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
                 <div
                   role="button"
                   aria-label={label}
@@ -1114,6 +1136,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                 >
                   {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
                 </div>
+                </TooltipTrigger>
+                <TooltipContent>{label}</TooltipContent>
               </Tooltip>
             );
           })}
@@ -1122,28 +1146,32 @@ const WelcomeGuideAdmin: React.FC = () => {
           <Button size="sm" className="shrink-0" onClick={goNext}>
             {t('welcomeGuide.wizard.next', 'Suivant')}
           </Button>
+        ) : canCreate ? (
+          <Button size="sm" className="shrink-0" onClick={() => handleSave()} disabled={saving}>
+            {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+            {t('welcomeGuide.actions.save', 'Enregistrer')}
+          </Button>
         ) : (
           // Création réservée au staff + nécessite une réservation en cours/à venir.
-          // Tooltip explicatif quand l'action est bloquée (édition jamais bloquée).
-          <Tooltip
-            arrow
-            title={
-              canCreate
-                ? ''
-                : !isStaff
-                  ? t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')
-                  : t(
-                      'welcomeGuide.reservationLink.noReservation',
-                      'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
-                    )
-            }
-          >
-            <span style={{ flexShrink: 0 }}>
-              <Button size="sm" onClick={() => handleSave()} disabled={saving || !canCreate}>
-                {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
-                {t('welcomeGuide.actions.save', 'Enregistrer')}
-              </Button>
-            </span>
+          // Le tooltip n'existait que pour expliquer le blocage : on ne le monte
+          // donc que dans ce cas (MUI acceptait un libelle vide, pas Radix).
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex shrink-0">
+                <Button size="sm" onClick={() => handleSave()} disabled>
+                  {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+                  {t('welcomeGuide.actions.save', 'Enregistrer')}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {!isStaff
+                ? t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Baitly.')
+                : t(
+                    'welcomeGuide.reservationLink.noReservation',
+                    'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
+                  )}
+            </TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -1177,7 +1205,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       { label: t('welcomeGuide.wizard.recapPublished', 'Publié'), value: published ? yes : no },
     ];
     return (
-      <Card variant="outlined">
+      <Card>
         <CardContent>
           <SectionHeading
             icon={<Check size={17} strokeWidth={1.75} />}
@@ -1187,7 +1215,9 @@ const WelcomeGuideAdmin: React.FC = () => {
           <p className="cn-text-body2 text-[var(--muted)] mt-[-3px] mb-[9px]">
             {t('welcomeGuide.wizard.recapSubtitle', "Un dernier coup d'œil avant d'enregistrer.")}
           </p>
-          <Stack divider={<Divider />} spacing={0}>
+          {/* `divider` du Stack MUI : filet entre lignes, rendu ici par une
+              bordure haute sur chaque ligne sauf la premiere. */}
+          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-solid [&>*+*]:border-[var(--line)]">
             {rows.map((r) => (
               <div className="flex items-baseline justify-between gap-3 py-1.5" key={r.label}>
                 <p className="cn-text-body2 text-muted-foreground">
@@ -1198,7 +1228,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                 </p>
               </div>
             ))}
-          </Stack>
+          </div>
         </CardContent>
       </Card>
     );
@@ -1226,8 +1256,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                 : t('welcomeGuide.reservationLink.notLinked', 'Non lié')} icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />} />
         </div>
         {linked && linkedReservation ? (
-          <Card variant="outlined">
-            <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
+          <Card className="py-[7.5px]">
+            <CardContent>
               <div className="flex items-center gap-1.5">
                 <CalendarDays size={18} strokeWidth={1.75} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                 <div className="min-w-0">
@@ -1271,7 +1301,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   const renderForm = () => (
     // Rupture MUI lg = 1200px (breakpoints non configures) ; gap: 3 = 18px.
     <div className="grid grid-cols-[1fr] min-[1200px]:grid-cols-[minmax(0,_1fr)_392px] gap-[18px] items-start">
-      <Stack spacing={2.5}>
+      {/* theme.spacing = 6 : Stack spacing 2.5 -> 15px */}
+      <div className="flex flex-col gap-[15px] min-w-0">
       {renderStepper()}
 
       {/* ── Étape 0 — Logement ── */}
@@ -1363,7 +1394,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation.",
           )}
         </span>
-        <Stack spacing={1.5}>
+        <div className="flex flex-col gap-[9px]">
           {/* Laisse en MUI : ce champ a besoin d'un handle sur le textarea pour
               inserer le tag prenom a la position du curseur. Le Textarea du kit
               est un composant fonction simple — sous React 18 il ne transmet pas
@@ -1408,7 +1439,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
             />
           </Field>
-        </Stack>
+        </div>
       </div>
       </>
       )}
@@ -1426,21 +1457,9 @@ const WelcomeGuideAdmin: React.FC = () => {
           {WELCOME_BOOK_THEMES.map((th) => {
             const on = theme === th.id;
             return (
-              <Tooltip
-                key={th.id}
-                arrow
-                title={
-                  <div className="text-center py-0.5">
-                    <span className="cn-text-caption font-bold block">
-                      {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
-                    </span>
-                    <span className="cn-text-caption opacity-85">
-                      {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
-                    </span>
-                  </div>
-                }
-              >
-                {/* borderRadius: 1.5 avec theme.shape.borderRadius = 8 => 12px. */}
+              // borderRadius: 1.5 avec theme.shape.borderRadius = 8 => 12px.
+              <Tooltip key={th.id}>
+                <TooltipTrigger asChild>
                 <div
                   role="button"
                   aria-label={t(`welcomeGuide.themes.${th.id}.name`, th.name)}
@@ -1464,6 +1483,17 @@ const WelcomeGuideAdmin: React.FC = () => {
                     </div>
                   ) : null}
                 </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-center py-0.5">
+                    <span className="cn-text-caption font-bold block">
+                      {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
+                    </span>
+                    <span className="cn-text-caption opacity-85">
+                      {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
+                    </span>
+                  </div>
+                </TooltipContent>
               </Tooltip>
             );
           })}
@@ -1551,10 +1581,10 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.form.noSection', 'Aucune section. Ajoutez un message d’accueil ou des recommandations.')}
           />
         ) : (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             {sections.map((s, idx) => (
-              <Card key={s.id} variant="outlined">
-                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+              <Card key={s.id}>
+                <CardContent>
                   <div className="flex gap-1.5 items-start mb-1.5 flex-wrap">
                     <IconSelect value={s.icon} onChange={(v) => updateSection(idx, { icon: v })} label={t('welcomeGuide.fields.sectionIcon', 'Icône')} />
                     <Field className="flex-1 min-w-[150px]">
@@ -1581,9 +1611,15 @@ const WelcomeGuideAdmin: React.FC = () => {
                         ))}
                       </NativeSelect>
                     </Field>
-                    <IconButton size="small" color="error" onClick={() => removeSection(idx)} sx={{ mt: 0.5 }}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                      onClick={() => removeSection(idx)}
+                      className="mt-[3px] text-[var(--err)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    </Button>
                   </div>
                   <Field className="mb-[7.5px]">
                     <FieldLabel htmlFor={`guide-section-${s.id}-subtitle`}>
@@ -1649,9 +1685,15 @@ const WelcomeGuideAdmin: React.FC = () => {
                               </Field>
                             ) : null}
                           </div>
-                          <IconButton size="small" color="error" onClick={() => removeSectionItem(idx, iIdx)}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                            onClick={() => removeSectionItem(idx, iIdx)}
+                            className="text-[var(--err)]"
+                          >
                             <Delete size={15} strokeWidth={1.75} />
-                          </IconButton>
+                          </Button>
                         </div>
                       ))}
                       <Button variant="ghost" size="sm" onClick={() => addSectionItem(idx)}>
@@ -1663,7 +1705,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                 </CardContent>
               </Card>
             ))}
-          </Stack>
+          </div>
         )}
       </div>
 
@@ -1691,10 +1733,10 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.pois.empty', 'Aucun lieu. Ajoutez vos restaurants, transports et incontournables.')}
           />
         ) : (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             {pois.map((p, idx) => (
-              <Card key={p.id} variant="outlined">
-                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+              <Card key={p.id}>
+                <CardContent>
                   <div className="flex gap-1.5 items-start">
                     <div className="flex-1">
                       <div className="flex gap-1.5 mb-1.5 flex-wrap">
@@ -1736,16 +1778,25 @@ const WelcomeGuideAdmin: React.FC = () => {
                             onChange={(e) => updatePoi(idx, { address: e.target.value })}
                           />
                         </Field>
-                        <Tooltip title={t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}>
-                          <span>
-                            <IconButton size="small" onClick={() => geocodePoi(idx)} disabled={geocoding === p.id}>
-                              {geocoding === p.id ? (
-                                <Spinner className="size-4" />
-                              ) : (
-                                <MapPin size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}
+                                onClick={() => geocodePoi(idx)}
+                                disabled={geocoding === p.id}
+                              >
+                                {geocoding === p.id ? (
+                                  <Spinner className="size-4" />
+                                ) : (
+                                  <MapPin size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}</TooltipContent>
                         </Tooltip>
                       </div>
                       <Field>
@@ -1769,10 +1820,17 @@ const WelcomeGuideAdmin: React.FC = () => {
                             onChange={(e) => updatePoi(idx, { type: e.target.value })}
                           />
                         </Field>
-                        <FormControlLabel
-                          control={<Switch size="small" checked={p.featured} onChange={(e) => updatePoi(idx, { featured: e.target.checked })} />}
-                          label={t('welcomeGuide.pois.featured', 'Coup de cœur')}
-                        />
+                        <Field orientation="horizontal" className="w-auto gap-1.5">
+                          <Switch
+                            id={`guide-poi-${p.id}-featured`}
+                            size="sm"
+                            checked={p.featured}
+                            onCheckedChange={(checked) => updatePoi(idx, { featured: checked })}
+                          />
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-featured`}>
+                            {t('welcomeGuide.pois.featured', 'Coup de cœur')}
+                          </FieldLabel>
+                        </Field>
                       </div>
                       {p.lat != null && p.lng != null ? (
                         <span className="cn-text-caption text-[var(--bui-success-ink)] inline-flex items-center gap-0.5 mt-1">
@@ -1780,14 +1838,20 @@ const WelcomeGuideAdmin: React.FC = () => {
                         </span>
                       ) : null}
                     </div>
-                    <IconButton size="small" color="error" onClick={() => removePoi(idx)} sx={{ mt: 0.5 }}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                      onClick={() => removePoi(idx)}
+                      className="mt-[3px] text-[var(--err)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-          </Stack>
+          </div>
         )}
       </div>
 
@@ -1821,10 +1885,12 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.curation.empty', 'Aucune activité. Ajoutez vos excursions et bons plans à réserver.')}
           />
         ) : (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             {curatedActivities.map((a, idx) => (
-              <Card key={a.id} variant="outlined" sx={a.featured ? { borderColor: 'var(--warn)' } : undefined}>
-                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+              // La carte du kit dessine son contour avec un `ring` : la mise en
+              // avant se marque donc sur le ring, pas sur une bordure.
+              <Card key={a.id} className={cn(a.featured && 'ring-[var(--warn)]')}>
+                <CardContent>
                   <div className="flex gap-1.5 items-start">
                     <div className="flex-1">
                       <div className="flex gap-1.5 mb-1.5 flex-wrap">
@@ -1883,32 +1949,38 @@ const WelcomeGuideAdmin: React.FC = () => {
                           rows={2}
                         />
                       </Field>
-                      <FormControlLabel
-                        sx={{ mt: 0.5 }}
-                        control={
-                          <Switch
-                            size="small"
-                            checked={a.featured}
-                            onChange={(e) => updateActivity(idx, { featured: e.target.checked })}
-                          />
-                        }
-                        label={t('welcomeGuide.curation.featured', 'Mettre en avant')}
-                      />
+                      <Field orientation="horizontal" className="mt-[3px] w-auto gap-1.5">
+                        <Switch
+                          id={`guide-activity-${a.id}-featured`}
+                          size="sm"
+                          checked={a.featured}
+                          onCheckedChange={(checked) => updateActivity(idx, { featured: checked })}
+                        />
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-featured`}>
+                          {t('welcomeGuide.curation.featured', 'Mettre en avant')}
+                        </FieldLabel>
+                      </Field>
                     </div>
-                    <IconButton size="small" color="error" onClick={() => removeActivity(idx)} sx={{ mt: 0.5 }}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                      onClick={() => removeActivity(idx)}
+                      className="mt-[3px] text-[var(--err)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-          </Stack>
+          </div>
         )}
       </div>
 
       {/* Activation des sections « Activités » et « Services payants » (split de la carte Fonctionnalités) */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+      <Card className="py-[6px]">
+        <CardContent className="px-3">
           <ToggleRow
             icon={<Ticket size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
@@ -1916,7 +1988,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             checked={activitiesEnabled}
             onChange={setActivitiesEnabled}
           />
-          <Divider />
+          <Separator />
           <ToggleRow
             icon={<ConciergeBell size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.upsellsEnabled', 'Services payants')}
@@ -1929,8 +2001,8 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       {/* Sélection des services payants affichés sur CE livret (par défaut : tous) */}
       {upsellsEnabled && (
-        <Card variant="outlined">
-          <CardContent sx={{ '&:last-child': { pb: 2 }, pt: 1.5, px: 2 }}>
+        <Card className="py-[9px]">
+          <CardContent className="px-3">
             <SectionHeading
               icon={<ConciergeBell size={16} strokeWidth={1.75} />}
               title={t('welcomeGuide.fields.upsellSelectionTitle', 'Services affichés sur ce livret')}
@@ -1951,28 +2023,25 @@ const WelcomeGuideAdmin: React.FC = () => {
                     'Décochez un service pour le masquer sur ce livret uniquement.',
                   )}
                 </span>
-                <Stack spacing={0}>
+                <div className="flex flex-col">
                   {applicableOffers.map((o) => (
-                    <FormControlLabel
-                      key={o.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={isOfferShown(o.id)}
-                          onChange={() => toggleOfferShown(o.id)}
-                        />
-                      }
-                      label={
-                        <div className="flex items-baseline gap-1.5">
-                          <p className="cn-text-body2">{o.title}</p>
+                    <Field key={o.id} orientation="horizontal" className="w-auto gap-1.5 py-[3px]">
+                      <Checkbox
+                        id={`guide-upsell-${o.id}`}
+                        checked={isOfferShown(o.id)}
+                        onCheckedChange={() => toggleOfferShown(o.id)}
+                      />
+                      <FieldLabel htmlFor={`guide-upsell-${o.id}`}>
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="cn-text-body2">{o.title}</span>
                           <span className="cn-text-caption text-muted-foreground tabular-nums">
                             {o.price.toFixed(0)} {o.currency}
                           </span>
-                        </div>
-                      }
-                    />
+                        </span>
+                      </FieldLabel>
+                    </Field>
                   ))}
-                </Stack>
+                </div>
               </>
             )}
           </CardContent>
@@ -1985,8 +2054,8 @@ const WelcomeGuideAdmin: React.FC = () => {
       {step === 5 && (
       <>
       {/* Fonctionnalités optionnelles : chatbot + livre d'or (split de la carte Fonctionnalités) */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+      <Card className="py-[6px]">
+        <CardContent className="px-3">
           <ToggleRow
             icon={<MessageCircle size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
@@ -1994,7 +2063,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             checked={chatbotEnabled}
             onChange={setChatbotEnabled}
           />
-          <Divider />
+          <Separator />
           <ToggleRow
             icon={<Star size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
@@ -2006,8 +2075,8 @@ const WelcomeGuideAdmin: React.FC = () => {
       </Card>
 
       {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 1.5 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Card className="py-[9px]">
+        <CardContent className="flex items-center gap-[9px]">
           <div className="shrink-0 w-[34px] h-[34px] rounded-[1.25px] flex items-center justify-center bg-[var(--hover)] text-muted-foreground">
             <Globe size={18} strokeWidth={1.75} />
           </div>
@@ -2029,7 +2098,7 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       {/* ── Étape 6 — Récapitulatif ── */}
       {step === LAST_STEP && renderRecap()}
-      </Stack>
+      </div>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
       <div className="min-[1200px]:sticky top-3 justify-self-center min-[1200px]:justify-self-start w-full">
@@ -2053,9 +2122,14 @@ const WelcomeGuideAdmin: React.FC = () => {
       {headerActions}
       {view === 'list' ? renderList() : renderForm()}
 
-      <Dialog open={linkDialog.open} onClose={() => setLinkDialog({ open: false, link: '', qrCode: '' })} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={linkDialog.open}
+        onOpenChange={(next) => { if (!next) setLinkDialog({ open: false, link: '', qrCode: '' }); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>{t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}</DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2 text-muted-foreground mb-3">
             {t(
               'welcomeGuide.link.note',
@@ -2081,19 +2155,19 @@ const WelcomeGuideAdmin: React.FC = () => {
               </Button>
             </div>
           ) : null}
+          <DialogFooter>
+            <Button variant="ghost" asChild>
+              <a href={linkDialog.link} target="_blank" rel="noopener noreferrer">
+                <OpenInNew size={16} strokeWidth={1.75} />
+                {t('welcomeGuide.link.open', 'Ouvrir')}
+              </a>
+            </Button>
+            <Button onClick={copyLink}>
+              <ContentCopy size={16} strokeWidth={1.75} />
+              {copied ? t('welcomeGuide.link.copied', 'Copié !') : t('welcomeGuide.link.copy', 'Copier')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" asChild>
-            <a href={linkDialog.link} target="_blank" rel="noopener noreferrer">
-              <OpenInNew size={16} strokeWidth={1.75} />
-              {t('welcomeGuide.link.open', 'Ouvrir')}
-            </a>
-          </Button>
-          <Button onClick={copyLink}>
-            <ContentCopy size={16} strokeWidth={1.75} />
-            {copied ? t('welcomeGuide.link.copied', 'Copié !') : t('welcomeGuide.link.copy', 'Copier')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <ConfirmationModal
@@ -2133,11 +2207,18 @@ const WelcomeGuideAdmin: React.FC = () => {
         loading={saving}
       />
 
-      <Dialog open={guestbook.open} onClose={() => setGuestbook((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {t('welcomeGuide.guestbook.title', "Livre d'or")} — {guestbook.title}
-        </DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={guestbook.open}
+        onOpenChange={(next) => { if (!next) setGuestbook((s) => ({ ...s, open: false })); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>
+              {t('welcomeGuide.guestbook.title', "Livre d'or")} — {guestbook.title}
+            </DialogTitle>
+          </DialogHeader>
+          {/* `dividers` du Dialog MUI : filets haut/bas + corps defilant. */}
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
           {guestbook.loading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
@@ -2147,7 +2228,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.guestbook.empty', 'Aucun message pour le moment.')}
             </p>
           ) : (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               {guestbook.entries.map((e) => (
                 <div className="border-b border-[var(--line)] pb-2" key={e.id}>
                   <div className="flex justify-between items-center">
@@ -2174,21 +2255,28 @@ const WelcomeGuideAdmin: React.FC = () => {
                   ) : null}
                 </div>
               ))}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setGuestbook((s) => ({ ...s, open: false }))}>
+              {t('welcomeGuide.actions.close', 'Fermer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setGuestbook((s) => ({ ...s, open: false }))}>
-            {t('welcomeGuide.actions.close', 'Fermer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Dialog open={stats.open} onClose={() => setStats((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {t('welcomeGuide.stats.title', 'Statistiques')} — {stats.title}
-        </DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={stats.open}
+        onOpenChange={(next) => { if (!next) setStats((s) => ({ ...s, open: false })); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>
+              {t('welcomeGuide.stats.title', 'Statistiques')} — {stats.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
           {stats.loading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
@@ -2198,7 +2286,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.stats.empty', 'Aucune donnée pour le moment.')}
             </p>
           ) : (
-            <Stack spacing={2.5}>
+            <div className="flex flex-col gap-[15px]">
               <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
                 {[
                   { key: 'opens', icon: <Eye size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.opens', 'Ouvertures'), value: stats.data.totalOpens },
@@ -2247,7 +2335,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
                     {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
                   </h6>
-                  <Stack spacing={0.75}>
+                  <div className="flex flex-col gap-[4.5px]">
                     {stats.data.topActivities.map((a) => (
                       <div className="flex justify-between items-center gap-1.5" key={a.label}>
                         <p className="cn-text-body2 truncate">
@@ -2256,23 +2344,30 @@ const WelcomeGuideAdmin: React.FC = () => {
                         <StatusChip color={DEFAULT_COLOR} label={a.count} />
                       </div>
                     ))}
-                  </Stack>
+                  </div>
                 </div>
               ) : null}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setStats((s) => ({ ...s, open: false }))}>
+              {t('welcomeGuide.actions.close', 'Fermer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setStats((s) => ({ ...s, open: false }))}>
-            {t('welcomeGuide.actions.close', 'Fermer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Suggestions auto (OSM) autour du logement */}
-      <Dialog open={suggest.open} onClose={() => setSuggest((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={suggest.open}
+        onOpenChange={(next) => { if (!next) setSuggest((s) => ({ ...s, open: false })); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
           {suggest.loading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
@@ -2282,44 +2377,47 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.pois.suggestEmpty', 'Aucune suggestion trouvée autour du logement.')}
             </p>
           ) : (
-            <Stack spacing={0.25}>
+            <div className="flex flex-col gap-[1.5px]">
               {suggest.items.map((sug, i) => {
                 const cat = poiCategory(sug.category);
                 const CatIcon = cat.Icon;
                 return (
-                  <FormControlLabel
-                    key={i}
-                    sx={{ alignItems: 'flex-start', m: 0, py: 0.5 }}
-                    control={<Checkbox size="small" checked={suggest.selected.has(i)} onChange={() => toggleSuggest(i)} />}
-                    label={
-                      <div className="flex items-center gap-1 mt-0.5">
+                  <Field key={i} orientation="horizontal" className="items-start gap-1.5 py-[3px]">
+                    <Checkbox
+                      id={`guide-suggest-${i}`}
+                      checked={suggest.selected.has(i)}
+                      onCheckedChange={() => toggleSuggest(i)}
+                    />
+                    <FieldLabel htmlFor={`guide-suggest-${i}`}>
+                      <span className="flex items-center gap-1 mt-0.5">
                         <CatIcon size={14} strokeWidth={1.9} style={{ color: cat.color, flexShrink: 0 }} />
-                        <div>
-                          <p className="cn-text-body2 font-semibold">
+                        <span className="flex flex-col">
+                          <span className="cn-text-body2 font-semibold">
                             {sug.name}
-                          </p>
+                          </span>
                           {sug.address ? (
                             <span className="cn-text-caption text-muted-foreground">
                               {sug.address}
                             </span>
                           ) : null}
-                        </div>
-                      </div>
-                    }
-                  />
+                        </span>
+                      </span>
+                    </FieldLabel>
+                  </Field>
                 );
               })}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
+              {t('welcomeGuide.actions.close', 'Fermer')}
+            </Button>
+            <Button disabled={suggest.selected.size === 0} onClick={addSuggested}>
+              {t('welcomeGuide.pois.suggestAdd', 'Ajouter')} ({suggest.selected.size})
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
-            {t('welcomeGuide.actions.close', 'Fermer')}
-          </Button>
-          <Button disabled={suggest.selected.size === 0} onClick={addSuggested}>
-            {t('welcomeGuide.pois.suggestAdd', 'Ajouter')} ({suggest.selected.size})
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar

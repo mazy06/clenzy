@@ -1,8 +1,14 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { FormControl, InputLabel, Select, MenuItem, Tooltip } from '@mui/material';
-import { Button } from '../../components/ui';
+import {
+  Button,
+  NativeSelect,
+  NativeSelectOption,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   CloudUpload as PushIcon,
   TrendingUp,
@@ -169,60 +175,47 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
     [editingPlan, updateRatePlan, createRatePlan],
   );
 
+  // Ces selecteurs sont portes dans la barre d'onglets : pas de libelle empile qui
+  // doublerait la hauteur de la rangee. Le nom du champ passe par `aria-label` et
+  // par l'option vide, qui sert aussi d'etat de chargement (une <option> native ne
+  // peut pas contenir de Spinner).
   const filterSelectors = (
     <>
       {isPlatformStaff && (
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.selectOwner')}</InputLabel>
-          <Select
-            value={selectedOwnerId ?? ''}
-            label={t('dynamicPricing.selectOwner')}
-            onChange={(e) => {
-              const val = e.target.value;
-              handleOwnerChange(val === '' ? null : Number(val));
-            }}
-            sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
-          >
-            <MenuItem value="">
-              <em>{t('dynamicPricing.allOwners')}</em>
-            </MenuItem>
-            {propertiesLoading && (
-              <MenuItem disabled>
-                <Spinner className="size-3.5 me-1.5" /> {t('common.loading')}
-              </MenuItem>
-            )}
-            {owners.map((o) => (
-              <MenuItem key={o.id} value={o.id}>
-                {o.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-      <FormControl size="small" sx={{ minWidth: 200 }}>
-        <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.calendar.selectProperty')}</InputLabel>
-        <Select
-          value={selectedPropertyId ?? ''}
-          label={t('dynamicPricing.calendar.selectProperty')}
-          onChange={(e) => {
-            const val = e.target.value;
-            handlePropertyChange(val === '' ? null : Number(val));
-          }}
-          disabled={isPlatformStaff && selectedOwnerId === null}
-          sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+        <NativeSelect
+          size="sm"
+          className="w-[180px]"
+          aria-label={t('dynamicPricing.selectOwner')}
+          value={selectedOwnerId ?? ''}
+          onChange={(e) => handleOwnerChange(e.target.value === '' ? null : Number(e.target.value))}
         >
-          {propertiesLoading && (
-            <MenuItem disabled>
-              <Spinner className="size-3.5 me-1.5" /> {t('common.loading')}
-            </MenuItem>
-          )}
-          {filteredProperties.map((p) => (
-            <MenuItem key={p.id} value={p.id}>
-              {p.name}
-            </MenuItem>
+          <NativeSelectOption value="">
+            {propertiesLoading ? t('common.loading') : t('dynamicPricing.allOwners')}
+          </NativeSelectOption>
+          {owners.map((o) => (
+            <NativeSelectOption key={o.id} value={o.id}>
+              {o.name}
+            </NativeSelectOption>
           ))}
-        </Select>
-      </FormControl>
+        </NativeSelect>
+      )}
+      <NativeSelect
+        size="sm"
+        className="w-[200px]"
+        aria-label={t('dynamicPricing.calendar.selectProperty')}
+        value={selectedPropertyId ?? ''}
+        onChange={(e) => handlePropertyChange(e.target.value === '' ? null : Number(e.target.value))}
+        disabled={isPlatformStaff && selectedOwnerId === null}
+      >
+        <NativeSelectOption value="">
+          {propertiesLoading ? t('common.loading') : t('dynamicPricing.calendar.selectProperty')}
+        </NativeSelectOption>
+        {filteredProperties.map((p) => (
+          <NativeSelectOption key={p.id} value={p.id}>
+            {p.name}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
       {isPlatformStaff && selectedOwnerId !== null && (
         <span className="cn-text-caption text-muted-foreground text-[0.6875rem] whitespace-nowrap">
           {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
@@ -233,25 +226,28 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
 
   const actionButtons = selectedPropertyId ? (
     // Le Button du kit ne transmet pas de ref : le Tooltip s'accroche au span.
-    <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
-      <span className="inline-flex">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePushPricing}
-          disabled={pushLoading}
-          // Le succes du push se signale par la teinte --ok ; les deux branches
-          // sont ecrites en litteral, une classe ne peut pas naitre d'une variable.
-          className={
-            pushResult?.includes('succes') || pushResult?.includes('success')
-              ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
-              : ''
-          }
-        >
-          {pushLoading ? <Spinner className="size-3.5" /> : <PushIcon size={16} strokeWidth={1.75} />}
-          {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
-        </Button>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePushPricing}
+            disabled={pushLoading}
+            // Le succes du push se signale par la teinte --ok ; les deux branches
+            // sont ecrites en litteral, une classe ne peut pas naitre d'une variable.
+            className={
+              pushResult?.includes('succes') || pushResult?.includes('success')
+                ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+                : ''
+            }
+          >
+            {pushLoading ? <Spinner className="size-3.5" /> : <PushIcon size={16} strokeWidth={1.75} />}
+            {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{pushResult || t('channels.pushPricing.tooltip')}</TooltipContent>
     </Tooltip>
   ) : null;
 

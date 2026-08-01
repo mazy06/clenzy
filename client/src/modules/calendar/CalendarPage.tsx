@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Card, Button } from '../../components/ui';
-import { Skeleton, FormControl, InputLabel, Select, MenuItem, Paper, useMediaQuery, useTheme } from '@mui/material';
+import { Skeleton, NativeSelect, NativeSelectOption } from '../../components/ui';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import './calendarSignature.css';
@@ -77,8 +78,8 @@ const mapToEvent = (intervention: Intervention): EventInput => {
 export default function CalendarPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Le palier `sm` de MUI vaut 600 px — useIsMobile prend le seuil en parametre.
+  const isMobile = useIsMobile(600);
 
   // Data state
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -190,57 +191,57 @@ export default function CalendarPage() {
   // Loading / error states
   // -----------------------------------------------------------------------
   if (!user) {
-    return <Skeleton variant="rounded" height={420} sx={{ borderRadius: 'var(--radius-lg)' }} />;
+    return <Skeleton className="h-[420px] rounded-[var(--radius-lg)]" />;
   }
 
   // Filtres : portés par le slot `filters` du PageHeader (pattern des écrans
   // finalisés — pas de Paper de filtres orphelin).
   const filterBar = (
     <div className="flex flex-wrap gap-2 items-center w-full">
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Statut</InputLabel>
-        <Select
-          value={selectedStatus}
-          label="Statut"
-          onChange={(e) => setSelectedStatus(e.target.value)}
-        >
-          {statusOptions.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* Filtres sans libelle visible : chaque option porte deja son intitule
+          (« Tous les statuts », « Tous les types »…), l'aria-label reste la
+          seule etiquette accessible — pattern des barres de filtres du PMS. */}
+      <NativeSelect
+        size="sm"
+        className="min-w-[160px]"
+        aria-label="Statut"
+        value={selectedStatus}
+        onChange={(e) => setSelectedStatus(e.target.value)}
+      >
+        {statusOptions.map((opt) => (
+          <NativeSelectOption key={opt.value} value={opt.value}>
+            {opt.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
 
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Type</InputLabel>
-        <Select
-          value={selectedType}
-          label="Type"
-          onChange={(e) => setSelectedType(e.target.value)}
-        >
-          {typeOptions.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <NativeSelect
+        size="sm"
+        className="min-w-[160px]"
+        aria-label="Type"
+        value={selectedType}
+        onChange={(e) => setSelectedType(e.target.value)}
+      >
+        {typeOptions.map((opt) => (
+          <NativeSelectOption key={opt.value} value={opt.value}>
+            {opt.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
 
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Priorite</InputLabel>
-        <Select
-          value={selectedPriority}
-          label="Priorite"
-          onChange={(e) => setSelectedPriority(e.target.value)}
-        >
-          {priorityOptions.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <NativeSelect
+        size="sm"
+        className="min-w-[160px]"
+        aria-label="Priorite"
+        value={selectedPriority}
+        onChange={(e) => setSelectedPriority(e.target.value)}
+      >
+        {priorityOptions.map((opt) => (
+          <NativeSelectOption key={opt.value} value={opt.value}>
+            {opt.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
 
       {hasActiveFilters && (
         <Button size="sm" variant="ghost" onClick={clearFilters}>
@@ -277,7 +278,7 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       {loading ? (
-        <Skeleton variant="rounded" height="calc(100vh - 320px)" sx={{ minHeight: 400, borderRadius: 'var(--radius-lg)' }} />
+        <Skeleton className="h-[calc(100vh-320px)] min-h-[400px] rounded-[var(--radius-lg)]" />
       ) : !error && interventions.length === 0 ? (
         <EmptyState
           icon={<CalendarMonth />}

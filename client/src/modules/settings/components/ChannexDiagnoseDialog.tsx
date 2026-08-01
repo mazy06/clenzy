@@ -23,8 +23,19 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Button, Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Alert, Stack, Skeleton } from '@mui/material';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Spinner,
+} from '../../../components/ui';
 import {
   CheckCircle2,
   AlertCircle,
@@ -91,8 +102,8 @@ function formatRelative(iso: string | null): string {
 function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
   const meta = CHANNEX_STATUS_META[snapshot.status];
   return (
-    <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
-      <Stack spacing={0.85}>
+    <div className="border border-solid border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
+      <div className="flex flex-col gap-[5px]">
         <div className="flex items-center gap-2">
           <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             Statut sync
@@ -127,7 +138,7 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
             </p>
           </div>
         )}
-      </Stack>
+      </div>
     </div>
   );
 }
@@ -267,66 +278,64 @@ export default function ChannexDiagnoseDialog({
     : 'var(--accent)';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          pb: 1,
-        }}
-      >
-        <div className="w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]" style={{ backgroundColor: `${accent}1A`, color: accent }}>
-          <StatusIcon size={20} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
-            Diagnostic Channex
-          </h6>
-          {report && (
-            <span className="cn-text-caption text-muted-foreground block mt-0.5 leading-[1.5]">
-              « {report.propertyName} » · {report.summary}
-            </span>
-          )}
-        </div>
-        {/* Icone seule : taille carree du kit, jamais une taille texte. */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="text-[var(--muted)]"
-          onClick={onClose}
-          aria-label="Fermer"
-        >
-          <X size={18} />
-        </Button>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
+        <DialogHeader>
+          <div className="flex items-start gap-[9px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]" style={{ backgroundColor: `${accent}1A`, color: accent }}>
+              <StatusIcon size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="font-semibold leading-[1.3] text-[1.05rem]">
+                Diagnostic Channex
+              </DialogTitle>
+              {report && (
+                <DialogDescription className="mt-0.5 leading-[1.5]">
+                  « {report.propertyName} » · {report.summary}
+                </DialogDescription>
+              )}
+            </div>
+            {/* Icone seule : taille carree du kit, jamais une taille texte. */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-[var(--muted)]"
+              onClick={onClose}
+              aria-label="Fermer"
+            >
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1, pb: 2 }}>
         {loading && (
-          <Stack spacing={1.25} sx={{ mt: 1 }}>
-            <Skeleton variant="rounded" height={120} />
-            <Skeleton variant="rounded" height={80} />
-            <Skeleton variant="rounded" height={80} />
-          </Stack>
+          <div className="flex flex-col gap-[7.5px] mt-1.5">
+            <Skeleton className="h-[120px]" />
+            <Skeleton className="h-[80px]" />
+            <Skeleton className="h-[80px]" />
+          </div>
         )}
 
         {error && !loading && (
-          <Alert severity="error" sx={{ mt: 1 }} action={
-            <Button variant="outline" size="sm" onClick={() => void fetchReport()}>
-              Reessayer
-            </Button>
-          }>
-            {error}
+          <Alert variant="destructive" className="mt-1.5">
+            <AlertCircle />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <Button variant="outline" size="sm" onClick={() => void fetchReport()}>
+                Reessayer
+              </Button>
+            </AlertAction>
           </Alert>
         )}
 
         {report && !loading && (
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
+          <div className="flex flex-col gap-[9px] mt-1.5">
             <SyncSnapshotPanel snapshot={report.sync} />
 
             {actionResult && (
-              <Alert severity={actionResult.ok ? 'success' : 'warning'}>
-                {actionResult.message}
+              <Alert variant={actionResult.ok ? 'success' : 'warning'}>
+                {actionResult.ok ? <CheckCircle2 /> : <AlertCircle />}
+                <AlertDescription>{actionResult.message}</AlertDescription>
               </Alert>
             )}
 
@@ -334,7 +343,7 @@ export default function ChannexDiagnoseDialog({
               <span className="cn-text-caption block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                 Actions recommandees
               </span>
-              <Stack spacing={1}>
+              <div className="flex flex-col gap-1.5">
                 {report.recommendedActions.map((action) => (
                   <ActionButton
                     key={action.code}
@@ -343,12 +352,12 @@ export default function ChannexDiagnoseDialog({
                     onClick={() => void handleAction(action)}
                   />
                 ))}
-              </Stack>
+              </div>
             </div>
 
             {/* Phase 3 : historique de sync replie par defaut. Fetch lazy au deplie. */}
             <ChannexSyncLogsList propertyId={propertyId} defaultCollapsed />
-          </Stack>
+          </div>
         )}
       </DialogContent>
     </Dialog>

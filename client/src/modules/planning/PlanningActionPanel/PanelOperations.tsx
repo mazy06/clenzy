@@ -2,19 +2,33 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
-import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { TriangleAlert } from 'lucide-react';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info, CircleCheck, X } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
 import {
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldLabel,
   Input,
   NativeSelect,
   NativeSelectOptGroup,
   NativeSelectOption,
+  Progress,
+  Separator,
+  Switch,
   Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../../components/ui';
-import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress } from '@mui/material';
+// Snackbar (et l'Alert qu'il transporte) restent MUI : changer de mecanisme de
+// notification depasse cette migration — ce fichier n'utilise pas encore sonner.
+import { Alert, Snackbar } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -801,22 +815,36 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             Dates & Horaires
           </p>
           {!editing ? (
-            <IconButton size="small" onClick={() => setEditing(true)} sx={{ p: 0.25 }}>
-              <span className="inline-flex text-muted-foreground"><Edit size={14} strokeWidth={1.75} /></span>
-            </IconButton>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Modifier les dates et horaires"
+              className="text-muted-foreground"
+              onClick={() => setEditing(true)}
+            >
+              <Edit size={14} strokeWidth={1.75} />
+            </Button>
           ) : (
             <div className="flex gap-0.5">
-              <IconButton
-                size="small"
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Enregistrer les dates"
+                className="text-[var(--ok)] hover:text-[var(--ok)]"
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                sx={{ p: 0.25, color: 'var(--ok)' }}
               >
                 {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-              </IconButton>
-              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'var(--err)' }}>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Annuler la modification"
+                className="text-[var(--err)] hover:text-[var(--err)]"
+                onClick={handleCancel}
+              >
                 <Close size={16} strokeWidth={1.75} />
-              </IconButton>
+              </Button>
             </div>
           )}
         </div>
@@ -906,18 +934,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </div>
 
             {validationError && (
-              <Alert
-                severity="error"
-                onClose={() => setValidationError(null)}
-                sx={{
-                  fontSize: '0.75rem',
-                  py: 0,
-                  '& .MuiAlert-message': { fontSize: '0.75rem' },
-                  '& .MuiAlert-icon': { fontSize: '1rem', py: 0.5 },
-                }}
-              >
-                {validationError}
-              </Alert>
+              <UiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+                <TriangleAlert />
+                <AlertDescription>{validationError}</AlertDescription>
+                <AlertAction>
+                  <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setValidationError(null)}>
+                    <X />
+                  </Button>
+                </AlertAction>
+              </UiAlert>
             )}
 
             {hasChanges && intv.linkedReservationId && !validationError && (
@@ -967,7 +992,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </p>
           )}
           {canEditIntervention && <EditableInterventionDatesSection />}
-          <Divider sx={{ my: 1 }} />
+          <Separator className="my-1.5" />
         </div>
       )}
 
@@ -1015,7 +1040,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {/* Linked service requests with full lifecycle */}
           {(serviceRequests && serviceRequests.length > 0) && (
             <>
-              <Divider />
+              <Separator />
               <div>
                 <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1">
                   Demandes liees · {serviceRequests.length}
@@ -1116,9 +1141,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         )}
                         {/* Admin indicator for auto-assign status */}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'exhausted' && (
-                          <Alert severity="warning" sx={{ py: 0, px: 0.5, fontSize: '0.6rem', '& .MuiAlert-icon': { fontSize: '0.75rem', py: 0, mr: 0.5 }, '& .MuiAlert-message': { py: 0.25 } }}>
-                            Aucune equipe dispo — assignation manuelle requise
-                          </Alert>
+                          <UiAlert variant="warning" className="text-[0.6rem] px-[3px] py-0.5">
+                            <TriangleAlert />
+                            <AlertDescription>Aucune equipe dispo — assignation manuelle requise</AlertDescription>
+                          </UiAlert>
                         )}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
                           <div className="flex items-center gap-0.5">
@@ -1176,17 +1202,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         )}
                         {/* Supprimer (PENDING, REJECTED, CANCELLED uniquement) */}
                         {canDeleteSr(sr) && (
-                          <IconButton
-                            size="small"
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label={`Supprimer la demande « ${sr.title} »`}
+                            className="ms-auto text-[var(--err)] hover:text-[var(--err)]"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteSrTarget(sr);
                               setDeleteSrDialogOpen(true);
                             }}
-                            sx={{ color: 'var(--err)', ml: 'auto', p: 0.5 }}
                           >
                             <DeleteOutline size={16} strokeWidth={1.75} />
-                          </IconButton>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -1199,7 +1227,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {/* All interventions linked to this reservation (full lifecycle view) */}
           {linkedInterventions.length > 0 && (
             <>
-              <Divider />
+              <Separator />
               <div>
                 <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1">
                   Interventions · {linkedInterventions.length}
@@ -1275,26 +1303,28 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               </span>} icon={<Payment size={10} strokeWidth={1.75} />} className="text-[0.5625rem] h-[21px]" />
                         )}
                         {/* Visibilité planning : icône seule, poussée à droite */}
-                        <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
-                          <span className={cn('ms-auto inline-flex items-center', isOnPlanning ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}>
-                            {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={cn('ms-auto inline-flex items-center', isOnPlanning ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}>
+                              {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}
+                          </TooltipContent>
                         </Tooltip>
                       </div>
 
                       {/* Progress bar (if in progress) */}
                       {isInProgress && (
                         <div className="mb-0.5">
-                          <LinearProgress
-                            variant="determinate"
+                          {/* La teinte de la barre depend de l'avancement calcule :
+                              elle passe par une variable CSS, une classe Tailwind
+                              ne pouvant pas naitre d'une valeur d'execution. */}
+                          <Progress
                             value={progress}
-                            sx={{
-                              height: 4, borderRadius: 2, backgroundColor: 'var(--hover)',
-                              '& .MuiLinearProgress-bar': {
-                                borderRadius: 2,
-                                backgroundColor: progress === 100 ? 'var(--ok)' : 'var(--accent)',
-                              },
-                            }}
+                            className="[&>[data-slot=progress-indicator]]:bg-(--bar)"
+                            style={{ '--bar': progress === 100 ? 'var(--ok)' : 'var(--accent)' } as React.CSSProperties}
                           />
                         </div>
                       )}
@@ -1323,13 +1353,16 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
           {/* Empty state when no service requests and no interventions */}
           {(!serviceRequests || serviceRequests.length === 0) && linkedInterventions.length === 0 && (
-            <Alert severity="info" sx={{ fontSize: '0.75rem', '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
-              Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
-            </Alert>
+            <UiAlert variant="info" className="text-[0.75rem]">
+              <Info />
+              <AlertDescription>
+                Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
+              </AlertDescription>
+            </UiAlert>
           )}
 
           {/* Messagerie automatique (maquette : section dédiée de l'onglet Opérations) */}
-          <Divider />
+          <Separator />
           <MessagingAutomationStatus
             guestEmail={reservation?.guestEmail}
             source={reservation?.source}
@@ -1340,7 +1373,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {/* ── Intervention view: Actions (assign, priority, checklist, alerts) ── */}
       {!isReservation && intervention && (
         <>
-          <Divider />
+          <Separator />
 
           {/* Assignment */}
           <div>
@@ -1369,7 +1402,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </div>
           </div>
 
-          <Divider />
+          <Separator />
 
           {/* Checklist & alerts */}
           <div>
@@ -1449,27 +1482,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       />
 
       {/* Unified Assign Dialog (intervention & service request) */}
-      <Dialog
-        open={assignDialogOpen}
-        onClose={() => setAssignDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <div className="flex items-center gap-1.5">
-            {assignMode === 'service_request'
-              ? <span className="inline-flex text-[var(--accent)]"><PersonAdd size={20} strokeWidth={1.75} /></span>
-              : <span className="inline-flex text-[var(--accent)]"><Groups size={20} strokeWidth={1.75} /></span>}
-            <h6 className="cn-text-h6 font-bold text-[1rem]">
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--accent)]">
+                {assignMode === 'service_request'
+                  ? <PersonAdd size={20} strokeWidth={1.75} />
+                  : <Groups size={20} strokeWidth={1.75} />}
+              </span>
               {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
-            </h6>
-          </div>
-          <IconButton size="small" onClick={() => setAssignDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+            </DialogTitle>
+          </DialogHeader>
           {assignMode === 'intervention' && assignTarget && (
             <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Intervention : <strong>{assignTarget.title}</strong>
@@ -1502,22 +1526,22 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 </div>
               </div>
               <Switch
-                size="small"
+                size="sm"
+                aria-label="Assignation automatique"
                 checked={assignAutoMode}
-                onChange={(e) => handleAutoAssignToggle(e.target.checked)}
+                onCheckedChange={handleAutoAssignToggle}
               />
             </div>
           )}
 
           {/* Auto-assign suggestion info */}
           {assignAutoMode && autoAssignSuggestion && (
-            <Alert
-              severity="info"
-              icon={<AutoFixHigh size={18} strokeWidth={1.75} />}
-              sx={{ fontSize: '0.75rem', mb: 1.5, '& .MuiAlert-message': { py: 0.25 } }}
-            >
-              <strong>{autoAssignSuggestion.name}</strong> — {autoAssignSuggestion.reason}
-            </Alert>
+            <UiAlert variant="info" className="text-[0.75rem] mb-[9px]">
+              <AutoFixHigh size={18} strokeWidth={1.75} />
+              <AlertDescription>
+                <strong>{autoAssignSuggestion.name}</strong> — {autoAssignSuggestion.reason}
+              </AlertDescription>
+            </UiAlert>
           )}
 
           <Field>
@@ -1587,9 +1611,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               )}
 
               {!teamMembersLoading && teamAvailabilityError && (
-                <Alert severity="error" sx={{ fontSize: '0.7rem', py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
-                  {teamAvailabilityError}
-                </Alert>
+                <UiAlert variant="destructive" className="text-[0.7rem] py-0.5">
+                  <TriangleAlert />
+                  <AlertDescription>{teamAvailabilityError}</AlertDescription>
+                </UiAlert>
               )}
 
               {!teamMembersLoading && !teamAvailabilityError && teamMembers.length === 0 && teamAvailabilityInfo && (
@@ -1601,14 +1626,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               {!teamMembersLoading && teamMembers.length > 0 && (
                 <>
                   {teamAvailabilityInfo && (
-                    <Alert
-                      severity={teamAvailabilityInfo.allAvailable ? 'success' : 'warning'}
-                      sx={{ fontSize: '0.7rem', mb: 1, py: 0, '& .MuiAlert-message': { py: 0.5 } }}
+                    <UiAlert
+                      variant={teamAvailabilityInfo.allAvailable ? 'success' : 'warning'}
+                      className="text-[0.7rem] mb-1.5 py-0.5"
                     >
-                      {teamAvailabilityInfo.allAvailable
-                        ? 'Tous les membres sont disponibles'
-                        : 'Certains membres ont des interventions sur ce créneau'}
-                    </Alert>
+                      {teamAvailabilityInfo.allAvailable ? <CircleCheck /> : <TriangleAlert />}
+                      <AlertDescription>
+                        {teamAvailabilityInfo.allAvailable
+                          ? 'Tous les membres sont disponibles'
+                          : 'Certains membres ont des interventions sur ce créneau'}
+                      </AlertDescription>
+                    </UiAlert>
                   )}
                   <div className="border border-[var(--line)] rounded-[1.5px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
@@ -1658,42 +1686,31 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <AlertDescription>{assignError}</AlertDescription>
             </UiAlert>
           )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAssignConfirm}
+              disabled={!assignValue || assignLoading}
+            >
+              {assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Confirmer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
-            Annuler
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleAssignConfirm}
-            disabled={!assignValue || assignLoading}
-          >
-            {assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            Confirmer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Priority Dialog */}
-      <Dialog
-        open={priorityDialogOpen}
-        onClose={() => setPriorityDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--warn)]"><PriorityHigh size={20} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-h6 font-bold text-[1rem]">
+      <Dialog open={priorityDialogOpen} onOpenChange={setPriorityDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--warn)]"><PriorityHigh size={20} strokeWidth={1.75} /></span>
               Definir la priorite
-            </h6>
-          </div>
-          <IconButton size="small" onClick={() => setPriorityDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+            </DialogTitle>
+          </DialogHeader>
           {priorityTarget && (
             <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-3 block">
               Intervention : <strong>{priorityTarget.title}</strong>
@@ -1731,106 +1748,76 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <AlertDescription>{priorityError}</AlertDescription>
             </UiAlert>
           )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPriorityDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handlePriorityConfirm}
+              disabled={priorityLoading}
+            >
+              {priorityLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Confirmer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button variant="outline" size="sm" onClick={() => setPriorityDialogOpen(false)}>
-            Annuler
-          </Button>
-          <Button
-            size="sm"
-            onClick={handlePriorityConfirm}
-            disabled={priorityLoading}
-          >
-            {priorityLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            Confirmer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Checklist Dialog */}
-      <Dialog
-        open={checklistOpen}
-        onClose={() => setChecklistOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircleOutline size={20} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-h6 font-bold text-[1rem]">
+      <Dialog open={checklistOpen} onOpenChange={setChecklistOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--ok)]"><CheckCircleOutline size={20} strokeWidth={1.75} /></span>
               Checklist operationnelle
-            </h6>
-          </div>
-          <IconButton size="small" onClick={() => setChecklistOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
-          <List dense disablePadding>
+            </DialogTitle>
+          </DialogHeader>
+          <div>
             {checklistItems.map((item, index) => (
-              <ListItem
-                key={index}
-                disablePadding
-                sx={{ py: 0.25 }}
-                secondaryAction={
-                  <Checkbox
-                    edge="end"
-                    checked={item.checked}
-                    onChange={() => handleChecklistToggle(index)}
-                    size="small"
-                  />
-                }
-              >
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontSize: '0.8125rem',
-                    sx: {
-                      textDecoration: item.checked ? 'line-through' : 'none',
-                      color: item.checked ? 'text.disabled' : 'text.primary',
-                    },
-                  }}
+              <div key={index} className="flex items-center justify-between gap-3 py-[1.5px]">
+                <label
+                  htmlFor={`checklist-item-${index}`}
+                  className={cn(
+                    'cn-text-body2 flex-1 cursor-pointer text-[0.8125rem]',
+                    item.checked ? 'line-through text-[var(--faint)]' : 'text-[var(--ink)]',
+                  )}
+                >
+                  {item.text}
+                </label>
+                <Checkbox
+                  id={`checklist-item-${index}`}
+                  checked={item.checked}
+                  onCheckedChange={() => handleChecklistToggle(index)}
                 />
-              </ListItem>
+              </div>
             ))}
-          </List>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setChecklistOpen(false)}>
+              Fermer
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleChecklistSave}
+              disabled={checklistSaving}
+            >
+              {checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button variant="outline" size="sm" onClick={() => setChecklistOpen(false)}>
-            Fermer
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleChecklistSave}
-            disabled={checklistSaving}
-          >
-            {checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
-            Enregistrer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Alert / Reminder Dialog */}
-      <Dialog
-        open={alertDialogOpen}
-        onClose={() => setAlertDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--info)]"><NotificationsActive size={20} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-h6 font-bold text-[1rem]">
+      <Dialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--info)]"><NotificationsActive size={20} strokeWidth={1.75} /></span>
               Ajouter un rappel
-            </h6>
-          </div>
-          <IconButton size="small" onClick={() => setAlertDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+            </DialogTitle>
+          </DialogHeader>
           <div className="flex gap-2 mb-3">
             <Field className="flex-1">
               <FieldLabel htmlFor="alert-date">Date du rappel</FieldLabel>
@@ -1855,62 +1842,64 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           </div>
           <Field>
             <FieldLabel htmlFor="alert-message">Message du rappel</FieldLabel>
+            {/* `rows` est neutralise par le field-sizing du primitif : la hauteur
+                de deux lignes se garantit par min-h. */}
             <Textarea
               id="alert-message"
               rows={2}
               placeholder="Ex: Verifier la livraison du linge..."
-              className="text-[0.8125rem]"
+              className="text-[0.8125rem] min-h-[2lh]"
               value={alertMessage}
               onChange={(e) => setAlertMessage(e.target.value)}
             />
           </Field>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setAlertDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAlertSave}
+              disabled={!alertDate || !alertMessage.trim() || alertSaving}
+            >
+              {alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
+              Ajouter rappel
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button variant="outline" size="sm" onClick={() => setAlertDialogOpen(false)}>
-            Annuler
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleAlertSave}
-            disabled={!alertDate || !alertMessage.trim() || alertSaving}
-          >
-            {alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
-            Ajouter rappel
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Snackbar for feedback */}
       {/* Delete service request confirmation dialog */}
       <Dialog
         open={deleteSrDialogOpen}
-        onClose={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(open) => { if (!open) { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); } }}
       >
-        <DialogTitle sx={{ pb: 1 }}>Supprimer la demande</DialogTitle>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Supprimer la demande</DialogTitle>
+          </DialogHeader>
           <p className="cn-text-body2">
             Êtes-vous sûr de vouloir supprimer la demande « {deleteSrTarget?.title} » ? Cette action est irréversible.
           </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
+              disabled={deleteSrLoading}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSr}
+              disabled={deleteSrLoading}
+            >
+              {deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            variant="outline"
-            onClick={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
-            disabled={deleteSrLoading}
-          >
-            Annuler
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDeleteSr}
-            disabled={deleteSrLoading}
-          >
-            {deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar

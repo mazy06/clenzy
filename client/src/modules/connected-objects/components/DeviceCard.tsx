@@ -3,9 +3,28 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
+import {
+  buttonVariants,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+// Snackbar reste MUI : basculer le mecanisme de notification (sonner) depasse
+// la migration des primitives et changerait le comportement de la carte.
+import { Snackbar } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { cn } from '../../../utils/cn';
+import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
 import BatteryIndicator from './BatteryIndicator';
@@ -33,9 +52,12 @@ interface DeviceCardProps {
  * pas de carte-dans-carte.
  */
 export default function DeviceCard({ device, onAction, acting = false }: DeviceCardProps) {
-  const theme = useTheme();
+  const { isDark } = useThemeMode();
   const iconSize = useIconSize('row');
   const meta = DEVICE_KINDS[device.kind];
+  // `meta.color` est une valeur d'execution : le voile derriere l'icone se compose
+  // donc en style inline (aucune classe Tailwind ne peut naitre d'une variable).
+  const iconVeil = `color-mix(in srgb, ${meta.color} ${isDark ? 20 : 12}%, transparent)`;
   const locked = device.kind === 'lock' && (device.raw as { lockState?: string })?.lockState?.toUpperCase() === 'LOCKED';
 
   // Suppression auto-portée par la carte : fonctionne partout où elle est rendue
@@ -54,11 +76,10 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
 
   const deletable = isDeviceDeletable(device.kind);
   const { remove, removing } = useDeleteDevice();
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const closeMenu = () => setMenuAnchor(null);
-  const handleDeleteClick = () => { closeMenu(); setConfirmOpen(true); };
+  // Le menu du kit se ferme de lui-meme a la selection : plus d'ancre a piloter.
+  const handleDeleteClick = () => setConfirmOpen(true);
   const handleConfirmDelete = async () => {
     try {
       await remove(device);
@@ -75,14 +96,14 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
         {device.kind === 'camera' ? (
           // Caméra : aperçu (snapshot) du flux. Repli sur l'icône (placée derrière) si hors
           // ligne, pas de snapshot, ou image en erreur (onError masque l'img → l'icône réapparaît).
-          <div className="relative w-[40px] h-[30px] rounded-[8px] shrink-0 overflow-hidden flex items-center justify-center" style={{ color: meta.color, backgroundColor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12) }}>
+          <div className="relative w-[40px] h-[30px] rounded-[8px] shrink-0 overflow-hidden flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
             {meta.icon(iconSize)}
             {device.online && device.previewUrl && (
               <img className="absolute inset-[0px] w-full h-full object-cover" src={device.previewUrl} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             )}
           </div>
         ) : (
-          <div className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center" style={{ color: meta.color, backgroundColor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12) }}>
+          <div className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
             {meta.icon(iconSize)}
           </div>
         )}
@@ -97,10 +118,13 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             {device.roomName ? `${device.roomName} · ` : ''}{meta.singular}
           </span>
         </div>
-        <Tooltip title={device.online ? 'En ligne' : 'Hors ligne'} arrow>
-          <span className={cn('inline-flex shrink-0 mt-[1.5px]', device.online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
-            {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={cn('inline-flex shrink-0 mt-[1.5px]', device.online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
+              {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{device.online ? 'En ligne' : 'Hors ligne'}</TooltipContent>
         </Tooltip>
       </div>
 
@@ -151,61 +175,61 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
 
         {/* Menu d'options (⋮) — actions secondaires dont la suppression. */}
         {deletable && (
-          <>
-            <Tooltip title="Options" arrow>
-              <IconButton
-                size="small"
-                aria-label="Options de l'objet"
-                onClick={(e) => setMenuAnchor(e.currentTarget)}
-                disabled={removing}
-                sx={{ flexShrink: 0, color: 'text.secondary', cursor: 'pointer' }}
-              >
-                {removing ? <Spinner className="size-4" /> : <MoreVert size={16} strokeWidth={1.75} />}
-              </IconButton>
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Le declencheur porte lui-meme le gabarit de bouton : passer par
+                    `Button` en asChild casserait la ref dont Radix a besoin. */}
+                <DropdownMenuTrigger
+                  aria-label="Options de l'objet"
+                  disabled={removing}
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                    'shrink-0 text-[var(--muted)] cursor-pointer',
+                  )}
+                >
+                  {removing ? <Spinner className="size-4" /> : <MoreVert size={16} strokeWidth={1.75} />}
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Options</TooltipContent>
             </Tooltip>
-            <Menu
-              anchorEl={menuAnchor}
-              open={Boolean(menuAnchor)}
-              onClose={closeMenu}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-              <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main', gap: 1 }}>
+            <DropdownMenuContent align="end" className="w-auto">
+              <DropdownMenuItem variant="destructive" className="gap-1.5" onSelect={handleDeleteClick}>
                 <Delete size={16} strokeWidth={1.75} />
                 Supprimer
-              </MenuItem>
-            </Menu>
-          </>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
       {/* Confirmation de suppression (geste destructif → dialog explicite). */}
       <Dialog
         open={confirmOpen}
-        onClose={() => { if (!removing) setConfirmOpen(false); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => { if (!next && !removing) setConfirmOpen(false); }}
       >
-        <DialogTitle>Supprimer cet objet ?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            «&nbsp;{device.name}&nbsp;» sera retiré de vos objets connectés.
-            Le service relié reste connecté — vous pourrez le rajouter ensuite.
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>Supprimer cet objet ?</DialogTitle>
+            <DialogDescription>
+              «&nbsp;{device.name}&nbsp;» sera retiré de vos objets connectés.
+              Le service relié reste connecté — vous pourrez le rajouter ensuite.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <BuiButton variant="outline" onClick={() => setConfirmOpen(false)} disabled={removing}>
+              Annuler
+            </BuiButton>
+            <BuiButton
+              onClick={() => { void handleConfirmDelete(); }}
+              variant="destructive"
+              disabled={removing}
+            >
+              {removing ? <Spinner className="size-3.5" /> : <Delete strokeWidth={1.75} />}
+              Supprimer
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <BuiButton variant="outline" onClick={() => setConfirmOpen(false)} disabled={removing}>
-            Annuler
-          </BuiButton>
-          <BuiButton
-            onClick={() => { void handleConfirmDelete(); }}
-            variant="destructive"
-            disabled={removing}
-          >
-            {removing ? <Spinner className="size-3.5" /> : <Delete strokeWidth={1.75} />}
-            Supprimer
-          </BuiButton>
-        </DialogActions>
       </Dialog>
 
       <Snackbar

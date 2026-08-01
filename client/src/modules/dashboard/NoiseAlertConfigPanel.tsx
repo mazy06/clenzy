@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Button, Spinner } from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
-import { Card, CardContent, Switch, FormControlLabel, Slider, IconButton, Divider, FormControl, Select, MenuItem } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  NativeSelect,
+  Separator,
+  Slider,
+  Switch,
+} from '../../components/ui';
 import {
   Settings,
   Add,
@@ -278,8 +285,8 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
   if (propertyIds.length === 0) return null;
 
   return (
-    <Card>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+    <Card className="[--card-spacing:12px]">
+      <CardContent>
         {/* Header : titre + sélecteur propriété + toggle — sur une seule ligne */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <div className="flex items-center gap-1">
@@ -290,38 +297,32 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
           </div>
 
           {!embedded && (
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <Select
-                value={selectedPropertyId || ''}
-                onChange={(e) => setSelectedPropertyId(Number(e.target.value))}
-                sx={{ fontSize: '0.8125rem', height: 32 }}
-              >
-                {properties.map(p => (
-                  <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <NativeSelect
+              aria-label="Logement"
+              className="min-w-[180px] [&_select]:text-[0.8125rem]"
+              value={selectedPropertyId ?? ''}
+              onChange={(e) => setSelectedPropertyId(Number(e.target.value))}
+            >
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </NativeSelect>
           )}
 
           {!configQuery.isLoading && (
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={form.enabled}
-                  onChange={(e) => updateField('enabled', e.target.checked)}
-                  color="primary"
-                  size="small"
-                />
-              }
-              label={
-                <p className="cn-text-body1 text-[0.8125rem] font-semibold">
-                  Alertes activées
-                </p>
-              }
-              sx={{ ml: 'auto', mr: 0 }}
-            />
+            <Field orientation="horizontal" className="ms-auto w-auto gap-1.5">
+              <Switch
+                id={`${fieldIdBase}-enabled`}
+                size="sm"
+                checked={form.enabled}
+                onCheckedChange={(checked) => updateField('enabled', checked)}
+              />
+              <FieldLabel htmlFor={`${fieldIdBase}-enabled`} className="cn-text-body1 text-[0.8125rem] font-semibold">
+                Alertes activées
+              </FieldLabel>
+            </Field>
           )}
         </div>
 
@@ -334,7 +335,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
             {form.enabled && (
               <>
-                <Divider sx={{ my: 1.5 }} />
+                <Separator className="my-[9px]" />
 
                 <div className="grid grid-cols-12 gap-[18px]">
                   {/* ── Colonne gauche : Créneaux horaires ── */}
@@ -389,13 +390,16 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             />
                           </Field>
                           {form.timeWindows.length > 1 && (
-                            <IconButton
-                              size="small"
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Supprimer le creneau ${tw.label || idx + 1}`}
+                              className="text-[var(--err)]"
                               onClick={() => removeTimeWindow(idx)}
-                              sx={{ color: 'error.main' }}
                             >
                               <Delete size={16} strokeWidth={1.75} />
-                            </IconButton>
+                            </Button>
                           )}
                         </div>
 
@@ -405,12 +409,12 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               Seuil avertissement : {tw.warningThresholdDb} dB
                             </p>
                             <Slider
-                              size="small"
-                              value={tw.warningThresholdDb}
-                              onChange={(_, val) => updateTimeWindow(idx, 'warningThresholdDb', val as number)}
+                              aria-label="Seuil avertissement"
+                              value={[tw.warningThresholdDb]}
+                              onValueChange={([val]) => updateTimeWindow(idx, 'warningThresholdDb', val)}
                               min={30}
                               max={100}
-                              sx={{ color: '#ED6C02' }}
+                              className="[&_[data-slot=slider-range]]:bg-[#ED6C02] [&_[data-slot=slider-thumb]]:border-[#ED6C02]"
                             />
                           </div>
                           <div className="col-span-6">
@@ -418,12 +422,12 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               Seuil critique : {tw.criticalThresholdDb} dB
                             </p>
                             <Slider
-                              size="small"
-                              value={tw.criticalThresholdDb}
-                              onChange={(_, val) => updateTimeWindow(idx, 'criticalThresholdDb', val as number)}
+                              aria-label="Seuil critique"
+                              value={[tw.criticalThresholdDb]}
+                              onValueChange={([val]) => updateTimeWindow(idx, 'criticalThresholdDb', val)}
                               min={30}
                               max={120}
-                              sx={{ color: '#D32F2F' }}
+                              className="[&_[data-slot=slider-range]]:bg-[#D32F2F] [&_[data-slot=slider-thumb]]:border-[#D32F2F]"
                             />
                           </div>
                         </div>
@@ -438,51 +442,42 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     </p>
 
                     <div className="flex flex-col gap-0.5 mb-2">
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={form.notifyInApp}
-                            onChange={(e) => updateField('notifyInApp', e.target.checked)}
-                            size="small"
-                          />
-                        }
-                        label={
-                          <div className="flex items-center gap-0.5">
-                            <NotificationsActive size={14} strokeWidth={1.75} />
-                            <p className="cn-text-body1 text-[0.75rem]">In-app</p>
-                          </div>
-                        }
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={form.notifyEmail}
-                            onChange={(e) => updateField('notifyEmail', e.target.checked)}
-                            size="small"
-                          />
-                        }
-                        label={
-                          <div className="flex items-center gap-0.5">
-                            <Email size={14} strokeWidth={1.75} />
-                            <p className="cn-text-body1 text-[0.75rem]">Email</p>
-                          </div>
-                        }
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={form.notifyGuestMessage}
-                            onChange={(e) => updateField('notifyGuestMessage', e.target.checked)}
-                            size="small"
-                          />
-                        }
-                        label={
-                          <div className="flex items-center gap-0.5">
-                            <Chat size={14} strokeWidth={1.75} />
-                            <p className="cn-text-body1 text-[0.75rem]">Message voyageur</p>
-                          </div>
-                        }
-                      />
+                      <Field orientation="horizontal" className="w-auto gap-1.5">
+                        <Switch
+                          id={`${fieldIdBase}-notify-in-app`}
+                          size="sm"
+                          checked={form.notifyInApp}
+                          onCheckedChange={(checked) => updateField('notifyInApp', checked)}
+                        />
+                        <FieldLabel htmlFor={`${fieldIdBase}-notify-in-app`} className="items-center gap-0.5 cn-text-body1 text-[0.75rem] font-normal">
+                          <NotificationsActive size={14} strokeWidth={1.75} />
+                          In-app
+                        </FieldLabel>
+                      </Field>
+                      <Field orientation="horizontal" className="w-auto gap-1.5">
+                        <Switch
+                          id={`${fieldIdBase}-notify-email`}
+                          size="sm"
+                          checked={form.notifyEmail}
+                          onCheckedChange={(checked) => updateField('notifyEmail', checked)}
+                        />
+                        <FieldLabel htmlFor={`${fieldIdBase}-notify-email`} className="items-center gap-0.5 cn-text-body1 text-[0.75rem] font-normal">
+                          <Email size={14} strokeWidth={1.75} />
+                          Email
+                        </FieldLabel>
+                      </Field>
+                      <Field orientation="horizontal" className="w-auto gap-1.5">
+                        <Switch
+                          id={`${fieldIdBase}-notify-guest`}
+                          size="sm"
+                          checked={form.notifyGuestMessage}
+                          onCheckedChange={(checked) => updateField('notifyGuestMessage', checked)}
+                        />
+                        <FieldLabel htmlFor={`${fieldIdBase}-notify-guest`} className="items-center gap-0.5 cn-text-body1 text-[0.75rem] font-normal">
+                          <Chat size={14} strokeWidth={1.75} />
+                          Message voyageur
+                        </FieldLabel>
+                      </Field>
                     </div>
 
                     {form.notifyEmail && (
@@ -502,22 +497,22 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
                     {/* Cooldown */}
                     <div className="flex items-center gap-1.5">
-                      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+                      <label htmlFor={`${fieldIdBase}-cooldown`} className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                         Cooldown entre alertes :
-                      </p>
-                      <FormControl size="small" sx={{ minWidth: 100 }}>
-                        <Select
-                          value={form.cooldownMinutes}
-                          onChange={(e) => updateField('cooldownMinutes', Number(e.target.value))}
-                          sx={{ fontSize: '0.75rem', height: 28 }}
-                        >
-                          {COOLDOWN_OPTIONS.map(opt => (
-                            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.75rem' }}>
-                              {opt.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                      </label>
+                      <NativeSelect
+                        id={`${fieldIdBase}-cooldown`}
+                        size="sm"
+                        className="min-w-[100px] [&_select]:text-[0.75rem]"
+                        value={form.cooldownMinutes}
+                        onChange={(e) => updateField('cooldownMinutes', Number(e.target.value))}
+                      >
+                        {COOLDOWN_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </NativeSelect>
                     </div>
                   </div>
                 </div>

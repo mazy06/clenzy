@@ -5,7 +5,11 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { TextField, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, Switch, Divider, useTheme, alpha } from '@mui/material';
+// Dialog + TextField + Autocomplete restent MUI et ensemble : le renderInput de
+// l'Autocomplete recoit des props internes (impossible a porter sur le kit), et
+// sa liste, portalisee hors d'un Dialog Radix, serait traitee comme une
+// interaction exterieure (fermeture du dialog + piege de focus casse).
+import { TextField, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Button, Card } from '../../components/ui';
 import {
   Field,
@@ -14,7 +18,10 @@ import {
   InputGroupInput,
   InputGroupAddon,
   InputGroupButton,
+  Separator,
+  Switch,
 } from '../../components/ui';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -84,8 +91,9 @@ const PROVIDERS: Record<string, ProviderBrand> = {
 // ─── SVG Logo Icons ─────────────────────────────────────────────────────────
 
 function OpenAILogo({ size = 28, color }: { size?: number; color?: string }) {
-  const theme = useTheme();
-  const fill = color ?? theme.palette.text.primary;
+  // `text.primary` etait un jeton MUI, pas une valeur CSS : sur un <svg> nu il
+  // ne donnait aucune couleur valide.
+  const fill = color ?? 'var(--ink)';
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill={fill} xmlns="http://www.w3.org/2000/svg">
       <path d="M14.949 6.547a3.94 3.94 0 0 0-.348-3.273 4.11 4.11 0 0 0-4.4-1.934A4.1 4.1 0 0 0 8.423.2 4.15 4.15 0 0 0 6.305.086a4.1 4.1 0 0 0-1.891.948 4.04 4.04 0 0 0-1.158 1.753 4.1 4.1 0 0 0-1.563.679A4 4 0 0 0 .554 4.72a3.99 3.99 0 0 0 .502 4.731 3.94 3.94 0 0 0 .346 3.274 4.11 4.11 0 0 0 4.402 1.933c.382.425.852.764 1.377.995.526.231 1.095.35 1.67.346 1.78.002 3.358-1.132 3.901-2.804a4.1 4.1 0 0 0 1.563-.68 4 4 0 0 0 1.14-1.253 3.99 3.99 0 0 0-.506-4.716m-6.097 8.406a3.05 3.05 0 0 1-1.945-.694l.096-.054 3.23-1.838a.53.53 0 0 0 .265-.455v-4.49l1.366.778q.02.011.025.035v3.722c-.003 1.653-1.361 2.992-3.037 2.996m-6.53-2.75a2.95 2.95 0 0 1-.36-2.01l.095.057L5.29 12.09a.53.53 0 0 0 .527 0l3.949-2.246v1.555a.05.05 0 0 1-.022.041L6.473 13.3c-1.454.826-3.311.335-4.15-1.098m-.85-6.94A3.02 3.02 0 0 1 3.07 3.949v3.785a.51.51 0 0 0 .262.451l3.93 2.237-1.366.779a.05.05 0 0 1-.048 0L2.585 9.342a2.98 2.98 0 0 1-1.113-4.094zm11.216 2.571L8.747 5.576l1.362-.776a.05.05 0 0 1 .048 0l3.265 1.86a3 3 0 0 1 1.173 1.207 2.96 2.96 0 0 1-.27 3.2 3.05 3.05 0 0 1-1.36.997V8.279a.52.52 0 0 0-.276-.445m1.36-2.015-.097-.057-3.226-1.855a.53.53 0 0 0-.53 0L6.249 6.153V4.598a.04.04 0 0 1 .019-.04L9.533 2.7a3.07 3.07 0 0 1 3.257.139c.474.325.843.778 1.066 1.303.223.526.289 1.103.191 1.664zM5.503 8.575 4.139 7.8a.05.05 0 0 1-.026-.037V4.049c0-.57.166-1.127.476-1.607s.752-.864 1.275-1.105a3.08 3.08 0 0 1 3.234.41l-.096.054-3.23 1.838a.53.53 0 0 0-.265.455zm.742-1.577 1.758-1 1.762 1v2l-1.755 1-1.762-1z" />
@@ -114,11 +122,11 @@ interface ProviderCardProps {
 
 function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnecting }: ProviderCardProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const isOrgKey = status.source === 'ORGANIZATION' && status.configured;
   const accent = isDark ? brand.accentDark : brand.accent; // couleur de MARQUE : réservée au logo
-  const ok = theme.palette.success.main;
+  const ok = 'var(--ok)';
+  const err = 'var(--err)';
 
   const Logo = brand.id === 'openai' ? OpenAILogo : ClaudeLogo;
 
@@ -128,7 +136,10 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
         {/* ── Header: logo (couleur de marque) + nom/modèle + badge clé ── */}
         <div className="flex items-center justify-between gap-1.5 mb-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="flex items-center justify-center w-[34px] h-[34px] rounded-[10px] shrink-0" style={{ backgroundColor: alpha(accent, isDark ? 0.16 : 0.1) }}>
+            <div
+              className="flex items-center justify-center w-[34px] h-[34px] rounded-[10px] shrink-0"
+              style={{ backgroundColor: `color-mix(in srgb, ${accent} ${isDark ? 16 : 10}%, transparent)` }}
+            >
               <Logo size={18} color={accent} />
             </div>
             <div className="min-w-0">
@@ -142,7 +153,9 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             </div>
           </div>
 
-          <StatusChip tokens={{ color: 'text.secondary', bg: 'action.hover' }} label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')} className="shrink-0 text-[0.68rem]" />
+          {/* `text.secondary` / `action.hover` etaient des jetons MUI : hors d'un
+              composant MUI ce ne sont pas des valeurs CSS (declaration ignoree). */}
+          <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')} className="shrink-0 text-[0.68rem]" />
         </div>
 
         {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
@@ -154,7 +167,7 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             >
               {status.maskedApiKey}
             </span>
-            <StatusChip tokens={{ color: status.valid ? ok : theme.palette.error.main, bg: alpha(status.valid ? ok : theme.palette.error.main, isDark ? 0.18 : 0.1) }} label={status.valid
+            <StatusChip tokens={{ color: status.valid ? ok : err, bg: `color-mix(in srgb, ${status.valid ? ok : err} ${isDark ? 18 : 10}%, transparent)` }} label={status.valid
                 ? t('bookingEngine.ai.settings.validated')
                 : t('bookingEngine.ai.settings.notValidated')} icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />} className="shrink-0 text-[0.66rem]" />
           </div>
@@ -200,8 +213,7 @@ interface ConfigureDialogProps {
 
 function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const [apiKey, setApiKey] = useState('');
   const [modelOverride, setModelOverride] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -231,7 +243,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   };
 
   const brand = provider ? PROVIDERS[provider] : null;
-  const accent = brand ? (isDark ? brand.accentDark : brand.accent) : theme.palette.primary.main;
+  const accent = brand ? (isDark ? brand.accentDark : brand.accent) : 'var(--mui-primary)';
   const Logo = provider === 'openai' ? OpenAILogo : ClaudeLogo;
 
   const handleClose = () => {
@@ -267,7 +279,10 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <div className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px]" style={{ backgroundColor: alpha(accent, isDark ? 0.12 : 0.08) }}>
+        <div
+          className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px]"
+          style={{ backgroundColor: `color-mix(in srgb, ${accent} ${isDark ? 12 : 8}%, transparent)` }}
+        >
           <Logo size={20} color={accent} />
         </div>
         <h6 className="cn-text-h6 font-bold text-[1.05rem]">
@@ -364,17 +379,17 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
           />
 
           {testMutation.data && (
-            <Alert
-              severity={
+            <UiAlert
+              variant={
                 testMutation.data.success
                   ? 'success'
                   : testMutation.data.keyValid
                     ? 'warning'
-                    : 'error'
+                    : 'destructive'
               }
             >
-              {testMutation.data.message}
-            </Alert>
+              <AlertDescription>{testMutation.data.message}</AlertDescription>
+            </UiAlert>
           )}
 
           {saveMutation.isError && (
@@ -384,16 +399,16 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
             </UiAlert>
           )}
 
-          <Alert
-            severity="info"
-            variant="outlined"
-            sx={{
-              borderColor: alpha(accent, 0.3),
-              '& .MuiAlert-icon': { color: accent },
-            }}
+          {/* La bordure prend la teinte de MARQUE du provider : valeur calculee a
+              l'execution, donc style inline et jamais une classe. */}
+          <UiAlert
+            variant="info"
+            style={{ borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
           >
-            {t('bookingEngine.ai.settings.byokInfo', { provider: brand?.label ?? '' })}
-          </Alert>
+            <AlertDescription>
+              {t('bookingEngine.ai.settings.byokInfo', { provider: brand?.label ?? '' })}
+            </AlertDescription>
+          </UiAlert>
         </div>
       </DialogContent>
 
@@ -421,7 +436,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
           className="bg-[var(--provider-accent)] hover:bg-[var(--provider-accent-hover)]"
           style={{
             '--provider-accent': accent,
-            '--provider-accent-hover': alpha(accent, 0.85),
+            '--provider-accent-hover': `color-mix(in srgb, ${accent} 85%, transparent)`,
           } as React.CSSProperties}
         >
           {saveMutation.isPending && <Spinner className="size-4" />}
@@ -454,8 +469,7 @@ const AI_FEATURES: FeatureConfig[] = [
 
 function FeatureTogglesSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const { hasAnyRole } = useAuth();
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
   const { data: toggles, isLoading } = useAiFeatureToggles();
@@ -500,12 +514,15 @@ function FeatureTogglesSection() {
 
           return (
             <React.Fragment key={feat.feature}>
-              {index > 0 && <Divider sx={{ mx: 2.5 }} />}
+              {index > 0 && <Separator className="w-auto mx-[15px]" />}
               <div className="flex items-center px-[15px] py-[9px] transition-[background-color] duration-150 hover:bg-[var(--hover)]">
                 {/* Icon */}
                 <div
-                  className="flex items-center justify-center w-9 h-9 rounded-[12px] me-[9px] shrink-0 [&_.MuiSvgIcon-root]:text-[20px]"
-                  style={{ backgroundColor: alpha(feat.color, isDark ? 0.15 : 0.08), color: feat.color }}
+                  className="flex items-center justify-center w-9 h-9 rounded-[12px] me-[9px] shrink-0"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${feat.color} ${isDark ? 15 : 8}%, transparent)`,
+                    color: feat.color,
+                  }}
                 >
                   {feat.icon}
                 </div>
@@ -521,14 +538,15 @@ function FeatureTogglesSection() {
                 </div>
 
                 {/* Menu chip */}
-                <StatusChip tokens={{ color: isDark ? alpha(feat.color, 0.85) : feat.color, bg: alpha(feat.color, isDark ? 0.1 : 0.06) }} label={t(`bookingEngine.ai.features.${feat.key}.menu`)} className="mx-2 text-[0.65rem] shrink-0" />
+                <StatusChip tokens={{ color: isDark ? `color-mix(in srgb, ${feat.color} 85%, transparent)` : feat.color, bg: `color-mix(in srgb, ${feat.color} ${isDark ? 10 : 6}%, transparent)` }} label={t(`bookingEngine.ai.features.${feat.key}.menu`)} className="mx-2 text-[0.65rem] shrink-0" />
 
                 {/* Toggle switch */}
                 <Switch
                   checked={enabled}
-                  onChange={() => handleToggle(feat.feature, enabled)}
+                  onCheckedChange={() => handleToggle(feat.feature, enabled)}
                   disabled={isMutating || !canEdit}
-                  size="small"
+                  size="sm"
+                  aria-label={t(`bookingEngine.ai.features.${feat.key}.name`)}
                 />
               </div>
             </React.Fragment>

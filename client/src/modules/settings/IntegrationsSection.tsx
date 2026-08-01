@@ -1,12 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
-import { Info } from 'lucide-react';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Box, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
+// `Box` reste MUI ici : les deux grilles desactivees appliquent DISABLED_CARDS_SX,
+// qui contient un `sx` a CALLBACK de theme (borderColor: (theme) => ...). Un tel
+// callback n'a pas d'equivalent en classes — le convertir serait deviner.
+import { Box } from '@mui/material';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -519,13 +531,13 @@ export default function IntegrationsSection({
           <AlertDescription>{`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}</AlertDescription>
         </UiAlert>
         {providerMessage && (
-          <Alert
-            severity={providerMessage.type}
-            variant="outlined"
-            sx={{ mt: 1.25, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
+          <UiAlert
+            variant={providerMessage.type === 'error' ? 'destructive' : 'success'}
+            className="mt-2 text-[0.75rem] py-0.5"
           >
-            {providerMessage.text}
-          </Alert>
+            {providerMessage.type === 'error' ? <TriangleAlert /> : <CircleCheck />}
+            <AlertDescription>{providerMessage.text}</AlertDescription>
+          </UiAlert>
         )}
       </Card>
       )}
@@ -595,7 +607,7 @@ export default function IntegrationsSection({
                 </div>
               )}
 
-              <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
+              <Separator className="mb-[9px]" />
 
               {/* Sync actions */}
               <div className="flex gap-1 flex-wrap items-center">
@@ -655,21 +667,15 @@ export default function IntegrationsSection({
               </div>
             </>
           ) : notConfigured ? (
-            <Alert
-              severity="info"
-              variant="outlined"
-              sx={{
-                mt: 0,
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                '& .MuiAlert-message': { padding: '4px 0' },
-              }}
-            >
-              {t(
-                'settings.integrations.pennylane.notConfiguredHelp',
-                "Cette intégration n'est pas activée sur cet environnement. Contactez votre administrateur pour configurer Pennylane.",
-              )}
-            </Alert>
+            <UiAlert variant="info" className="text-[0.8rem]">
+              <Info />
+              <AlertDescription>
+                {t(
+                  'settings.integrations.pennylane.notConfiguredHelp',
+                  "Cette intégration n'est pas activée sur cet environnement. Contactez votre administrateur pour configurer Pennylane.",
+                )}
+              </AlertDescription>
+            </UiAlert>
           ) : (
             <Button
               variant="default"
@@ -683,13 +689,18 @@ export default function IntegrationsSection({
 
           {/* Sync feedback */}
           {syncMessage && (
-            <Alert
-              severity={syncMessage.type}
-              sx={{ mt: 1.75, borderRadius: '8px' }}
-              onClose={() => setSyncMessage(null)}
+            <UiAlert
+              variant={syncMessage.type === 'error' ? 'destructive' : 'success'}
+              className="mt-2.5"
             >
-              {syncMessage.text}
-            </Alert>
+              {syncMessage.type === 'error' ? <TriangleAlert /> : <CircleCheck />}
+              <AlertDescription>{syncMessage.text}</AlertDescription>
+              <AlertAction>
+                <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSyncMessage(null)}>
+                  <X />
+                </Button>
+              </AlertAction>
+            </UiAlert>
           )}
         </div>
       </Card>
@@ -1170,42 +1181,40 @@ export default function IntegrationsSection({
       )}
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
-      <Dialog
-        open={disconnectDialogOpen}
-        onClose={() => setDisconnectDialogOpen(false)}
-        PaperProps={{ sx: { borderRadius: '12px' } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.005em' }}>
-          {t('settings.integrations.pennylane.disconnectTitle')}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            {t('settings.integrations.pennylane.disconnectConfirm')}
-          </DialogContentText>
+      <Dialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+              {t('settings.integrations.pennylane.disconnectTitle')}
+            </DialogTitle>
+            <DialogDescription className="text-[0.85rem]">
+              {t('settings.integrations.pennylane.disconnectConfirm')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDisconnectDialogOpen(false)}
+              disabled={disconnecting}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              {disconnecting ? (
+                <Spinner className="size-3.5" />
+              ) : (
+                <LinkOffIcon size={14} strokeWidth={1.75} />
+              )}
+              {t('settings.integrations.pennylane.disconnect')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDisconnectDialogOpen(false)}
-            disabled={disconnecting}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDisconnect}
-            disabled={disconnecting}
-          >
-            {disconnecting ? (
-              <Spinner className="size-3.5" />
-            ) : (
-              <LinkOffIcon size={14} strokeWidth={1.75} />
-            )}
-            {t('settings.integrations.pennylane.disconnect')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

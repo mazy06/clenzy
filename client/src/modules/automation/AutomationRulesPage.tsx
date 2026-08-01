@@ -3,8 +3,14 @@ import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Skeleton } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button, Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  Button, Field, FieldLabel, FieldDescription, Input,
+  Card, Skeleton, Switch,
+  Tooltip, TooltipTrigger, TooltipContent,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  NativeSelect, NativeSelectOption, NativeSelectOptGroup,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Add as AddIcon,
@@ -273,25 +279,44 @@ const AutomationRulesPage: React.FC = () => {
 
   // Exécutions (lecture seule) visibles par tous ; Modifier / Supprimer réservés
   // à la plateforme (les orgs sont en lecture seule).
+  // Le <span> autour de chaque bouton n'est pas decoratif : TooltipTrigger
+  // asChild pose une ref DOM sur son enfant, or les primitifs du kit sont des
+  // fonctions sans forwardRef (React 18) — sans le span, l'ancrage du tooltip
+  // serait perdu.
   const renderRuleActions = (rule: AutomationRule) => (
     <>
       {canEdit && (
-        <Tooltip title={t('common.edit', 'Modifier')}>
-          <IconButton size="small" onClick={() => handleOpenEdit(rule)}>
-            <EditIcon size={'0.875rem'} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button variant="ghost" size="icon-sm" aria-label={t('common.edit', 'Modifier')} onClick={() => handleOpenEdit(rule)}>
+                <EditIcon size={'0.875rem'} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
         </Tooltip>
       )}
-      <Tooltip title={t('automation.executions', 'Executions')}>
-        <IconButton size="small" color="info" onClick={() => { setExecRuleId(rule.id); setExecPage(0); }}>
-          <ExecutionsIcon size={'0.875rem'} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button variant="ghost" size="icon-sm" className="text-[var(--info)]" aria-label={t('automation.executions', 'Executions')} onClick={() => { setExecRuleId(rule.id); setExecPage(0); }}>
+              <ExecutionsIcon size={'0.875rem'} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('automation.executions', 'Executions')}</TooltipContent>
       </Tooltip>
       {canEdit && (
-        <Tooltip title={t('common.delete', 'Supprimer')}>
-          <IconButton size="small" color="error" onClick={() => setDeleteTarget(rule)}>
-            <DeleteIcon size={'0.875rem'} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button variant="ghost" size="icon-sm" className="text-[var(--err)]" aria-label={t('common.delete', 'Supprimer')} onClick={() => setDeleteTarget(rule)}>
+                <DeleteIcon size={'0.875rem'} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
         </Tooltip>
       )}
     </>
@@ -309,31 +334,43 @@ const AutomationRulesPage: React.FC = () => {
           <div className="flex items-center gap-1.5">
             {/* Sélecteur d'affichage : liste (défaut) / cartes */}
             <div className="flex border border-[var(--hairline)] rounded-[var(--radius-md)] overflow-hidden">
-              <Tooltip title={t('automation.view.list', 'Vue liste')}>
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('list')}
-                  sx={{
-                    borderRadius: 0,
-                    color: viewMode === 'list' ? 'var(--accent)' : 'var(--muted)',
-                    backgroundColor: viewMode === 'list' ? 'var(--accent-soft)' : 'transparent',
-                  }}
-                >
-                  <ListViewIcon size={16} strokeWidth={1.75} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('automation.view.list', 'Vue liste')}
+                      aria-pressed={viewMode === 'list'}
+                      onClick={() => setViewMode('list')}
+                      className={viewMode === 'list'
+                        ? 'rounded-none text-[var(--accent)] bg-[var(--accent-soft)]'
+                        : 'rounded-none text-[var(--muted)]'}
+                    >
+                      <ListViewIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('automation.view.list', 'Vue liste')}</TooltipContent>
               </Tooltip>
-              <Tooltip title={t('automation.view.card', 'Vue cartes')}>
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('card')}
-                  sx={{
-                    borderRadius: 0,
-                    color: viewMode === 'card' ? 'var(--accent)' : 'var(--muted)',
-                    backgroundColor: viewMode === 'card' ? 'var(--accent-soft)' : 'transparent',
-                  }}
-                >
-                  <CardViewIcon size={16} strokeWidth={1.75} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('automation.view.card', 'Vue cartes')}
+                      aria-pressed={viewMode === 'card'}
+                      onClick={() => setViewMode('card')}
+                      className={viewMode === 'card'
+                        ? 'rounded-none text-[var(--accent)] bg-[var(--accent-soft)]'
+                        : 'rounded-none text-[var(--muted)]'}
+                    >
+                      <CardViewIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('automation.view.card', 'Vue cartes')}</TooltipContent>
               </Tooltip>
             </div>
             {canEdit && (
@@ -351,7 +388,7 @@ const AutomationRulesPage: React.FC = () => {
         <div className="grid grid-cols-12 gap-[9px]">
           {Array.from({ length: 4 }).map((_, i) => (
             <div className="col-span-12 min-[900px]:col-span-6" key={i}>
-              <Skeleton variant="rounded" height={150} sx={{ borderRadius: 'var(--radius-lg)' }} />
+              <Skeleton className="h-[150px] w-full rounded-[var(--radius-lg)]" />
             </div>
           ))}
         </div>
@@ -378,61 +415,56 @@ const AutomationRulesPage: React.FC = () => {
         <div className="grid grid-cols-12 gap-[9px]">
           {sortedRules.map((rule) => (
             <div className="col-span-12 min-[900px]:col-span-6" key={rule.id}>
-              {/* Carte règle : peau MuiCard du thème (hairline r14, pas d'ombre) */}
-              <Card>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  {/* Header row : nom + toggle (Switch thème, nu) */}
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
-                      {rule.name}
-                    </p>
-                    <Switch
-                      checked={rule.enabled}
-                      onChange={() => handleToggle(rule.id)}
-                      disabled={toggleMutation.isPending}
-                    />
-                  </div>
+              {/* Carte règle : peau Card du kit (p: 2 MUI = 12 px avec spacing 6) */}
+              <Card className="gap-0 py-0 p-3">
+                {/* Header row : nom + toggle */}
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
+                    {rule.name}
+                  </p>
+                  <Switch
+                    checked={rule.enabled}
+                    onCheckedChange={() => handleToggle(rule.id)}
+                    disabled={toggleMutation.isPending}
+                  />
+                </div>
 
-                  {/* Conditions / actions : chips -soft (déclencheur = accent) */}
-                  <div className="flex gap-1 flex-wrap mb-2">
-                    {renderRuleChips(rule)}
-                  </div>
+                {/* Conditions / actions : chips -soft (déclencheur = accent) */}
+                <div className="flex gap-1 flex-wrap mb-2">
+                  {renderRuleChips(rule)}
+                </div>
 
-                  {/* Template */}
-                  {rule.templateName && (
-                    <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-1.5">
-                      Template: {rule.templateName}
-                    </p>
-                  )}
+                {/* Template */}
+                {rule.templateName && (
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-1.5">
+                    Template: {rule.templateName}
+                  </p>
+                )}
 
-                  {/* Actions */}
-                  <div className="flex gap-0.5">
-                    {renderRuleActions(rule)}
-                  </div>
-                </CardContent>
+                {/* Actions */}
+                <div className="flex gap-0.5">
+                  {renderRuleActions(rule)}
+                </div>
               </Card>
             </div>
           ))}
         </div>
       ) : (
         // ── Vue LISTE (défaut) : lignes denses, chips alignés en colonnes ────
-        <Card sx={{ overflowX: 'auto' }}>
+        // Le defilement horizontal est porte par un div interne : la Card du kit
+        // pose deja overflow-hidden, qui gagnerait sur un overflow-x sur elle.
+        <Card className="gap-0 py-0">
+          <div className="overflow-x-auto">
           {sortedRules.map((rule, idx) => (
             <div className="grid items-center gap-x-[9px] px-3 py-[7.5px] min-w-[720px]" style={{ gridTemplateColumns: LIST_COLUMNS, borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)' }} key={rule.id}>
+              {/* Le sx d'origine ne faisait que retailler le Switch en version
+                  compacte : c'est exactement size="sm" dans le kit. */}
               <Switch
+                size="sm"
+                className="justify-self-start"
                 checked={rule.enabled}
-                onChange={() => handleToggle(rule.id)}
+                onCheckedChange={() => handleToggle(rule.id)}
                 disabled={!canEdit || toggleMutation.isPending}
-                sx={{
-                  justifySelf: 'start',
-                  width: 30, height: 18, p: 0, display: 'flex',
-                  '& .MuiSwitch-switchBase': {
-                    p: 0, m: '2px',
-                    '&.Mui-checked': { transform: 'translateX(12px)' },
-                  },
-                  '& .MuiSwitch-thumb': { width: 14, height: 14, boxShadow: 'none' },
-                  '& .MuiSwitch-track': { borderRadius: 9, opacity: 1 },
-                }}
               />
               <div className="min-w-0">
                 <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">
@@ -469,6 +501,7 @@ const AutomationRulesPage: React.FC = () => {
               {systemAutomations.map((sa) => renderSystemRow(sa))}
             </>
           )}
+          </div>
         </Card>
       )}
 
@@ -491,23 +524,21 @@ const AutomationRulesPage: React.FC = () => {
           <div className="grid grid-cols-12 gap-[9px]">
             {systemAutomations.map((sa) => (
               <div className="col-span-12 min-[900px]:col-span-6" key={sa.key}>
-                <Card sx={{ opacity: 0.94 }}>
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
-                        {sa.label}
-                      </p>
-                      <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} />
-                    </div>
-                    <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mb-1.5">
-                      {sa.description}
+                <Card className="gap-0 py-0 p-3 opacity-[0.94]">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
+                      {sa.label}
                     </p>
-                    <div className="flex gap-1 flex-wrap">
-                      <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={sa.triggerLabel} />
-                      <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={sa.actionLabel} />
-                      <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
-                    </div>
-                  </CardContent>
+                    <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} />
+                  </div>
+                  <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mb-1.5">
+                    {sa.description}
+                  </p>
+                  <div className="flex gap-1 flex-wrap">
+                    <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={sa.triggerLabel} />
+                    <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={sa.actionLabel} />
+                    <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
+                  </div>
                 </Card>
               </div>
             ))}
@@ -525,14 +556,18 @@ const AutomationRulesPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           Create / Edit Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth>
-        {/* Peau modale + tailles de champs : portées par le thème global */}
-        <DialogTitle>
-          {editingRule
-            ? t('automation.editTitle', 'Modifier la regle')
-            : t('automation.createTitle', 'Nouvelle regle d\'automatisation')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+      <Dialog open={formOpen} onOpenChange={(next) => { if (!next) setFormOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRule
+                ? t('automation.editTitle', 'Modifier la regle')
+                : t('automation.createTitle', 'Nouvelle regle d\'automatisation')}
+            </DialogTitle>
+          </DialogHeader>
+          {/* Le defilement est sur le corps du formulaire, pas sur DialogContent :
+              titre et pied restent visibles, comme avec le Dialog MUI. */}
+          <div className="flex flex-col gap-3 max-h-[65vh] overflow-y-auto">
           <Field>
             <FieldLabel htmlFor="automation-rule-name">
               {t('automation.form.name', 'Nom de la regle')}
@@ -545,41 +580,50 @@ const AutomationRulesPage: React.FC = () => {
             />
           </Field>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel>{t('automation.form.trigger', 'Declencheur')}</InputLabel>
-            <Select
+          <Field>
+            <FieldLabel htmlFor="automation-trigger">
+              {t('automation.form.trigger', 'Declencheur')}
+            </FieldLabel>
+            {/* Les ListSubheader MUI deviennent des <optgroup> : meme regroupement,
+                mais non selectionnables par construction. */}
+            <NativeSelect
+              id="automation-trigger"
+              className="w-full"
               value={formData.triggerType}
               onChange={(e) => handleTriggerChange(e.target.value as AutomationTrigger)}
-              label={t('automation.form.trigger', 'Declencheur')}
             >
-              {TRIGGER_GROUPS.flatMap((group) => [
-                <ListSubheader key={`grp-${group.label}`}>{group.label}</ListSubheader>,
-                ...group.triggers.map((tg) => (
-                  <MenuItem key={tg} value={tg}>
-                    {TRIGGER_LABELS[tg]}
-                  </MenuItem>
-                )),
-              ])}
-            </Select>
-          </FormControl>
+              {TRIGGER_GROUPS.map((group) => (
+                <NativeSelectOptGroup key={group.label} label={group.label}>
+                  {group.triggers.map((tg) => (
+                    <NativeSelectOption key={tg} value={tg}>
+                      {TRIGGER_LABELS[tg]}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelectOptGroup>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel>{t('automation.form.action', 'Action')}</InputLabel>
-            <Select
+          <Field>
+            <FieldLabel htmlFor="automation-action">
+              {t('automation.form.action', 'Action')}
+            </FieldLabel>
+            <NativeSelect
+              id="automation-action"
+              className="w-full"
               value={formData.actionType ?? ''}
               onChange={(e) => setFormData({ ...formData, actionType: e.target.value as AutomationAction })}
-              label={t('automation.form.action', 'Action')}
             >
               {Array.from(new Set([
                 ...(TRIGGER_ACTIONS[formData.triggerType] ?? []),
                 ...(formData.actionType ? [formData.actionType] : []),
               ])).map((a) => (
-                <MenuItem key={a} value={a}>
+                <NativeSelectOption key={a} value={a}>
                   {ACTION_LABELS[a]}
-                </MenuItem>
+                </NativeSelectOption>
               ))}
-            </Select>
-          </FormControl>
+            </NativeSelect>
+          </Field>
 
           {/* Décalage/heure : uniquement pour les déclencheurs « cycle de vie ». */}
           {isLifecycleTrigger(formData.triggerType) && (
@@ -614,44 +658,49 @@ const AutomationRulesPage: React.FC = () => {
 
           {/* Canal d'envoi : uniquement pour les actions de messagerie. */}
           {formData.actionType && isMessagingAction(formData.actionType) && (
-            <FormControl size="small" fullWidth>
-              <InputLabel>{t('automation.form.channel', 'Canal d\'envoi')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="automation-channel">
+                {t('automation.form.channel', 'Canal d\'envoi')}
+              </FieldLabel>
+              {/* Une <option> native ne peut pas porter d'icone : le libelle seul
+                  suffit ici, les chips de la liste gardent l'icone du canal. */}
+              <NativeSelect
+                id="automation-channel"
+                className="w-full"
                 value={formData.deliveryChannel ?? 'EMAIL'}
                 onChange={(e) => setFormData({ ...formData, deliveryChannel: e.target.value as MessageChannelType })}
-                label={t('automation.form.channel', 'Canal d\'envoi')}
               >
                 {CHANNEL_OPTIONS.map((c) => (
-                  <MenuItem key={c.value} value={c.value}>
-                    <div className="flex items-center gap-1.5">
-                      {c.icon}
-                      {c.label}
-                    </div>
-                  </MenuItem>
+                  <NativeSelectOption key={c.value} value={c.value}>
+                    {c.label}
+                  </NativeSelectOption>
                 ))}
-              </Select>
-            </FormControl>
+              </NativeSelect>
+            </Field>
           )}
 
           {/* Template : uniquement pour « Envoyer un message » (contenu libre). */}
           {formData.actionType && actionNeedsTemplate(formData.actionType) && (
-            <FormControl size="small" fullWidth>
-              <InputLabel>{t('automation.form.template', 'Template')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="automation-template">
+                {t('automation.form.template', 'Template')}
+              </FieldLabel>
+              <NativeSelect
+                id="automation-template"
+                className="w-full"
                 value={formData.templateId ?? ''}
                 onChange={(e) => setFormData({ ...formData, templateId: e.target.value ? Number(e.target.value) : undefined })}
-                label={t('automation.form.template', 'Template')}
               >
-                <MenuItem value="">
-                  <em>{t('common.none', 'Aucun')}</em>
-                </MenuItem>
+                <NativeSelectOption value="">
+                  {t('common.none', 'Aucun')}
+                </NativeSelectOption>
                 {templates.map((tmpl: MessageTemplate) => (
-                  <MenuItem key={tmpl.id} value={tmpl.id}>
+                  <NativeSelectOption key={tmpl.id} value={tmpl.id}>
                     {tmpl.name}
-                  </MenuItem>
+                  </NativeSelectOption>
                 ))}
-              </Select>
-            </FormControl>
+              </NativeSelect>
+            </Field>
           )}
 
           {/* Délai de grâce (action_config) : uniquement pour la révocation de code. */}
@@ -680,19 +729,20 @@ const AutomationRulesPage: React.FC = () => {
             value={formData.conditions ?? undefined}
             onChange={(conditions) => setFormData({ ...formData, conditions })}
           />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={isMutating || !formData.name.trim()}
+            >
+              {isMutating ? <Spinner className="size-4" /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={isMutating || !formData.name.trim()}
-          >
-            {isMutating ? <Spinner className="size-4" /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -736,13 +786,16 @@ const ExecutionsDialog: React.FC<{
   const totalElements = data?.totalElements ?? 0;
 
   return (
-    <Dialog open={ruleId !== null} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {t('automation.executionsTitle', 'Historique des executions')}
-      </DialogTitle>
-      <DialogContent sx={{ pt: '16px !important' }}>
+    <Dialog open={ruleId !== null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle>
+            {t('automation.executionsTitle', 'Historique des executions')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[65vh] overflow-y-auto">
         {isLoading ? (
-          <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)' }} />
+          <Skeleton className="h-[220px] w-full rounded-[var(--radius-lg)]" />
         ) : executions.length === 0 ? (
           <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground text-center py-4">
             {t('automation.noExecutions', 'Aucune execution trouvee')}
@@ -788,12 +841,13 @@ const ExecutionsDialog: React.FC<{
             />
           </>
         )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t('common.close', 'Fermer')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          {t('common.close', 'Fermer')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

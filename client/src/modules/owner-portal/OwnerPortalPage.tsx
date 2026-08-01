@@ -7,7 +7,17 @@ import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
-import { Paper, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -30,20 +40,11 @@ import PageTabs from '../../components/PageTabs';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-} as const;
+// Surface plate hairline r12 : l'ancien Paper `CARD_SX` (bordure `divider`, pas
+// d'ombre, borderRadius 1.5 = 12px) transcrit en classes.
+const PANEL_CLASS = 'rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]';
 
 const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
-
-const KPI_CARD_SX = {
-  ...CARD_SX,
-  textAlign: 'center',
-  p: 2,
-} as const;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -92,29 +93,31 @@ const OwnerPortalPage: React.FC = () => {
       />
 
       {/* ── Owner selector ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center' }}>
-        <FormControl size="small" sx={{ minWidth: 240 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center')}>
+        <Field className="w-[240px] shrink-0">
+          <FieldLabel htmlFor="owner-portal-owner" className="text-[0.8125rem]">
             {t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
-          </InputLabel>
-          <Select
+          </FieldLabel>
+          <NativeSelect
+            id="owner-portal-owner"
+            size="sm"
+            className="w-full text-[0.8125rem]"
             value={selectedOwnerId}
-            onChange={(e) => setSelectedOwnerId(e.target.value as number | '')}
-            label={t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
-            sx={{ fontSize: '0.8125rem' }}
+            onChange={(e) => setSelectedOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
           >
+            <NativeSelectOption value="">—</NativeSelectOption>
             {owners.map((owner) => (
-              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
+              <NativeSelectOption key={owner.id} value={owner.id}>
                 {owner.name}
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
         {ownerId !== undefined && <ConstellationLinkButton ownerId={ownerId} />}
         <BrandingButton />
-      </Paper>
+      </div>
 
-      <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
+      <div className={cn(PANEL_CLASS, 'mb-[9px]')}>
         <PageTabs
           options={[
             { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
@@ -124,15 +127,15 @@ const OwnerPortalPage: React.FC = () => {
           onChange={setActiveTab}
           mb={0}
         />
-      </Paper>
+      </div>
 
       {!ownerId ? (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
+        <div className={cn(PANEL_CLASS, 'p-6 text-center')}>
           <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><HomeIcon size={48} strokeWidth={1.75} /></span>
           <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
             {t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
           </p>
-        </Paper>
+        </div>
       ) : (
         <>
           {activeTab === 0 && <DashboardTab ownerId={ownerId} />}
@@ -231,11 +234,14 @@ const BrandingButton: React.FC = () => {
       >
         {t('ownerPortal.branding.open', 'Personnaliser la page propriétaire')}
       </Button>
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: '1rem' }}>
-          {t('ownerPortal.branding.title', 'Page propriétaire — votre marque')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+      <Dialog open={open} onOpenChange={(next) => { if (!next) setOpen(false); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="text-[1rem]">
+              {t('ownerPortal.branding.title', 'Page propriétaire — votre marque')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
           <p className="cn-text-body2 text-muted-foreground">
             {t('ownerPortal.branding.subtitle',
               'Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.')}
@@ -271,15 +277,16 @@ const BrandingButton: React.FC = () => {
               placeholder="#4A9B8E"
             />
           </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </Button>
+            <Button variant="default" onClick={handleSave} disabled={saving}>
+              {t('common.save', 'Enregistrer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button variant="default" onClick={handleSave} disabled={saving}>
-            {t('common.save', 'Enregistrer')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
@@ -310,12 +317,14 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
     );
   }
 
+  // La taille de l'icone est posee a la source : l'ancien `cloneElement` injectait
+  // un `sx` que ces icones (lucide) n'ont jamais lu.
   const kpis = [
-    { icon: <HomeIcon />, label: t('ownerPortal.kpi.properties', 'Proprietes'), value: dashboard.totalProperties, color: '#1976d2' },
-    { icon: <ReservationIcon />, label: t('ownerPortal.kpi.reservations', 'Reservations actives'), value: dashboard.activeReservations, color: '#4A9B8E' },
-    { icon: <RevenueIcon />, label: t('ownerPortal.kpi.netRevenue', 'Revenu net'), value: fmtCurrency(dashboard.netRevenue), color: '#2e7d32' },
-    { icon: <OccupancyIcon />, label: t('ownerPortal.kpi.occupancy', 'Occupation moy.'), value: fmtPercent(dashboard.averageOccupancy), color: '#D4A574' },
-    { icon: <RatingIcon />, label: t('ownerPortal.kpi.rating', 'Note moyenne'), value: dashboard.averageRating.toFixed(1), color: '#f9a825' },
+    { icon: <HomeIcon size={24} />, label: t('ownerPortal.kpi.properties', 'Proprietes'), value: dashboard.totalProperties, color: '#1976d2' },
+    { icon: <ReservationIcon size={24} />, label: t('ownerPortal.kpi.reservations', 'Reservations actives'), value: dashboard.activeReservations, color: '#4A9B8E' },
+    { icon: <RevenueIcon size={24} />, label: t('ownerPortal.kpi.netRevenue', 'Revenu net'), value: fmtCurrency(dashboard.netRevenue), color: '#2e7d32' },
+    { icon: <OccupancyIcon size={24} />, label: t('ownerPortal.kpi.occupancy', 'Occupation moy.'), value: fmtPercent(dashboard.averageOccupancy), color: '#D4A574' },
+    { icon: <RatingIcon size={24} />, label: t('ownerPortal.kpi.rating', 'Note moyenne'), value: dashboard.averageRating.toFixed(1), color: '#f9a825' },
   ];
 
   return (
@@ -327,10 +336,10 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
       <div className="grid grid-cols-12 min-[900px]:grid-cols-5 gap-[9px] mb-3">
         {kpis.map((kpi) => (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-1" key={kpi.label}>
-            <Card sx={KPI_CARD_SX}>
-              <CardContent sx={{ p: '12px !important', '&:last-child': { pb: '12px !important' } }}>
-                <div className="mb-[3px]" style={{ color: kpi.color }}>
-                  {React.cloneElement(kpi.icon, { sx: { fontSize: '1.5rem' } })}
+            <Card className="[--card-spacing:12px] rounded-[12px] text-center">
+              <CardContent>
+                <div className="mb-[3px] inline-flex" style={{ color: kpi.color }}>
+                  {kpi.icon}
                 </div>
                 <p className="cn-text-body1 text-[1.25rem] font-bold" style={{ color: kpi.color }}>
                   {kpi.value}
@@ -346,7 +355,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
       {/* ── Revenue by Month ── */}
       {dashboard.revenueByMonth && Object.keys(dashboard.revenueByMonth).length > 0 && (
-        <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
+        <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
           <p className="cn-text-body1 text-[0.8125rem] font-bold mb-2">
             {t('ownerPortal.revenueByMonth', 'Revenu par mois')}
           </p>
@@ -367,7 +376,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
               );
             })}
           </div>
-        </Paper>
+        </div>
       )}
 
       {/* ── Properties Table ── */}
@@ -430,7 +439,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   return (
     <>
       {/* ── Filters ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
         <Field className="w-[200px]">
           <FieldLabel htmlFor="owner-statement-name" className="text-[0.8125rem]">
             {t('ownerPortal.form.ownerName', 'Nom proprietaire')}
@@ -475,7 +484,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
           {isLoading ? <Spinner className="size-3.5" /> : <StatementIcon />}
           {t('ownerPortal.generate', 'Generer le releve')}
         </Button>
-      </Paper>
+      </div>
 
       {/* ── Statement ── */}
       {isError && (
@@ -488,7 +497,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
       {statement && (
         <>
           {/* ── Header totals ── */}
-          <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5 }}>
+          <div className={cn(PANEL_CLASS, 'p-3 mb-[9px]')}>
             <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
               {statement.ownerName} — {fmtDate(statement.periodStart)} → {fmtDate(statement.periodEnd)}
             </p>
@@ -538,7 +547,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                 </p>
               </div>
             </div>
-          </Paper>
+          </div>
 
           {/* ── Statement lines ── */}
           {statement.lines && statement.lines.length > 0 && (

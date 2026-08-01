@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
-import { Close as CloseIcon } from '../../icons';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '../../components/ui';
+// Le tableau reste MUI : `stickyHeader` n'a pas d'equivalent dans les primitifs
+// du kit, et l'entete fige est ce qui rend l'apercu d'export lisible.
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -109,25 +111,19 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
   }, [content, format]);
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xl"
-      fullWidth
-      PaperProps={{ sx: { height: '85vh', display: 'flex', flexDirection: 'column' } }}
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis">{title}</span>
-        <IconButton size="small" onClick={onClose} sx={{ ml: 1 }}>
-          <CloseIcon size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[1536px] h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="min-w-0 truncate pe-8">{title}</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ p: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* `-mx-4` remet le corps a fleur de la modale : l'ancien DialogContent
+            MUI etait en `p: 0`, les blocs internes portant leur propre marge. */}
+        <div className="-mx-4 flex min-h-0 flex-col overflow-hidden">
         {loading && (
           <div className="p-3 flex flex-col gap-1.5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} variant="rounded" height={28} sx={{ borderRadius: 'var(--radius-sm)' }} />
+              <Skeleton key={i} className="h-[28px] w-full rounded-[var(--radius-sm)]" />
             ))}
           </div>
         )}
@@ -186,14 +182,15 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
             </p>
           </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions>
-        {/* Apercu en lecture seule : la fermeture reste une action tertiaire. */}
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          {t('common.close')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          {/* Apercu en lecture seule : la fermeture reste une action tertiaire. */}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t('common.close')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

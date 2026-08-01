@@ -4,7 +4,18 @@ import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Alert, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -94,7 +105,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const [complianceResults, setComplianceResults] = useState<Record<number, ComplianceReport>>({});
   const [searchResult, setSearchResult] = useState<DocumentGeneration | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [countryMenuAnchor, setCountryMenuAnchor] = useState<HTMLElement | null>(null);
 
   // Auto-verification state
   const [autoCheckProgress, setAutoCheckProgress] = useState(0);
@@ -181,7 +191,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   };
 
   const handleCountryChange = async (newCountryCode: string) => {
-    setCountryMenuAnchor(null);
     if (!fiscalProfile || newCountryCode === fiscalProfile.countryCode) return;
     try {
       await updateFiscalMutation.mutateAsync({
@@ -232,51 +241,51 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       {/* ─── Country & Standard indicator ────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-3">
         {isAdmin ? (
-          <>
-            {/* Le chevron etait monte en `deleteIcon`, avec un `onDelete` qui
-                ouvrait le meme menu que le corps de la puce : deux commandes
-                pour une seule action, dont une annoncee \u00ab supprimer \u00bb. Ici, une
-                puce = un bouton, et le chevron n'est plus qu'un decor. */}
-            <StatusChip
-              tone="accent"
-              icon={<Public size={14} strokeWidth={1.75} />}
-              label={
-                <span className="inline-flex items-center gap-1">
-                  {`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-                  <ExpandMore className="size-3.5 opacity-70" aria-hidden />
-                </span>
-              }
-              onClick={(e) => setCountryMenuAnchor(e.currentTarget)}
-            />
-            <Menu
-              anchorEl={countryMenuAnchor}
-              open={Boolean(countryMenuAnchor)}
-              onClose={() => setCountryMenuAnchor(null)}
-              slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {/* Bouton natif plutot que le span attendu : il porte la ref que
+                  Radix pose sur son enfant (StatusChip est une fonction, il n'en
+                  transmet pas) ET reste atteignable au clavier.
+                  Le chevron etait monte en `deleteIcon`, avec un `onDelete` qui
+                  ouvrait le meme menu que le corps de la puce : deux commandes
+                  pour une seule action, dont une annoncee \u00ab supprimer \u00bb. Ici, une
+                  puce = un bouton, et le chevron n'est plus qu'un decor. */}
+              <button
+                type="button"
+                aria-label={`${countryLabel} \u2014 ${standardName}`}
+                className="inline-flex cursor-pointer border-0 bg-transparent p-0"
+              >
+                <StatusChip
+                  tone="accent"
+                  icon={<Public size={14} strokeWidth={1.75} />}
+                  label={
+                    <span className="inline-flex items-center gap-1">
+                      {`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
+                      <ExpandMore className="size-3.5 opacity-70" aria-hidden />
+                    </span>
+                  }
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[220px]">
               {COUNTRY_OPTIONS.map((opt) => (
-                <MenuItem
+                <DropdownMenuItem
                   key={opt.code}
-                  onClick={() => handleCountryChange(opt.code)}
-                  selected={opt.code === countryCode}
-                  sx={{ fontSize: '0.85rem', py: 1 }}
+                  onSelect={() => handleCountryChange(opt.code)}
+                  className="gap-2 py-1.5 text-[0.85rem]"
                 >
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <p className="cn-text-body1 text-[1.1rem]">{opt.flag}</p>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={opt.label}
-                    secondary={opt.standard}
-                    primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500 }}
-                    secondaryTypographyProps={{ fontSize: '0.72rem' }}
-                  />
+                  <span className="w-8 shrink-0 text-[1.1rem] leading-none">{opt.flag}</span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-[0.85rem] font-medium">{opt.label}</span>
+                    <span className="text-[0.72rem] text-[var(--muted)]">{opt.standard}</span>
+                  </span>
                   {opt.code === countryCode && (
                     <span className="inline-flex text-[var(--ok)] ms-1.5"><Check size={18} strokeWidth={1.75} /></span>
                   )}
-                </MenuItem>
+                </DropdownMenuItem>
               ))}
-            </Menu>
-          </>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
           <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Public size={14} strokeWidth={1.75} />{`${countryFlag} ${countryLabel} \u2014 ${standardName}`}</Badge>
         )}
@@ -346,19 +355,27 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)]">
               {t('documents.compliance.templateVerification')}
             </p>
-            <Tooltip title="Relancer la verification" arrow>
-              <IconButton
-                size="small"
-                onClick={handleManualRecheck}
-                disabled={autoCheckRunning}
-                aria-label="Relancer la verification"
-                sx={{ cursor: 'pointer', color: 'var(--accent)', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-              >
-                {/* `animate-spin` de Tailwind = animation: spin 1s linear infinite, identique aux keyframes locales remplacees. */}
-                <span className={cn('inline-flex', autoCheckRunning && 'animate-spin motion-reduce:animate-none')}>
-                  <Refresh size={20} strokeWidth={1.75} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Le span porte la ref que Radix pose sur son enfant : Button
+                    est une fonction, il n'en transmet pas. */}
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={handleManualRecheck}
+                    disabled={autoCheckRunning}
+                    aria-label="Relancer la verification"
+                    className="text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                  >
+                    {/* `animate-spin` de Tailwind = animation: spin 1s linear infinite, identique aux keyframes locales remplacees. */}
+                    <span className={cn('inline-flex', autoCheckRunning && 'animate-spin motion-reduce:animate-none')}>
+                      <Refresh size={20} strokeWidth={1.75} />
+                    </span>
+                  </Button>
                 </span>
-              </IconButton>
+              </TooltipTrigger>
+              <TooltipContent>Relancer la verification</TooltipContent>
             </Tooltip>
           </div>
 
@@ -373,31 +390,27 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                   {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
                 </span>
               </div>
-              <LinearProgress
-                variant="determinate"
+              <Progress
                 value={autoCheckTotal > 0 ? (autoCheckProgress / autoCheckTotal) * 100 : 0}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: 'var(--accent-soft)',
-                  '& .MuiLinearProgress-bar': {
-                    transition: 'transform 0.6s ease',
-                    borderRadius: 3,
-                    backgroundColor: 'var(--accent)',
-                  },
-                  '@media (prefers-reduced-motion: reduce)': {
-                    '& .MuiLinearProgress-bar': { transition: 'none' },
-                  },
-                }}
+                className={cn(
+                  'h-1.5 rounded-[3px] bg-[var(--accent-soft)]',
+                  '[&_[data-slot=progress-indicator]]:rounded-[3px]',
+                  '[&_[data-slot=progress-indicator]]:bg-[var(--accent)]',
+                  '[&_[data-slot=progress-indicator]]:duration-[600ms]',
+                  'motion-reduce:[&_[data-slot=progress-indicator]]:transition-none',
+                )}
               />
             </div>
           )}
 
           {/* Completion message */}
           {!autoCheckRunning && autoCheckTotal > 0 && autoCheckProgress === autoCheckTotal && (
-            <Alert severity="success" sx={{ mb: 2 }} icon={<GppGood />}>
-              Verification terminee — {autoCheckTotal} templates verifies
-            </Alert>
+            <UiAlert variant="success" className="mb-3">
+              <GppGood />
+              <AlertDescription>
+                Verification terminee — {autoCheckTotal} templates verifies
+              </AlertDescription>
+            </UiAlert>
           )}
 
           {/* Report du Paper variant="outlined" : rayon theme.shape 8px, filet --line, fond --card. */}
@@ -452,29 +465,29 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                               <span className="cn-text-caption text-muted-foreground">Verification...</span>
                             </div>
                           ) : report ? (
-                            <Tooltip
-                              arrow
-                              title={
-                                report.compliant
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {/* Le `span` porte la ref que Tooltip pose sur son
+                                    enfant : StatusChip est une fonction, il n'en
+                                    transmet pas, et l'infobulle ne s'ancrerait pas. */}
+                                <span className="inline-flex">
+                                  <StatusChip
+                                    tone={report.compliant ? 'ok' : 'err'}
+                                    icon={
+                                      report.compliant
+                                        ? <GppGood size={12} strokeWidth={1.75} />
+                                        : <GppBad size={12} strokeWidth={1.75} />
+                                    }
+                                    label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
+                                    className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2 duration-300"
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {report.compliant
                                   ? t('documents.compliance.allMentionsPresent')
-                                  : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`
-                              }
-                            >
-                              {/* Le `span` porte la ref que Tooltip pose sur son
-                                  enfant : StatusChip est une fonction, il n'en
-                                  transmet pas, et l'infobulle ne s'ancrerait pas. */}
-                              <span className="inline-flex">
-                                <StatusChip
-                                  tone={report.compliant ? 'ok' : 'err'}
-                                  icon={
-                                    report.compliant
-                                      ? <GppGood size={12} strokeWidth={1.75} />
-                                      : <GppBad size={12} strokeWidth={1.75} />
-                                  }
-                                  label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
-                                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2 duration-300"
-                                />
-                              </span>
+                                  : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`}
+                              </TooltipContent>
                             </Tooltip>
                           ) : (
                             <span className="cn-text-caption text-muted-foreground">En attente</span>
@@ -496,16 +509,19 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         </TableCell>
                         <TableCell className="text-end">
                           {report ? (
-                            <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'} arrow>
-                              {report.compliant ? (
-                                <span className="inline-flex text-[var(--ok)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
-                                  <GppGood size={20} strokeWidth={1.75} />
-                                </span>
-                              ) : (
-                                <span className="inline-flex text-[var(--err)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
-                                  <GppBad size={20} strokeWidth={1.75} />
-                                </span>
-                              )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {report.compliant ? (
+                                  <span className="inline-flex text-[var(--ok)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
+                                    <GppGood size={20} strokeWidth={1.75} />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex text-[var(--err)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
+                                    <GppBad size={20} strokeWidth={1.75} />
+                                  </span>
+                                )}
+                              </TooltipTrigger>
+                              <TooltipContent>{report.compliant ? 'Conforme' : 'Non conforme'}</TooltipContent>
                             </Tooltip>
                           ) : isChecking ? (
                             <Spinner className="size-[18px] text-[var(--accent)]" />

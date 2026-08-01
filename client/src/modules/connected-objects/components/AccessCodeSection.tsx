@@ -4,7 +4,21 @@ import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Field, FieldLabel, FieldDescription, NativeSelect, NativeSelectOption } from '../../../components/ui';
-import { IconButton, Tooltip, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+// Snackbar/Alert restent MUI : basculer le mecanisme de notification (sonner)
+// depasse la migration des primitives et changerait le comportement de l'ecran.
+import { Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
@@ -85,12 +99,15 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
 
   return (
     <>
-      <Divider sx={{ mt: 0.25 }} />
+      <Separator className="mt-[1.5px]" />
       <div className="flex items-center gap-0.5 min-w-0">
-        <Tooltip title="Code d'accès" arrow>
-          <span className="text-muted-foreground opacity-60 inline-flex shrink-0">
-            <VpnKey size={14} strokeWidth={1.75} />
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-muted-foreground opacity-60 inline-flex shrink-0">
+              <VpnKey size={14} strokeWidth={1.75} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Code d'accès</TooltipContent>
         </Tooltip>
 
         {isLoading ? (
@@ -101,20 +118,51 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
             <p className={cn('cn-text-body1 tabular-nums font-semibold text-[0.875rem] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-[1.5px] leading-[1.4]', revealed ? 'tracking-[0.06em]' : 'tracking-[0.18em]')} style={{ fontFamily: 'var(--font-display)' }}>
               {revealed ? code!.code : '••••••'}
             </p>
-            <Tooltip title={revealed ? 'Masquer' : 'Afficher'} arrow>
-              <IconButton size="small" onClick={() => setRevealed((v) => !v)} sx={{ cursor: 'pointer', p: 0.25 }}>
-                {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
-              </IconButton>
+            {/* Le Button du kit est une fonction : il ne transmet pas de ref
+                (React 18). L'enveloppe porte l'ancre du Tooltip a sa place. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={revealed ? 'Masquer le code' : 'Afficher le code'}
+                    onClick={() => setRevealed((v) => !v)}
+                  >
+                    {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{revealed ? 'Masquer' : 'Afficher'}</TooltipContent>
             </Tooltip>
-            <Tooltip title="Copier" arrow>
-              <IconButton size="small" onClick={handleCopy} sx={{ cursor: 'pointer', p: 0.25 }}>
-                <ContentCopy size={14} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-xs" aria-label="Copier le code" onClick={handleCopy}>
+                    <ContentCopy size={14} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Copier</TooltipContent>
             </Tooltip>
-            <Tooltip title="Régénérer le code" arrow>
-              <IconButton size="small" onClick={() => setConfirmOpen(true)} disabled={rotating} sx={{ cursor: 'pointer', p: 0.25, ml: 'auto', color: 'text.secondary' }}>
-                {rotating ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+                    porte le declencheur a sa place. */}
+                <span className="inline-flex ms-auto">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Régénérer le code"
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={rotating}
+                    className="text-[var(--muted)]"
+                  >
+                    {rotating ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Régénérer le code</TooltipContent>
             </Tooltip>
           </>
         ) : (
@@ -162,26 +210,31 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
         </Field>
       ) : null}
 
-      <Dialog open={confirmOpen} onClose={() => { if (!rotating) setConfirmOpen(false); }} maxWidth="xs" fullWidth>
-        <DialogTitle>{hasCode ? 'Régénérer le code ?' : 'Générer un code ?'}</DialogTitle>
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(next) => { if (!next && !rotating) setConfirmOpen(false); }}
+      >
         <DialogContent>
-          <DialogContentText>
-            {hasCode
-              ? "L'ancien code sera révoqué sur la serrure et un nouveau code prendra effet. Un évènement est enregistré."
-              : 'Un nouveau code d\'accès sera programmé sur la serrure. Un évènement est enregistré.'}
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>{hasCode ? 'Régénérer le code ?' : 'Générer un code ?'}</DialogTitle>
+            <DialogDescription>
+              {hasCode
+                ? "L'ancien code sera révoqué sur la serrure et un nouveau code prendra effet. Un évènement est enregistré."
+                : 'Un nouveau code d\'accès sera programmé sur la serrure. Un évènement est enregistré.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={rotating}>Annuler</Button>
+            <Button
+              variant="default"
+              onClick={() => { void handleRotate(); }}
+              disabled={rotating}
+            >
+              {rotating ? <Spinner className="size-3.5" /> : null}
+              {hasCode ? 'Régénérer' : 'Générer'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={rotating}>Annuler</Button>
-          <Button
-            variant="default"
-            onClick={() => { void handleRotate(); }}
-            disabled={rotating}
-          >
-            {rotating ? <Spinner className="size-3.5" /> : null}
-            {hasCode ? 'Régénérer' : 'Générer'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar
