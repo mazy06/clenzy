@@ -3,7 +3,16 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Autocomplete } from '@mui/material';
+import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Autocomplete } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../../components/ui';
 import {
   Save,
   Cancel,
@@ -343,24 +352,26 @@ const UserEdit: React.FC = () => {
             accentColor="#6B8A9A"
             icon={<Person size={14} strokeWidth={1.75} />}
           >
-            <TextField
-              fullWidth
-              size="small"
-              label="Prénom"
-              value={formData.firstName}
-              onChange={(e) => handleInputChange('firstName', e.target.value)}
-              required
-              placeholder="Ex: Jean"
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Nom"
-              value={formData.lastName}
-              onChange={(e) => handleInputChange('lastName', e.target.value)}
-              required
-              placeholder="Ex: Dupont"
-            />
+            <Field>
+              <FieldLabel htmlFor="user-first-name">Prénom</FieldLabel>
+              <Input
+                id="user-first-name"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                required
+                placeholder="Ex: Jean"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="user-last-name">Nom</FieldLabel>
+              <Input
+                id="user-last-name"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                required
+                placeholder="Ex: Dupont"
+              />
+            </Field>
           </DetailSection>
 
           {/* Contact — accent teal */}
@@ -369,38 +380,40 @@ const UserEdit: React.FC = () => {
             accentColor="#4A9B8E"
             icon={<Email size={14} strokeWidth={1.75} />}
           >
-            <TextField
-              fullWidth
-              size="small"
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              placeholder="Ex: jean.dupont@clenzy.fr"
-              InputProps={{
-                startAdornment: (
-                  <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
+            <Field>
+              <FieldLabel htmlFor="user-email">Email</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Email size={16} strokeWidth={1.75} />
                   </span>
-                ),
-              }}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Téléphone"
-              value={formData.phoneNumber}
-              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-              placeholder="Ex: +33 6 12 34 56 78"
-              InputProps={{
-                startAdornment: (
-                  <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="user-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                  placeholder="Ex: jean.dupont@baitly.fr"
+                />
+              </InputGroup>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="user-phone">Téléphone</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Phone size={16} strokeWidth={1.75} />
                   </span>
-                ),
-              }}
-            />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="user-phone"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  placeholder="Ex: +33 6 12 34 56 78"
+                />
+              </InputGroup>
+            </Field>
           </DetailSection>
 
           {/* Rôle et statut — accent purple */}
@@ -567,25 +580,25 @@ const UserEdit: React.FC = () => {
               Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
             </p>
             <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
-              <TextField
-                fullWidth
-                size="small"
-                label="Nouveau mot de passe"
-                type={showNewPassword ? 'text' : 'password'}
-                value={formData.newPassword}
-                onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                placeholder="Minimum 8 caractères"
-                InputProps={{
-                  startAdornment: (
-                    <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
+              <Field>
+                <FieldLabel htmlFor="user-new-password">Nouveau mot de passe</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <span className="inline-flex text-muted-foreground opacity-60">
                       <Lock size={16} strokeWidth={1.75} />
                     </span>
-                  ),
-                  endAdornment: (
-                    <IconButton
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="user-new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={formData.newPassword}
+                    onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                    placeholder="Minimum 8 caractères"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      edge="end"
-                      size="small"
                       aria-label={showNewPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                     >
                       {showNewPassword ? (
@@ -593,29 +606,29 @@ const UserEdit: React.FC = () => {
                       ) : (
                         <Visibility size={16} strokeWidth={1.75} />
                       )}
-                    </IconButton>
-                  ),
-                }}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label="Confirmer le mot de passe"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                placeholder="Répétez le mot de passe"
-                InputProps={{
-                  startAdornment: (
-                    <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="user-confirm-password">Confirmer le mot de passe</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <span className="inline-flex text-muted-foreground opacity-60">
                       <Lock size={16} strokeWidth={1.75} />
                     </span>
-                  ),
-                  endAdornment: (
-                    <IconButton
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="user-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    placeholder="Répétez le mot de passe"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      edge="end"
-                      size="small"
                       aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                     >
                       {showConfirmPassword ? (
@@ -623,10 +636,10 @@ const UserEdit: React.FC = () => {
                       ) : (
                         <Visibility size={16} strokeWidth={1.75} />
                       )}
-                    </IconButton>
-                  ),
-                }}
-              />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
             </div>
           </DetailSection>
         </div>

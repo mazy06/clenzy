@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { Button, Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldError,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -70,20 +79,27 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
             )}
           </p>
 
-          <TextField
-            label={t('dynamicPricing.calendar.pricePerNight')}
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            error={!!error}
-            helperText={error}
-            fullWidth
-            autoFocus
-            InputProps={{
-              endAdornment: <p className="cn-text-body1 text-muted-foreground">{currency}</p>,
-            }}
-            inputProps={{ min: 0, step: 1 }}
-          />
+          <Field>
+            <FieldLabel htmlFor="pricing-price-per-night">
+              {t('dynamicPricing.calendar.pricePerNight')}
+            </FieldLabel>
+            <InputGroup className="w-full">
+              <InputGroupInput
+                id="pricing-price-per-night"
+                type="number"
+                min={0}
+                step={1}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                autoFocus
+                aria-invalid={!!error}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText className="text-muted-foreground">{currency}</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            {error && <FieldError>{error}</FieldError>}
+          </Field>
         </div>
       </DialogContent>
       <DialogActions>

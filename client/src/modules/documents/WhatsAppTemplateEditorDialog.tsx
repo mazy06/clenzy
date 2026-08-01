@@ -1,8 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+} from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField } from '@mui/material';
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -186,50 +195,56 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
               <div className="grid grid-cols-12 gap-3">
                 {/* Nom du template (readonly — slug systeme immuable) */}
                 <div className="col-span-12 min-[600px]:col-span-6">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.name')}
-                    value={friendlyName}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                    helperText={t('messaging.templates.editor.systemNameHelper')}
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="wa-template-name">
+                      {t('messaging.templates.editor.name')}
+                    </FieldLabel>
+                    <Input id="wa-template-name" value={friendlyName} readOnly />
+                    <FieldDescription>
+                      {t('messaging.templates.editor.systemNameHelper')}
+                    </FieldDescription>
+                  </Field>
                 </div>
                 {/* Categorie Meta (readonly) */}
                 <div className="col-span-6 min-[600px]:col-span-3">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.metaCategory')}
-                    value={group.category}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="wa-template-category">
+                      {t('messaging.templates.editor.metaCategory')}
+                    </FieldLabel>
+                    <Input id="wa-template-category" value={group.category} readOnly />
+                  </Field>
                 </div>
                 {/* Selecteur Langue */}
                 <div className="col-span-6 min-[600px]:col-span-3">
-                  <TextField
-                    fullWidth
-                    select
-                    label={t('messaging.templates.editor.language')}
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    size="small"
-                  >
-                    {LANGUAGES.map((lang) => {
-                      const tpl = group.languages[lang.value];
-                      const isCustom = tpl && !tpl.isSystem;
-                      return (
-                        <MenuItem key={lang.value} value={lang.value} disabled={!tpl}>
-                          {lang.label}
-                          {isCustom && (
-                            <span className="ms-1.5 w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] inline-block" />
-                          )}
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
+                  <Field>
+                    <FieldLabel htmlFor="wa-template-language">
+                      {t('messaging.templates.editor.language')}
+                    </FieldLabel>
+                    {/* Une <option> native ne peut contenir que du texte : la pastille
+                        « traduction personnalisee » devient un suffixe textuel. */}
+                    <NativeSelect
+                      id="wa-template-language"
+                      className="w-full"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                    >
+                      {LANGUAGES.map((lang) => {
+                        const tpl = group.languages[lang.value];
+                        const isCustom = tpl && !tpl.isSystem;
+                        return (
+                          <option key={lang.value} value={lang.value} disabled={!tpl}>
+                            {isCustom ? `${lang.label} •` : lang.label}
+                          </option>
+                        );
+                      })}
+                    </NativeSelect>
+                  </Field>
                 </div>
-                {/* Body multiline (pas de subject pour WhatsApp) */}
+                {/* Body multiline (pas de subject pour WhatsApp).
+                    Reste en TextField MUI : `inputRef` porte l'insertion de variable
+                    a la position du curseur, or les primitives du kit sont des
+                    composants fonction sans forwardRef (React 18) — la ref resterait
+                    nulle et l'insertion retomberait silencieusement en fin de champ. */}
                 <div className="col-span-12">
                   <TextField
                     fullWidth

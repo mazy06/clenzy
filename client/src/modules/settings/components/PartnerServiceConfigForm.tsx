@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Spinner, Button } from '../../../components/ui';
-import { Alert, TextField } from '@mui/material';
+import { Spinner, Button, Field, FieldLabel, Input } from '../../../components/ui';
+import { Alert } from '@mui/material';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -24,6 +24,9 @@ export default function PartnerServiceConfigForm({
   provider: PartnerServiceProvider;
   serviceName: string;
 }) {
+  // Le formulaire est instancie une fois par service du catalogue : les id des
+  // champs doivent rester uniques meme si deux instances coexistent.
+  const fieldId = useId();
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [connectedServerUrl, setConnectedServerUrl] = useState<string | null>(null);
@@ -116,32 +119,37 @@ export default function PartnerServiceConfigForm({
         </div>
       ) : (
         <>
-          <TextField
-            label="URL de l'API"
-            placeholder="https://api.exemple.com"
-            value={form.serverUrl}
-            onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
-            size="small"
-            fullWidth
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Identifiant de compte (optionnel)"
-            value={form.accountIdentifier}
-            onChange={(e) => setForm((f) => ({ ...f, accountIdentifier: e.target.value }))}
-            size="small"
-            fullWidth
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Clé API"
-            type="password"
-            value={form.apiKey}
-            onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
-            size="small"
-            fullWidth
-            sx={{ mb: 1 }}
-          />
+          <Field className="mb-1.5">
+            <FieldLabel htmlFor={`${fieldId}-server-url`}>URL de l'API</FieldLabel>
+            <Input
+              id={`${fieldId}-server-url`}
+              className="w-full"
+              placeholder="https://api.exemple.com"
+              value={form.serverUrl}
+              onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
+            />
+          </Field>
+          <Field className="mb-1.5">
+            <FieldLabel htmlFor={`${fieldId}-account-identifier`}>
+              Identifiant de compte (optionnel)
+            </FieldLabel>
+            <Input
+              id={`${fieldId}-account-identifier`}
+              className="w-full"
+              value={form.accountIdentifier}
+              onChange={(e) => setForm((f) => ({ ...f, accountIdentifier: e.target.value }))}
+            />
+          </Field>
+          <Field className="mb-1.5">
+            <FieldLabel htmlFor={`${fieldId}-api-key`}>Clé API</FieldLabel>
+            <Input
+              id={`${fieldId}-api-key`}
+              className="w-full"
+              type="password"
+              value={form.apiKey}
+              onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
+            />
+          </Field>
           <Button
             size="sm"
             onClick={handleConnect}

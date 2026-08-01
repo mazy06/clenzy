@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { TextField, MenuItem, Switch, FormControlLabel, Alert, Snackbar } from '@mui/material';
+import { Switch, FormControlLabel, Alert, Snackbar } from '@mui/material';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   AccountBalance, Info as InfoIcon, Verified,
 } from '../../icons';
@@ -238,114 +247,122 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
 
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.country')}
-                  value={form.countryCode}
-                  onChange={(e) => handleChange('countryCode', e.target.value)}
-                  size="small"
-                  required
-                >
-                  {COUNTRY_OPTIONS.map(c => (
-                    <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="fiscal-country">{t('fiscal.profile.country')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-country"
+                    className="w-full"
+                    value={form.countryCode}
+                    onChange={(e) => handleChange('countryCode', e.target.value)}
+                    required
+                  >
+                    {COUNTRY_OPTIONS.map(c => (
+                      <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.currency')}
-                  value={form.defaultCurrency}
-                  onChange={(e) => handleChange('defaultCurrency', e.target.value)}
-                  size="small"
-                  required
-                >
-                  {CURRENCY_OPTIONS.map(c => (
-                    <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="fiscal-currency">{t('fiscal.profile.currency')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-currency"
+                    className="w-full"
+                    value={form.defaultCurrency}
+                    onChange={(e) => handleChange('defaultCurrency', e.target.value)}
+                    required
+                  >
+                    {CURRENCY_OPTIONS.map(c => (
+                      <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.regime')}
-                  value={form.fiscalRegime}
-                  onChange={(e) => handleChange('fiscalRegime', e.target.value)}
-                  size="small"
-                >
-                  {REGIME_OPTIONS.map(r => (
-                    <MenuItem key={r.value} value={r.value}>{t(r.labelKey)}</MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="fiscal-regime">{t('fiscal.profile.regime')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-regime"
+                    className="w-full"
+                    value={form.fiscalRegime ?? ''}
+                    onChange={(e) => handleChange('fiscalRegime', e.target.value)}
+                  >
+                    {REGIME_OPTIONS.map(r => (
+                      <NativeSelectOption key={r.value} value={r.value}>{t(r.labelKey)}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.taxId')}
-                  value={form.taxIdNumber}
-                  onChange={(e) => handleChange('taxIdNumber', e.target.value)}
-                  size="small"
-                  placeholder="FR12345678901"
-                />
+                <Field>
+                  <FieldLabel htmlFor="fiscal-tax-id">{t('fiscal.profile.taxId')}</FieldLabel>
+                  <Input
+                    id="fiscal-tax-id"
+                    value={form.taxIdNumber ?? ''}
+                    onChange={(e) => handleChange('taxIdNumber', e.target.value)}
+                    placeholder="FR12345678901"
+                  />
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.vatNumber')}
-                  value={form.vatNumber}
-                  onChange={(e) => handleChange('vatNumber', e.target.value)}
-                  size="small"
-                  placeholder="FR 12 345678901"
-                />
+                <Field>
+                  <FieldLabel htmlFor="fiscal-vat-number">{t('fiscal.profile.vatNumber')}</FieldLabel>
+                  <Input
+                    id="fiscal-vat-number"
+                    value={form.vatNumber ?? ''}
+                    onChange={(e) => handleChange('vatNumber', e.target.value)}
+                    placeholder="FR 12 345678901"
+                  />
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.vatFrequency')}
-                  value={form.vatDeclarationFrequency || 'QUARTERLY'}
-                  onChange={(e) => handleChange('vatDeclarationFrequency', e.target.value)}
-                  size="small"
-                >
-                  {VAT_FREQUENCY_OPTIONS.map(f => (
-                    <MenuItem key={f.value} value={f.value}>{t(f.labelKey)}</MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="fiscal-vat-frequency">{t('fiscal.profile.vatFrequency')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-vat-frequency"
+                    className="w-full"
+                    value={form.vatDeclarationFrequency || 'QUARTERLY'}
+                    onChange={(e) => handleChange('vatDeclarationFrequency', e.target.value)}
+                  >
+                    {VAT_FREQUENCY_OPTIONS.map(f => (
+                      <NativeSelectOption key={f.value} value={f.value}>{t(f.labelKey)}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.invoiceLanguage')}
-                  value={form.invoiceLanguage || 'fr'}
-                  onChange={(e) => handleChange('invoiceLanguage', e.target.value)}
-                  size="small"
-                >
-                  {LANGUAGE_OPTIONS.map(l => (
-                    <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="fiscal-invoice-language">{t('fiscal.profile.invoiceLanguage')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-invoice-language"
+                    className="w-full"
+                    value={form.invoiceLanguage || 'fr'}
+                    onChange={(e) => handleChange('invoiceLanguage', e.target.value)}
+                  >
+                    {LANGUAGE_OPTIONS.map(l => (
+                      <NativeSelectOption key={l.value} value={l.value}>{l.label}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
 
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.invoicePrefix')}
-                  value={form.invoicePrefix}
-                  onChange={(e) => handleChange('invoicePrefix', e.target.value)}
-                  size="small"
-                  placeholder="FA"
-                  helperText="Ex: FA-2026-0001"
-                />
+                <Field>
+                  <FieldLabel htmlFor="fiscal-invoice-prefix">{t('fiscal.profile.invoicePrefix')}</FieldLabel>
+                  <Input
+                    id="fiscal-invoice-prefix"
+                    value={form.invoicePrefix ?? ''}
+                    onChange={(e) => handleChange('invoicePrefix', e.target.value)}
+                    placeholder="FA"
+                  />
+                  <FieldDescription>Ex: FA-2026-0001</FieldDescription>
+                </Field>
               </div>
 
               <div className="col-span-12">
@@ -375,13 +392,14 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
 
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12">
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.legalName')}
-                  value={form.legalEntityName}
-                  onChange={(e) => handleChange('legalEntityName', e.target.value)}
-                  size="small"
-                />
+                <Field>
+                  <FieldLabel htmlFor="fiscal-legal-name">{t('fiscal.profile.legalName')}</FieldLabel>
+                  <Input
+                    id="fiscal-legal-name"
+                    value={form.legalEntityName ?? ''}
+                    onChange={(e) => handleChange('legalEntityName', e.target.value)}
+                  />
+                </Field>
               </div>
               <div className="col-span-12">
                 <AddressAutocomplete
@@ -394,16 +412,16 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                 />
               </div>
               <div className="col-span-12">
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.legalMentions')}
-                  value={form.legalMentions}
-                  onChange={(e) => handleChange('legalMentions', e.target.value)}
-                  size="small"
-                  multiline
-                  rows={4}
-                  placeholder="Mentions legales obligatoires sur les factures"
-                />
+                <Field>
+                  <FieldLabel htmlFor="fiscal-legal-mentions">{t('fiscal.profile.legalMentions')}</FieldLabel>
+                  <Textarea
+                    id="fiscal-legal-mentions"
+                    rows={4}
+                    value={form.legalMentions ?? ''}
+                    onChange={(e) => handleChange('legalMentions', e.target.value)}
+                    placeholder="Mentions legales obligatoires sur les factures"
+                  />
+                </Field>
               </div>
             </div>
           </Card>

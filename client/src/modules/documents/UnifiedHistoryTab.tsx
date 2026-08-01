@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import {
   Download,
   Lock,
@@ -712,15 +713,17 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
             Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
             Le message sera automatiquement renvoye apres la mise a jour.
           </p>
-          <TextField
-            autoFocus
-            fullWidth
-            type="email"
-            label="Email"
-            value={editEmailValue}
-            onChange={(e) => setEditEmailValue(e.target.value)}
-            placeholder="voyageur@example.com"
-          />
+          <Field>
+            <FieldLabel htmlFor="resend-guest-email">Email</FieldLabel>
+            <Input
+              id="resend-guest-email"
+              autoFocus
+              type="email"
+              value={editEmailValue}
+              onChange={(e) => setEditEmailValue(e.target.value)}
+              placeholder="voyageur@example.com"
+            />
+          </Field>
         </DialogContent>
         <DialogActions>
           <BuiButton variant="outline" onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>

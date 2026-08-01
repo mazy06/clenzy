@@ -2,7 +2,19 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Switch, FormControlLabel, IconButton } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 import { Close as CloseIcon, Visibility, VisibilityOff } from '../../../icons';
 import type {
   PaymentMethodConfig,
@@ -414,46 +426,68 @@ export default function PaymentProviderConfigDialog({
         {fields.map((field) => {
           const isPassword = field.type === 'password';
           const showValue = isPassword ? !!showSecret[field.key] : true;
+          // `field.key` est unique dans le schema du provider affiche : il fait
+          // un id stable, contrairement a l'index de la boucle.
+          const fieldId = `payment-config-${field.key}`;
           return (
-            <TextField
-              key={field.key}
-              label={field.label}
-              type={field.type === 'select' ? undefined : (isPassword && !showValue ? 'password' : (field.type === 'number' ? 'number' : 'text'))}
-              select={field.type === 'select'}
-              value={values[field.key] ?? ''}
-              onChange={(e) => handleChange(field.key, e.target.value)}
-              helperText={field.helper}
-              required={field.required}
-              fullWidth
-              size="small"
-              placeholder={field.placeholder}
-              disabled={saving}
-              InputProps={isPassword ? {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => toggleShow(field.key)}
-                      edge="end"
-                      size="small"
+            <Field key={field.key}>
+              <FieldLabel htmlFor={fieldId} className="text-[0.82rem]">
+                {field.label}
+              </FieldLabel>
+              {field.type === 'select' ? (
+                <NativeSelect
+                  id={fieldId}
+                  className="w-full text-[0.82rem]"
+                  value={values[field.key] ?? ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  required={field.required}
+                  disabled={saving}
+                >
+                  {field.options?.map((opt) => (
+                    <NativeSelectOption key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              ) : isPassword ? (
+                <InputGroup>
+                  <InputGroupInput
+                    id={fieldId}
+                    className="text-[0.82rem]"
+                    type={showValue ? 'text' : 'password'}
+                    value={values[field.key] ?? ''}
+                    onChange={(e) => handleChange(field.key, e.target.value)}
+                    required={field.required}
+                    placeholder={field.placeholder}
+                    disabled={saving}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
                       tabIndex={-1}
+                      onClick={() => toggleShow(field.key)}
+                      aria-label={showValue ? 'Masquer la valeur' : 'Afficher la valeur'}
                     >
                       {showValue ? <VisibilityOff size={16} /> : <Visibility size={16} />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              } : undefined}
-              sx={{
-                '& .MuiOutlinedInput-root': { fontSize: '0.82rem' },
-                '& .MuiInputLabel-root': { fontSize: '0.82rem' },
-                '& .MuiFormHelperText-root': { fontSize: '0.68rem', mt: 0.25 },
-              }}
-            >
-              {field.type === 'select' && field.options?.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.82rem' }}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </TextField>
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              ) : (
+                <Input
+                  id={fieldId}
+                  className="text-[0.82rem]"
+                  type={field.type === 'number' ? 'number' : 'text'}
+                  value={values[field.key] ?? ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  disabled={saving}
+                />
+              )}
+              {field.helper && (
+                <FieldDescription className="text-[0.68rem]">{field.helper}</FieldDescription>
+              )}
+            </Field>
           );
         })}
 

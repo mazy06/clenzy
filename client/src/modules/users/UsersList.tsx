@@ -1,9 +1,9 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
+import { Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -683,44 +683,52 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         <DialogContent sx={{ pt: 1.5 }}>
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 min-[900px]:col-span-6">
-              <TextField
-                fullWidth
-                size="small"
-                label="Prénom *"
-                value={editFormData.firstName || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                required
-              />
+              <Field>
+                <FieldLabel htmlFor="user-edit-first-name">Prénom *</FieldLabel>
+                <Input
+                  id="user-edit-first-name"
+                  className="w-full"
+                  required
+                  value={editFormData.firstName || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                />
+              </Field>
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
-              <TextField
-                fullWidth
-                size="small"
-                label="Nom *"
-                value={editFormData.lastName || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                required
-              />
+              <Field>
+                <FieldLabel htmlFor="user-edit-last-name">Nom *</FieldLabel>
+                <Input
+                  id="user-edit-last-name"
+                  className="w-full"
+                  required
+                  value={editFormData.lastName || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                />
+              </Field>
             </div>
             <div className="col-span-12">
-              <TextField
-                fullWidth
-                size="small"
-                label="Email *"
-                type="email"
-                value={editFormData.email || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
-                required
-              />
+              <Field>
+                <FieldLabel htmlFor="user-edit-email">Email *</FieldLabel>
+                <Input
+                  id="user-edit-email"
+                  type="email"
+                  className="w-full"
+                  required
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </Field>
             </div>
             <div className="col-span-12">
-              <TextField
-                fullWidth
-                size="small"
-                label="Téléphone"
-                value={editFormData.phoneNumber || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-              />
+              <Field>
+                <FieldLabel htmlFor="user-edit-phone">Téléphone</FieldLabel>
+                <Input
+                  id="user-edit-phone"
+                  className="w-full"
+                  value={editFormData.phoneNumber || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </Field>
             </div>
             <div className="col-span-12 min-[900px]:col-span-6">
               <FormControl fullWidth size="small">

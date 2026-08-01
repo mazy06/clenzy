@@ -1,6 +1,21 @@
 import React, { useCallback, useState } from 'react';
-import { TextField, InputAdornment, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupText,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
   Euro,
@@ -111,16 +126,49 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
         <AccordionDetails>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-6">
-              <TextField label={t('tarification.basePrices.essentiel')} type="number" size="small" fullWidth value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
+              <Field>
+                <FieldLabel htmlFor="base-price-essentiel">{t('tarification.basePrices.essentiel')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-essentiel" type="number" className="tabular-nums" value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
             </div>
             <div className="col-span-6">
-              <TextField label={t('tarification.basePrices.confort')} type="number" size="small" fullWidth value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
+              <Field>
+                <FieldLabel htmlFor="base-price-confort">{t('tarification.basePrices.confort')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-confort" type="number" className="tabular-nums" value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
             </div>
             <div className="col-span-6">
-              <TextField label={t('tarification.basePrices.premium')} type="number" size="small" fullWidth value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
+              <Field>
+                <FieldLabel htmlFor="base-price-premium">{t('tarification.basePrices.premium')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-premium" type="number" className="tabular-nums" value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
             </div>
             <div className="col-span-6">
-              <TextField label={t('tarification.basePrices.minPrice')} type="number" size="small" fullWidth value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} helperText={t('tarification.basePrices.minPriceHelp')} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
+              <Field>
+                <FieldLabel htmlFor="base-price-min">{t('tarification.basePrices.minPrice')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-min" type="number" className="tabular-nums" value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+                <FieldDescription>{t('tarification.basePrices.minPriceHelp')}</FieldDescription>
+              </Field>
             </div>
           </div>
         </AccordionDetails>
@@ -192,7 +240,9 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 <TableRow key={key}>
                   <TableCell>{t(`tarification.propertyType.${key}`) || key}</TableCell>
                   <TableCell className="text-end w-[120px]">
-                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                    {/* Champ sans libelle visible : la premiere colonne porte le
+                        libelle, l'aria-label le rend au lecteur d'ecran. */}
+                    <Input id={`coeff-property-type-${key}`} aria-label={t(`tarification.propertyType.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -225,7 +275,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 <TableRow key={key}>
                   <TableCell>{t(`tarification.propertyCount.${key}`) || key}</TableCell>
                   <TableCell className="text-end w-[120px]">
-                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                    <Input id={`coeff-property-count-${key}`} aria-label={t(`tarification.propertyCount.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -258,7 +308,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 <TableRow key={key}>
                   <TableCell>{t(`tarification.guestCapacity.${key}`) || key}</TableCell>
                   <TableCell className="text-end w-[120px]">
-                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                    <Input id={`coeff-guest-capacity-${key}`} aria-label={t(`tarification.guestCapacity.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -291,7 +341,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 <TableRow key={key}>
                   <TableCell>{t(`tarification.frequency.${key}`) || key}</TableCell>
                   <TableCell className="text-end w-[120px]">
-                    <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                    <Input id={`coeff-frequency-${key}`} aria-label={t(`tarification.frequency.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -328,7 +378,9 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                   </TableCell>
                   <TableCell className="text-center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
                   <TableCell className="text-end w-[120px]">
-                    <TextField type="number" size="small" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
+                    {/* Pas d'id ici : le libelle du palier ("0-50 m²") ferait un
+                        id invalide, et aucun FieldLabel ne le vise. */}
+                    <Input aria-label={tier.label} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, e.target.value)} disabled={!canEdit} />
                   </TableCell>
                 </TableRow>
               ))}

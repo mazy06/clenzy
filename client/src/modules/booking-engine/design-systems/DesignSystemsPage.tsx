@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
+import { Field, FieldLabel, Input, Textarea } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { TextField, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -181,21 +182,40 @@ export default function DesignSystemsPage() {
               <div className="text-[13px] text-[var(--muted)] -mt-1.5">{SOURCES.find((s) => s.id === source)?.hint}</div>
 
               <div className="flex gap-2 flex-wrap">
-                <TextField size="small" label="Nom" value={name} onChange={(e) => setName(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />
-                <TextField size="small" label="Catégorie (optionnel)" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />
+                <Field className="flex-1 min-w-[220px]">
+                  <FieldLabel htmlFor="ds-name">Nom</FieldLabel>
+                  <Input id="ds-name" value={name} onChange={(e) => setName(e.target.value)} />
+                </Field>
+                <Field className="flex-1 min-w-[220px]">
+                  <FieldLabel htmlFor="ds-category">Catégorie (optionnel)</FieldLabel>
+                  <Input id="ds-category" value={category} onChange={(e) => setCategory(e.target.value)} />
+                </Field>
               </div>
 
               {source === 'URL' && (
-                <TextField size="small" label="URL du site" placeholder="https://…" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
+                <Field>
+                  <FieldLabel htmlFor="ds-website-url">URL du site</FieldLabel>
+                  <Input id="ds-website-url" placeholder="https://…" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
+                </Field>
               )}
               {source === 'BRAND' && (
-                <TextField multiline minRows={4} label="Description de la marque" placeholder="Ex. Riad de luxe à Marrakech, ambiance feutrée, terracotta et zelliges…" value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} />
+                <Field>
+                  <FieldLabel htmlFor="ds-brand-description">Description de la marque</FieldLabel>
+                  <Textarea id="ds-brand-description" rows={4} placeholder="Ex. Riad de luxe à Marrakech, ambiance feutrée, terracotta et zelliges…" value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} />
+                </Field>
               )}
               {(source === 'PASTE' || source === 'MANUAL') && (
-                <TextField multiline minRows={8} label="DESIGN.md" placeholder="# Design System…" value={designMarkdown} onChange={(e) => setDesignMarkdown(e.target.value)} sx={{ '& textarea': { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5 } }} />
+                <Field>
+                  <FieldLabel htmlFor="ds-design-markdown">DESIGN.md</FieldLabel>
+                  {/* Pile monospace explicite : la prose DESIGN.md se relit en colonnes alignees. */}
+                  <Textarea id="ds-design-markdown" rows={8} className="text-[12.5px]" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }} placeholder="# Design System…" value={designMarkdown} onChange={(e) => setDesignMarkdown(e.target.value)} />
+                </Field>
               )}
               {source === 'MANUAL' && (
-                <TextField multiline minRows={4} label="Tokens --bt-* (JSON, optionnel)" placeholder='{"--bt-color-primary":"#…"}' value={tokensJson} onChange={(e) => setTokensJson(e.target.value)} sx={{ '& textarea': { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5 } }} />
+                <Field>
+                  <FieldLabel htmlFor="ds-tokens-json">Tokens --bt-* (JSON, optionnel)</FieldLabel>
+                  <Textarea id="ds-tokens-json" rows={4} className="text-[12.5px]" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }} placeholder='{"--bt-color-primary":"#…"}' value={tokensJson} onChange={(e) => setTokensJson(e.target.value)} />
+                </Field>
               )}
 
               <div className="flex gap-1.5 mt-1.5">

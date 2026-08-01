@@ -3,22 +3,15 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Textarea } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Stack, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
+import { Button, Stack, ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient from '../../services/apiClient';
-
-const textFieldSx = {
-  '& .MuiOutlinedInput-root': {
-    '&:hover fieldset': { borderColor: 'secondary.main' },
-    '&.Mui-focused fieldset': { borderColor: 'secondary.main' },
-  },
-  '& .MuiInputLabel-root.Mui-focused': { color: 'secondary.main' },
-};
 
 export default function Support() {
   const { t } = useTranslation();
@@ -115,71 +108,76 @@ export default function Support() {
           /* Formulaire de contact */
           <form onSubmit={handleSubmit}>
             <Stack spacing={1.5}>
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.nameLabel', 'Nom complet')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                disabled={loading}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-name">{t('auth.support.fields.nameLabel', 'Nom complet')}</FieldLabel>
+                <Input
+                  id="support-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.emailLabel', 'Email')}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-email">{t('auth.support.fields.emailLabel', 'Email')}</FieldLabel>
+                <Input
+                  id="support-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.phoneLabel', 'Téléphone (optionnel)')}
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={loading}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-phone">{t('auth.support.fields.phoneLabel', 'Téléphone (optionnel)')}</FieldLabel>
+                <Input
+                  id="support-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={loading}
+                />
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                select
-                label={t('auth.support.fields.subjectLabel', 'Sujet')}
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-                disabled={loading}
-                sx={textFieldSx}
-              >
-                {subjects.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Field>
+                <FieldLabel htmlFor="support-subject">{t('auth.support.fields.subjectLabel', 'Sujet')}</FieldLabel>
+                <NativeSelect
+                  id="support-subject"
+                  className="w-full"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  disabled={loading}
+                >
+                  {/* Option vide obligatoire : un select natif sans valeur vide
+                      selectionnerait le 1er sujet a l'affichage alors que l'etat
+                      reste '', et `required` ne bloquerait plus l'envoi. */}
+                  <NativeSelectOption value="">
+                    {t('auth.support.fields.subjectPlaceholder', 'Choisissez un sujet')}
+                  </NativeSelectOption>
+                  {subjects.map((option) => (
+                    <NativeSelectOption key={option.value} value={option.value}>
+                      {option.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.messageLabel', 'Votre message')}
-                multiline
-                rows={4}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-                disabled={loading}
-                placeholder={t('auth.support.fields.messagePlaceholder', 'Décrivez votre problème ou votre demande...')}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-message">{t('auth.support.fields.messageLabel', 'Votre message')}</FieldLabel>
+                <Textarea
+                  id="support-message"
+                  rows={4}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  required
+                  disabled={loading}
+                  placeholder={t('auth.support.fields.messagePlaceholder', 'Décrivez votre problème ou votre demande...')}
+                />
+              </Field>
 
               {error && (
                 <Alert variant="destructive" className="py-1">

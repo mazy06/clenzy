@@ -2,9 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
-import { Spinner, Button } from '../../components/ui';
+import {
+  Spinner,
+  Button,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  Textarea,
+} from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Alert, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -716,94 +725,117 @@ const UpsellsAdmin: React.FC = () => {
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 0.5 }}>
             <div className="flex gap-2 flex-wrap">
-              <TextField
-                select
-                label={t('upsells.fields.type', 'Catégorie')}
-                value={edit.type}
-                onChange={(e) => setEdit((s) => ({ ...s, type: e.target.value }))}
-                size="small"
-                sx={{ minWidth: 180 }}
-              >
-                {TYPES.map((id) => (
-                  <MenuItem key={id} value={id}>
-                    {typeLabel(id)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label={t('upsells.fields.title', 'Titre')}
-                value={edit.title}
-                onChange={(e) => setEdit((s) => ({ ...s, title: e.target.value }))}
-                size="small"
-                sx={{ flex: 1, minWidth: 200 }}
-              />
+              <Field className="w-auto min-w-[180px]">
+                <FieldLabel htmlFor="upsell-type">{t('upsells.fields.type', 'Catégorie')}</FieldLabel>
+                <NativeSelect
+                  id="upsell-type"
+                  className="w-full"
+                  value={edit.type}
+                  onChange={(e) => setEdit((s) => ({ ...s, type: e.target.value }))}
+                >
+                  {TYPES.map((id) => (
+                    <option key={id} value={id}>
+                      {typeLabel(id)}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <Field className="w-auto flex-1 min-w-[200px]">
+                <FieldLabel htmlFor="upsell-title">{t('upsells.fields.title', 'Titre')}</FieldLabel>
+                <Input
+                  id="upsell-title"
+                  value={edit.title}
+                  onChange={(e) => setEdit((s) => ({ ...s, title: e.target.value }))}
+                />
+              </Field>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <TextField
-                label={t('upsells.fields.price', 'Prix')}
-                value={edit.price}
-                onChange={(e) => setEdit((s) => ({ ...s, price: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ width: 140 }}
-                inputProps={{ min: 0, step: '0.01' }}
-              />
-              <TextField
-                label={t('upsells.fields.currency', 'Devise')}
-                value={edit.currency}
-                onChange={(e) => setEdit((s) => ({ ...s, currency: e.target.value.toUpperCase() }))}
-                size="small"
-                sx={{ width: 100 }}
-                inputProps={{ maxLength: 3 }}
-              />
-              <TextField
-                select
-                label={t('upsells.fields.property', 'Propriété')}
-                value={edit.propertyId}
-                onChange={(e) => setEdit((s) => ({ ...s, propertyId: e.target.value }))}
-                size="small"
-                sx={{ flex: 1, minWidth: 180 }}
-              >
-                <MenuItem value="">{t('upsells.allProperties', 'Toutes les propriétés')}</MenuItem>
-                {properties.map((p) => (
-                  <MenuItem key={p.id} value={String(p.id)}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Field className="w-[140px]">
+                <FieldLabel htmlFor="upsell-price">{t('upsells.fields.price', 'Prix')}</FieldLabel>
+                <Input
+                  id="upsell-price"
+                  value={edit.price}
+                  onChange={(e) => setEdit((s) => ({ ...s, price: e.target.value }))}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                />
+              </Field>
+              <Field className="w-[100px]">
+                <FieldLabel htmlFor="upsell-currency">{t('upsells.fields.currency', 'Devise')}</FieldLabel>
+                <Input
+                  id="upsell-currency"
+                  value={edit.currency}
+                  onChange={(e) => setEdit((s) => ({ ...s, currency: e.target.value.toUpperCase() }))}
+                  maxLength={3}
+                />
+              </Field>
+              <Field className="w-auto flex-1 min-w-[180px]">
+                <FieldLabel htmlFor="upsell-property">{t('upsells.fields.property', 'Propriété')}</FieldLabel>
+                <NativeSelect
+                  id="upsell-property"
+                  className="w-full"
+                  value={edit.propertyId}
+                  onChange={(e) => setEdit((s) => ({ ...s, propertyId: e.target.value }))}
+                >
+                  <option value="">{t('upsells.allProperties', 'Toutes les propriétés')}</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
             </div>
-            <TextField
-              label={t('upsells.fields.description', 'Description (optionnel)')}
-              value={edit.description}
-              onChange={(e) => setEdit((s) => ({ ...s, description: e.target.value }))}
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-            />
+            <Field>
+              <FieldLabel htmlFor="upsell-description">
+                {t('upsells.fields.description', 'Description (optionnel)')}
+              </FieldLabel>
+              <Textarea
+                id="upsell-description"
+                rows={2}
+                value={edit.description}
+                onChange={(e) => setEdit((s) => ({ ...s, description: e.target.value }))}
+              />
+            </Field>
             {/* Productisation (2.10) : conditionnel + fenêtre horaire de commande. */}
             <div className="flex gap-2 flex-wrap">
-              <TextField
-                label={t('upsells.fields.minNights', 'Séjour min. (nuits)')}
-                helperText={t('upsells.fields.minNightsHelp', 'Proposé si le séjour atteint ce nb de nuits. Vide = toujours.')}
-                value={edit.minNights}
-                onChange={(e) => setEdit((s) => ({ ...s, minNights: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ width: 200 }}
-                inputProps={{ min: 0, step: 1 }}
-              />
-              <TextField
-                label={t('upsells.fields.leadTimeHours', 'Délai mini avant arrivée (h)')}
-                helperText={t('upsells.fields.leadTimeHoursHelp', 'Commandable seulement si l’arrivée est ≥ X h. Vide = aucun délai.')}
-                value={edit.leadTimeHours}
-                onChange={(e) => setEdit((s) => ({ ...s, leadTimeHours: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ flex: 1, minWidth: 220 }}
-                inputProps={{ min: 0, step: 1 }}
-              />
+              <Field className="w-[200px]">
+                <FieldLabel htmlFor="upsell-min-nights">
+                  {t('upsells.fields.minNights', 'Séjour min. (nuits)')}
+                </FieldLabel>
+                <Input
+                  id="upsell-min-nights"
+                  value={edit.minNights}
+                  onChange={(e) => setEdit((s) => ({ ...s, minNights: e.target.value }))}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+                <FieldDescription>
+                  {t('upsells.fields.minNightsHelp', 'Proposé si le séjour atteint ce nb de nuits. Vide = toujours.')}
+                </FieldDescription>
+              </Field>
+              <Field className="w-auto flex-1 min-w-[220px]">
+                <FieldLabel htmlFor="upsell-lead-time">
+                  {t('upsells.fields.leadTimeHours', 'Délai mini avant arrivée (h)')}
+                </FieldLabel>
+                <Input
+                  id="upsell-lead-time"
+                  value={edit.leadTimeHours}
+                  onChange={(e) => setEdit((s) => ({ ...s, leadTimeHours: e.target.value }))}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+                <FieldDescription>
+                  {t('upsells.fields.leadTimeHoursHelp', 'Commandable seulement si l’arrivée est ≥ X h. Vide = aucun délai.')}
+                </FieldDescription>
+              </Field>
             </div>
+            {/* Bundle : reste un Select MUI multiple. Le <select multiple> natif du kit
+                se rend en liste deroulee a selection multiple (Ctrl/Cmd) et ne renvoie
+                qu'une valeur dans e.target.value — la saisie ne serait plus la meme. */}
             <TextField
               select
               label={t('upsells.fields.bundle', 'Offres incluses (bundle)')}

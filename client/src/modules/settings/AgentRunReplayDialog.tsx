@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Skeleton, useTheme } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
@@ -150,13 +151,19 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                     'Le prompt de re-analyse est copié — collez-le dans le chat de l\u2019assistant pour lancer le what-if.')}
                 </span>
                 <div className="flex gap-1.5 items-start">
-                  <TextField
-                    size="small"
-                    fullWidth
-                    value={hypothesis}
-                    onChange={(e) => setHypothesis(e.target.value)}
-                    placeholder={t('agentReplay.whatIf.placeholder', 'Ex. : avec un tarif nuit à 95 € au lieu de 120 €')}
-                  />
+                  <Field className="flex-1">
+                    {/* Libelle masque : le titre « Et si… ? » juste au-dessus fait
+                        office d'intitule visible, mais le champ doit garder un nom. */}
+                    <FieldLabel htmlFor="agent-replay-hypothesis" className="sr-only">
+                      {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
+                    </FieldLabel>
+                    <Input
+                      id="agent-replay-hypothesis"
+                      value={hypothesis}
+                      onChange={(e) => setHypothesis(e.target.value)}
+                      placeholder={t('agentReplay.whatIf.placeholder', 'Ex. : avec un tarif nuit à 95 € au lieu de 120 €')}
+                    />
+                  </Field>
                   <Button
                     variant="outline"
                     size="sm"

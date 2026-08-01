@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { TextField } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import { Receipt, Search } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import ServiceRequestQuoteEditor from './ServiceRequestQuoteEditor';
@@ -103,27 +103,25 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
         {pricingMode === 'DIAGNOSTIC' ? (
           <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <div>
-                <p className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mb-0.5">
+              <Field className="w-[130px]">
+                <FieldLabel
+                  htmlFor="maintenance-diagnostic-fee"
+                  className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mb-0.5"
+                >
                   Montant du diagnostic (€)
-                </p>
-                <TextField
+                </FieldLabel>
+                <Input
+                  id="maintenance-diagnostic-fee"
+                  className="w-full bg-[var(--card)] text-[13px] tabular-nums text-end [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   value={Number.isFinite(diagnosticFee as number) && diagnosticFee !== undefined ? diagnosticFee : ''}
                   onChange={(e) => handleDiagnosticChange(e.target.value)}
                   type="number"
-                  inputProps={{ min: 0, step: 1 }}
+                  min={0}
+                  step={1}
                   placeholder="0"
                   disabled={disabled}
-                  size="small"
-                  sx={{
-                    width: 130,
-                    '& .MuiOutlinedInput-root': { fontSize: '13px', fontVariantNumeric: 'tabular-nums', bgcolor: 'var(--card)' },
-                    '& input': { textAlign: 'right' },
-                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
-                    '& input[type=number]': { MozAppearance: 'textfield' },
-                  }}
                 />
-              </div>
+              </Field>
               <p className="cn-text-body1 flex-1 min-w-[180px] text-[11.5px] text-[var(--muted)] leading-[1.4]">
                 L'artisan facture d'abord ce diagnostic pour évaluer sur place, puis
                 établit le devis après la visite. Optionnel — laisse vide pour chiffrer plus tard.

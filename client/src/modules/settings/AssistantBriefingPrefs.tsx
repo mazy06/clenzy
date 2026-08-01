@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner, Button } from '../../components/ui';
-import { Box, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Divider } from '@mui/material';
+import { Spinner, Button, Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
+import { Box, Switch, FormControlLabel, Select, MenuItem, Checkbox, Divider } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -200,35 +200,40 @@ export const AssistantBriefingPrefs: React.FC = () => {
             </span>
           </div>
 
-          <div>
-            <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+          <Field>
+            {/* Le libelle garde la typo overline de la ligne : le bloc voisin
+                « Frequence » est un Select MUI encore habille de cette facon. */}
+            <FieldLabel
+              htmlFor="briefing-time-local"
+              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
+            >
               Heure d'envoi
-            </span>
-            <TextField
+            </FieldLabel>
+            <Input
+              id="briefing-time-local"
               type="time"
-              size="small"
-              fullWidth
               value={prefs.timeLocal}
               onChange={(e) => update('timeLocal', e.target.value)}
-              inputProps={{ step: 300 }}
-              sx={{ mt: 0.5 }}
+              step={300}
+              className="w-full"
             />
-          </div>
+          </Field>
 
-          <div>
-            <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+          <Field>
+            <FieldLabel
+              htmlFor="briefing-timezone"
+              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
+            >
               Fuseau horaire
-            </span>
-            <TextField
-              size="small"
-              fullWidth
+            </FieldLabel>
+            <Input
+              id="briefing-timezone"
               value={prefs.timezone}
               onChange={(e) => update('timezone', e.target.value)}
-              helperText={`Détecté : ${detectTimezone()}`}
-              sx={{ mt: 0.5 }}
-              FormHelperTextProps={{ sx: { ml: 0, fontSize: '0.7rem' } }}
+              className="w-full"
             />
-          </div>
+            <FieldDescription className="text-[0.7rem]">{`Détecté : ${detectTimezone()}`}</FieldDescription>
+          </Field>
         </div>
 
         {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}

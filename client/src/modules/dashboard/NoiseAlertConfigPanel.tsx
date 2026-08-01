@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Button, Spinner } from '../../components/ui';
-import { Card, CardContent, Switch, FormControlLabel, TextField, Slider, IconButton, Divider, FormControl, Select, MenuItem } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
+import { Card, CardContent, Switch, FormControlLabel, Slider, IconButton, Divider, FormControl, Select, MenuItem } from '@mui/material';
 import {
   Settings,
   Add,
@@ -119,6 +120,9 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
   );
   const [form, setForm] = useState<ConfigForm>(DEFAULT_CONFIG);
   const [saved, setSaved] = useState(false);
+  // Prefixe d'id propre a cette instance : le panneau peut etre monte plusieurs
+  // fois (vue globale + detail capteur), les ids de creneau doivent rester uniques.
+  const fieldIdBase = React.useId();
 
   // Index du créneau horaire actuellement édité (pour synchroniser le graphique).
   // Par défaut : créneau actif basé sur l'heure courante.
@@ -352,32 +356,38 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
                     {form.timeWindows.map((tw, idx) => (
                       <div className="p-2 mb-1.5 rounded-[1px] bg-[var(--surface-2)] border border-[var(--line)]" key={idx}>
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <TextField
-                            size="small"
-                            label="Label"
-                            value={tw.label}
-                            onChange={(e) => updateTimeWindow(idx, 'label', e.target.value)}
-                            sx={{ flex: 1, '& input': { fontSize: '0.8125rem' } }}
-                          />
-                          <TextField
-                            size="small"
-                            label="Debut"
-                            type="time"
-                            value={tw.startTime}
-                            onChange={(e) => updateTimeWindow(idx, 'startTime', e.target.value)}
-                            sx={{ width: 120, '& input': { fontSize: '0.8125rem' } }}
-                            InputLabelProps={{ shrink: true }}
-                          />
-                          <TextField
-                            size="small"
-                            label="Fin"
-                            type="time"
-                            value={tw.endTime}
-                            onChange={(e) => updateTimeWindow(idx, 'endTime', e.target.value)}
-                            sx={{ width: 120, '& input': { fontSize: '0.8125rem' } }}
-                            InputLabelProps={{ shrink: true }}
-                          />
+                        {/* items-end : le libelle passe AU-DESSUS du champ, la corbeille
+                            doit s'aligner sur la ligne de saisie et non sur l'ensemble. */}
+                        <div className="flex items-end gap-1.5 mb-1.5">
+                          <Field className="flex-1">
+                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-label`}>Label</FieldLabel>
+                            <Input
+                              id={`${fieldIdBase}-tw-${idx}-label`}
+                              className="w-full text-[0.8125rem]"
+                              value={tw.label}
+                              onChange={(e) => updateTimeWindow(idx, 'label', e.target.value)}
+                            />
+                          </Field>
+                          <Field className="w-[120px]">
+                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-start`}>Debut</FieldLabel>
+                            <Input
+                              id={`${fieldIdBase}-tw-${idx}-start`}
+                              className="w-full text-[0.8125rem]"
+                              type="time"
+                              value={tw.startTime}
+                              onChange={(e) => updateTimeWindow(idx, 'startTime', e.target.value)}
+                            />
+                          </Field>
+                          <Field className="w-[120px]">
+                            <FieldLabel htmlFor={`${fieldIdBase}-tw-${idx}-end`}>Fin</FieldLabel>
+                            <Input
+                              id={`${fieldIdBase}-tw-${idx}-end`}
+                              className="w-full text-[0.8125rem]"
+                              type="time"
+                              value={tw.endTime}
+                              onChange={(e) => updateTimeWindow(idx, 'endTime', e.target.value)}
+                            />
+                          </Field>
                           {form.timeWindows.length > 1 && (
                             <IconButton
                               size="small"
@@ -476,15 +486,18 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     </div>
 
                     {form.notifyEmail && (
-                      <TextField
-                        size="small"
-                        fullWidth
-                        label="Destinataires email (optionnel, separes par virgule)"
-                        value={form.emailRecipients}
-                        onChange={(e) => updateField('emailRecipients', e.target.value)}
-                        sx={{ mb: 1.5, '& input': { fontSize: '0.8125rem' } }}
-                        placeholder="email1@example.com, email2@example.com"
-                      />
+                      <Field className="mb-[9px]">
+                        <FieldLabel htmlFor={`${fieldIdBase}-email-recipients`}>
+                          Destinataires email (optionnel, separes par virgule)
+                        </FieldLabel>
+                        <Input
+                          id={`${fieldIdBase}-email-recipients`}
+                          className="w-full text-[0.8125rem]"
+                          value={form.emailRecipients}
+                          onChange={(e) => updateField('emailRecipients', e.target.value)}
+                          placeholder="email1@example.com, email2@example.com"
+                        />
+                      </Field>
                     )}
 
                     {/* Cooldown */}

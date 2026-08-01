@@ -3,9 +3,18 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
   Hotel, Percent, CleaningServices, Restaurant,
@@ -217,17 +226,18 @@ const TaxRulesSection: React.FC = () => {
 
           <div className="flex items-center gap-2">
             {/* Country selector */}
-            <TextField
-              select
+            {/* Filtre sans libelle visible (il jouxte le titre de la carte) :
+                l'aria-label reste la seule etiquette. */}
+            <NativeSelect
+              className="min-w-[160px]"
+              aria-label={t('fiscal.taxRules.countryLabel')}
               value={countryCode}
               onChange={(e) => setSelectedCountry(e.target.value)}
-              size="small"
-              sx={{ minWidth: 160 }}
             >
               {COUNTRY_OPTIONS.map(c => (
-                <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
+                <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
               ))}
-            </TextField>
+            </NativeSelect>
 
             {/* Add button (SUPER_ADMIN only) */}
             {isSuperAdmin && (
@@ -349,87 +359,94 @@ const TaxRulesSection: React.FC = () => {
           {editingRule ? t('fiscal.taxRules.editTitle') : t('fiscal.taxRules.addTitle')}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            select
-            label={t('fiscal.taxRules.category')}
-            value={form.taxCategory}
-            onChange={(e) => handleFormChange('taxCategory', e.target.value)}
-            size="small"
-            fullWidth
-            required
-          >
-            {TAX_CATEGORIES.map(cat => (
-              <MenuItem key={cat} value={cat}>{categoryLabel(cat)}</MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="tax-rule-category">{t('fiscal.taxRules.category')}</FieldLabel>
+            <NativeSelect
+              id="tax-rule-category"
+              className="w-full"
+              required
+              value={form.taxCategory}
+              onChange={(e) => handleFormChange('taxCategory', e.target.value)}
+            >
+              {TAX_CATEGORIES.map(cat => (
+                <NativeSelectOption key={cat} value={cat}>{categoryLabel(cat)}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label={t('fiscal.taxRules.taxName')}
-            value={form.taxName}
-            onChange={(e) => handleFormChange('taxName', e.target.value)}
-            size="small"
-            fullWidth
-            required
-            placeholder="Ex: TVA 20%"
-          />
+          <Field>
+            <FieldLabel htmlFor="tax-rule-name">{t('fiscal.taxRules.taxName')}</FieldLabel>
+            <Input
+              id="tax-rule-name"
+              required
+              placeholder="Ex: TVA 20%"
+              value={form.taxName}
+              onChange={(e) => handleFormChange('taxName', e.target.value)}
+            />
+          </Field>
 
-          <TextField
-            label={t('fiscal.taxRules.ratePercent')}
-            value={ratePercent}
-            onChange={(e) => handleRateChange(e.target.value)}
-            size="small"
-            fullWidth
-            required
-            type="number"
-            inputProps={{ min: 0, max: 100, step: 0.01 }}
-            helperText={t('fiscal.taxRules.rateHelp')}
-          />
+          <Field>
+            <FieldLabel htmlFor="tax-rule-rate">{t('fiscal.taxRules.ratePercent')}</FieldLabel>
+            <Input
+              id="tax-rule-rate"
+              type="number"
+              required
+              min={0}
+              max={100}
+              step={0.01}
+              className="tabular-nums"
+              value={ratePercent}
+              onChange={(e) => handleRateChange(e.target.value)}
+            />
+            <FieldDescription>{t('fiscal.taxRules.rateHelp')}</FieldDescription>
+          </Field>
 
-          <TextField
-            select
-            label={t('fiscal.taxRules.countryLabel')}
-            value={form.countryCode}
-            onChange={(e) => handleFormChange('countryCode', e.target.value)}
-            size="small"
-            fullWidth
-            required
-          >
-            {COUNTRY_OPTIONS.map(c => (
-              <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="tax-rule-country">{t('fiscal.taxRules.countryLabel')}</FieldLabel>
+            <NativeSelect
+              id="tax-rule-country"
+              className="w-full"
+              required
+              value={form.countryCode}
+              onChange={(e) => handleFormChange('countryCode', e.target.value)}
+            >
+              {COUNTRY_OPTIONS.map(c => (
+                <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label={t('fiscal.taxRules.from')}
-            value={form.effectiveFrom}
-            onChange={(e) => handleFormChange('effectiveFrom', e.target.value)}
-            size="small"
-            fullWidth
-            required
-            type="date"
-            InputLabelProps={{ shrink: true }}
-          />
+          <Field>
+            <FieldLabel htmlFor="tax-rule-from">{t('fiscal.taxRules.from')}</FieldLabel>
+            <Input
+              id="tax-rule-from"
+              type="date"
+              required
+              value={form.effectiveFrom}
+              onChange={(e) => handleFormChange('effectiveFrom', e.target.value)}
+            />
+          </Field>
 
-          <TextField
-            label={t('fiscal.taxRules.to')}
-            value={form.effectiveTo ?? ''}
-            onChange={(e) => handleFormChange('effectiveTo', e.target.value || null)}
-            size="small"
-            fullWidth
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            helperText={t('fiscal.taxRules.toHelp')}
-          />
+          <Field>
+            <FieldLabel htmlFor="tax-rule-to">{t('fiscal.taxRules.to')}</FieldLabel>
+            <Input
+              id="tax-rule-to"
+              type="date"
+              value={form.effectiveTo ?? ''}
+              onChange={(e) => handleFormChange('effectiveTo', e.target.value || null)}
+            />
+            <FieldDescription>{t('fiscal.taxRules.toHelp')}</FieldDescription>
+          </Field>
 
-          <TextField
-            label={t('fiscal.taxRules.description')}
-            value={form.description ?? ''}
-            onChange={(e) => handleFormChange('description', e.target.value || null)}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-          />
+          <Field>
+            <FieldLabel htmlFor="tax-rule-description">{t('fiscal.taxRules.description')}</FieldLabel>
+            <Textarea
+              id="tax-rule-description"
+              rows={2}
+              value={form.description ?? ''}
+              onChange={(e) => handleFormChange('description', e.target.value || null)}
+            />
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="ghost" size="sm" onClick={closeDialog}>

@@ -4,7 +4,15 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
-import { TextField, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
+import { Alert, Snackbar, Skeleton } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -17,10 +25,6 @@ import type { HousekeeperRates, HousekeeperPropertyRate } from '../../services/a
 // « dans le marché » si dedans, sinon écart % NEUTRE — jamais de blocage.
 
 const ratesKeys = { my: ['housekeeper-rates', 'me'] as const };
-
-const NUM_SX = {
-  '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
-} as const;
 
 const SECTION_TITLE_SX = {
   fontSize: '10.5px',
@@ -156,17 +160,23 @@ export default function MyRatesSettings() {
       <Card className="gap-0 py-0 p-3.5">
         <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.hourlySection')}</p>
         <div className="flex items-center gap-3 flex-wrap">
-          <TextField
-            label={t('settings.myRates.hourlyRate')}
-            type="number"
-            size="small"
-            value={hourly}
-            onChange={(e) => setHourly(e.target.value)}
-            inputProps={{ min: 0, step: 0.5 }}
-            InputProps={{ endAdornment: <InputAdornment position="end">€/h</InputAdornment> }}
-            InputLabelProps={{ shrink: true }}
-            sx={{ ...NUM_SX, width: 220 }}
-          />
+          <Field className="w-[220px]">
+            <FieldLabel htmlFor="my-rates-hourly">{t('settings.myRates.hourlyRate')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="my-rates-hourly"
+                type="number"
+                min={0}
+                step={0.5}
+                className="tabular-nums"
+                value={hourly}
+                onChange={(e) => setHourly(e.target.value)}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>€/h</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
           {referenceRate != null && (
             <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
               {t('settings.myRates.referenceRate')} : {referenceRate} €/h
@@ -206,16 +216,24 @@ export default function MyRatesSettings() {
                   </p>
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1.5">
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder={String(property.advisoryRecommended)}
-                        value={raw}
-                        onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                        inputProps={{ min: 0, step: 5, 'aria-label': t('settings.myRates.flatFieldAria', { name: property.propertyName }) }}
-                        InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                        sx={{ ...NUM_SX, width: 150 }}
-                      />
+                      {/* Champ sans libelle visible (le nom du logement est a
+                          gauche) : l'aria-label reste la seule etiquette. */}
+                      <InputGroup className="w-[150px]">
+                        <InputGroupInput
+                          id={`my-rates-flat-${property.propertyId}`}
+                          type="number"
+                          min={0}
+                          step={5}
+                          className="tabular-nums"
+                          aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
+                          placeholder={String(property.advisoryRecommended)}
+                          value={raw}
+                          onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText>€</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
                       <NudgeBadge amount={amount} rate={property} />
                     </div>
                     {/* Nudge : fourchette conseil, ancre médiane */}

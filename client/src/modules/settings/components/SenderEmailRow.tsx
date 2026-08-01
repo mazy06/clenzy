@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { TextField } from '@mui/material';
-import { Button } from '../../../components/ui';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { Info, Send } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -50,22 +49,28 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 min-[600px]:ms-[30px]">
-        <TextField
-          size="small"
-          label="Adresse email"
-          value={localEmail}
-          onChange={(e) => setLocalEmail(e.target.value)}
-          error={localEmail.length > 0 && !emailValid}
-          sx={{ flex: '1 1 220px', '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
-        />
-        <TextField
-          size="small"
-          label="Nom d'affichage"
-          value={localName}
-          onChange={(e) => setLocalName(e.target.value)}
-          sx={{ flex: '1 1 160px', '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
-        />
+      {/* items-end : le libelle est passe au-dessus du champ, le bouton doit
+          rester aligne sur la ligne de saisie et non s'etirer sur toute la hauteur. */}
+      <div className="flex flex-wrap items-end gap-1.5 min-[600px]:ms-[30px]">
+        <Field className="flex-[1_1_220px]">
+          <FieldLabel htmlFor="sender-email">Adresse email</FieldLabel>
+          <Input
+            id="sender-email"
+            className="w-full text-[0.8rem]"
+            value={localEmail}
+            onChange={(e) => setLocalEmail(e.target.value)}
+            aria-invalid={localEmail.length > 0 && !emailValid}
+          />
+        </Field>
+        <Field className="flex-[1_1_160px]">
+          <FieldLabel htmlFor="sender-display-name">Nom d'affichage</FieldLabel>
+          <Input
+            id="sender-display-name"
+            className="w-full text-[0.8rem]"
+            value={localName}
+            onChange={(e) => setLocalName(e.target.value)}
+          />
+        </Field>
         {/* Seule action de la rangee, elle valide les deux champs : action
             principale de la zone, d'ou l'encre pleine. */}
         <Button

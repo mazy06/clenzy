@@ -3,7 +3,14 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Box, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
+import { Alert, Box, Divider, Stack, Switch, Tooltip, alpha, useTheme } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -43,7 +50,7 @@ const BADGE_TONES: Record<'success' | 'warning' | 'info', StatusTone> = {
  *   <li>Le formulaire dessous change selon le provider selectionne</li>
  *   <li>Les credentials de l'autre provider restent en base (utile pour
  *       revenir en arriere sans re-saisir)</li>
- *   <li>Les secrets (apiToken, openwaApiKey) sont en TextField type=password
+ *   <li>Les secrets (apiToken, openwaApiKey) sont en Input type=password
  *       avec un placeholder "deja configure" si {@code hasApiToken} = true</li>
  *   <li>Bouton Save grise tant qu'aucun changement</li>
  * </ul>
@@ -295,86 +302,114 @@ export default function WhatsAppProviderConfigSection() {
           <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.meta.formTitle', 'Identifiants Meta Cloud API')}
           </h6>
-          <TextField
-            label={t('settings.whatsapp.meta.apiToken', 'API Token (permanent)')}
-            type="password"
-            value={apiToken}
-            onChange={(e) => setApiToken(e.target.value)}
-            placeholder={config?.hasApiToken ? '••••••••••••  (déjà configuré, laissez vide pour conserver)' : 'EAAxxxxxxxxxxxxxxxx...'}
-            fullWidth
-            size="small"
-            autoComplete="off"
-            InputProps={{
-              endAdornment: (
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-api-token">
+              {t('settings.whatsapp.meta.apiToken', 'API Token (permanent)')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-api-token"
+                type="password"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+                placeholder={config?.hasApiToken ? '••••••••••••  (déjà configuré, laissez vide pour conserver)' : 'EAAxxxxxxxxxxxxxxxx...'}
+                autoComplete="off"
+              />
+              <InputGroupAddon align="inline-end">
                 <FieldInfo text={t('settings.whatsapp.meta.apiTokenHelp',
                   'Token permanent depuis Meta Business Manager > System Users > Generate Token.')} />
-              ),
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.meta.phoneNumberId', 'Phone Number ID')}
-            value={phoneNumberId}
-            onChange={(e) => setPhoneNumberId(e.target.value)}
-            placeholder="123456789012345"
-            fullWidth
-            size="small"
-            InputProps={{
-              endAdornment: <FieldInfo text="ID numérique du numéro WhatsApp Business approuvé." />,
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.meta.businessAccountId', 'Business Account ID')}
-            value={businessAccountId}
-            onChange={(e) => setBusinessAccountId(e.target.value)}
-            placeholder="987654321098765"
-            fullWidth
-            size="small"
-            InputProps={{
-              endAdornment: <FieldInfo text="ID du Business Account (WABA). Utilisé pour les templates." />,
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.meta.webhookVerifyToken', 'Webhook Verify Token')}
-            value={webhookVerifyToken}
-            onChange={(e) => setWebhookVerifyToken(e.target.value)}
-            placeholder={config?.hasApiToken ? '•••••  (laissez vide pour conserver)' : 'une chaîne secrète de votre choix'}
-            fullWidth
-            size="small"
-            autoComplete="off"
-            InputProps={{
-              endAdornment: <FieldInfo text="Chaîne secrète que VOUS choisissez et saisissez à l'identique côté Meta (Configuration → Webhooks → Verify token). Valide l'abonnement du webhook entrant." />,
-            }}
-          />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-phone-number-id">
+              {t('settings.whatsapp.meta.phoneNumberId', 'Phone Number ID')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-phone-number-id"
+                value={phoneNumberId}
+                onChange={(e) => setPhoneNumberId(e.target.value)}
+                placeholder="123456789012345"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="ID numérique du numéro WhatsApp Business approuvé." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-business-account-id">
+              {t('settings.whatsapp.meta.businessAccountId', 'Business Account ID')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-business-account-id"
+                value={businessAccountId}
+                onChange={(e) => setBusinessAccountId(e.target.value)}
+                placeholder="987654321098765"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="ID du Business Account (WABA). Utilisé pour les templates." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-webhook-verify-token">
+              {t('settings.whatsapp.meta.webhookVerifyToken', 'Webhook Verify Token')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-webhook-verify-token"
+                value={webhookVerifyToken}
+                onChange={(e) => setWebhookVerifyToken(e.target.value)}
+                placeholder={config?.hasApiToken ? '•••••  (laissez vide pour conserver)' : 'une chaîne secrète de votre choix'}
+                autoComplete="off"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="Chaîne secrète que VOUS choisissez et saisissez à l'identique côté Meta (Configuration → Webhooks → Verify token). Valide l'abonnement du webhook entrant." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </Stack>
       ) : (
         <Stack spacing={2}>
           <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.openwa.formTitle', 'Connexion à votre instance OpenWA')}
           </h6>
-          <TextField
-            label={t('settings.whatsapp.openwa.masterKey', 'Master key OpenWA')}
-            type="password"
-            value={openwaApiKey}
-            onChange={(e) => setOpenwaApiKey(e.target.value)}
-            placeholder={config?.hasOpenwaApiKey ? '••••••••••••  (déjà configurée, laissez vide pour conserver)' : 'dev-admin-key'}
-            fullWidth
-            size="small"
-            autoComplete="off"
-            InputProps={{
-              endAdornment: <FieldInfo text="Clé ADMIN de l'instance OpenWA (header X-API-Key). En dev : dev-admin-key. Stockée chiffrée en base, jamais exposée." />,
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.openwa.sessionId', 'Session ID')}
-            value={openwaSessionId}
-            placeholder={t('settings.whatsapp.openwa.sessionIdAuto', '(généré automatiquement)')}
-            fullWidth
-            size="small"
-            disabled
-            InputProps={{
-              endAdornment: <FieldInfo text="Identifiant de la session OpenWA, généré automatiquement au scan du QR code." />,
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="whatsapp-openwa-master-key">
+              {t('settings.whatsapp.openwa.masterKey', 'Master key OpenWA')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-openwa-master-key"
+                type="password"
+                value={openwaApiKey}
+                onChange={(e) => setOpenwaApiKey(e.target.value)}
+                placeholder={config?.hasOpenwaApiKey ? '••••••••••••  (déjà configurée, laissez vide pour conserver)' : 'dev-admin-key'}
+                autoComplete="off"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="Clé ADMIN de l'instance OpenWA (header X-API-Key). En dev : dev-admin-key. Stockée chiffrée en base, jamais exposée." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-openwa-session-id">
+              {t('settings.whatsapp.openwa.sessionId', 'Session ID')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-openwa-session-id"
+                value={openwaSessionId}
+                placeholder={t('settings.whatsapp.openwa.sessionIdAuto', '(généré automatiquement)')}
+                disabled
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="Identifiant de la session OpenWA, généré automatiquement au scan du QR code." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <BuiButton
               variant="outline"

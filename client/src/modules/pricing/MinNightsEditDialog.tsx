@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Button, Spinner, Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { NightsStay } from '../../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -69,17 +69,25 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
             )}
           </p>
 
-          <TextField
-            label="Minimum de nuits"
-            type="number"
-            value={minNights}
-            onChange={(e) => setMinNights(e.target.value)}
-            error={!!error}
-            helperText={error || 'Surcharge le défaut de la propriété pour ces dates'}
-            fullWidth
-            autoFocus
-            inputProps={{ min: 1, max: 365, step: 1 }}
-          />
+          <Field>
+            <FieldLabel htmlFor="min-nights">Minimum de nuits</FieldLabel>
+            <Input
+              id="min-nights"
+              type="number"
+              value={minNights}
+              onChange={(e) => setMinNights(e.target.value)}
+              aria-invalid={!!error}
+              autoFocus
+              min={1}
+              max={365}
+              step={1}
+            />
+            {error ? (
+              <FieldError>{error}</FieldError>
+            ) : (
+              <FieldDescription>Surcharge le défaut de la propriété pour ces dates</FieldDescription>
+            )}
+          </Field>
 
           <span className="cn-text-caption text-muted-foreground">
             Les réservations dont la date d'arrivée tombe sur l'une de ces dates devront

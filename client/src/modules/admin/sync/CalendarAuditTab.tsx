@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Field, FieldLabel, Input } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, TextField } from '@mui/material';
+import { Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
@@ -70,14 +70,15 @@ const CalendarAuditTab: React.FC = () => {
   // Register Property ID filter into the page header.
   useEffect(() => {
     setHeaderFilters(
-      <TextField
-        size="small"
-        label="Property ID"
-        type="number"
-        value={propertyId}
-        onChange={(e) => { setPropertyId(e.target.value); setPage(0); }}
-        sx={{ width: 160 }}
-      />,
+      <Field className="w-[160px]">
+        <FieldLabel htmlFor="calendar-audit-property">Property ID</FieldLabel>
+        <Input
+          id="calendar-audit-property"
+          type="number"
+          value={propertyId}
+          onChange={(e) => { setPropertyId(e.target.value); setPage(0); }}
+        />
+      </Field>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, propertyId]);

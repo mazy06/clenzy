@@ -4,8 +4,9 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { IconButton, Tooltip, TextField, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Button } from '../../components/ui';
+import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -720,19 +721,21 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           <p className="cn-text-body2 mb-3 text-muted-foreground">
             Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
           </p>
-          <TextField
-            autoFocus
-            fullWidth
-            size="small"
-            type="email"
-            label="Adresse email"
-            placeholder="guest@example.com"
-            value={emailInput}
-            onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
-            error={!!emailError}
-            helperText={emailError}
-          />
+          <Field>
+            <FieldLabel htmlFor="payment-guest-email">Adresse email</FieldLabel>
+            <Input
+              id="payment-guest-email"
+              className="w-full"
+              autoFocus
+              type="email"
+              placeholder="guest@example.com"
+              value={emailInput}
+              onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
+              aria-invalid={!!emailError}
+            />
+            <FieldError>{emailError}</FieldError>
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button

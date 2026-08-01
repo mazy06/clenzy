@@ -3,8 +3,9 @@ import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, TextField, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
+import { Paper, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -53,8 +54,6 @@ const EMPTY_FORM: FormState = {
   daysOfWeek: [],
   priority: '',
 };
-
-const inputSx = { '& .MuiInputBase-input': { fontSize: '0.82rem' } };
 
 const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => {
   const { t } = useTranslation();
@@ -182,33 +181,47 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
         <Stack spacing={1.5}>
           <div className="flex gap-1.5">
-            <TextField
-              label={t('restrictions.start', 'Début')} type="date" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} sx={inputSx}
-              value={form.startDate}
-              onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
-            />
-            <TextField
-              label={t('restrictions.end', 'Fin')} type="date" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} sx={inputSx}
-              value={form.endDate}
-              onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
-            />
+            <Field>
+              <FieldLabel htmlFor="restriction-start-date">{t('restrictions.start', 'Début')}</FieldLabel>
+              <Input
+                id="restriction-start-date"
+                type="date"
+                value={form.startDate}
+                onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="restriction-end-date">{t('restrictions.end', 'Fin')}</FieldLabel>
+              <Input
+                id="restriction-end-date"
+                type="date"
+                value={form.endDate}
+                onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
+              />
+            </Field>
           </div>
 
           <div className="flex gap-1.5">
-            <TextField
-              label={t('restrictions.minStay', 'Séjour min (nuits)')} type="number" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} inputProps={{ min: 1 }} sx={inputSx}
-              value={form.minStay}
-              onChange={(e) => setForm((s) => ({ ...s, minStay: e.target.value }))}
-            />
-            <TextField
-              label={t('restrictions.maxStay', 'Séjour max (nuits)')} type="number" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} inputProps={{ min: 1 }} sx={inputSx}
-              value={form.maxStay}
-              onChange={(e) => setForm((s) => ({ ...s, maxStay: e.target.value }))}
-            />
+            <Field>
+              <FieldLabel htmlFor="restriction-min-stay">{t('restrictions.minStay', 'Séjour min (nuits)')}</FieldLabel>
+              <Input
+                id="restriction-min-stay"
+                type="number"
+                min={1}
+                value={form.minStay}
+                onChange={(e) => setForm((s) => ({ ...s, minStay: e.target.value }))}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="restriction-max-stay">{t('restrictions.maxStay', 'Séjour max (nuits)')}</FieldLabel>
+              <Input
+                id="restriction-max-stay"
+                type="number"
+                min={1}
+                value={form.maxStay}
+                onChange={(e) => setForm((s) => ({ ...s, maxStay: e.target.value }))}
+              />
+            </Field>
           </div>
 
           <Stack direction="row" spacing={2}>
@@ -244,12 +257,15 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             </Stack>
           </div>
 
-          <TextField
-            label={t('restrictions.priority', 'Priorité (optionnel)')} type="number" size="small"
-            InputLabelProps={{ shrink: true }} sx={{ ...inputSx, maxWidth: 180 }}
-            value={form.priority}
-            onChange={(e) => setForm((s) => ({ ...s, priority: e.target.value }))}
-          />
+          <Field className="max-w-[180px]">
+            <FieldLabel htmlFor="restriction-priority">{t('restrictions.priority', 'Priorité (optionnel)')}</FieldLabel>
+            <Input
+              id="restriction-priority"
+              type="number"
+              value={form.priority}
+              onChange={(e) => setForm((s) => ({ ...s, priority: e.target.value }))}
+            />
+          </Field>
 
           {error && (
             <p className="cn-text-body1 text-[0.75rem] text-[var(--err,_#C97A7A)]">{error}</p>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
+import { Button, Spinner, Field, FieldLabel, Textarea } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
 import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
@@ -123,18 +123,17 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
         </FormControl>
 
         {/* Notes */}
-        <TextField
-          fullWidth
-          size="small"
-          label={t('portfolios.dialogs.notesOptional')}
-          multiline
-          rows={3}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('portfolios.dialogs.notesPlaceholder')}
-          InputProps={{ sx: { fontSize: '0.85rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
-        />
+        <Field>
+          <FieldLabel htmlFor="reassign-notes">{t('portfolios.dialogs.notesOptional')}</FieldLabel>
+          <Textarea
+            id="reassign-notes"
+            rows={3}
+            className="text-[0.85rem]"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('portfolios.dialogs.notesPlaceholder')}
+          />
+        </Field>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2.5, gap: 1, justifyContent: 'flex-end' }}>

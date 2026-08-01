@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment, IconButton, Tooltip, Stack } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, Stack } from '@mui/material';
 import { Search, X, RotateCcw } from 'lucide-react';
 import { Button } from '../../../components/ui';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../../../components/ui';
 import { ICON_CATALOG, ICON_REGISTRY, type IconGroup } from './amenityIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -18,7 +19,6 @@ interface AmenityIconPickerProps {
 }
 
 const ACCENT = 'var(--accent)';
-const PRIMARY = 'var(--accent)';
 const NEUTRAL = 'var(--muted)';
 
 /**
@@ -181,31 +181,31 @@ export default function AmenityIconPicker({
 
       <DialogContent sx={{ pt: 1, pb: 2 }}>
         {/* Search */}
-        <TextField
-          fullWidth
-          size="small"
-          placeholder={t('settings.amenities.iconPicker.searchPlaceholder', 'Rechercher une icône (ex: wifi, flame, lock)…')}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={16} color={NEUTRAL} />
-              </InputAdornment>
-            ),
-            endAdornment: query ? (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setQuery('')} aria-label={t('settings.amenities.iconPicker.clearSearch', 'Effacer la recherche')} sx={{ cursor: 'pointer' }}>
-                  <X size={14} />
-                </IconButton>
-              </InputAdornment>
-            ) : undefined,
-          }}
-          sx={{
-            mb: 2,
-            '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: PRIMARY },
-          }}
-        />
+        {/* Champ sans libelle visible (le titre du dialog le couvre) :
+            l'aria-label reste la seule etiquette. */}
+        <InputGroup className="mb-3">
+          <InputGroupAddon align="inline-start">
+            <Search size={16} color={NEUTRAL} />
+          </InputGroupAddon>
+          <InputGroupInput
+            id="amenity-icon-search"
+            aria-label={t('settings.amenities.iconPicker.searchPlaceholder', 'Rechercher une icône (ex: wifi, flame, lock)…')}
+            placeholder={t('settings.amenities.iconPicker.searchPlaceholder', 'Rechercher une icône (ex: wifi, flame, lock)…')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                size="icon-xs"
+                onClick={() => setQuery('')}
+                aria-label={t('settings.amenities.iconPicker.clearSearch', 'Effacer la recherche')}
+              >
+                <X size={14} />
+              </InputGroupButton>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
 
         {/* Grouped icon grid */}
         {filteredGroups.length === 0 ? (

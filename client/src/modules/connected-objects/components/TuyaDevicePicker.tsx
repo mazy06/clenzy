@@ -2,7 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { TextField, MenuItem } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 import { tuyaApi } from '../../../services/api/noiseApi';
 import DevicePairingGuide from './DevicePairingGuide';
 
@@ -60,21 +66,22 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
   }
 
   return (
-    <TextField
-      select
-      fullWidth
-      size="small"
-      required
-      label="Appareil Tuya"
-      helperText="Sélectionnez l'appareil découvert sur le compte Tuya de l'organisation."
-      value={list.some((d) => d.id === selectedId) ? selectedId : ''}
-      onChange={(e) => onSelect(e.target.value)}
-    >
-      {list.map((d) => (
-        <MenuItem key={d.id} value={d.id} disabled={d.alreadyAdded}>
-          {(d.name || d.id) + (d.category ? ` · ${d.category}` : '') + (d.online ? '' : ' · hors ligne') + (d.alreadyAdded ? ' · déjà ajouté' : '')}
-        </MenuItem>
-      ))}
-    </TextField>
+    <Field>
+      <FieldLabel htmlFor="tuya-device">Appareil Tuya</FieldLabel>
+      <NativeSelect
+        id="tuya-device"
+        className="w-full"
+        required
+        value={list.some((d) => d.id === selectedId) ? selectedId : ''}
+        onChange={(e) => onSelect(e.target.value)}
+      >
+        {list.map((d) => (
+          <NativeSelectOption key={d.id} value={d.id} disabled={d.alreadyAdded}>
+            {(d.name || d.id) + (d.category ? ` · ${d.category}` : '') + (d.online ? '' : ' · hors ligne') + (d.alreadyAdded ? ' · déjà ajouté' : '')}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+      <FieldDescription>Sélectionnez l'appareil découvert sur le compte Tuya de l'organisation.</FieldDescription>
+    </Field>
   );
 }

@@ -5,7 +5,18 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   Send,
   ContentCopy,
@@ -193,33 +204,37 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
 
             {mode === 'email' ? (
               <>
-                <TextField
-                  label="Adresse email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  fullWidth
-                  autoFocus
-                  placeholder="exemple@email.com"
-                  disabled={loading}
-                />
+                <Field>
+                  <FieldLabel htmlFor="invitation-email">Adresse email</FieldLabel>
+                  <Input
+                    id="invitation-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    placeholder="exemple@email.com"
+                    disabled={loading}
+                  />
+                </Field>
 
-                <TextField
-                  label="Role"
-                  select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  fullWidth
-                  disabled={loading}
-                  helperText="Le role attribue au nouvel utilisateur"
-                >
-                  {ROLES.map((r) => (
-                    <MenuItem key={r.value} value={r.value}>
-                      {r.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="invitation-role">Role</FieldLabel>
+                  <NativeSelect
+                    id="invitation-role"
+                    className="w-full"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    disabled={loading}
+                  >
+                    {ROLES.map((r) => (
+                      <NativeSelectOption key={r.value} value={r.value}>
+                        {r.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <FieldDescription>Le role attribue au nouvel utilisateur</FieldDescription>
+                </Field>
               </>
             ) : (
               <>
@@ -274,21 +289,23 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                   )}
                 />
 
-                <TextField
-                  label="Role"
-                  select
-                  value={memberRole}
-                  onChange={(e) => setMemberRole(e.target.value)}
-                  fullWidth
-                  disabled={addingMember}
-                  helperText="Le role attribue au membre"
-                >
-                  {ROLES.map((r) => (
-                    <MenuItem key={r.value} value={r.value}>
-                      {r.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="invitation-member-role">Role</FieldLabel>
+                  <NativeSelect
+                    id="invitation-member-role"
+                    className="w-full"
+                    value={memberRole}
+                    onChange={(e) => setMemberRole(e.target.value)}
+                    disabled={addingMember}
+                  >
+                    {ROLES.map((r) => (
+                      <NativeSelectOption key={r.value} value={r.value}>
+                        {r.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <FieldDescription>Le role attribue au membre</FieldDescription>
+                </Field>
               </>
             )}
 
@@ -320,27 +337,27 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
 
             {result?.invitationLink && (
               <div className="w-full">
-                <p className="cn-text-body2 text-muted-foreground mb-1.5">
+                <label
+                  htmlFor="invitation-link"
+                  className="cn-text-body2 text-muted-foreground mb-1.5 block"
+                >
                   Vous pouvez aussi partager ce lien directement :
-                </p>
-                <TextField
-                  value={result?.invitationLink ?? ''}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: true,
-                    sx: { fontSize: '0.8rem', fontFamily: 'monospace' },
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Tooltip title={copied ? 'Copie !' : 'Copier le lien'}>
-                          <IconButton onClick={handleCopyLink} size="small" color={copied ? 'success' : 'default'}>
-                            {copied ? <CheckCircle fontSize="small" /> : <ContentCopy fontSize="small" />}
-                          </IconButton>
-                        </Tooltip>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                </label>
+                <InputGroup>
+                  <InputGroupInput
+                    id="invitation-link"
+                    readOnly
+                    className="text-[0.8rem] font-mono"
+                    value={result?.invitationLink ?? ''}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <Tooltip title={copied ? 'Copie !' : 'Copier le lien'}>
+                      <IconButton onClick={handleCopyLink} size="small" color={copied ? 'success' : 'default'}>
+                        {copied ? <CheckCircle fontSize="small" /> : <ContentCopy fontSize="small" />}
+                      </IconButton>
+                    </Tooltip>
+                  </InputGroupAddon>
+                </InputGroup>
               </div>
             )}
 

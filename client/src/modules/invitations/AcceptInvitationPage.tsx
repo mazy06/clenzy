@@ -1,9 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import {
+  Alert as BuiAlert,
+  AlertDescription,
+  AlertAction,
+  Button as BuiButton,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Paper, Alert, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import { Paper, Alert, ThemeProvider, CssBaseline, Stack } from '@mui/material';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
@@ -153,6 +167,8 @@ export default function AcceptInvitationPage() {
   const [registering, setRegistering] = useState(false);
 
   const isAuthenticated = keycloak.authenticated && keycloak.token;
+
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   // 1. Charger les infos de l'invitation au mount
   useEffect(() => {
@@ -481,101 +497,102 @@ export default function AcceptInvitationPage() {
 
               <Stack spacing={2}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <TextField
-                    label="Prenom"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    fullWidth
-                    size="small"
-                    required
-                    autoComplete="given-name"
-                    autoFocus
-                  />
-                  <TextField
-                    label="Nom"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    fullWidth
-                    size="small"
-                    required
-                    autoComplete="family-name"
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="invite-first-name">Prenom</FieldLabel>
+                    <Input
+                      id="invite-first-name"
+                      className="w-full"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      autoComplete="given-name"
+                      autoFocus
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="invite-last-name">Nom</FieldLabel>
+                    <Input
+                      id="invite-last-name"
+                      className="w-full"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      autoComplete="family-name"
+                    />
+                  </Field>
                 </Stack>
 
-                <TextField
-                  label="Email"
-                  value={invitation.invitedEmail}
-                  disabled
-                  fullWidth
-                  size="small"
-                  helperText="L'email est defini par l'invitation"
-                />
+                <Field>
+                  <FieldLabel htmlFor="invite-email">Email</FieldLabel>
+                  <Input
+                    id="invite-email"
+                    className="w-full"
+                    value={invitation.invitedEmail}
+                    disabled
+                  />
+                  <FieldDescription>L'email est defini par l'invitation</FieldDescription>
+                </Field>
 
-                <TextField
-                  label="Telephone"
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  fullWidth
-                  size="small"
-                  autoComplete="tel"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Phone size={16} strokeWidth={1.75} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  helperText="Optionnel — utile pour les notifications SMS"
-                />
+                <Field>
+                  <FieldLabel htmlFor="invite-phone">Telephone</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon align="inline-start">
+                      <Phone size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="invite-phone"
+                      placeholder="Ex: +33 6 12 34 56 78"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      autoComplete="tel"
+                    />
+                  </InputGroup>
+                  <FieldDescription>Optionnel — utile pour les notifications SMS</FieldDescription>
+                </Field>
 
-                <TextField
-                  label="Mot de passe"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  fullWidth
-                  size="small"
-                  required
-                  autoComplete="new-password"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon size={16} strokeWidth={1.75} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setShowPassword((v) => !v)}
-                          edge="end"
-                          aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                        >
-                          {showPassword ? <VisibilityOff size={16} /> : <Visibility size={16} />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  helperText="8 caracteres minimum"
-                />
+                <Field>
+                  <FieldLabel htmlFor="invite-password">Mot de passe</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon align="inline-start">
+                      <LockIcon size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="invite-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        size="icon-xs"
+                        aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        onClick={() => setShowPassword((v) => !v)}
+                      >
+                        {showPassword ? <VisibilityOff size={16} /> : <Visibility size={16} />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>8 caracteres minimum</FieldDescription>
+                </Field>
 
-                <TextField
-                  label="Confirme le mot de passe"
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  fullWidth
-                  size="small"
-                  required
-                  autoComplete="new-password"
-                  error={confirmPassword.length > 0 && password !== confirmPassword}
-                  helperText={
-                    confirmPassword.length > 0 && password !== confirmPassword
-                      ? 'Les mots de passe ne correspondent pas'
-                      : ' '
-                  }
-                />
+                <Field>
+                  <FieldLabel htmlFor="invite-password-confirm">Confirme le mot de passe</FieldLabel>
+                  <Input
+                    id="invite-password-confirm"
+                    className="w-full"
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    aria-invalid={passwordMismatch}
+                  />
+                  {passwordMismatch && (
+                    <FieldError>Les mots de passe ne correspondent pas</FieldError>
+                  )}
+                </Field>
 
                 <BuiButton
                   size="lg"
@@ -624,36 +641,44 @@ export default function AcceptInvitationPage() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <TextField
-                  label="Prenom"
-                  value={keycloak.tokenParsed?.given_name || ''}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Nom"
-                  value={keycloak.tokenParsed?.family_name || ''}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Email"
-                  value={keycloak.tokenParsed?.email || invitation?.invitedEmail || ''}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Telephone"
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  fullWidth
-                  size="small"
-                  helperText="Optionnel — utile pour les notifications SMS"
-                />
+                <Field>
+                  <FieldLabel htmlFor="profile-first-name">Prenom</FieldLabel>
+                  <Input
+                    id="profile-first-name"
+                    className="w-full"
+                    value={keycloak.tokenParsed?.given_name || ''}
+                    disabled
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="profile-last-name">Nom</FieldLabel>
+                  <Input
+                    id="profile-last-name"
+                    className="w-full"
+                    value={keycloak.tokenParsed?.family_name || ''}
+                    disabled
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="profile-email">Email</FieldLabel>
+                  <Input
+                    id="profile-email"
+                    className="w-full"
+                    value={keycloak.tokenParsed?.email || invitation?.invitedEmail || ''}
+                    disabled
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="profile-phone">Telephone</FieldLabel>
+                  <Input
+                    id="profile-phone"
+                    className="w-full"
+                    placeholder="Ex: +33 6 12 34 56 78"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <FieldDescription>Optionnel — utile pour les notifications SMS</FieldDescription>
+                </Field>
               </div>
 
               <div className="flex gap-2 mt-4">

@@ -2,7 +2,8 @@ import React from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Spinner, Button } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, FormControl, InputLabel, Select, MenuItem, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   People,
   Group,
@@ -209,27 +210,20 @@ const TeamUserAssignmentForm: React.FC = () => {
             </p>
 
             {/* Search bar */}
-            <TextField
-              fullWidth
-              size="small"
-              placeholder={t('portfolios.fields.searchUser')}
-              value={userSearchTerm}
-              onChange={(e) => setUserSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <span className="inline-flex text-muted-foreground"><Search size={18} strokeWidth={1.75} /></span>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  fontSize: '0.85rem',
-                },
-              }}
-            />
+            {/* Champ sans libelle visible (la section porte deja son titre) :
+                l'aria-label reste la seule etiquette. */}
+            <InputGroup className="mb-3">
+              <InputGroupAddon align="inline-start">
+                <span className="inline-flex text-muted-foreground"><Search size={18} strokeWidth={1.75} /></span>
+              </InputGroupAddon>
+              <InputGroupInput
+                id="team-user-search"
+                aria-label={t('portfolios.fields.searchUser')}
+                placeholder={t('portfolios.fields.searchUser')}
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+              />
+            </InputGroup>
 
             {filteredUsers.length === 0 ? (
               <div className="text-center py-6">

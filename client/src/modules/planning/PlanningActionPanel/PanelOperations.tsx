@@ -5,7 +5,16 @@ import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
-import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOptGroup,
+  NativeSelectOption,
+  Textarea,
+} from '../../../components/ui';
+import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -853,22 +862,22 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 Debut
               </span>
               <div className="flex gap-1.5">
-                <TextField
+                {/* Le libelle « Debut » couvre la paire date + heure : pas de
+                    FieldLabel, chaque champ porte son propre aria-label. */}
+                <Input
                   type="date"
-                  size="small"
+                  aria-label="Date de debut"
+                  className="flex-1 text-[0.75rem]"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
-                <TextField
+                <Input
                   type="time"
-                  size="small"
+                  aria-label="Heure de debut"
+                  placeholder="HH:mm"
+                  className="w-[100px] text-[0.75rem]"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  placeholder="HH:mm"
-                  sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
               </div>
             </div>
@@ -878,22 +887,20 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 Fin
               </span>
               <div className="flex gap-1.5">
-                <TextField
+                <Input
                   type="date"
-                  size="small"
+                  aria-label="Date de fin"
+                  className="flex-1 text-[0.75rem]"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
-                <TextField
+                <Input
                   type="time"
-                  size="small"
+                  aria-label="Heure de fin"
+                  placeholder="HH:mm"
+                  className="w-[100px] text-[0.75rem]"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  placeholder="HH:mm"
-                  sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
               </div>
             </div>
@@ -1513,76 +1520,55 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </Alert>
           )}
 
-          <TextField
-            select
-            label="Assigner à"
-            value={assignValue}
-            onChange={(e) => {
-              setAssignValue(e.target.value);
-              // If user manually changes, turn off auto mode
-              if (assignAutoMode && autoAssignSuggestion && e.target.value !== autoAssignSuggestion.key) {
-                setAssignAutoMode(false);
-              }
-            }}
-            size="small"
-            fullWidth
-            disabled={assignAutoMode}
-            sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-          >
-            {/* Operational users section */}
-            {(usersData as OperationalUser[] | undefined)?.length ? (
-              <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
-                Intervenants
-              </ListSubheader>
-            ) : null}
-            {assigneeOptions
-              .flatMap((opt) => (opt.type === 'user' ? [(
-                <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
-                  <div className="flex items-center gap-1.5 w-full">
-                    <span className="inline-flex text-muted-foreground"><Person size={16} strokeWidth={1.75} /></span>
-                    <div className="flex-1">
-                      <p className="cn-text-body2 text-[0.8125rem] leading-[1.3]">
-                        {opt.label}
-                      </p>
-                      {opt.sublabel && (
-                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
-                          {opt.sublabel}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </MenuItem>
-              )] : []))}
-            {/* Teams section */}
-            {(teamsData as PortfolioTeam[] | undefined)?.length ? (
-              <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
-                Équipes
-              </ListSubheader>
-            ) : null}
-            {assigneeOptions
-              .flatMap((opt) => (opt.type === 'team' ? [(
-                <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
-                  <div className="flex items-center gap-1.5 w-full">
-                    <span className="inline-flex text-[var(--accent)]"><Groups size={16} strokeWidth={1.75} /></span>
-                    <div className="flex-1">
-                      <p className="cn-text-body2 text-[0.8125rem] leading-[1.3]">
-                        {opt.label}
-                      </p>
-                      {opt.sublabel && (
-                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
-                          {opt.sublabel}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </MenuItem>
-              )] : []))}
-            {assigneeOptions.length === 0 && (
-              <MenuItem disabled sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
-                Aucun intervenant ou équipe disponible
-              </MenuItem>
-            )}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="assign-assignee">Assigner à</FieldLabel>
+            {/* Une option native ne porte que du texte : l'icone disparait, le
+                role/type passe en suffixe et l'appartenance user/equipe est
+                portee par le groupe. */}
+            <NativeSelect
+              id="assign-assignee"
+              className="w-full"
+              value={assignValue}
+              onChange={(e) => {
+                setAssignValue(e.target.value);
+                // If user manually changes, turn off auto mode
+                if (assignAutoMode && autoAssignSuggestion && e.target.value !== autoAssignSuggestion.key) {
+                  setAssignAutoMode(false);
+                }
+              }}
+              disabled={assignAutoMode}
+            >
+              {/* Option vide obligatoire : sans elle un select natif afficherait
+                  le premier intervenant alors que la valeur reste vide. */}
+              <NativeSelectOption value="" disabled>
+                {assigneeOptions.length === 0
+                  ? 'Aucun intervenant ou équipe disponible'
+                  : 'Sélectionner…'}
+              </NativeSelectOption>
+              {(usersData as OperationalUser[] | undefined)?.length ? (
+                <NativeSelectOptGroup label="Intervenants">
+                  {assigneeOptions
+                    .filter((opt) => opt.type === 'user')
+                    .map((opt) => (
+                      <NativeSelectOption key={assigneeKey(opt)} value={assigneeKey(opt)}>
+                        {opt.sublabel ? `${opt.label} — ${opt.sublabel}` : opt.label}
+                      </NativeSelectOption>
+                    ))}
+                </NativeSelectOptGroup>
+              ) : null}
+              {(teamsData as PortfolioTeam[] | undefined)?.length ? (
+                <NativeSelectOptGroup label="Équipes">
+                  {assigneeOptions
+                    .filter((opt) => opt.type === 'team')
+                    .map((opt) => (
+                      <NativeSelectOption key={assigneeKey(opt)} value={assigneeKey(opt)}>
+                        {opt.sublabel ? `${opt.label} — ${opt.sublabel}` : opt.label}
+                      </NativeSelectOption>
+                    ))}
+                </NativeSelectOptGroup>
+              ) : null}
+            </NativeSelect>
+          </Field>
 
           {/* ── Team member availability panel ────────────────────────── */}
           {assignValue.startsWith('team-') && (
@@ -1846,38 +1832,38 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           <div className="flex gap-2 mb-3">
-            <TextField
-              type="date"
-              label="Date du rappel"
-              value={alertDate}
-              onChange={(e) => setAlertDate(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-            />
-            <TextField
-              type="time"
-              label="Heure"
-              value={alertTime}
-              onChange={(e) => setAlertTime(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-            />
+            <Field className="flex-1">
+              <FieldLabel htmlFor="alert-date">Date du rappel</FieldLabel>
+              <Input
+                id="alert-date"
+                type="date"
+                className="text-[0.8125rem]"
+                value={alertDate}
+                onChange={(e) => setAlertDate(e.target.value)}
+              />
+            </Field>
+            <Field className="flex-1">
+              <FieldLabel htmlFor="alert-time">Heure</FieldLabel>
+              <Input
+                id="alert-time"
+                type="time"
+                className="text-[0.8125rem]"
+                value={alertTime}
+                onChange={(e) => setAlertTime(e.target.value)}
+              />
+            </Field>
           </div>
-          <TextField
-            label="Message du rappel"
-            value={alertMessage}
-            onChange={(e) => setAlertMessage(e.target.value)}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            placeholder="Ex: Verifier la livraison du linge..."
-            sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel htmlFor="alert-message">Message du rappel</FieldLabel>
+            <Textarea
+              id="alert-message"
+              rows={2}
+              placeholder="Ex: Verifier la livraison du linge..."
+              className="text-[0.8125rem]"
+              value={alertMessage}
+              onChange={(e) => setAlertMessage(e.target.value)}
+            />
+          </Field>
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
           <Button variant="outline" size="sm" onClick={() => setAlertDialogOpen(false)}>

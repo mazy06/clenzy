@@ -1,5 +1,17 @@
 import React from 'react';
-import { TextField, MenuItem, FormControlLabel, Switch, InputAdornment, Tooltip } from '@mui/material';
+import { FormControlLabel, Switch, Tooltip } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+  NativeSelect,
+  Textarea,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Check, Home, Handshake } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -240,61 +252,91 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
       {/* ── Logement ── */}
       <FormSection label="Logement">
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1.4fr_1fr] gap-3">
-          <TextField
-            select label={t('contracts.property')} value={form.propertyId || ''}
-            onChange={e => handlePropertyChange(Number(e.target.value))}
-            size="small" fullWidth
-            disabled={lockProperty}
-            InputProps={{ startAdornment: <InputAdornment position="start"><Home size={15} strokeWidth={1.75} /></InputAdornment> }}
-          >
-            {properties.map(p => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select label={t('contracts.type')} value={form.contractType}
-            onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
-            size="small" fullWidth
-          >
-            {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
-              <MenuItem key={key} value={key}>{label}</MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            {/* L'icone passe dans le libelle : un select natif ne peut pas porter
+                d'ornement interne comme le faisait l'InputAdornment de MUI. */}
+            <FieldLabel htmlFor="contract-property" className="items-center gap-1.5">
+              <Home size={14} strokeWidth={1.75} />
+              {t('contracts.property')}
+            </FieldLabel>
+            <NativeSelect
+              id="contract-property"
+              className="w-full"
+              value={form.propertyId || ''}
+              onChange={e => handlePropertyChange(Number(e.target.value))}
+              disabled={lockProperty}
+            >
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name}{p.ownerName ? ` (${p.ownerName})` : ''}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contract-type">{t('contracts.type')}</FieldLabel>
+            <NativeSelect
+              id="contract-type"
+              className="w-full"
+              value={form.contractType}
+              onChange={e => setForm(prev => ({ ...prev, contractType: e.target.value as ContractType }))}
+            >
+              {(Object.entries(CONTRACT_TYPE_LABELS) as [ContractType, string][]).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </NativeSelect>
+          </Field>
         </div>
       </FormSection>
 
       {/* ── Période ── */}
       <FormSection label="Période" hint="Sans date de fin, le contrat court jusqu'à résiliation.">
         <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[1fr_1fr_0.7fr_0.7fr] gap-3">
-          <TextField
-            label={t('contracts.startDate')} type="date" value={form.startDate}
-            onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-            size="small" fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label={t('contracts.endDate')} type="date" value={form.endDate ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
-            size="small" fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="Nuits min." type="number"
-            value={form.minimumStayNights ?? ''}
-            onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
-            size="small" fullWidth
-            inputProps={{ min: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
-          />
-          <TextField
-            label="Préavis" type="number"
-            value={form.noticePeriodDays ?? 30}
-            onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
-            size="small" fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
-            inputProps={{ min: 0, style: { fontVariantNumeric: 'tabular-nums' } }}
-          />
+          <Field>
+            <FieldLabel htmlFor="contract-start-date">{t('contracts.startDate')}</FieldLabel>
+            <Input
+              id="contract-start-date"
+              type="date"
+              value={form.startDate}
+              onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contract-end-date">{t('contracts.endDate')}</FieldLabel>
+            <Input
+              id="contract-end-date"
+              type="date"
+              value={form.endDate ?? ''}
+              onChange={e => setForm(prev => ({ ...prev, endDate: e.target.value || null }))}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contract-min-nights">Nuits min.</FieldLabel>
+            <Input
+              id="contract-min-nights"
+              type="number"
+              min={1}
+              className="tabular-nums"
+              value={form.minimumStayNights ?? ''}
+              onChange={e => setForm(prev => ({ ...prev, minimumStayNights: e.target.value ? Number(e.target.value) : null }))}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contract-notice-days">Préavis</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="contract-notice-days"
+                type="number"
+                min={0}
+                className="tabular-nums"
+                value={form.noticePeriodDays ?? 30}
+                onChange={e => setForm(prev => ({ ...prev, noticePeriodDays: Number(e.target.value) }))}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>j</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </div>
       </FormSection>
 
@@ -302,45 +344,71 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
       <FormSection label="Encaissement & commission">
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1.4fr_1fr_0.6fr] gap-3">
-            <TextField
-              select label="Qui encaisse le paiement guest ?" value={form.paymentModel ?? 'DIRECT'}
-              onChange={e => setForm(prev => ({ ...prev, paymentModel: e.target.value as PaymentModel }))}
-              size="small" fullWidth
-              InputProps={{ startAdornment: <InputAdornment position="start"><Handshake size={15} strokeWidth={1.75} /></InputAdornment> }}
-              helperText={PAYMENT_MODEL_HELP[form.paymentModel ?? 'DIRECT']}
-            >
-              {(Object.entries(PAYMENT_MODEL_LABELS) as [PaymentModel, string][]).map(([key, label]) => (
-                <MenuItem key={key} value={key}>{label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select label="Base de commission" value={form.commissionBase ?? 'GROSS'}
-              onChange={e => setForm(prev => ({ ...prev, commissionBase: e.target.value as CommissionBase }))}
-              size="small" fullWidth
-            >
-              {(Object.entries(COMMISSION_BASE_LABELS) as [CommissionBase, string][]).map(([key, label]) => (
-                <MenuItem key={key} value={key}>{label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select label="Frais OTA à la charge de" value={form.otaFeeBorneBy ?? 'AGENCY'}
-              onChange={e => setForm(prev => ({ ...prev, otaFeeBorneBy: e.target.value as OtaFeeBearer }))}
-              size="small" fullWidth
-              helperText="Sur un séjour OTA, la plateforme retient sa commission avant de verser."
-            >
-              {(Object.entries(OTA_FEE_BEARER_LABELS) as [OtaFeeBearer, string][]).map(([key, label]) => (
-                <MenuItem key={key} value={key}>{label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Commission" type="number"
-              value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
-              onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
-              size="small" fullWidth
-              placeholder="—"
-              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-              inputProps={{ min: 1, max: 50, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
-            />
+            <Field>
+              {/* L'icone passe dans le libelle : un select natif ne peut pas porter
+                  d'ornement interne comme le faisait l'InputAdornment de MUI. */}
+              <FieldLabel htmlFor="contract-payment-model" className="items-center gap-1.5">
+                <Handshake size={14} strokeWidth={1.75} />
+                Qui encaisse le paiement guest ?
+              </FieldLabel>
+              <NativeSelect
+                id="contract-payment-model"
+                className="w-full"
+                value={form.paymentModel ?? 'DIRECT'}
+                onChange={e => setForm(prev => ({ ...prev, paymentModel: e.target.value as PaymentModel }))}
+              >
+                {(Object.entries(PAYMENT_MODEL_LABELS) as [PaymentModel, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </NativeSelect>
+              <FieldDescription>{PAYMENT_MODEL_HELP[form.paymentModel ?? 'DIRECT']}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="contract-commission-base">Base de commission</FieldLabel>
+              <NativeSelect
+                id="contract-commission-base"
+                className="w-full"
+                value={form.commissionBase ?? 'GROSS'}
+                onChange={e => setForm(prev => ({ ...prev, commissionBase: e.target.value as CommissionBase }))}
+              >
+                {(Object.entries(COMMISSION_BASE_LABELS) as [CommissionBase, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="contract-ota-fee-bearer">Frais OTA à la charge de</FieldLabel>
+              <NativeSelect
+                id="contract-ota-fee-bearer"
+                className="w-full"
+                value={form.otaFeeBorneBy ?? 'AGENCY'}
+                onChange={e => setForm(prev => ({ ...prev, otaFeeBorneBy: e.target.value as OtaFeeBearer }))}
+              >
+                {(Object.entries(OTA_FEE_BEARER_LABELS) as [OtaFeeBearer, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </NativeSelect>
+              <FieldDescription>Sur un séjour OTA, la plateforme retient sa commission avant de verser.</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="contract-commission-rate">Commission</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="contract-commission-rate"
+                  type="number"
+                  min={1}
+                  max={50}
+                  step={1}
+                  className="tabular-nums"
+                  placeholder="—"
+                  value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
+                  onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>%</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
           </div>
           <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
         </div>
@@ -353,15 +421,25 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
       >
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 items-start">
           <div className="flex gap-3">
-            <TextField
-              label="Upsells" type="number"
-              value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
-              onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-              size="small" fullWidth
-              placeholder="Défaut org"
-              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-              inputProps={{ min: 0, max: 100, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
-            />
+            <Field>
+              <FieldLabel htmlFor="contract-upsell-rate">Upsells</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="contract-upsell-rate"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="tabular-nums"
+                  placeholder="Défaut org"
+                  value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
+                  onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>%</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
           </div>
           <div className="flex gap-0.5 flex-wrap items-center min-h-[40px]">
             <FormControlLabel
@@ -385,13 +463,12 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
 
       {/* ── Notes ── */}
       <FormSection label="Notes">
-        <TextField
+        <Textarea
+          id="contract-notes"
+          aria-label="Notes"
+          rows={2}
           value={form.notes ?? ''}
           onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-          size="small"
-          fullWidth
-          multiline
-          minRows={2}
           placeholder="Détails complémentaires, conditions particulières… (optionnel)"
         />
       </FormSection>

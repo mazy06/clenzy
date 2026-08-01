@@ -4,6 +4,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card, CardContent, Grid, TextField, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
+import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import {
   Autocomplete,
   IconButton,
@@ -319,14 +320,16 @@ const TeamEdit: React.FC = () => {
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  label="Nom de l'équipe *"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
-                  placeholder="Ex: Équipe Nettoyage Premium"
-                />
+                <Field>
+                  <FieldLabel htmlFor="team-name">Nom de l'équipe *</FieldLabel>
+                  <Input
+                    id="team-name"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
+                    placeholder="Ex: Équipe Nettoyage Premium"
+                  />
+                </Field>
               </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
@@ -353,15 +356,16 @@ const TeamEdit: React.FC = () => {
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Description de l'équipe"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Décrivez votre équipe..."
-                />
+                <Field>
+                  <FieldLabel htmlFor="team-description">Description de l'équipe</FieldLabel>
+                  <Textarea
+                    id="team-description"
+                    rows={4}
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    placeholder="Décrivez votre équipe..."
+                  />
+                </Field>
               </Grid>
             </Grid>
 

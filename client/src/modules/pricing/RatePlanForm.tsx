@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Paper, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
-import { Button } from '../../components/ui';
+import { Paper, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
+import {
+  Button,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -121,13 +129,15 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
       <div className="flex flex-col gap-2">
         {/* Name */}
-        <TextField
-          label={t('dynamicPricing.ratePlan.name')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          fullWidth
-          size="small"
-        />
+        <Field>
+          <FieldLabel htmlFor="rate-plan-name">{t('dynamicPricing.ratePlan.name')}</FieldLabel>
+          <Input
+            id="rate-plan-name"
+            className="w-full"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
 
         {/* Type */}
         <FormControl fullWidth size="small">
@@ -143,38 +153,45 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
         {/* Price + Currency + Priority row */}
         <div className="flex gap-1.5">
-          <TextField
-            label={t('dynamicPricing.ratePlan.nightlyPrice')}
-            type="number"
-            value={nightlyPrice}
-            onChange={(e) => setNightlyPrice(e.target.value)}
-            fullWidth
-            size="small"
-            inputProps={{ min: 0, step: 1 }}
-          />
-          <TextField
-            label={t('common.currency') || 'Devise'}
-            value={activeCurrency}
-            disabled
-            size="small"
-            sx={{ width: 90 }}
-            InputProps={{
-              startAdornment: (
-                <p className="cn-text-body2 me-0.5 font-semibold text-muted-foreground">
+          <Field className="flex-1 min-w-0">
+            <FieldLabel htmlFor="rate-plan-nightly-price">
+              {t('dynamicPricing.ratePlan.nightlyPrice')}
+            </FieldLabel>
+            <Input
+              id="rate-plan-nightly-price"
+              className="w-full"
+              type="number"
+              value={nightlyPrice}
+              onChange={(e) => setNightlyPrice(e.target.value)}
+              min={0}
+              step={1}
+            />
+          </Field>
+          <Field className="w-[90px] shrink-0">
+            <FieldLabel htmlFor="rate-plan-currency">{t('common.currency') || 'Devise'}</FieldLabel>
+            <InputGroup>
+              <InputGroupAddon align="inline-start">
+                <span className="cn-text-body2 font-semibold text-muted-foreground">
                   <CurrencySymbol code={activeCurrency} />
-                </p>
-              ),
-            }}
-          />
-          <TextField
-            label={t('dynamicPricing.ratePlan.priority')}
-            type="number"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            size="small"
-            sx={{ width: 100 }}
-            inputProps={{ min: 0, step: 1 }}
-          />
+                </span>
+              </InputGroupAddon>
+              <InputGroupInput id="rate-plan-currency" value={activeCurrency} disabled />
+            </InputGroup>
+          </Field>
+          <Field className="w-[100px] shrink-0">
+            <FieldLabel htmlFor="rate-plan-priority">
+              {t('dynamicPricing.ratePlan.priority')}
+            </FieldLabel>
+            <Input
+              id="rate-plan-priority"
+              className="w-full"
+              type="number"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              min={0}
+              step={1}
+            />
+          </Field>
         </div>
 
         {/* Date range — shared mini calendar */}

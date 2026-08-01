@@ -17,8 +17,8 @@
 
 import React, { useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Button } from '../../components/ui';
-import { Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
+import { Button, Field, FieldLabel, Input } from '../../components/ui';
+import { Switch, Select, MenuItem, FormControl, Card, Tooltip } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -255,27 +255,30 @@ const ConstellationAutoRulesSection: React.FC = () => {
               {/* Enveloppe éditable du type (défauts serveur AutoApplyGate) ; les
                   conditions non éditables sont affichées en texte informatif. */}
               {ENVELOPE_FIELDS[rule.actionType] ? (
-                <TextField
-                  label={t(ENVELOPE_FIELDS[rule.actionType].labelKey,
-                    ENVELOPE_FIELDS[rule.actionType].labelDefault)}
-                  type="number"
-                  size="small"
-                  value={envelopeInt(rule.envelope, ENVELOPE_FIELDS[rule.actionType].key,
-                    ENVELOPE_FIELDS[rule.actionType].defaultValue)}
-                  onChange={(e) => {
-                    const field = ENVELOPE_FIELDS[rule.actionType];
-                    const value = Math.max(field.min, Math.min(field.max, Number(e.target.value) || 0));
-                    saveRule(rule, { envelope: JSON.stringify({ [field.key]: value }) });
-                  }}
-                  disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
-                  inputProps={{
-                    min: ENVELOPE_FIELDS[rule.actionType].min,
-                    max: ENVELOPE_FIELDS[rule.actionType].max,
-                    step: 1,
-                    style: { fontVariantNumeric: 'tabular-nums' },
-                  }}
-                  sx={{ width: 148 }}
-                />
+                // L'id derive du type d'action (une ligne par type) : stable et
+                // unique dans la liste, contrairement a l'index de boucle.
+                <Field className="w-[148px]">
+                  <FieldLabel htmlFor={`constellation-envelope-${rule.actionType}`}>
+                    {t(ENVELOPE_FIELDS[rule.actionType].labelKey,
+                      ENVELOPE_FIELDS[rule.actionType].labelDefault)}
+                  </FieldLabel>
+                  <Input
+                    id={`constellation-envelope-${rule.actionType}`}
+                    className="w-full tabular-nums"
+                    type="number"
+                    value={envelopeInt(rule.envelope, ENVELOPE_FIELDS[rule.actionType].key,
+                      ENVELOPE_FIELDS[rule.actionType].defaultValue)}
+                    onChange={(e) => {
+                      const field = ENVELOPE_FIELDS[rule.actionType];
+                      const value = Math.max(field.min, Math.min(field.max, Number(e.target.value) || 0));
+                      saveRule(rule, { envelope: JSON.stringify({ [field.key]: value }) });
+                    }}
+                    disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
+                    min={ENVELOPE_FIELDS[rule.actionType].min}
+                    max={ENVELOPE_FIELDS[rule.actionType].max}
+                    step={1}
+                  />
+                </Field>
               ) : (
                 <div />
               )}

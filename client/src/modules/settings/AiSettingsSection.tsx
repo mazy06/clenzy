@@ -5,8 +5,16 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { TextField, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
+import { TextField, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, Switch, Divider, useTheme, alpha } from '@mui/material';
 import { Button, Card } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupButton,
+} from '../../components/ui';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -269,28 +277,34 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
 
       <DialogContent>
         <div className="flex flex-col gap-3 mt-1.5">
-          <TextField
-            label={t('bookingEngine.ai.settings.apiKeyLabel')}
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            fullWidth
-            required
-            placeholder={brand?.placeholder}
-            InputProps={{
-              endAdornment: (
-                <IconButton onClick={() => setShowKey(!showKey)} edge="end" size="small">
-                  {showKey ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: accent,
-              },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+          {/* La teinte de marque au focus disparait : le kit porte son propre
+              anneau, un accent inline ne s'y greffe pas. */}
+          <Field>
+            <FieldLabel htmlFor="ai-provider-api-key">{t('bookingEngine.ai.settings.apiKeyLabel')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="ai-provider-api-key"
+                type={showKey ? 'text' : 'password'}
+                required
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={brand?.placeholder}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={showKey
+                    ? t('bookingEngine.ai.settings.hideKey', 'Masquer la clé')
+                    : t('bookingEngine.ai.settings.showKey', 'Afficher la clé')}
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey
+                    ? <VisibilityOff size={16} strokeWidth={1.75} />
+                    : <Visibility size={16} strokeWidth={1.75} />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
 
           <Autocomplete
             freeSolo

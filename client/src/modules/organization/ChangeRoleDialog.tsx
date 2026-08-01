@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption, Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -63,20 +63,25 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
           </Alert>
         )}
 
-        <TextField
-          select
-          fullWidth
-          label="Nouveau role"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          size="small"
-        >
-          {ASSIGNABLE_ORG_ROLES.map((r) => (
-            <MenuItem key={r.value} value={r.value}>
-              {r.label}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Field>
+          <FieldLabel htmlFor="change-role-new-role">Nouveau role</FieldLabel>
+          <NativeSelect
+            id="change-role-new-role"
+            className="w-full"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            {/* Option vide : le role actuel peut ne pas etre assignable (OWNER),
+                le select natif afficherait alors le 1er role de la liste sans
+                que l'etat ait change. */}
+            <NativeSelectOption value="">—</NativeSelectOption>
+            {ASSIGNABLE_ORG_ROLES.map((r) => (
+              <NativeSelectOption key={r.value} value={r.value}>
+                {r.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} variant="ghost" disabled={loading}>

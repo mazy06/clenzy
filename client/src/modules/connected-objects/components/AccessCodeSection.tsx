@@ -3,7 +3,8 @@ import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { IconButton, Tooltip, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, NativeSelect, NativeSelectOption } from '../../../components/ui';
+import { IconButton, Tooltip, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
@@ -140,20 +141,25 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
       )}
 
       {lockDevice ? (
-        <TextField
-          select
-          fullWidth
-          size="small"
-          label={t('connectedObjects.codeMode.label', "Origine du code d'accès")}
-          value={lockDevice.accessCodeMode || 'PMS_GENERATED'}
-          onChange={(e) => { void handleModeChange(e.target.value as SmartLockAccessCodeMode); }}
-          disabled={savingMode}
-          helperText={t('connectedObjects.codeMode.applied', 'Appliqué aux prochains codes générés (réservations à venir).')}
-          sx={{ mt: 1 }}
-        >
-          <MenuItem value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</MenuItem>
-          <MenuItem value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</MenuItem>
-        </TextField>
+        // L id porte le deviceId : plusieurs cartes serrure cohabitent dans la page.
+        <Field className="mt-1.5">
+          <FieldLabel htmlFor={`access-code-mode-${deviceId}`}>
+            {t('connectedObjects.codeMode.label', "Origine du code d'accès")}
+          </FieldLabel>
+          <NativeSelect
+            id={`access-code-mode-${deviceId}`}
+            className="w-full"
+            value={lockDevice.accessCodeMode || 'PMS_GENERATED'}
+            onChange={(e) => { void handleModeChange(e.target.value as SmartLockAccessCodeMode); }}
+            disabled={savingMode}
+          >
+            <NativeSelectOption value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</NativeSelectOption>
+            <NativeSelectOption value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</NativeSelectOption>
+          </NativeSelect>
+          <FieldDescription>
+            {t('connectedObjects.codeMode.applied', 'Appliqué aux prochains codes générés (réservations à venir).')}
+          </FieldDescription>
+        </Field>
       ) : null}
 
       <Dialog open={confirmOpen} onClose={() => { if (!rotating) setConfirmOpen(false); }} maxWidth="xs" fullWidth>

@@ -3,8 +3,9 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { IconButton, Tooltip, TextField, Alert, Snackbar, Stack } from '@mui/material';
+import { IconButton, Tooltip, Alert, Snackbar, Stack } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, Textarea } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
@@ -439,16 +440,18 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                         <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
                           {t('contracts.terminateWarning')}
                         </p>
-                        <TextField
-                          label={t('contracts.terminateReason')}
-                          value={terminateReason}
-                          onChange={e => setTerminateReason(e.target.value)}
-                          multiline
-                          rows={2}
-                          fullWidth
-                          size="small"
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--card)' } }}
-                        />
+                        <Field>
+                          <FieldLabel htmlFor={`terminate-reason-${c.id}`}>
+                            {t('contracts.terminateReason')}
+                          </FieldLabel>
+                          <Textarea
+                            id={`terminate-reason-${c.id}`}
+                            className="w-full bg-[var(--card)]"
+                            rows={2}
+                            value={terminateReason}
+                            onChange={e => setTerminateReason(e.target.value)}
+                          />
+                        </Field>
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           <Button
                             size="sm"

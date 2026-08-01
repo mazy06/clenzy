@@ -1,6 +1,14 @@
 import React, { useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { TextField, Checkbox, FormControlLabel } from '@mui/material';
+import {
+  Field,
+  FieldError,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
+import { Checkbox, FormControlLabel } from '@mui/material';
 import {
   Euro,
   Bed,
@@ -80,20 +88,28 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               name="bedroomCount"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.bedroomCount')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Bed size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-bedroom-count">{t('properties.bedroomCount')}</FieldLabel>
+                  {/* field.ref n'est pas transmis : les primitives du kit sont des
+                      composants fonction sans forwardRef (React 18), le passer
+                      declencherait un avertissement sans jamais s'attacher. */}
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Bed size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-bedroom-count"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </div>
@@ -103,20 +119,25 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               name="bathroomCount"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.bathroomCount')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Bathroom size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-bathroom-count">{t('properties.bathroomCount')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Bathroom size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-bathroom-count"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </div>
@@ -126,20 +147,25 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               name="squareMeters"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.surface')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <SquareFoot size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-square-meters">{t('properties.surface')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <SquareFoot size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-square-meters"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </div>
@@ -149,20 +175,25 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               name="maxGuests"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.maxGuests')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Group size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-max-guests">{t('properties.maxGuests')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Group size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-max-guests"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </div>
@@ -172,21 +203,27 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               name="nightlyPrice"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.nightlyPriceField')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Euro size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                  placeholder={t('properties.nightlyPricePlaceholder')}
-                  inputProps={{ step: '0.01', min: '0' }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-nightly-price">{t('properties.nightlyPriceField')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Euro size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-nightly-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      placeholder={t('properties.nightlyPricePlaceholder')}
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </div>
@@ -196,21 +233,27 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               name="minimumNights"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label="Nuitées minimum"
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <NightsStay size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                  placeholder="1"
-                  inputProps={{ step: '1', min: '1' }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-minimum-nights">Nuitées minimum</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <NightsStay size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-minimum-nights"
+                      type="number"
+                      step="1"
+                      min="1"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      placeholder="1"
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </div>

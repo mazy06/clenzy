@@ -1,7 +1,16 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Box, TextField, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
+import { Box, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import {
   VolumeUp,
   Handshake,
@@ -108,16 +117,24 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
 
             <div className="mt-1.5 mb-3">
               {config.monitoringMinutMonthlyPriceCents > 0 ? (
-                <TextField
-                  label={t('tarification.monitoring.minut.monthlyPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringMinutMonthlyPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringMinutMonthlyPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="monitoring-minut-monthly-price">
+                    {t('tarification.monitoring.minut.monthlyPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-minut-monthly-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringMinutMonthlyPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringMinutMonthlyPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
               ) : (
                 <Box
                   sx={{
@@ -212,56 +229,88 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
 
             <div className="grid grid-cols-12 gap-[9px] mt-[3px] mb-1.5">
               <div className="col-span-6">
-                <TextField
-                  label={t('tarification.monitoring.clenzy.devicePrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzyDevicePriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzyDevicePriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.devicePriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="monitoring-device-price">
+                    {t('tarification.monitoring.clenzy.devicePrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-device-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzyDevicePriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzyDevicePriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.devicePriceHelp')}</FieldDescription>
+                </Field>
               </div>
               <div className="col-span-6">
-                <TextField
-                  label={t('tarification.monitoring.clenzy.installationPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzyInstallationPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzyInstallationPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.installationPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="monitoring-installation-price">
+                    {t('tarification.monitoring.clenzy.installationPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-installation-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzyInstallationPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzyInstallationPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.installationPriceHelp')}</FieldDescription>
+                </Field>
               </div>
               <div className="col-span-6">
-                <TextField
-                  label={t('tarification.monitoring.clenzy.configPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzyConfigPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzyConfigPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.configPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="monitoring-config-price">
+                    {t('tarification.monitoring.clenzy.configPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-config-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzyConfigPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzyConfigPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.configPriceHelp')}</FieldDescription>
+                </Field>
               </div>
               <div className="col-span-6">
-                <TextField
-                  label={t('tarification.monitoring.clenzy.supportPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzySupportPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzySupportPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.supportPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="monitoring-support-price">
+                    {t('tarification.monitoring.clenzy.supportPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-support-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzySupportPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzySupportPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.supportPriceHelp')}</FieldDescription>
+                </Field>
               </div>
             </div>
 

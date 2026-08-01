@@ -4,7 +4,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, IconButton, Divider, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, IconButton, Divider } from '@mui/material';
+import { Textarea } from '../../components/ui';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -155,7 +156,9 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             <Divider />
             <div>
               <div className="flex items-center justify-between mb-0.5">
-                <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground">
+                {/* Le titre de section fait office de libelle : le champ MUI n'en
+                    portait aucun, on l'associe par aria-labelledby. */}
+                <p id="guest-notes-label" className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground">
                   <span className="inline-flex me-[1.5px] align-[middle]"><NoteIcon size={'0.75rem'} strokeWidth={1.75} /></span>
                   {t('channels.guest.notes')}
                 </p>
@@ -167,14 +170,13 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
               </div>
               {editingNotes ? (
                 <div className="flex flex-col gap-1">
-                  <TextField
-                    multiline
+                  <Textarea
+                    id="guest-notes"
+                    aria-labelledby="guest-notes-label"
+                    className="w-full text-[0.8125rem]"
                     rows={3}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    fullWidth
-                    size="small"
-                    sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
                   />
                   <div className="flex gap-0.5 justify-end">
                     <Button variant="outline" size="sm" onClick={() => { setEditingNotes(false); setNotes(guest.notes ?? ''); }}>

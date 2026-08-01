@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Card, IconButton, MenuItem, Select, TextField } from '@mui/material';
+import { Card, MenuItem, Select } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -130,28 +130,32 @@ const CustomReport: React.FC = () => {
             ))}
           </div>
         </div>
-        <div className="flex gap-1.5 flex-wrap items-center">
+        {/* items-end : les libelles passent AU-DESSUS des champs, les boutons
+            doivent donc s'aligner sur le bas de la rangee, plus sur son milieu. */}
+        <div className="flex gap-1.5 flex-wrap items-end">
           <Select size="small" value={granularity} onChange={(e) => setGranularity(e.target.value as ReportGranularity)}>
             {GRANULARITIES.map((g) => (
               <MenuItem key={g} value={g}>{t(`reports.custom.granularities.${g}`, g)}</MenuItem>
             ))}
           </Select>
-          <TextField
-            size="small"
-            type="date"
-            label={t('reports.custom.from', 'Du')}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            size="small"
-            type="date"
-            label={t('reports.custom.to', 'Au')}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
+          <Field className="w-40">
+            <FieldLabel htmlFor="custom-report-from">{t('reports.custom.from', 'Du')}</FieldLabel>
+            <Input
+              id="custom-report-from"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </Field>
+          <Field className="w-40">
+            <FieldLabel htmlFor="custom-report-to">{t('reports.custom.to', 'Au')}</FieldLabel>
+            <Input
+              id="custom-report-to"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </Field>
           <Button
             size="sm"
             disabled={!canRun || runMutation.isPending}
@@ -162,9 +166,11 @@ const CustomReport: React.FC = () => {
               : t('reports.custom.run', 'Exécuter')}
           </Button>
           <div className="flex-1" />
-          <TextField
-            size="small"
+          <Input
+            id="custom-report-view-name"
+            className="w-48"
             placeholder={t('reports.custom.viewNamePlaceholder', 'Nom de la vue')}
+            aria-label={t('reports.custom.viewNamePlaceholder', 'Nom de la vue')}
             value={viewName}
             onChange={(e) => setViewName(e.target.value)}
           />

@@ -3,8 +3,9 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Paper, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -396,41 +397,49 @@ const ChannelPromotionsPage: React.FC = () => {
             </Select>
           </FormControl>
 
-          <TextField
-            label={t('promotions.form.discount', 'Reduction (%)')}
-            type="number"
-            size="small"
-            fullWidth
-            value={formData.discountPercentage ?? ''}
-            onChange={(e) =>
-              setFormData({ ...formData, discountPercentage: e.target.value ? Number(e.target.value) : undefined })
-            }
-            inputProps={{ min: 0, max: 100, step: 1 }}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel htmlFor="promotion-discount" className="text-[0.8125rem]">
+              {t('promotions.form.discount', 'Reduction (%)')}
+            </FieldLabel>
+            <Input
+              id="promotion-discount"
+              className="w-full text-[0.8125rem]"
+              type="number"
+              value={formData.discountPercentage ?? ''}
+              onChange={(e) =>
+                setFormData({ ...formData, discountPercentage: e.target.value ? Number(e.target.value) : undefined })
+              }
+              min={0}
+              max={100}
+              step={1}
+            />
+          </Field>
 
           <div className="flex gap-2">
-            <TextField
-              label={t('promotions.form.startDate', 'Date debut')}
-              type="date"
-              size="small"
-              fullWidth
-              value={formData.startDate ?? ''}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value || undefined })}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
-            <TextField
-              label={t('promotions.form.endDate', 'Date fin')}
-              type="date"
-              size="small"
-              fullWidth
-              value={formData.endDate ?? ''}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value || undefined })}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
+            <Field>
+              <FieldLabel htmlFor="promotion-start-date" className="text-[0.8125rem]">
+                {t('promotions.form.startDate', 'Date debut')}
+              </FieldLabel>
+              <Input
+                id="promotion-start-date"
+                className="w-full text-[0.8125rem]"
+                type="date"
+                value={formData.startDate ?? ''}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value || undefined })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="promotion-end-date" className="text-[0.8125rem]">
+                {t('promotions.form.endDate', 'Date fin')}
+              </FieldLabel>
+              <Input
+                id="promotion-end-date"
+                className="w-full text-[0.8125rem]"
+                type="date"
+                value={formData.endDate ?? ''}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value || undefined })}
+              />
+            </Field>
           </div>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

@@ -10,8 +10,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Button, Spinner } from '../../../components/ui';
-import { TextField } from '@mui/material';
+import { Button, Spinner, Textarea } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 
@@ -93,15 +92,15 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
               «&nbsp;{review.reviewText.length > 160 ? `${review.reviewText.slice(0, 160)}…` : review.reviewText}&nbsp;»
             </p>
           )}
-          <TextField
+          {/* Pas de libelle visible : le bloc d'avis fait office d'intitule, le
+              champ porte donc son nom en aria-label. */}
+          <Textarea
+            id={`review-draft-${review.id}`}
+            rows={3}
+            aria-label={t('supervision.reviewDrafts.title', 'Brouillon de réponse')}
+            className="mb-1.5 text-[12.5px] leading-[1.5]"
             value={edited[review.id] ?? ''}
             onChange={(e) => setEdited((prev) => ({ ...prev, [review.id]: e.target.value }))}
-            multiline
-            minRows={3}
-            fullWidth
-            size="small"
-            aria-label={t('supervision.reviewDrafts.title', 'Brouillon de réponse')}
-            sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 12.5, lineHeight: 1.5 } }}
           />
           <div className="flex justify-end">
             <Button

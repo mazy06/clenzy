@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { IconButton, TextField, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
+import { IconButton, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
 import { Button } from '../../../components/ui';
+import { Field, FieldLabel, Input } from '../../../components/ui';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -121,13 +122,16 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                       <TableCell>{item.label}</TableCell>
                       <TableCell className="text-center">
                         {canEdit ? (
-                          <TextField
+                          // Pas de Field ici : le champ n'a jamais eu de libelle visible,
+                          // l'en-tete de colonne le porte. aria-label nomme la ligne.
+                          <Input
+                            id={`laundry-qty-${item.id}`}
+                            aria-label={`Qte par sejour — ${item.label}`}
+                            className="w-[70px] text-center"
                             type="number"
+                            min={1}
                             value={item.quantityPerStay}
                             onChange={(e) => handleQuantityChange(item, parseInt(e.target.value) || 1)}
-                            size="small"
-                            sx={{ width: 70 }}
-                            inputProps={{ min: 1, style: { textAlign: 'center' } }}
                           />
                         ) : (
                           item.quantityPerStay
@@ -185,15 +189,17 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
               </MenuItem>
             ))}
           </Select>
-          <TextField
-            label="Quantite par sejour"
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-            size="small"
-            sx={{ width: 160 }}
-            inputProps={{ min: 1 }}
-          />
+          <Field className="w-[160px]">
+            <FieldLabel htmlFor="laundry-add-quantity">Quantite par sejour</FieldLabel>
+            <Input
+              id="laundry-add-quantity"
+              className="w-full"
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            />
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="outline" onClick={() => setDialogOpen(false)}>

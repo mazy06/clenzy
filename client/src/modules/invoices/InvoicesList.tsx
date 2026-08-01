@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { IconButton, Tooltip, MenuItem, Alert, Skeleton, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { IconButton, Tooltip, Alert, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -109,11 +110,6 @@ const getSourceType = (inv: Invoice) => {
   if (inv.reservationId) return { label: 'Reservation', icon: <span className="inline-flex me-0.5"><HomeIcon size={14} strokeWidth={1.75} /></span>, color: '#7BA3C2' };
   if (inv.interventionId) return { label: 'Intervention', icon: <span className="inline-flex me-0.5"><BuildIcon size={14} strokeWidth={1.75} /></span>, color: '#D4A574' };
   return null;
-};
-
-const inputSx = {
-  '& .MuiOutlinedInput-root': { fontSize: '12.5px' },
-  '& .MuiInputLabel-root': { fontSize: '12.5px' },
 };
 
 interface InvoicesListProps {
@@ -270,52 +266,56 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
       {/* ─── Filters (panneau hairline plat) ─────────────────────────────── */}
       <Card className="gap-0 py-0 p-2 mb-3 flex gap-2 flex-wrap items-center border-[var(--line)] bg-[var(--card)]">
-        <TextField
-          select
-          size="small"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
-          label={t('common.status', 'Statut')}
-          sx={{ minWidth: 150, ...inputSx }}
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
-          label={t('invoices.type.label', 'Type')}
-          sx={{ minWidth: 150, ...inputSx }}
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          size="small"
-          type="date"
-          label={t('invoices.from', 'Du')}
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 140, ...inputSx }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t('invoices.to', 'Au')}
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 140, ...inputSx }}
-        />
+        <Field className="w-auto min-w-[150px]">
+          <FieldLabel htmlFor="invoices-filter-status">{t('common.status', 'Statut')}</FieldLabel>
+          <NativeSelect
+            id="invoices-filter-status"
+            className="w-full"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <NativeSelectOption key={opt.value} value={opt.value}>
+                {opt.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field className="w-auto min-w-[150px]">
+          <FieldLabel htmlFor="invoices-filter-type">{t('invoices.type.label', 'Type')}</FieldLabel>
+          <NativeSelect
+            id="invoices-filter-type"
+            className="w-full"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
+          >
+            {TYPE_OPTIONS.map((opt) => (
+              <NativeSelectOption key={opt.value} value={opt.value}>
+                {opt.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field className="w-auto min-w-[140px]">
+          <FieldLabel htmlFor="invoices-filter-from">{t('invoices.from', 'Du')}</FieldLabel>
+          <Input
+            id="invoices-filter-from"
+            className="w-full"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </Field>
+        <Field className="w-auto min-w-[140px]">
+          <FieldLabel htmlFor="invoices-filter-to">{t('invoices.to', 'Au')}</FieldLabel>
+          <Input
+            id="invoices-filter-to"
+            className="w-full"
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </Field>
         {hasActiveFilters && (
           <Button variant="outline" size="sm" onClick={handleClearFilters}>
             <ClearIcon size={16} strokeWidth={1.75} />

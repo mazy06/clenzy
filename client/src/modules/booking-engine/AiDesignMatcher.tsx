@@ -3,7 +3,8 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, LinearProgress, Alert, Stack } from '@mui/material';
+import { LinearProgress, Alert, Stack } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
 import { SettingsRounded } from '../../icons';
@@ -95,17 +96,20 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
     <div className="mb-4">
       {/* URL input + button */}
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <TextField
-          label={t('bookingEngine.ai.websiteUrl')}
-          placeholder="https://www.example.com"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          size="small"
-          fullWidth
-          disabled={isDisabled || isLoading}
-          helperText={isDisabled ? t('bookingEngine.ai.saveFirst') : undefined}
-          inputProps={{ type: 'url' }}
-        />
+        <Field className="flex-1">
+          <FieldLabel htmlFor="ai-design-website-url">{t('bookingEngine.ai.websiteUrl')}</FieldLabel>
+          <Input
+            id="ai-design-website-url"
+            type="url"
+            placeholder="https://www.example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={isDisabled || isLoading}
+          />
+          {isDisabled && (
+            <FieldDescription>{t('bookingEngine.ai.saveFirst')}</FieldDescription>
+          )}
+        </Field>
         <Button
           size="lg"
           className="whitespace-nowrap min-w-[180px]"

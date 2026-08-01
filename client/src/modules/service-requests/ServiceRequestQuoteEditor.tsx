@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
-import { TextField, IconButton } from '@mui/material';
+import { IconButton } from '@mui/material';
+import { Input } from '../../components/ui';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -29,19 +30,12 @@ function lineTotal(line: QuoteLine): number {
   return q * pu;
 }
 
-const NUM_INPUT_SX = {
-  '& .MuiOutlinedInput-root': {
-    fontSize: '12px',
-    fontVariantNumeric: 'tabular-nums',
-    bgcolor: 'var(--card)',
-  },
-  '& input': { textAlign: 'right' as const, py: '7px' },
-  '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-    WebkitAppearance: 'none',
-    margin: 0,
-  },
-  '& input[type=number]': { MozAppearance: 'textfield' },
-};
+const TEXT_INPUT_CLASS = 'text-[12px] bg-[var(--card)]';
+
+// Colonnes chiffrees : alignees a droite, chiffres de meme chasse, et sans les
+// fleches natives du champ number qui mangeraient la largeur de la colonne.
+const NUM_INPUT_CLASS =
+  `${TEXT_INPUT_CLASS} text-end tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0`;
 
 const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = React.memo(
   ({ value, onChange, disabled = false }) => {
@@ -109,31 +103,35 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
 
             {value.map((line, index) => (
               <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] items-center" key={index}>
-                <TextField
+                {/* Pas de libelle par champ : ce sont des colonnes, l'intitule est
+                    en tete de grille — d'ou l'aria-label qui nomme la ligne. */}
+                <Input
+                  aria-label={`Désignation ligne ${index + 1}`}
                   value={line.label}
                   onChange={(e) => updateLine(index, { label: e.target.value })}
                   placeholder="Désignation…"
                   disabled={disabled}
-                  size="small"
-                  sx={{ '& .MuiOutlinedInput-root': { fontSize: '12px', bgcolor: 'var(--card)' }, '& input': { py: '7px' } }}
+                  className={TEXT_INPUT_CLASS}
                 />
-                <TextField
+                <Input
+                  aria-label={`Quantité ligne ${index + 1}`}
                   value={Number.isFinite(line.quantity) ? line.quantity : ''}
                   onChange={(e) => updateLine(index, { quantity: e.target.value === '' ? 0 : Number(e.target.value) })}
                   type="number"
-                  inputProps={{ min: 0, step: 0.5 }}
+                  min={0}
+                  step={0.5}
                   disabled={disabled}
-                  size="small"
-                  sx={NUM_INPUT_SX}
+                  className={NUM_INPUT_CLASS}
                 />
-                <TextField
+                <Input
+                  aria-label={`Prix unitaire ligne ${index + 1}`}
                   value={Number.isFinite(line.unitPrice) ? line.unitPrice : ''}
                   onChange={(e) => updateLine(index, { unitPrice: e.target.value === '' ? 0 : Number(e.target.value) })}
                   type="number"
-                  inputProps={{ min: 0, step: 1 }}
+                  min={0}
+                  step={1}
                   disabled={disabled}
-                  size="small"
-                  sx={NUM_INPUT_SX}
+                  className={NUM_INPUT_CLASS}
                 />
                 <p className="cn-text-body1 text-[12px] font-semibold text-[var(--ink)] text-end tabular-nums pe-0.5">
                   {convertAndFormat(lineTotal(line), 'EUR')}

@@ -4,9 +4,10 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, Info, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
+import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import { TextField, Alert, Snackbar, Divider } from '@mui/material';
+import { Alert, Snackbar, Divider } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -251,42 +252,48 @@ export default function MyPayoutSettings() {
         )}
 
         <div className="flex flex-col gap-2">
-          <TextField
-            label={t('settings.myPayout.ibanLabel', 'IBAN')}
-            value={sepaIban}
-            onChange={(e) => {
-              setSepaIban(e.target.value);
-              setIbanError('');
-            }}
-            error={!!ibanError}
-            helperText={ibanError}
-            placeholder="FR76 3000 6000 0112 3456 7890 189"
-            size="small"
-            fullWidth
-            InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel htmlFor="payout-sepa-iban" className="text-[0.8125rem]">
+              {t('settings.myPayout.ibanLabel', 'IBAN')}
+            </FieldLabel>
+            <Input
+              id="payout-sepa-iban"
+              className="w-full font-mono text-[0.875rem]"
+              value={sepaIban}
+              onChange={(e) => {
+                setSepaIban(e.target.value);
+                setIbanError('');
+              }}
+              aria-invalid={!!ibanError}
+              placeholder="FR76 3000 6000 0112 3456 7890 189"
+            />
+            <FieldError>{ibanError}</FieldError>
+          </Field>
           <div className="flex gap-2">
-            <TextField
-              label={t('settings.myPayout.bicLabel', 'BIC / SWIFT')}
-              value={sepaBic}
-              onChange={(e) => setSepaBic(e.target.value)}
-              placeholder="AGRIFRPP"
-              size="small"
-              sx={{ flex: 1 }}
-              InputProps={{ sx: { fontSize: '0.875rem' } }}
-              InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
-            <TextField
-              label={t('settings.myPayout.holderLabel', 'Titulaire du compte')}
-              value={sepaHolder}
-              onChange={(e) => setSepaHolder(e.target.value)}
-              placeholder="Jean Dupont"
-              size="small"
-              sx={{ flex: 2 }}
-              InputProps={{ sx: { fontSize: '0.875rem' } }}
-              InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
+            <Field className="flex-1">
+              <FieldLabel htmlFor="payout-sepa-bic" className="text-[0.8125rem]">
+                {t('settings.myPayout.bicLabel', 'BIC / SWIFT')}
+              </FieldLabel>
+              <Input
+                id="payout-sepa-bic"
+                className="w-full text-[0.875rem]"
+                value={sepaBic}
+                onChange={(e) => setSepaBic(e.target.value)}
+                placeholder="AGRIFRPP"
+              />
+            </Field>
+            <Field className="flex-[2]">
+              <FieldLabel htmlFor="payout-sepa-holder" className="text-[0.8125rem]">
+                {t('settings.myPayout.holderLabel', 'Titulaire du compte')}
+              </FieldLabel>
+              <Input
+                id="payout-sepa-holder"
+                className="w-full text-[0.875rem]"
+                value={sepaHolder}
+                onChange={(e) => setSepaHolder(e.target.value)}
+                placeholder="Jean Dupont"
+              />
+            </Field>
           </div>
 
           <div className="flex items-center gap-2 mt-0.5">

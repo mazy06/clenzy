@@ -2,7 +2,15 @@ import React, { useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, FormControlLabel, Switch } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, FormControlLabel, Switch } from '@mui/material';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
@@ -89,42 +97,50 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
         </Alert>}
 
         <div className="mt-1.5 flex flex-col gap-3">
-          <TextField
-            label="Type de document *"
-            select
-            size="small"
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-            fullWidth
-          >
-            {documentTypes.map((t) => (
-              <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
-            ))}
-          </TextField>
+          {/* L'option vide desactivee tient la place de l'etat « rien de
+              choisi » : un select natif afficherait sinon la premiere entree
+              alors que documentType vaut encore ''. */}
+          <Field>
+            <FieldLabel htmlFor="generate-document-type">Type de document *</FieldLabel>
+            <NativeSelect
+              id="generate-document-type"
+              className="w-full"
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+            >
+              <NativeSelectOption value="" disabled>Choisir un type</NativeSelectOption>
+              {documentTypes.map((type) => (
+                <NativeSelectOption key={type.value} value={type.value}>{type.label}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label="Type de référence *"
-            select
-            size="small"
-            value={referenceType}
-            onChange={(e) => setReferenceType(e.target.value)}
-            fullWidth
-          >
-            {REFERENCE_TYPES.map((t) => (
-              <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="generate-reference-type">Type de référence *</FieldLabel>
+            <NativeSelect
+              id="generate-reference-type"
+              className="w-full"
+              value={referenceType}
+              onChange={(e) => setReferenceType(e.target.value)}
+            >
+              {REFERENCE_TYPES.map((type) => (
+                <NativeSelectOption key={type.value} value={type.value}>{type.label}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label="ID de référence *"
-            type="number"
-            size="small"
-            value={referenceId}
-            onChange={(e) => setReferenceId(e.target.value)}
-            fullWidth
-            placeholder="Ex: 42"
-            helperText="ID de l'intervention, demande, bien ou utilisateur"
-          />
+          <Field>
+            <FieldLabel htmlFor="generate-reference-id">ID de référence *</FieldLabel>
+            <Input
+              id="generate-reference-id"
+              type="number"
+              className="tabular-nums"
+              value={referenceId}
+              onChange={(e) => setReferenceId(e.target.value)}
+              placeholder="Ex: 42"
+            />
+            <FieldDescription>ID de l'intervention, demande, bien ou utilisateur</FieldDescription>
+          </Field>
 
           <FormControlLabel
             control={<Switch checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />}
@@ -132,15 +148,16 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
           />
 
           {sendEmail && (
-            <TextField
-              label="Adresse email du destinataire"
-              type="email"
-              size="small"
-              value={emailTo}
-              onChange={(e) => setEmailTo(e.target.value)}
-              fullWidth
-              placeholder="client@example.com"
-            />
+            <Field>
+              <FieldLabel htmlFor="generate-email-to">Adresse email du destinataire</FieldLabel>
+              <Input
+                id="generate-email-to"
+                type="email"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="client@example.com"
+              />
+            </Field>
           )}
         </div>
       </DialogContent>

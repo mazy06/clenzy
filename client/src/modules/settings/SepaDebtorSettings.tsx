@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import { AccountBalance, VerifiedUser } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
@@ -154,47 +154,50 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
       )}
 
       <div className="flex flex-col gap-2.5">
-        <TextField
-          label={t('settings.sepaDebtor.nameLabel', 'Nom du titulaire')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          size="small"
-          fullWidth
-          placeholder="Baitly SAS"
-        />
-        <TextField
-          label={t('settings.sepaDebtor.ibanLabel', 'IBAN')}
-          value={iban}
-          onChange={(e) => setIban(e.target.value)}
-          onFocus={(e) => {
-            // Auto-sélection du contenu si c'est encore le mask : permet à
-            // l'admin de taper un nouvel IBAN directement, ou de continuer à
-            // utiliser l'existant en cliquant ailleurs sans avoir modifié.
-            if (ibanUnchanged) {
-              e.target.select();
-            }
-          }}
-          size="small"
-          fullWidth
-          placeholder={!config?.configured ? 'FR76 3000 1007 9412 3456 7890 185' : undefined}
-          helperText={
-            config?.configured
+        <Field>
+          <FieldLabel htmlFor="sepa-debtor-name">{t('settings.sepaDebtor.nameLabel', 'Nom du titulaire')}</FieldLabel>
+          <Input
+            id="sepa-debtor-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Baitly SAS"
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="sepa-debtor-iban">{t('settings.sepaDebtor.ibanLabel', 'IBAN')}</FieldLabel>
+          <Input
+            id="sepa-debtor-iban"
+            className="font-mono text-[0.875rem] tabular-nums"
+            value={iban}
+            onChange={(e) => setIban(e.target.value)}
+            onFocus={(e) => {
+              // Auto-sélection du contenu si c'est encore le mask : permet à
+              // l'admin de taper un nouvel IBAN directement, ou de continuer à
+              // utiliser l'existant en cliquant ailleurs sans avoir modifié.
+              if (ibanUnchanged) {
+                e.target.select();
+              }
+            }}
+            placeholder={!config?.configured ? 'FR76 3000 1007 9412 3456 7890 185' : undefined}
+          />
+          <FieldDescription>
+            {config?.configured
               ? ibanUnchanged
                 ? t('settings.sepaDebtor.ibanPreserved', 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.')
                 : t('settings.sepaDebtor.ibanNewFormat', 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123')
-              : t('settings.sepaDebtor.ibanRequired', 'Renseignez l\'IBAN du compte débiteur Baitly.')
-          }
-          InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' } }}
-        />
-        <TextField
-          label={t('settings.sepaDebtor.bicLabel', 'BIC / SWIFT')}
-          value={bic}
-          onChange={(e) => setBic(e.target.value)}
-          size="small"
-          fullWidth
-          placeholder="BNPAFRPPXXX"
-          InputProps={{ sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' } }}
-        />
+              : t('settings.sepaDebtor.ibanRequired', 'Renseignez l\'IBAN du compte débiteur Baitly.')}
+          </FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="sepa-debtor-bic">{t('settings.sepaDebtor.bicLabel', 'BIC / SWIFT')}</FieldLabel>
+          <Input
+            id="sepa-debtor-bic"
+            className="tabular-nums tracking-[0.04em] uppercase"
+            value={bic}
+            onChange={(e) => setBic(e.target.value)}
+            placeholder="BNPAFRPPXXX"
+          />
+        </Field>
       </div>
     </SettingsSection>
   );

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner, Button } from '../../components/ui';
-import { Paper, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Collapse } from '@mui/material';
+import { Spinner, Button, Textarea } from '../../components/ui';
+import { Paper, FormControl, InputLabel, Select, MenuItem, Rating, Collapse } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
@@ -266,15 +266,15 @@ function ReviewCard({
         <>
           <Collapse in={isReplying}>
             <div className="flex flex-col gap-1 mt-0.5">
-              <TextField
-                multiline
+              {/* Le champ n'a jamais porte de libelle visible : on lui donne un
+                  nom accessible, sinon il ne s'annonce plus du tout. */}
+              <Textarea
                 rows={2}
                 value={replyText}
                 onChange={(e) => onChangeReply(e.target.value)}
                 placeholder={t('channels.reviews.replyPlaceholder')}
-                fullWidth
-                size="small"
-                sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
+                aria-label={t('channels.reviews.reply')}
+                className="w-full text-[0.8125rem]"
               />
               <div className="flex gap-0.5 justify-end">
                 {/* Barre d'action de carte, tres dense : taille xs du kit plutot

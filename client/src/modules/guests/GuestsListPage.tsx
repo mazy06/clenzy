@@ -2,8 +2,15 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, TextField, MenuItem, Skeleton } from '@mui/material';
+import { Paper, Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -147,31 +154,33 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       {/* Filters */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
         <div className="flex gap-3 flex-wrap">
-          <TextField
-            label="Rechercher"
-            placeholder="Nom, email..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 260, flex: 1 }}
-          />
-          <TextField
-            select
-            label="Canal"
-            value={channelFilter}
-            onChange={(e) => handleChannelChange(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="">Tous les canaux</MenuItem>
-            {CHANNEL_OPTIONS.filter(Boolean).map((ch) => (
-              <MenuItem key={ch} value={ch}>
-                {CHANNEL_LABELS[ch] || ch}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Field className="min-w-[260px] flex-1">
+            <FieldLabel htmlFor="guests-search">Rechercher</FieldLabel>
+            <Input
+              id="guests-search"
+              placeholder="Nom, email..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </Field>
+          {/* w-[150px] remplace le w-full de la primitive : sans lui, le champ
+              occuperait toute la rangee flex et repousserait la recherche. */}
+          <Field className="w-[150px]">
+            <FieldLabel htmlFor="guests-channel">Canal</FieldLabel>
+            <NativeSelect
+              id="guests-channel"
+              className="w-full"
+              value={channelFilter}
+              onChange={(e) => handleChannelChange(e.target.value)}
+            >
+              <NativeSelectOption value="">Tous les canaux</NativeSelectOption>
+              {CHANNEL_OPTIONS.filter(Boolean).map((ch) => (
+                <NativeSelectOption key={ch} value={ch}>
+                  {CHANNEL_LABELS[ch] || ch}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
         </div>
       </Paper>
 

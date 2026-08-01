@@ -3,7 +3,8 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, MenuItem, Paper, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, TextField } from '@mui/material';
+import { Field, FieldDescription, FieldLabel, Input, NativeSelect } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -219,49 +220,47 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
               <div className="grid grid-cols-12 gap-3">
                 {/* Nom du template (readonly — slug systeme immuable) */}
                 <div className="col-span-12 min-[600px]:col-span-6">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.name')}
-                    value={friendlyName}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                    helperText={t('messaging.templates.editor.systemNameHelper')}
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="systpl-name">{t('messaging.templates.editor.name')}</FieldLabel>
+                    <Input id="systpl-name" value={friendlyName} readOnly />
+                    <FieldDescription>{t('messaging.templates.editor.systemNameHelper')}</FieldDescription>
+                  </Field>
                 </div>
                 {/* Type / Destinataire (readonly) */}
                 <div className="col-span-6 min-[600px]:col-span-3">
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.recipient')}
-                    value={recipientLabel}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="systpl-recipient">{t('messaging.templates.editor.recipient')}</FieldLabel>
+                    <Input id="systpl-recipient" value={recipientLabel} readOnly />
+                  </Field>
                 </div>
                 {/* Langue (select fr/en/ar) */}
                 <div className="col-span-6 min-[600px]:col-span-3">
-                  <TextField
-                    fullWidth
-                    select
-                    label={t('messaging.templates.editor.language')}
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    size="small"
-                  >
-                    {LANGUAGES.map((lang) => {
-                      const tpl = group.languages[lang.value];
-                      const isCustom = tpl && !tpl.isSystem;
-                      return (
-                        <MenuItem key={lang.value} value={lang.value} disabled={!tpl}>
-                          {lang.label}
-                          {isCustom && (
-                            <span className="ms-1.5 w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] inline-block" />
-                          )}
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
+                  <Field>
+                    <FieldLabel htmlFor="systpl-language">{t('messaging.templates.editor.language')}</FieldLabel>
+                    <NativeSelect
+                      id="systpl-language"
+                      className="w-full"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                    >
+                      {LANGUAGES.map((lang) => {
+                        const tpl = group.languages[lang.value];
+                        const isCustom = tpl && !tpl.isSystem;
+                        // Une <option> ne peut pas contenir d'element : la pastille
+                        // « surcharge locale » devient une puce textuelle.
+                        return (
+                          <option key={lang.value} value={lang.value} disabled={!tpl}>
+                            {lang.label}{isCustom ? ' •' : ''}
+                          </option>
+                        );
+                      })}
+                    </NativeSelect>
+                  </Field>
                 </div>
+                {/* Subject et Body restent en MUI : l'insertion de variable a la
+                    position du curseur a besoin d'une ref sur l'element de saisie,
+                    or les primitives du kit ne sont pas des forwardRef (React 18)
+                    et la ref serait nulle — l'insertion retomberait en fin de champ. */}
                 {/* Subject */}
                 <div className="col-span-12">
                   <TextField

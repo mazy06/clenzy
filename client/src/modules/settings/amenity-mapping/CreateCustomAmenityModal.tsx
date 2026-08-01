@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
 import { X, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/ui';
+import { Field, FieldLabel, FieldDescription, Input } from '../../../components/ui';
 
 import {
   amenitiesManagementApi,
@@ -169,14 +170,15 @@ export default function CreateCustomAmenityModal({
         )}
 
         <Stack spacing={2}>
-          <TextField
-            label="Label français *"
-            size="small"
-            fullWidth
-            value={labelFr}
-            onChange={(e) => setLabelFr(e.target.value)}
-            placeholder="ex : Détecteur de fumée"
-          />
+          <Field>
+            <FieldLabel htmlFor="custom-amenity-label-fr">Label français *</FieldLabel>
+            <Input
+              id="custom-amenity-label-fr"
+              value={labelFr}
+              onChange={(e) => setLabelFr(e.target.value)}
+              placeholder="ex : Détecteur de fumée"
+            />
+          </Field>
           <Autocomplete
             freeSolo
             size="small"
@@ -233,20 +235,21 @@ export default function CreateCustomAmenityModal({
               ))}
             </Select>
           </FormControl>
-          <TextField
-            label="Code (auto si vide)"
-            size="small"
-            fullWidth
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder={previewCode || 'AUTO_GENERATED'}
-            helperText={
-              code.trim()
+          <Field>
+            <FieldLabel htmlFor="custom-amenity-code">Code (auto si vide)</FieldLabel>
+            <Input
+              id="custom-amenity-code"
+              className="font-mono text-[0.85rem]"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder={previewCode || 'AUTO_GENERATED'}
+            />
+            <FieldDescription>
+              {code.trim()
                 ? `Sera enregistré : ${previewCode}`
-                : `Sera généré automatiquement : ${previewCode || '—'}`
-            }
-            InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
-          />
+                : `Sera généré automatiquement : ${previewCode || '—'}`}
+            </FieldDescription>
+          </Field>
 
           {/* Icone : preview cliquable + label + bouton "Choisir" */}
           <Stack direction="row" alignItems="center" spacing={1.5}>

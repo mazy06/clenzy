@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
-import { Alert, AlertDescription, Button } from '../../../components/ui';
+import { Alert, AlertDescription, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Divider, TextField, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Divider, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   AutoAwesome,
   Handyman,
@@ -238,22 +238,28 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             })}
           </div>
           <div className="flex items-center gap-1">
-            <TextField
-              type="number"
-              size="small"
-              value={amountValue}
-              onChange={(e) => setAmountValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAmount(); } }}
-              placeholder={amountMode === 'DISCOUNT_PERCENT' ? '10' : '0'}
-              disabled={amountSaving}
-              inputProps={{ min: 0, step: amountMode === 'DISCOUNT_PERCENT' ? 1 : 5, style: { textAlign: 'right' } }}
-              InputProps={{ endAdornment: (
-                <p className="cn-text-body1 text-[0.75rem] text-[var(--faint)] ps-0.5">
+            {/* Le champ n'avait pas de libelle : les puces de mode au-dessus font
+                office d'intitule, d'ou l'aria-label qui reprend le mode actif. */}
+            <InputGroup className="flex-1 bg-[var(--card)]">
+              <InputGroupInput
+                id="intervention-amount"
+                type="number"
+                value={amountValue}
+                onChange={(e) => setAmountValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAmount(); } }}
+                placeholder={amountMode === 'DISCOUNT_PERCENT' ? '10' : '0'}
+                disabled={amountSaving}
+                min={0}
+                step={amountMode === 'DISCOUNT_PERCENT' ? 1 : 5}
+                aria-label={amountMode === 'DISCOUNT_PERCENT' ? 'Remise en pourcentage' : amountMode === 'DISCOUNT_AMOUNT' ? 'Remise en euros' : 'Nouveau montant'}
+                className="text-end text-[0.8125rem]"
+              />
+              <InputGroupAddon align="inline-end">
+                <span className="cn-text-body1 text-[0.75rem] text-[var(--faint)]">
                   {amountMode === 'DISCOUNT_PERCENT' ? '%' : '€'}
-                </p>
-              ) }}
-              sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--card)' } }}
-            />
+                </span>
+              </InputGroupAddon>
+            </InputGroup>
             <IconButton
               size="small"
               onClick={applyAmount}

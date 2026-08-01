@@ -1,11 +1,11 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { TextField, Tooltip } from '@mui/material';
+import { Field, FieldLabel, Input, InputGroup, InputGroupInput, InputGroupAddon } from '../ui';
+import { Tooltip } from '@mui/material';
 import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { FIELD_SX } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
@@ -57,24 +57,31 @@ const PricingSection: React.FC<Props> = ({ form }) => {
     : '';
 
   const baseField = (
-    <TextField
-      label={t('reservations.dialog.basePerNight')}
-      value={baseValue}
-      fullWidth
-      disabled
-      InputProps={{
-        startAdornment: <span className="text-[var(--faint)] text-[14px] font-semibold">€</span>,
-        endAdornment: form.pricingLoading ? (
-          <Spinner className="size-3.5 text-[var(--accent)]" />
-        ) : form.priceVaries ? (
-          <span className="rounded-[6px] bg-[var(--accent-soft)] px-1.5 py-[2px] text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-[var(--accent)]">
-            {t('reservations.dialog.priceVariable')}
-          </span>
-        ) : undefined,
-      }}
-      InputLabelProps={{ shrink: true }}
-      sx={{ ...FIELD_SX, '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' } }}
-    />
+    <Field>
+      <FieldLabel htmlFor="pricing-base-per-night">{t('reservations.dialog.basePerNight')}</FieldLabel>
+      <InputGroup>
+        <InputGroupAddon>
+          <span className="text-[var(--faint)] text-[14px] font-semibold">€</span>
+        </InputGroupAddon>
+        <InputGroupInput
+          id="pricing-base-per-night"
+          className="tabular-nums"
+          value={baseValue}
+          disabled
+        />
+        {(form.pricingLoading || form.priceVaries) && (
+          <InputGroupAddon align="inline-end">
+            {form.pricingLoading ? (
+              <Spinner className="size-3.5 text-[var(--accent)]" />
+            ) : (
+              <span className="rounded-[6px] bg-[var(--accent-soft)] px-1.5 py-[2px] text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-[var(--accent)]">
+                {t('reservations.dialog.priceVariable')}
+              </span>
+            )}
+          </InputGroupAddon>
+        )}
+      </InputGroup>
+    </Field>
   );
 
   return (
@@ -90,18 +97,20 @@ const PricingSection: React.FC<Props> = ({ form }) => {
         ) : (
           baseField
         )}
-        <TextField
-          label={form.pricingLabel}
-          type="number"
-          value={form.pricingValue}
-          onChange={(e) => form.setPricingValue(e.target.value)}
-          fullWidth
-          disabled={locked}
-          placeholder="—"
-          inputProps={{ min: 0, step: 0.01 }}
-          InputLabelProps={{ shrink: true }}
-          sx={FIELD_SX}
-        />
+        <Field>
+          <FieldLabel htmlFor="pricing-override">{form.pricingLabel}</FieldLabel>
+          <Input
+            id="pricing-override"
+            type="number"
+            min={0}
+            step={0.01}
+            className="tabular-nums"
+            value={form.pricingValue}
+            onChange={(e) => form.setPricingValue(e.target.value)}
+            disabled={locked}
+            placeholder="—"
+          />
+        </Field>
       </div>
 
       {/* Onglets tarification (.rm-tariftabs) */}

@@ -4,8 +4,8 @@ import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button } from '../../../components/ui';
-import { Skeleton, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
+import { Skeleton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   PlayArrow,
@@ -109,15 +109,16 @@ const ReconciliationTab: React.FC = () => {
   // Register Property ID + Status filters in the page header.
   useEffect(() => {
     setHeaderFilters(
-      <div className="flex items-center gap-2 flex-wrap">
-        <TextField
-          size="small"
-          label="Property ID"
-          value={propertyIdFilter}
-          onChange={(e) => { setPropertyIdFilter(e.target.value); setPage(0); }}
-          type="number"
-          sx={{ width: 150 }}
-        />
+      <div className="flex items-end gap-2 flex-wrap">
+        <Field className="w-[150px]">
+          <FieldLabel htmlFor="reconciliation-property-filter">Property ID</FieldLabel>
+          <Input
+            id="reconciliation-property-filter"
+            value={propertyIdFilter}
+            onChange={(e) => { setPropertyIdFilter(e.target.value); setPage(0); }}
+            type="number"
+          />
+        </Field>
         <FilterChipRow
           options={STATUS_OPTIONS}
           value={statusFilter}
@@ -302,15 +303,16 @@ const ReconciliationTab: React.FC = () => {
             Declencher une reconciliation manuelle pour une propriete.
             Tous les mappings actifs de cette propriete seront reconcilies.
           </p>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Property ID"
-            type="number"
-            value={triggerPropertyId}
-            onChange={(e) => setTriggerPropertyId(e.target.value)}
-            sx={{ mt: 1 }}
-          />
+          <Field className="mt-1.5">
+            <FieldLabel htmlFor="reconciliation-trigger-property">Property ID</FieldLabel>
+            <Input
+              id="reconciliation-trigger-property"
+              autoFocus
+              type="number"
+              value={triggerPropertyId}
+              onChange={(e) => setTriggerPropertyId(e.target.value)}
+            />
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="outline" onClick={() => setTriggerDialogOpen(false)}>Annuler</Button>

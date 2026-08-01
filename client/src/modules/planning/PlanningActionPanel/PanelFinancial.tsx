@@ -8,7 +8,17 @@ import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Collapse, Tooltip } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
+import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton, Snackbar, Collapse, Tooltip } from '@mui/material';
 import {
   Payment,
   Add,
@@ -903,18 +913,22 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* Email input (si pas d'email guest) */}
           <Collapse in={showEmailInput}>
             <div className="flex gap-0.5 mt-1">
-              <TextField
-                size="small"
-                placeholder="Email du voyageur"
-                type="email"
-                value={linkEmail}
-                onChange={(e) => setLinkEmail(e.target.value)}
-                fullWidth
-                sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                InputProps={{
-                  startAdornment: <span className="inline-flex text-muted-foreground me-0.5"><Email size={14} strokeWidth={1.75} /></span>,
-                }}
-              />
+              {/* Pas de libelle : le champ n'apparait qu'a la demande, le
+                  placeholder suffit — d'ou l'aria-label pour le lecteur d'ecran. */}
+              <InputGroup className="w-full">
+                <InputGroupAddon>
+                  <span className="inline-flex text-muted-foreground"><Email size={14} strokeWidth={1.75} /></span>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="panel-financial-link-email"
+                  aria-label="Email du voyageur"
+                  placeholder="Email du voyageur"
+                  type="email"
+                  className="text-[0.75rem]"
+                  value={linkEmail}
+                  onChange={(e) => setLinkEmail(e.target.value)}
+                />
+              </InputGroup>
               {/* px: 1.5 = 9 px (le spacing MUI de ce projet vaut 6). */}
               <Button
                 size="sm"
@@ -1305,12 +1319,52 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </span>
           )}
           <div className="flex flex-col gap-3">
-            <TextField type="number" label="Montant (EUR)" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-            <TextField select label="Methode de paiement" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}>
-              {PAYMENT_METHODS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-            </TextField>
-            <TextField type="date" label="Date du paiement" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} size="small" fullWidth InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-            <TextField label="Reference (optionnel)" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} size="small" fullWidth placeholder="N° transaction, cheque..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-amount">Montant (EUR)</FieldLabel>
+              <Input
+                id="panel-financial-payment-amount"
+                type="number"
+                required
+                min={0.01}
+                step={0.01}
+                className="w-full text-[0.8125rem]"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-method">Methode de paiement</FieldLabel>
+              <NativeSelect
+                id="panel-financial-payment-method"
+                className="w-full text-[0.8125rem]"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <NativeSelectOption key={m.value} value={m.value}>{m.label}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-date">Date du paiement</FieldLabel>
+              <Input
+                id="panel-financial-payment-date"
+                type="date"
+                className="w-full text-[0.8125rem]"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-reference">Reference (optionnel)</FieldLabel>
+              <Input
+                id="panel-financial-payment-reference"
+                placeholder="N° transaction, cheque..."
+                className="w-full text-[0.8125rem]"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+              />
+            </Field>
           </div>
         </DialogContent>
         <DialogActions>
@@ -1333,8 +1387,30 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogTitle>
         <DialogContent>
           <div className="flex flex-col gap-3">
-            <TextField label="Description" value={feeDescription} onChange={(e) => setFeeDescription(e.target.value)} size="small" fullWidth required placeholder="Ex: Menage supplementaire, cle perdue..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-            <TextField type="number" label="Montant (EUR)" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
+            <Field>
+              <FieldLabel htmlFor="panel-financial-fee-description">Description</FieldLabel>
+              <Input
+                id="panel-financial-fee-description"
+                required
+                placeholder="Ex: Menage supplementaire, cle perdue..."
+                className="w-full text-[0.8125rem]"
+                value={feeDescription}
+                onChange={(e) => setFeeDescription(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-fee-amount">Montant (EUR)</FieldLabel>
+              <Input
+                id="panel-financial-fee-amount"
+                type="number"
+                required
+                min={0.01}
+                step={0.01}
+                className="w-full text-[0.8125rem]"
+                value={feeAmount}
+                onChange={(e) => setFeeAmount(e.target.value)}
+              />
+            </Field>
           </div>
           {grandTotal > 0 && (
             <Alert severity="info" sx={{ fontSize: '0.75rem', mt: 2, '& .MuiAlert-message': { py: 0.25 } }}>

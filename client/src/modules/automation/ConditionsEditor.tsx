@@ -1,6 +1,7 @@
 import React from 'react';
 import TagChip from '../../components/TagChip';
-import { Autocomplete, MenuItem, Stack, TextField } from '@mui/material';
+import { Autocomplete, Stack, TextField } from '@mui/material';
+import { Field, FieldLabel, Input, NativeSelect } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -67,6 +68,8 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
             })
           }
           renderInput={(params) => (
+            // Champ laisse en MUI : c'est le renderInput de l'Autocomplete, il recoit
+            // des props internes (ref, InputProps, inputProps) que le kit ne porte pas.
             <TextField
               {...params}
               label={t('automation.form.properties', 'Logements concernés')}
@@ -76,49 +79,58 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
         />
 
         <Stack direction="row" spacing={1.5}>
-          <TextField
-            label={t('automation.form.minNights', 'Nuits min.')}
-            type="number"
-            size="small"
-            fullWidth
-            value={conditions.minNights ?? ''}
-            onChange={(e) =>
-              update({ minNights: e.target.value === '' ? undefined : Number(e.target.value) })
-            }
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label={t('automation.form.maxNights', 'Nuits max.')}
-            type="number"
-            size="small"
-            fullWidth
-            value={conditions.maxNights ?? ''}
-            onChange={(e) =>
-              update({ maxNights: e.target.value === '' ? undefined : Number(e.target.value) })
-            }
-            inputProps={{ min: 1 }}
-          />
+          <Field>
+            <FieldLabel htmlFor="automation-cond-min-nights">
+              {t('automation.form.minNights', 'Nuits min.')}
+            </FieldLabel>
+            <Input
+              id="automation-cond-min-nights"
+              type="number"
+              min={1}
+              value={conditions.minNights ?? ''}
+              onChange={(e) =>
+                update({ minNights: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="automation-cond-max-nights">
+              {t('automation.form.maxNights', 'Nuits max.')}
+            </FieldLabel>
+            <Input
+              id="automation-cond-max-nights"
+              type="number"
+              min={1}
+              value={conditions.maxNights ?? ''}
+              onChange={(e) =>
+                update({ maxNights: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+          </Field>
         </Stack>
 
-        <TextField
-          select
-          label={t('automation.form.guestLanguage', 'Langue du voyageur')}
-          size="small"
-          fullWidth
-          value={conditions.guestLanguage ?? ''}
-          onChange={(e) =>
-            update({ guestLanguage: (e.target.value || undefined) as GuestLanguage | undefined })
-          }
-        >
-          <MenuItem value="">
-            {t('automation.form.guestLanguageAny', 'Toutes les langues')}
-          </MenuItem>
-          {LANGUAGE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {t(opt.key, opt.fallback)}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Field>
+          <FieldLabel htmlFor="automation-cond-language">
+            {t('automation.form.guestLanguage', 'Langue du voyageur')}
+          </FieldLabel>
+          <NativeSelect
+            id="automation-cond-language"
+            className="w-full"
+            value={conditions.guestLanguage ?? ''}
+            onChange={(e) =>
+              update({ guestLanguage: (e.target.value || undefined) as GuestLanguage | undefined })
+            }
+          >
+            <option value="">
+              {t('automation.form.guestLanguageAny', 'Toutes les langues')}
+            </option>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(opt.key, opt.fallback)}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
       </Stack>
     </div>
   );

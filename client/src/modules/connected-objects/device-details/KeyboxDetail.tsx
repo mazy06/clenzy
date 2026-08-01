@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { Button } from '../../../components/ui';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TextField, IconButton, Tooltip, Skeleton, Snackbar, Alert } from '@mui/material';
+import { IconButton, Tooltip, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -117,14 +117,17 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
           {subTab === 0 && (
             <div className="flex flex-col gap-2">
               {/* Génération */}
-              <div className="flex gap-1.5 items-center">
-                <TextField
-                  size="small"
-                  label="Nom du voyageur (optionnel)"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  sx={{ flex: 1, maxWidth: 320 }}
-                />
+              {/* items-end : le libelle du champ est desormais statique au-dessus,
+                  le bouton doit s'aligner sur la ligne de saisie et non au centre. */}
+              <div className="flex gap-1.5 items-end">
+                <Field className="w-auto flex-1 max-w-[320px]">
+                  <FieldLabel htmlFor="keybox-guest-name">Nom du voyageur (optionnel)</FieldLabel>
+                  <Input
+                    id="keybox-guest-name"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                  />
+                </Field>
                 <Button
                   variant="default"
                   size="sm"

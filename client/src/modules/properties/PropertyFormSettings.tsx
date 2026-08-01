@@ -2,6 +2,16 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
 import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
+import {
   Person,
   Schedule,
   CleaningServices,
@@ -185,21 +195,25 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="defaultCheckInTime"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="time"
-                    label={t('properties.checkInTime')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'var(--muted)' }} />,
-                    }}
-                    inputProps={{ step: 900 }}
-                  />
+                // Le ref de react-hook-form est ecarte : les primitives du kit sont des
+                // composants fonction sans forwardRef (React 18 refuserait le ref).
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-check-in-time">{t('properties.checkInTime')}</FieldLabel>
+                    <InputGroup>
+                      <InputGroupAddon>
+                        <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        {...field}
+                        id="property-check-in-time"
+                        type="time"
+                        step={900}
+                        aria-invalid={!!fieldState.error}
+                      />
+                    </InputGroup>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </div>
@@ -208,21 +222,23 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="defaultCheckOutTime"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="time"
-                    label={t('properties.checkOutTime')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'var(--muted)' }} />,
-                    }}
-                    inputProps={{ step: 900 }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-check-out-time">{t('properties.checkOutTime')}</FieldLabel>
+                    <InputGroup>
+                      <InputGroupAddon>
+                        <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        {...field}
+                        id="property-check-out-time"
+                        type="time"
+                        step={900}
+                        aria-invalid={!!fieldState.error}
+                      />
+                    </InputGroup>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </div>
@@ -263,22 +279,29 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="cleaningBasePrice"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    fullWidth
-                    type="number"
-                    label={t('properties.cleaningBasePrice')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.onChange(val === '' ? undefined : Number(val));
-                    }}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message || t('properties.cleaningBasePriceHelper')}
-                    inputProps={{ step: '0.01', min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-cleaning-base-price">{t('properties.cleaningBasePrice')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-cleaning-base-price"
+                      value={field.value ?? ''}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }}
+                      aria-invalid={!!fieldState.error}
+                      step="0.01"
+                      min="0"
+                    />
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : (
+                      <FieldDescription>{t('properties.cleaningBasePriceHelper')}</FieldDescription>
+                    )}
+                  </Field>
                 )}
               />
             </div>
@@ -287,22 +310,24 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="numberOfFloors"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    fullWidth
-                    type="number"
-                    label={t('properties.numberOfFloors')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.onChange(val === '' ? undefined : Number(val));
-                    }}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-number-of-floors">{t('properties.numberOfFloors')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-number-of-floors"
+                      value={field.value ?? ''}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </div>
@@ -406,19 +431,21 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="windowCount"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? 0}
-                    fullWidth
-                    type="number"
-                    label={t('properties.addOnServices.windowCount')}
-                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={t('properties.addOnServices.windowCountHelper')}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-window-count">{t('properties.addOnServices.windowCount')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-window-count"
+                      value={field.value ?? 0}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    <FieldDescription>{t('properties.addOnServices.windowCountHelper')}</FieldDescription>
+                  </Field>
                 )}
               />
             </div>
@@ -427,19 +454,21 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="frenchDoorCount"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? 0}
-                    fullWidth
-                    type="number"
-                    label={t('properties.addOnServices.frenchDoorCount')}
-                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={t('properties.addOnServices.frenchDoorCountHelper')}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-french-door-count">{t('properties.addOnServices.frenchDoorCount')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-french-door-count"
+                      value={field.value ?? 0}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    <FieldDescription>{t('properties.addOnServices.frenchDoorCountHelper')}</FieldDescription>
+                  </Field>
                 )}
               />
             </div>
@@ -448,19 +477,21 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               <Controller
                 name="slidingDoorCount"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? 0}
-                    fullWidth
-                    type="number"
-                    label={t('properties.addOnServices.slidingDoorCount')}
-                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={t('properties.addOnServices.slidingDoorCountHelper')}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-sliding-door-count">{t('properties.addOnServices.slidingDoorCount')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-sliding-door-count"
+                      value={field.value ?? 0}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    <FieldDescription>{t('properties.addOnServices.slidingDoorCountHelper')}</FieldDescription>
+                  </Field>
                 )}
               />
             </div>

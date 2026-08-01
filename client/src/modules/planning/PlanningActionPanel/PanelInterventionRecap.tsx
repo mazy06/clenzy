@@ -3,8 +3,8 @@ import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Accordion, AccordionSummary, AccordionDetails, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
-import { Button } from '../../../components/ui';
+import { Accordion, AccordionSummary, AccordionDetails, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Field, FieldLabel, NativeSelect, NativeSelectOption, Textarea } from '../../../components/ui';
 import {
   ExpandMore,
   Notes,
@@ -239,28 +239,28 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Ajouter un signalement</DialogTitle>
         <DialogContent>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Sévérité"
-            value={newSeverity}
-            onChange={(e) => setNewSeverity(e.target.value as Signalement['severity'])}
-            sx={{ mb: 2, mt: 1 }}
-          >
-            <MenuItem value="basse">Basse</MenuItem>
-            <MenuItem value="moyenne">Moyenne</MenuItem>
-            <MenuItem value="haute">Haute</MenuItem>
-          </TextField>
-          <TextField
-            fullWidth
-            size="small"
-            label="Description"
-            multiline
-            rows={3}
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-          />
+          <Field className="mt-1.5 mb-3">
+            <FieldLabel htmlFor="signalement-severity">Sévérité</FieldLabel>
+            <NativeSelect
+              id="signalement-severity"
+              className="w-full"
+              value={newSeverity}
+              onChange={(e) => setNewSeverity(e.target.value as Signalement['severity'])}
+            >
+              <NativeSelectOption value="basse">Basse</NativeSelectOption>
+              <NativeSelectOption value="moyenne">Moyenne</NativeSelectOption>
+              <NativeSelectOption value="haute">Haute</NativeSelectOption>
+            </NativeSelect>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="signalement-description">Description</FieldLabel>
+            <Textarea
+              id="signalement-description"
+              rows={3}
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+            />
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">Annuler</Button>

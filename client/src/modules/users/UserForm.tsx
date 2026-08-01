@@ -2,7 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Card, CardContent, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
+import { Card, CardContent, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -142,6 +151,18 @@ const UserForm: React.FC = () => {
   const watchedPassword = watch('password');
   const watchedConfirmPassword = watch('confirmPassword');
   const watchedOrganizationId = watch('organizationId');
+  // Mismatch verifie a la volee : le resolver zod ne rejoue pas tant que
+  // l'utilisateur n'a pas quitte le second champ.
+  const passwordsMismatch = watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '';
+
+  // Le champ du kit est une fonction sans forwardRef : sous React 18 la `ref`
+  // de react-hook-form ne s'attacherait pas et declencherait un warning a
+  // chaque rendu. On ne transmet donc que name/onChange/onBlur — la valeur
+  // remonte par onChange, ce dont le resolver zod se contente.
+  const registerField = (field: keyof UserFormData) => {
+    const { name, onChange, onBlur } = register(field);
+    return { name, onChange, onBlur };
+  };
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
@@ -250,33 +271,39 @@ const UserForm: React.FC = () => {
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Prénom *"
-                  {...register('firstName')}
-                  error={!!errors.firstName}
-                  helperText={errors.firstName?.message}
-                  placeholder="Ex: Jean"
-                  InputProps={{
-                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Person size={18} strokeWidth={1.75} /></span>,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="user-first-name">Prénom *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Person size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-first-name"
+                      {...registerField('firstName')}
+                      aria-invalid={!!errors.firstName}
+                      placeholder="Ex: Jean"
+                    />
+                  </InputGroup>
+                  {errors.firstName?.message && <FieldError>{errors.firstName.message}</FieldError>}
+                </Field>
               </div>
 
               <div className="col-span-12 min-[900px]:col-span-6">
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Nom *"
-                  {...register('lastName')}
-                  error={!!errors.lastName}
-                  helperText={errors.lastName?.message}
-                  placeholder="Ex: Dupont"
-                  InputProps={{
-                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Person size={18} strokeWidth={1.75} /></span>,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="user-last-name">Nom *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Person size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-last-name"
+                      {...registerField('lastName')}
+                      aria-invalid={!!errors.lastName}
+                      placeholder="Ex: Dupont"
+                    />
+                  </InputGroup>
+                  {errors.lastName?.message && <FieldError>{errors.lastName.message}</FieldError>}
+                </Field>
               </div>
             </div>
 
@@ -287,34 +314,40 @@ const UserForm: React.FC = () => {
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-8">
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Email *"
-                  type="email"
-                  {...register('email')}
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
-                  placeholder="Ex: jean.dupont@clenzy.fr"
-                  InputProps={{
-                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Email size={18} strokeWidth={1.75} /></span>,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="user-email">Email *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Email size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-email"
+                      type="email"
+                      {...registerField('email')}
+                      aria-invalid={!!errors.email}
+                      placeholder="Ex: jean.dupont@baitly.fr"
+                    />
+                  </InputGroup>
+                  {errors.email?.message && <FieldError>{errors.email.message}</FieldError>}
+                </Field>
               </div>
 
               <div className="col-span-12 min-[900px]:col-span-4">
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Téléphone"
-                  {...register('phoneNumber')}
-                  error={!!errors.phoneNumber}
-                  helperText={errors.phoneNumber?.message}
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  InputProps={{
-                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Phone size={18} strokeWidth={1.75} /></span>,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="user-phone-number">Téléphone</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Phone size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-phone-number"
+                      {...registerField('phoneNumber')}
+                      aria-invalid={!!errors.phoneNumber}
+                      placeholder="Ex: +33 6 12 34 56 78"
+                    />
+                  </InputGroup>
+                  {errors.phoneNumber?.message && <FieldError>{errors.phoneNumber.message}</FieldError>}
+                </Field>
               </div>
             </div>
 
@@ -325,43 +358,49 @@ const UserForm: React.FC = () => {
 
             <div className="grid grid-cols-12 gap-3 mb-3">
               <div className="col-span-12 min-[900px]:col-span-6">
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Mot de passe *"
-                  type="password"
-                  {...register('password')}
-                  error={!!errors.password}
-                  placeholder="Minimum 8 caractères"
-                  InputProps={{
-                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Lock size={18} strokeWidth={1.75} /></span>,
-                  }}
-                  FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
-                  helperText={errors.password?.message || 'Le mot de passe doit contenir au moins 8 caractères'}
-                />
+                <Field>
+                  <FieldLabel htmlFor="user-password">Mot de passe *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Lock size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-password"
+                      type="password"
+                      {...registerField('password')}
+                      aria-invalid={!!errors.password}
+                      placeholder="Minimum 8 caractères"
+                    />
+                  </InputGroup>
+                  {errors.password?.message ? (
+                    <FieldError>{errors.password.message}</FieldError>
+                  ) : (
+                    <FieldDescription>Le mot de passe doit contenir au moins 8 caractères</FieldDescription>
+                  )}
+                </Field>
               </div>
 
               <div className="col-span-12 min-[900px]:col-span-6">
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Confirmer le mot de passe *"
-                  type="password"
-                  {...register('confirmPassword')}
-                  error={!!errors.confirmPassword || (watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '')}
-                  placeholder="Retapez le mot de passe"
-                  InputProps={{
-                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Lock size={18} strokeWidth={1.75} /></span>,
-                  }}
-                  FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
-                  helperText={
-                    errors.confirmPassword?.message
-                      ? errors.confirmPassword.message
-                      : watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== ''
-                        ? 'Les mots de passe ne correspondent pas'
-                        : ''
-                  }
-                />
+                <Field>
+                  <FieldLabel htmlFor="user-confirm-password">Confirmer le mot de passe *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Lock size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-confirm-password"
+                      type="password"
+                      {...registerField('confirmPassword')}
+                      aria-invalid={!!errors.confirmPassword || passwordsMismatch}
+                      placeholder="Retapez le mot de passe"
+                    />
+                  </InputGroup>
+                  {(errors.confirmPassword?.message || passwordsMismatch) && (
+                    <FieldError>
+                      {errors.confirmPassword?.message ?? 'Les mots de passe ne correspondent pas'}
+                    </FieldError>
+                  )}
+                </Field>
               </div>
             </div>
 

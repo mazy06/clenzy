@@ -3,7 +3,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Paper, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Paper, Divider } from '@mui/material';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -178,47 +179,55 @@ export default function MessageTemplateEditor({
           <div className="col-span-12 min-[900px]:col-span-7">
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 min-[600px]:col-span-6">
-                <TextField
-                  fullWidth
-                  label={t('messaging.templates.editor.name')}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  size="small"
-                  required
-                />
+                <Field>
+                  <FieldLabel htmlFor="template-name">{t('messaging.templates.editor.name')}</FieldLabel>
+                  <Input
+                    id="template-name"
+                    className="w-full"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </Field>
               </div>
               <div className="col-span-6 min-[600px]:col-span-3">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('messaging.templates.editor.type')}
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  size="small"
-                >
-                  {TEMPLATE_TYPES.map((t) => (
-                    <MenuItem key={t.value} value={t.value}>
-                      {t.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="template-type">{t('messaging.templates.editor.type')}</FieldLabel>
+                  <NativeSelect
+                    id="template-type"
+                    className="w-full"
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                  >
+                    {TEMPLATE_TYPES.map((templateType) => (
+                      <NativeSelectOption key={templateType.value} value={templateType.value}>
+                        {templateType.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
               <div className="col-span-6 min-[600px]:col-span-3">
-                <TextField
-                  fullWidth
-                  select
-                  label={t('messaging.templates.editor.language')}
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  size="small"
-                >
-                  {LANGUAGES.map((l) => (
-                    <MenuItem key={l.value} value={l.value}>
-                      {l.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="template-language">{t('messaging.templates.editor.language')}</FieldLabel>
+                  <NativeSelect
+                    id="template-language"
+                    className="w-full"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  >
+                    {LANGUAGES.map((l) => (
+                      <NativeSelectOption key={l.value} value={l.value}>
+                        {l.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
               </div>
+              {/* Sujet et corps restent en TextField MUI : ils portent un inputRef
+                  (insertion de variable a la position du curseur) que les primitifs
+                  du kit, simples fonctions sans forwardRef, ne savent pas recevoir
+                  sous React 18. */}
               <div className="col-span-12">
                 <TextField
                   fullWidth

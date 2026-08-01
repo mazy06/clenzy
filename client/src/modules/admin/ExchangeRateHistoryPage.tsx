@@ -5,7 +5,8 @@ import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
+import { Skeleton, Tooltip } from '@mui/material';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -187,47 +188,52 @@ export default function ExchangeRateHistoryPage() {
       {/* Filters */}
       <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)]">
         <div className="flex gap-3 items-center flex-wrap">
-          <TextField
-            select
-            label="Paire de devises"
-            value={selectedPair}
-            onChange={(e) => {
-              setSelectedPair(Number(e.target.value));
-              setPage(0);
-            }}
-            size="small"
-            sx={{ minWidth: 180 }}
-          >
-            {CURRENCY_PAIRS.map((p, i) => (
-              <MenuItem key={p.label} value={i}>
-                {p.label}
-              </MenuItem>
-            ))}
-          </TextField>
+          {/* Largeurs figees : ces champs vivent dans une rangee flex, le `w-full`
+              du kit les ferait passer chacun sur sa propre ligne. */}
+          <Field className="w-[190px]">
+            <FieldLabel htmlFor="exchange-rate-pair">Paire de devises</FieldLabel>
+            <NativeSelect
+              id="exchange-rate-pair"
+              className="w-full"
+              value={selectedPair}
+              onChange={(e) => {
+                setSelectedPair(Number(e.target.value));
+                setPage(0);
+              }}
+            >
+              {CURRENCY_PAIRS.map((p, i) => (
+                <NativeSelectOption key={p.label} value={i}>
+                  {p.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label="Du"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => {
-              setDateFrom(e.target.value);
-              setPage(0);
-            }}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
+          <Field className="w-[165px]">
+            <FieldLabel htmlFor="exchange-rate-from">Du</FieldLabel>
+            <Input
+              id="exchange-rate-from"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(0);
+              }}
+            />
+          </Field>
 
-          <TextField
-            label="Au"
-            type="date"
-            value={dateTo}
-            onChange={(e) => {
-              setDateTo(e.target.value);
-              setPage(0);
-            }}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
+          <Field className="w-[165px]">
+            <FieldLabel htmlFor="exchange-rate-to">Au</FieldLabel>
+            <Input
+              id="exchange-rate-to"
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(0);
+              }}
+            />
+          </Field>
 
           {stats && (
             <div className="flex gap-1.5 ms-auto">

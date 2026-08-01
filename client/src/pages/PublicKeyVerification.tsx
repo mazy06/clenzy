@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../components/ui';
 import { Card } from '../components/ui';
-import { TextField } from '@mui/material';
+import { Field, FieldLabel, Input } from '../components/ui';
 import { Button } from '../components/ui';
 import {
   VpnKey,
@@ -120,18 +120,27 @@ const PublicKeyVerification: React.FC = () => {
         {/* Code input */}
         {!confirmed && (
           <div className="mb-3">
-            <TextField
-              fullWidth
-              size="medium"
-              label="Code à 6 chiffres"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              inputProps={{
-                maxLength: 10,
-                style: { textAlign: 'center', fontSize: '1.5rem', fontFamily: 'monospace', letterSpacing: '0.2em' },
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-            />
+            <Field>
+              <FieldLabel htmlFor="key-verification-code">Code à 6 chiffres</FieldLabel>
+              {/* Styles inline repris tels quels de inputProps.style ; la hauteur
+                  s'y ajoute car le champ compact du kit (h32) ne contient pas
+                  un corps de 1.5rem. */}
+              <Input
+                id="key-verification-code"
+                className="w-full"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                maxLength={10}
+                style={{
+                  textAlign: 'center',
+                  fontSize: '1.5rem',
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.2em',
+                  height: '3rem',
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+              />
+            </Field>
             {/* mt: 1.5 = 9 px (le spacing MUI de ce projet vaut 6). */}
             <Button
               onClick={handleVerify}

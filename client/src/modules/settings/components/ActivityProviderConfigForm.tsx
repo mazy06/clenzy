@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { Spinner, Button } from '../../../components/ui';
-import { Alert, FormControlLabel, Snackbar, Switch, TextField } from '@mui/material';
+import { Alert, FormControlLabel, Snackbar, Switch } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../../components/ui';
 import type { AlertColor } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activitiesApi, type ActivityProvider } from '../../../services/api/activitiesApi';
@@ -12,6 +13,10 @@ import { activitiesApi, type ActivityProvider } from '../../../services/api/acti
  */
 export default function ActivityProviderConfigForm({ provider }: { provider: ActivityProvider }) {
   const { t } = useTranslation();
+  // Un formulaire par fournisseur peut etre monte plusieurs fois dans la page :
+  // les identifiants doivent rester uniques pour que les libelles designent
+  // bien LEUR champ.
+  const fieldId = useId();
   const [apiKey, setApiKey] = useState('');
   const [affiliateId, setAffiliateId] = useState('');
   const [enabled, setEnabled] = useState(false);
@@ -78,28 +83,30 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
         control={<Switch size="small" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
         label={t('welcomeGuide.activities.enabled', 'Actif')}
       />
-      <TextField
-        label={
-          hasKey
+      <Field className="mt-[3px] mb-1.5">
+        <FieldLabel htmlFor={`${fieldId}-api-key`}>
+          {hasKey
             ? t('welcomeGuide.activities.apiKeySet', 'Clé API (déjà configurée)')
-            : t('welcomeGuide.activities.apiKey', 'Clé API')
-        }
-        type="password"
-        value={apiKey}
-        onChange={(e) => setApiKey(e.target.value)}
-        size="small"
-        fullWidth
-        placeholder={hasKey ? '••••••••' : ''}
-        sx={{ mt: 0.5, mb: 1 }}
-      />
-      <TextField
-        label={t('welcomeGuide.activities.affiliateId', 'ID affilié')}
-        value={affiliateId}
-        onChange={(e) => setAffiliateId(e.target.value)}
-        size="small"
-        fullWidth
-        sx={{ mb: 1 }}
-      />
+            : t('welcomeGuide.activities.apiKey', 'Clé API')}
+        </FieldLabel>
+        <Input
+          id={`${fieldId}-api-key`}
+          type="password"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder={hasKey ? '••••••••' : ''}
+        />
+      </Field>
+      <Field className="mb-1.5">
+        <FieldLabel htmlFor={`${fieldId}-affiliate-id`}>
+          {t('welcomeGuide.activities.affiliateId', 'ID affilié')}
+        </FieldLabel>
+        <Input
+          id={`${fieldId}-affiliate-id`}
+          value={affiliateId}
+          onChange={(e) => setAffiliateId(e.target.value)}
+        />
+      </Field>
       <Button
         size="sm"
         onClick={handleSave}

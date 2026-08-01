@@ -1,6 +1,7 @@
 import { createElement, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { ButtonBase, Dialog, TextField, Tooltip } from '@mui/material';
+import { ButtonBase, Dialog, Tooltip } from '@mui/material';
+import { Input } from '../../../../components/ui';
 import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from 'lucide-react';
 import {
   BUILTIN_FUNNEL_PRESETS,
@@ -287,17 +288,15 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                 <span className="text-[var(--text-2xs)] text-[var(--muted)] me-0.5">
                   {editingId ? 'Mettre à jour ce parcours enregistré' : 'Enregistrer dans « Mes parcours »'}
                 </span>
-                <TextField
+                {/* Pas de libelle : la phrase a gauche introduit le champ,
+                    d'ou l'aria-label repris du placeholder. */}
+                <Input
+                  id="funnel-preset-name"
+                  aria-label="Nom du parcours"
+                  className="flex-1 min-w-[180px]"
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
                   placeholder="Nom du parcours"
-                  size="small"
-                  sx={{
-                    flex: 1, minWidth: 180,
-                    '& .MuiInputBase-root': { bgcolor: 'var(--field)', color: 'var(--ink)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--line)' },
-                    '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' },
-                  }}
                 />
                 <SecondaryBtn icon={Save} label={editingId ? 'Mettre à jour' : 'Enregistrer'} onClick={saveCustom} disabled={selected.length === 0 || !presetName.trim()} />
               </div>

@@ -2,7 +2,8 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { Info } from 'lucide-react';
-import { Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Textarea } from '../../components/ui';
 import {
   PhotoCamera as PhotoCameraIcon,
 } from '../../icons';
@@ -38,6 +39,14 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
   onStepNotesChange
 }) => {
   const { t } = useTranslation();
+  // Le champ n'a jamais eu de libelle visible : c'est le titre du dialogue qui
+  // le nomme. On le reprend en aria-label pour ne pas laisser la zone anonyme.
+  const notesAriaLabel =
+    currentStep === 'inspection'
+      ? t('interventions.dialogs.notesInspectionTitle')
+      : currentStep === 'rooms'
+        ? t('interventions.dialogs.notesRoomsTitle')
+        : t('interventions.dialogs.notesAfterTitle');
   return (
     <Dialog
       open={open}
@@ -59,10 +68,11 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
             {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
           </p></AlertDescription>
         </UiAlert>
-        <TextField
-          multiline
+        <Textarea
+          id="intervention-notes"
+          aria-label={notesAriaLabel}
           rows={6}
-          fullWidth
+          className="w-full mt-[6px]"
           value={notesValue}
           onChange={(e) => {
             onNotesChange(e.target.value);
@@ -86,7 +96,6 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
               ? t('interventions.dialogs.notesRoomsPlaceholder')
               : t('interventions.dialogs.notesAfterPlaceholder')
           }
-          sx={{ mt: 1 }}
         />
         <UiAlert variant="info" className="mt-1.5 py-0.5">
           <Info />

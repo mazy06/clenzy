@@ -6,7 +6,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
+import { Paper, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -243,23 +244,33 @@ const BrandingButton: React.FC = () => {
             <TriangleAlert />
             <AlertDescription>{error}</AlertDescription>
           </Alert>}
-          <TextField
-            label={t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
-            size="small"
-            fullWidth
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://…/logo.png"
-            helperText={t('ownerPortal.branding.logoHelp', 'Laisser vide pour ne pas afficher de logo')}
-          />
-          <TextField
-            label={t('ownerPortal.branding.primaryColor', "Couleur d'accent (#RRGGBB)")}
-            size="small"
-            fullWidth
-            value={primaryColor}
-            onChange={(e) => setPrimaryColor(e.target.value)}
-            placeholder="#4A9B8E"
-          />
+          <Field>
+            <FieldLabel htmlFor="owner-branding-logo-url">
+              {t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
+            </FieldLabel>
+            <Input
+              id="owner-branding-logo-url"
+              className="w-full"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://…/logo.png"
+            />
+            <FieldDescription>
+              {t('ownerPortal.branding.logoHelp', 'Laisser vide pour ne pas afficher de logo')}
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="owner-branding-primary-color">
+              {t('ownerPortal.branding.primaryColor', "Couleur d'accent (#RRGGBB)")}
+            </FieldLabel>
+            <Input
+              id="owner-branding-primary-color"
+              className="w-full"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              placeholder="#4A9B8E"
+            />
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -420,33 +431,41 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
     <>
       {/* ── Filters ── */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField
-          label={t('ownerPortal.form.ownerName', 'Nom proprietaire')}
-          size="small"
-          value={ownerName}
-          onChange={(e) => { setOwnerName(e.target.value); setShouldFetch(false); }}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          sx={{ minWidth: 200 }}
-        />
-        <TextField
-          label={t('ownerPortal.form.from', 'Du')}
-          type="date"
-          size="small"
-          value={from}
-          onChange={(e) => { setFrom(e.target.value); setShouldFetch(false); }}
-          InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-        />
-        <TextField
-          label={t('ownerPortal.form.to', 'Au')}
-          type="date"
-          size="small"
-          value={to}
-          onChange={(e) => { setTo(e.target.value); setShouldFetch(false); }}
-          InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-        />
+        <Field className="w-[200px]">
+          <FieldLabel htmlFor="owner-statement-name" className="text-[0.8125rem]">
+            {t('ownerPortal.form.ownerName', 'Nom proprietaire')}
+          </FieldLabel>
+          <Input
+            id="owner-statement-name"
+            className="text-[0.8125rem]"
+            value={ownerName}
+            onChange={(e) => { setOwnerName(e.target.value); setShouldFetch(false); }}
+          />
+        </Field>
+        <Field className="w-[170px]">
+          <FieldLabel htmlFor="owner-statement-from" className="text-[0.8125rem]">
+            {t('ownerPortal.form.from', 'Du')}
+          </FieldLabel>
+          <Input
+            id="owner-statement-from"
+            type="date"
+            className="text-[0.8125rem]"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setShouldFetch(false); }}
+          />
+        </Field>
+        <Field className="w-[170px]">
+          <FieldLabel htmlFor="owner-statement-to" className="text-[0.8125rem]">
+            {t('ownerPortal.form.to', 'Au')}
+          </FieldLabel>
+          <Input
+            id="owner-statement-to"
+            type="date"
+            className="text-[0.8125rem]"
+            value={to}
+            onChange={(e) => { setTo(e.target.value); setShouldFetch(false); }}
+          />
+        </Field>
         <Button
           size="sm"
           variant="default"

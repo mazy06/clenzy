@@ -4,7 +4,19 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Autocomplete, Paper, TextField, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupButton,
+  NativeSelect,
+  NativeSelectOption,
+  NativeSelectOptGroup,
+} from '../../components/ui';
+import { Autocomplete, TextField, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Switch, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   Add,
   Edit,
@@ -174,17 +186,6 @@ const AI_FEATURES = [
   { key: 'EMBEDDINGS', label: 'Embeddings RAG', desc: 'Recherche sémantique de la base de connaissances (Voyage / OpenAI, 1024d)', icon: <Hub />, color: '#6E8AAD' }, // steel
 ];
 
-// En-tete de groupe dans le selecteur de modele (providers connectes / modeles plateforme).
-const subheaderSx = {
-  fontSize: '0.6rem',
-  fontWeight: 700,
-  letterSpacing: 0.5,
-  textTransform: 'uppercase' as const,
-  color: 'text.secondary',
-  lineHeight: 2.2,
-  bgcolor: 'transparent',
-};
-
 // Gabarit de ligne partage par ModelRow et FeatureRow (memes metriques).
 const ROW_CLASS =
   'flex items-center px-[15px] py-[7.5px] gap-[9px] transition-colors duration-150 hover:bg-[var(--hover)]';
@@ -352,42 +353,39 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
 
       <DialogContent>
         <div className="flex flex-col gap-3 mt-1.5">
-          {/* Name */}
-          <TextField
-            label={t('settings.ai.platform.name')}
-            value={name}
-            onChange={(e) => { setName(e.target.value); nameTouchedRef.current = true; }}
-            fullWidth
-            size="small"
-            placeholder="ex: Design - Qwen Coder"
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+          {/* Name — la teinte provider au focus est abandonnee : le kit porte
+              son propre anneau de focus, un accent inline ne s'y greffe pas. */}
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-name">{t('settings.ai.platform.name')}</FieldLabel>
+            <Input
+              id="platform-ai-model-name"
+              value={name}
+              onChange={(e) => { setName(e.target.value); nameTouchedRef.current = true; }}
+              placeholder="ex: Design - Qwen Coder"
+            />
+          </Field>
 
-          {/* Provider */}
-          <TextField
-            label={t('settings.ai.platform.provider')}
-            value={provider}
-            onChange={(e) => handleProviderChange(e.target.value)}
-            fullWidth
-            size="small"
-            select
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          >
-            {PROVIDER_IDS.map((pid) => (
-              <MenuItem key={pid} value={pid}>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[pid] }} />
-                  <p className="cn-text-body2 font-semibold">{PROVIDER_LABELS[pid]}</p>
-                </div>
-              </MenuItem>
-            ))}
-          </TextField>
+          {/* Provider — l'option vide desactivee reproduit l'etat « rien de
+              choisi » que MUI affichait tout seul ; sans elle, le select natif
+              montrerait le premier provider alors que l'etat est encore vide. */}
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-provider">{t('settings.ai.platform.provider')}</FieldLabel>
+            <NativeSelect
+              id="platform-ai-model-provider"
+              className="w-full"
+              value={provider}
+              onChange={(e) => handleProviderChange(e.target.value)}
+            >
+              <NativeSelectOption value="" disabled>
+                {t('settings.ai.platform.selectProvider', 'Choisir un provider')}
+              </NativeSelectOption>
+              {PROVIDER_IDS.map((pid) => (
+                <NativeSelectOption key={pid} value={pid}>
+                  {PROVIDER_LABELS[pid]}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
           {/* Model — sélecteur UNIQUE : catalogue live du provider si chargé,
               sinon presets curés (pas de doublon). Le catalogue live n'est dispo
@@ -431,32 +429,34 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                 )}
               />
             ) : (
-              <TextField
-                label={t('settings.ai.platform.model')}
-                value={modelId}
-                onChange={(e) => applyModelSelection(e.target.value)}
-                fullWidth
-                size="small"
-                select={models.length > 0}
-                disabled={!provider}
-                sx={{
-                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-                  '& .MuiInputLabel-root.Mui-focused': { color: accent },
-                }}
-              >
-                {models.map((m) => (
-                  <MenuItem key={m.id} value={m.id}>
-                    <div className="flex flex-col">
-                      <p className="cn-text-body2 font-semibold text-[0.8125rem]">
-                        {m.label}
-                      </p>
-                      <span className="cn-text-caption text-muted-foreground text-[0.675rem]">
-                        {m.desc}
-                      </span>
-                    </div>
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Field>
+                <FieldLabel htmlFor="platform-ai-model-id">{t('settings.ai.platform.model')}</FieldLabel>
+                {models.length > 0 ? (
+                  <NativeSelect
+                    id="platform-ai-model-id"
+                    className="w-full"
+                    value={modelId}
+                    onChange={(e) => applyModelSelection(e.target.value)}
+                    disabled={!provider}
+                  >
+                    <NativeSelectOption value="" disabled>
+                      {t('settings.ai.platform.selectModel', 'Choisir un modèle')}
+                    </NativeSelectOption>
+                    {models.map((m) => (
+                      <NativeSelectOption key={m.id} value={m.id}>
+                        {`${m.label} · ${m.desc}`}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                ) : (
+                  <Input
+                    id="platform-ai-model-id"
+                    value={modelId}
+                    onChange={(e) => applyModelSelection(e.target.value)}
+                    disabled={!provider}
+                  />
+                )}
+              </Field>
             )}
 
             {/* Charge le catalogue live → le sélecteur ci-dessus bascule dessus. */}
@@ -495,26 +495,31 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           </div>
 
           {/* API Key */}
-          <TextField
-            label={t('settings.ai.platform.apiKey')}
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            fullWidth
-            size="small"
-            placeholder={editModel?.maskedApiKey || reusableMasked || 'sk-...'}
-            InputProps={{
-              endAdornment: (
-                <IconButton onClick={() => setShowKey(!showKey)} edge="end" size="small">
-                  {showKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                </IconButton>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-key">{t('settings.ai.platform.apiKey')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="platform-ai-model-key"
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={editModel?.maskedApiKey || reusableMasked || 'sk-...'}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={showKey
+                    ? t('settings.ai.platform.hideKey', 'Masquer la clé')
+                    : t('settings.ai.platform.showKey', 'Afficher la clé')}
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey
+                    ? <VisibilityOff size={16} strokeWidth={1.75} />
+                    : <Visibility size={16} strokeWidth={1.75} />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
 
           {keyOptional && !apiKey.trim() && (
             <span className="cn-text-caption text-[var(--muted)] mt-[-7.5px] mb-[-3px]">
@@ -541,17 +546,14 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           )}
 
           {/* Base URL */}
-          <TextField
-            label={t('settings.ai.platform.baseUrl')}
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            fullWidth
-            size="small"
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-base-url">{t('settings.ai.platform.baseUrl')}</FieldLabel>
+            <Input
+              id="platform-ai-model-base-url"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+            />
+          </Field>
 
           {/* Feedback */}
           {testResult === 'success' && (
@@ -893,58 +895,41 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         </span>
       </div>
 
-      {/* Model / connected-provider selector */}
-      <TextField
-        select
-        size="small"
+      {/* Model / connected-provider selector — les deux familles sont separees
+          par des optgroup, seul regroupement qu'un select natif sait rendre.
+          La pastille de couleur du provider disparait avec la liste riche. */}
+      <NativeSelect
+        id={`ai-feature-model-${feature.key}`}
+        aria-label={t('settings.ai.platform.model')}
+        className="min-w-[220px] shrink-0"
         value={selectValue}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isAssigning}
-        sx={{
-          minWidth: 220,
-          flexShrink: 0,
-          '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' },
-          '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: feature.color,
-          },
-        }}
       >
-        <MenuItem value="__none__">
-          <p className="cn-text-body2 text-[var(--muted)] italic text-[0.8125rem]">
-            {t('settings.ai.platform.noModel')}
-          </p>
-        </MenuItem>
+        <NativeSelectOption value="__none__">
+          {t('settings.ai.platform.noModel')}
+        </NativeSelectOption>
 
-        {/* Providers connectes (OpenAI/Anthropic) — utilises en priorite par l'agent */}
         {providerOptions.length > 0 && (
-          <ListSubheader sx={subheaderSx}>{t('settings.ai.platform.connectedProviders')}</ListSubheader>
+          <NativeSelectOptGroup label={t('settings.ai.platform.connectedProviders')}>
+            {providerOptions.map((p) => (
+              <NativeSelectOption key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
+                {`${p.label} · ${p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}${p.model ? ` · ${p.model}` : ''}`}
+              </NativeSelectOption>
+            ))}
+          </NativeSelectOptGroup>
         )}
-        {providerOptions.map((p) => (
-          <MenuItem key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
-            <div className="flex items-center gap-1.5 min-w-0 w-full">
-              <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[p.provider] || '#888' }} />
-              <p className="cn-text-body2 text-[0.8125rem]">{p.label}</p>
-              <span className="cn-text-caption text-muted-foreground text-[0.65rem] ms-auto ps-1.5 shrink-0">
-                {p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}
-                {p.model ? ` · ${p.model}` : ''}
-              </span>
-            </div>
-          </MenuItem>
-        ))}
 
-        {/* Modeles plateforme configures par le SUPER_ADMIN */}
         {models.length > 0 && (
-          <ListSubheader sx={subheaderSx}>{t('settings.ai.platform.platformModels')}</ListSubheader>
+          <NativeSelectOptGroup label={t('settings.ai.platform.platformModels')}>
+            {models.map((m) => (
+              <NativeSelectOption key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
+                {m.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelectOptGroup>
         )}
-        {models.map((m) => (
-          <MenuItem key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
-            <div className="flex items-center gap-1.5">
-              <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[m.provider] || '#888' }} />
-              <p className="cn-text-body2 text-[0.8125rem]">{m.name}</p>
-            </div>
-          </MenuItem>
-        ))}
-      </TextField>
+      </NativeSelect>
 
       {/* Token budget with progress + tooltip breakdown per (provider, model) */}
       {(() => {
@@ -959,40 +944,32 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
               <div className="absolute inset-[0px] rounded-[1px] overflow-hidden border border-[var(--line)]">
                 <div className="absolute start-0 top-0 bottom-0" style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${barColor} 15%, transparent)`, transition: 'width 0.3s ease, background-color 0.3s ease' }} />
               </div>
-              {/* Input on top */}
-              <TextField
-                size="small"
-                type="number"
-                value={budgetInput}
-                onChange={(e) => setBudgetInput(e.target.value)}
-                onBlur={commitBudget}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    commitBudget();
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-                title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
-                InputProps={{
-                  endAdornment: (
-                    <span className="cn-text-caption text-muted-foreground whitespace-nowrap ms-0.5 text-[0.65rem] tabular-nums">
-                      {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
-                    </span>
-                  ),
-                }}
-                sx={{
-                  width: '100%',
-                  '& .MuiOutlinedInput-root': {
-                    fontSize: '0.75rem',
-                    bgcolor: 'transparent',
-                    '& fieldset': { border: 'none' },
-                    // Affordance : bordure au survol/focus → signale que c'est éditable.
-                    '&:hover fieldset': { border: '1px solid', borderColor: 'divider' },
-                    '&.Mui-focused fieldset': { border: '1px solid', borderColor: feature.color },
-                  },
-                  '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
-                }}
-              />
+              {/* Input on top — le champ du kit porte desormais une bordure
+                  permanente : l'affordance « editable » n'a plus besoin du
+                  survol, et le fond reste transparent donc la jauge se voit. */}
+              <InputGroup>
+                <InputGroupInput
+                  id={`ai-feature-budget-${feature.key}`}
+                  type="number"
+                  aria-label={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
+                  title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
+                  className="text-[0.75rem] tabular-nums"
+                  value={budgetInput}
+                  onChange={(e) => setBudgetInput(e.target.value)}
+                  onBlur={commitBudget}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      commitBudget();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                />
+                <InputGroupAddon align="inline-end">
+                  <span className="cn-text-caption text-muted-foreground whitespace-nowrap text-[0.65rem] tabular-nums">
+                    {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
+                  </span>
+                </InputGroupAddon>
+              </InputGroup>
             </div>
           </UsageBreakdownTooltip>
         );

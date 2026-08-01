@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Badge as BuiBadge } from '../../components/ui';
-import { Button, Spinner } from '../../components/ui';
-import { Card, CardContent, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Button, Spinner, Field, FieldLabel, Textarea } from '../../components/ui';
+import { Card, CardContent, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -194,15 +194,16 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
         <Dialog open={ackDialog.open} onClose={() => setAckDialog({ open: false, alertId: null })} maxWidth="xs" fullWidth>
           <DialogTitle sx={{ fontSize: '0.95rem' }}>Acquitter l'alerte</DialogTitle>
           <DialogContent>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Notes (optionnel)"
-              value={ackNotes}
-              onChange={(e) => setAckNotes(e.target.value)}
-              sx={{ mt: 1, '& textarea': { fontSize: '0.8125rem' } }}
-            />
+            <Field className="mt-1.5">
+              <FieldLabel htmlFor="noise-alert-ack-notes">Notes (optionnel)</FieldLabel>
+              <Textarea
+                id="noise-alert-ack-notes"
+                className="w-full text-[0.8125rem]"
+                rows={3}
+                value={ackNotes}
+                onChange={(e) => setAckNotes(e.target.value)}
+              />
+            </Field>
           </DialogContent>
           <DialogActions>
             <Button

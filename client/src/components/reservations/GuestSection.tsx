@@ -1,12 +1,21 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { TextField, MenuItem, Autocomplete } from '@mui/material';
+import { TextField, Autocomplete } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../ui';
 import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { COMPACT_FIELD_SX, COMPACT_TEXTAREA_SX, AdornIcon } from './reservationDialogStyles';
+// COMPACT_FIELD_SX ne sert plus qu'a l'Autocomplete de recherche, seul TextField restant.
+import { COMPACT_FIELD_SX, AdornIcon } from './reservationDialogStyles';
 
 // Transposition en classes de SEC_SX (.rm-sec) — meme motif que STEP_BTN_CLS :
 // la constante sx reste exportee dans reservationDialogStyles.
@@ -52,17 +61,16 @@ const renderStepper = (
 );
 
 // Champ en lecture seule (infos d'un voyageur — édition de réservation uniquement).
-const roField = (label: string, value?: string | null, multiline = false) => (
-  <TextField
-    label={label}
-    value={value || '—'}
-    disabled
-    fullWidth
-    multiline={multiline}
-    minRows={multiline ? 2 : undefined}
-    InputLabelProps={{ shrink: true }}
-    sx={multiline ? COMPACT_TEXTAREA_SX : COMPACT_FIELD_SX}
-  />
+// L'id est passe par l'appelant : le libellé du kit ne designe le champ que via htmlFor/id.
+const roField = (id: string, label: string, value?: string | null, multiline = false) => (
+  <Field>
+    <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    {multiline ? (
+      <Textarea id={id} className="w-full" rows={2} value={value || '—'} disabled readOnly />
+    ) : (
+      <Input id={id} className="w-full" value={value || '—'} disabled readOnly />
+    )}
+  </Field>
 );
 
 /**
@@ -157,79 +165,88 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-2.5">
-        <TextField
-          label={t('reservations.dialog.firstName')}
-          value={form.newGuestFirstName}
-          onChange={(e) => form.setNewGuestFirstName(e.target.value)}
-          required
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
-        <TextField
-          label={t('reservations.dialog.lastName')}
-          value={form.newGuestLastName}
-          onChange={(e) => form.setNewGuestLastName(e.target.value)}
-          required
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
+        <Field>
+          <FieldLabel htmlFor="guest-new-firstname">{t('reservations.dialog.firstName')}</FieldLabel>
+          <Input
+            id="guest-new-firstname"
+            className="w-full"
+            required
+            value={form.newGuestFirstName}
+            onChange={(e) => form.setNewGuestFirstName(e.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="guest-new-lastname">{t('reservations.dialog.lastName')}</FieldLabel>
+          <Input
+            id="guest-new-lastname"
+            className="w-full"
+            required
+            value={form.newGuestLastName}
+            onChange={(e) => form.setNewGuestLastName(e.target.value)}
+          />
+        </Field>
       </div>
       <div className="grid grid-cols-[1fr_1fr] gap-2.5">
-        <TextField
-          label={t('reservations.fields.guestEmail')}
-          type="email"
-          value={form.newGuestEmail}
-          onChange={(e) => form.setNewGuestEmail(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
-        <TextField
-          label={t('reservations.fields.guestPhone')}
-          value={form.newGuestPhone}
-          onChange={(e) => form.setNewGuestPhone(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
+        <Field>
+          <FieldLabel htmlFor="guest-new-email">{t('reservations.fields.guestEmail')}</FieldLabel>
+          <Input
+            id="guest-new-email"
+            className="w-full"
+            type="email"
+            value={form.newGuestEmail}
+            onChange={(e) => form.setNewGuestEmail(e.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="guest-new-phone">{t('reservations.fields.guestPhone')}</FieldLabel>
+          <Input
+            id="guest-new-phone"
+            className="w-full"
+            value={form.newGuestPhone}
+            onChange={(e) => form.setNewGuestPhone(e.target.value)}
+          />
+        </Field>
       </div>
       <div className="grid grid-cols-[1fr_1fr] gap-2.5">
-        <TextField
-          select
-          label={t('reservations.dialog.nationality')}
-          value={form.newGuestCountry}
-          onChange={(e) => form.setNewGuestCountry(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-          SelectProps={{ displayEmpty: true }}
-        >
-          <MenuItem value="">—</MenuItem>
-          {COUNTRY_OPTIONS.map((c) => (
-            <MenuItem key={c} value={c}>{c}</MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label={t('reservations.dialog.language')}
-          value={form.newGuestLanguage}
-          onChange={(e) => form.setNewGuestLanguage(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        >
-          {LANGUAGE_OPTIONS.map((l) => (
-            <MenuItem key={l} value={l}>{l.toUpperCase()}</MenuItem>
-          ))}
-        </TextField>
+        <Field>
+          <FieldLabel htmlFor="guest-new-country">{t('reservations.dialog.nationality')}</FieldLabel>
+          <NativeSelect
+            id="guest-new-country"
+            className="w-full"
+            value={form.newGuestCountry}
+            onChange={(e) => form.setNewGuestCountry(e.target.value)}
+          >
+            <NativeSelectOption value="">—</NativeSelectOption>
+            {COUNTRY_OPTIONS.map((c) => (
+              <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="guest-new-language">{t('reservations.dialog.language')}</FieldLabel>
+          <NativeSelect
+            id="guest-new-language"
+            className="w-full"
+            value={form.newGuestLanguage}
+            onChange={(e) => form.setNewGuestLanguage(e.target.value)}
+          >
+            {LANGUAGE_OPTIONS.map((l) => (
+              <NativeSelectOption key={l} value={l}>{l.toUpperCase()}</NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
       </div>
-      <TextField
-        label={t('reservations.dialog.guestNotes')}
-        value={form.newGuestNotes}
-        onChange={(e) => form.setNewGuestNotes(e.target.value)}
-        fullWidth
-        multiline
-        minRows={1}
-        placeholder={t('reservations.dialog.notesPlaceholder')}
-        InputLabelProps={{ shrink: true }}
-        sx={COMPACT_TEXTAREA_SX}
-      />
+      <Field>
+        <FieldLabel htmlFor="guest-new-notes">{t('reservations.dialog.guestNotes')}</FieldLabel>
+        <Textarea
+          id="guest-new-notes"
+          className="w-full"
+          rows={1}
+          placeholder={t('reservations.dialog.notesPlaceholder')}
+          value={form.newGuestNotes}
+          onChange={(e) => form.setNewGuestNotes(e.target.value)}
+        />
+      </Field>
     </div>
   );
 
@@ -251,18 +268,19 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             </div>
             <div className="flex flex-col gap-3.5">
               <div className="grid grid-cols-[1fr_1fr] gap-3">
-                {roField(t('reservations.dialog.firstName'), form.selectedGuest.firstName)}
-                {roField(t('reservations.dialog.lastName'), form.selectedGuest.lastName)}
+                {roField('guest-ro-firstname', t('reservations.dialog.firstName'), form.selectedGuest.firstName)}
+                {roField('guest-ro-lastname', t('reservations.dialog.lastName'), form.selectedGuest.lastName)}
               </div>
               <div className="grid grid-cols-[1fr_1fr] gap-3">
-                {roField(t('reservations.fields.guestEmail'), form.selectedGuest.email)}
-                {roField(t('reservations.fields.guestPhone'), form.selectedGuest.phone)}
+                {roField('guest-ro-email', t('reservations.fields.guestEmail'), form.selectedGuest.email)}
+                {roField('guest-ro-phone', t('reservations.fields.guestPhone'), form.selectedGuest.phone)}
               </div>
               <div className="grid grid-cols-[1fr_1fr] gap-3">
-                {roField(t('reservations.dialog.nationality'), form.selectedGuest.countryCode)}
-                {roField(t('reservations.dialog.language'), form.selectedGuest.language)}
+                {roField('guest-ro-country', t('reservations.dialog.nationality'), form.selectedGuest.countryCode)}
+                {roField('guest-ro-language', t('reservations.dialog.language'), form.selectedGuest.language)}
               </div>
-              {form.selectedGuest.notes && roField(t('reservations.dialog.guestNotes'), form.selectedGuest.notes, true)}
+              {form.selectedGuest.notes &&
+                roField('guest-ro-notes', t('reservations.dialog.guestNotes'), form.selectedGuest.notes, true)}
             </div>
           </div>
         )

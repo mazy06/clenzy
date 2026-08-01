@@ -1,7 +1,18 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { TextField, FormHelperText, Chip, Tooltip, Popover } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
+import { FormHelperText, Chip, Tooltip, Popover } from '@mui/material';
 import {
   Timer,
   CalendarMonth,
@@ -254,41 +265,41 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
                         Modifier la durée
                       </p>
-                      <TextField
-                        value={durationInputValue}
-                        onChange={(e) => setDurationInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const parsed = parseInt(durationInputValue, 10);
-                            if (!isNaN(parsed) && parsed > 0) {
-                              field.onChange(minsToHours(parsed));
-                            }
-                            setDurationAnchor(null);
-                          }
-                        }}
-                        fullWidth
-                        size="small"
-                        type="number"
-                        label="Durée (en minutes)"
-                        placeholder="Ex : 240"
-                        autoFocus
-                        inputProps={{ min: 1, step: 5 }}
-                        InputProps={{
-                          endAdornment: (
-                            <p className="cn-text-body1 text-[12px] text-[var(--faint)] whitespace-nowrap ms-0.5">
+                      <Field>
+                        <FieldLabel htmlFor="service-request-duration-minutes">Durée (en minutes)</FieldLabel>
+                        <InputGroup>
+                          <InputGroupInput
+                            id="service-request-duration-minutes"
+                            type="number"
+                            className="tabular-nums"
+                            value={durationInputValue}
+                            onChange={(e) => setDurationInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const parsed = parseInt(durationInputValue, 10);
+                                if (!isNaN(parsed) && parsed > 0) {
+                                  field.onChange(minsToHours(parsed));
+                                }
+                                setDurationAnchor(null);
+                              }
+                            }}
+                            placeholder="Ex : 240"
+                            autoFocus
+                            min={1}
+                            step={5}
+                          />
+                          <InputGroupAddon align="inline-end">
+                            <InputGroupText className="text-[12px] text-[var(--faint)] whitespace-nowrap">
                               min
-                            </p>
-                          ),
-                        }}
-                        helperText={
-                          durationInputValue && !isNaN(parseInt(durationInputValue, 10)) && parseInt(durationInputValue, 10) > 0
+                            </InputGroupText>
+                          </InputGroupAddon>
+                        </InputGroup>
+                        <FieldDescription className="text-[10.5px] font-medium text-[var(--accent)]">
+                          {durationInputValue && !isNaN(parseInt(durationInputValue, 10)) && parseInt(durationInputValue, 10) > 0
                             ? `= ${formatDurationMins(parseInt(durationInputValue, 10))}`
-                            : 'Saisissez la durée en minutes'
-                        }
-                        sx={{
-                          '& .MuiFormHelperText-root': { fontSize: '10.5px', mt: 0.5, color: 'var(--accent)', fontWeight: 500 },
-                        }}
-                      />
+                            : 'Saisissez la durée en minutes'}
+                        </FieldDescription>
+                      </Field>
                     </Popover>
 
                     {fieldState.error && (
@@ -341,7 +352,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
             <Controller
               name="desiredDate"
               control={control}
-              render={({ field, fieldState }) => (
+              // Le ref de react-hook-form est ecarte : les primitives du kit sont des
+              // composants fonction sans forwardRef (React 18 refuserait le ref).
+              render={({ field: { ref: _ref, ...field }, fieldState }) => (
                 <div>
                   {dateMode === 'checkout' ? (
                     <>
@@ -395,17 +408,24 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     </>
                   ) : (
                     /* Custom date input */
-                    <TextField
-                      {...field}
-                      fullWidth
-                      type="datetime-local"
-                      required
-                      disabled={disabled}
-                      size="small"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message || 'Idéal pour les demandes de maintenance pendant un séjour'}
-                      InputLabelProps={{ shrink: true }}
-                    />
+                    <Field>
+                      <Input
+                        {...field}
+                        // Le titre de section au-dessus fait office de libelle visible :
+                        // aria-label evite de le dupliquer tout en nommant le champ.
+                        aria-label={t('serviceRequests.fields.dueDate')}
+                        className="w-full"
+                        type="datetime-local"
+                        required
+                        disabled={disabled}
+                        aria-invalid={!!fieldState.error}
+                      />
+                      {fieldState.error ? (
+                        <FieldError>{fieldState.error.message}</FieldError>
+                      ) : (
+                        <FieldDescription>Idéal pour les demandes de maintenance pendant un séjour</FieldDescription>
+                      )}
+                    </Field>
                   )}
                   {fieldState.error && dateMode === 'checkout' && (
                     <FormHelperText error sx={{ mt: 0.5 }}>

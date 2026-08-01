@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { TextField, InputAdornment } from '@mui/material';
-import { Button } from '../../components/ui';
+import { Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   ViewList,
   ChatBubbleOutline,
@@ -189,20 +188,20 @@ const DocumentsPage: React.FC = () => {
     }
     if (activeTab === TAB_VARIABLES) {
       return (
-        <TextField
-          size="small"
-          placeholder={t('documents.tabs.searchTag')}
-          value={tagsSearch}
-          onChange={(e) => setTagsSearch(e.target.value)}
-          sx={{ minWidth: 220 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
-              </InputAdornment>
-            ),
-          }}
-        />
+        // Champ de recherche de la barre d'onglets : aucun libelle visible,
+        // d'ou aria-label plutot qu'un FieldLabel.
+        <InputGroup className="w-[220px]">
+          <InputGroupAddon align="inline-start">
+            <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
+          </InputGroupAddon>
+          <InputGroupInput
+            id="documents-tags-search"
+            aria-label={t('documents.tabs.searchTag')}
+            placeholder={t('documents.tabs.searchTag')}
+            value={tagsSearch}
+            onChange={(e) => setTagsSearch(e.target.value)}
+          />
+        </InputGroup>
       );
     }
     if (activeTab === TAB_COMPLIANCE) {
@@ -212,21 +211,19 @@ const DocumentsPage: React.FC = () => {
             <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <TextField
-            size="small"
-            placeholder="Ex: FAC-2025-00001"
-            value={complianceSearch}
-            onChange={(e) => setComplianceSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
-            sx={{ minWidth: 220 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
-                </InputAdornment>
-              ),
-            }}
-          />
+          <InputGroup className="w-[220px]">
+            <InputGroupAddon align="inline-start">
+              <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
+            </InputGroupAddon>
+            <InputGroupInput
+              id="documents-compliance-search"
+              aria-label="Rechercher par numéro de document"
+              placeholder="Ex: FAC-2025-00001"
+              value={complianceSearch}
+              onChange={(e) => setComplianceSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
+            />
+          </InputGroup>
         </>
       );
     }

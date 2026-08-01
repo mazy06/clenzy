@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Button, Spinner } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, Input, Textarea } from '../../../components/ui';
+import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Tooltip } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -450,22 +451,28 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             </div>
           ) : (
             <>
-              <TextField
-                label="Objet"
-                value={resend.subject}
-                onChange={(e) => setResend((r) => ({ ...r, subject: e.target.value }))}
-                fullWidth
-                size="small"
-              />
-              <TextField
-                label="Corps du message"
-                value={resend.body}
-                onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
-                fullWidth
-                multiline
-                minRows={6}
-                helperText="Conservez, modifiez ou videz le contenu. Le PDF du devis est joint automatiquement."
-              />
+              <Field>
+                <FieldLabel htmlFor="resend-quote-subject">Objet</FieldLabel>
+                <Input
+                  id="resend-quote-subject"
+                  className="w-full"
+                  value={resend.subject}
+                  onChange={(e) => setResend((r) => ({ ...r, subject: e.target.value }))}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="resend-quote-body">Corps du message</FieldLabel>
+                <Textarea
+                  id="resend-quote-body"
+                  rows={6}
+                  className="w-full"
+                  value={resend.body}
+                  onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
+                />
+                <FieldDescription>
+                  Conservez, modifiez ou videz le contenu. Le PDF du devis est joint automatiquement.
+                </FieldDescription>
+              </Field>
             </>
           )}
         </DialogContent>

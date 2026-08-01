@@ -1,5 +1,13 @@
 import React from 'react';
-import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  Input,
+  Textarea,
+} from '../../components/ui';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -70,15 +78,21 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="title"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.title')}
-                      required
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      size="small"
-                    />
+                    // field.ref n'est pas transmis : les primitives du kit sont des
+                    // composants fonction sans forwardRef (React 18).
+                    <Field>
+                      <FieldLabel htmlFor="intervention-title">{t('interventions.fields.title')}</FieldLabel>
+                      <Input
+                        id="intervention-title"
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        required
+                        aria-invalid={!!fieldState.error}
+                      />
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -88,17 +102,22 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="description"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.description')}
-                      multiline
-                      rows={3}
-                      required
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      size="small"
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="intervention-description">
+                        {t('interventions.fields.description')}
+                      </FieldLabel>
+                      <Textarea
+                        id="intervention-description"
+                        rows={3}
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        required
+                        aria-invalid={!!fieldState.error}
+                      />
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -191,37 +210,39 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
 
               {/* Date planifiee (date seule) */}
               <div className="col-span-12 min-[600px]:col-span-4">
-                <TextField
-                  fullWidth
-                  label={t('interventions.fields.scheduledDate')}
-                  type="date"
-                  required
-                  value={scheduledDatePart}
-                  onChange={(e) => setScheduledDatePart(e.target.value)}
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="intervention-scheduled-date">
+                    {t('interventions.fields.scheduledDate')}
+                  </FieldLabel>
+                  <Input
+                    id="intervention-scheduled-date"
+                    type="date"
+                    required
+                    value={scheduledDatePart}
+                    onChange={(e) => setScheduledDatePart(e.target.value)}
+                  />
+                </Field>
               </div>
 
               {/* Heure de debut */}
               <div className="col-span-6 min-[600px]:col-span-4">
-                <TextField
-                  fullWidth
-                  label="Heure"
-                  type="time"
-                  required
-                  value={scheduledTimePart}
-                  onChange={(e) => setScheduledTimePart(e.target.value)}
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 900 }}
-                  helperText={
-                    (() => {
-                      const sel = properties.find(p => p.id === watchedPropertyId);
-                      return sel?.defaultCheckOutTime ? `Défaut : ${sel.defaultCheckOutTime}` : undefined;
-                    })()
-                  }
-                />
+                <Field>
+                  <FieldLabel htmlFor="intervention-scheduled-time">Heure</FieldLabel>
+                  <Input
+                    id="intervention-scheduled-time"
+                    type="time"
+                    required
+                    value={scheduledTimePart}
+                    onChange={(e) => setScheduledTimePart(e.target.value)}
+                    step={900}
+                  />
+                  {(() => {
+                    const sel = properties.find(p => p.id === watchedPropertyId);
+                    return sel?.defaultCheckOutTime
+                      ? <FieldDescription>{`Défaut : ${sel.defaultCheckOutTime}`}</FieldDescription>
+                      : null;
+                  })()}
+                </Field>
               </div>
 
               {/* Duree estimee (fractionnaire) */}
@@ -230,18 +251,27 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="estimatedDurationHours"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.estimatedDuration')}
-                      type="number"
-                      required
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message || 'En heures (ex: 1.5 = 1h30)'}
-                      inputProps={{ min: 0.5, max: 24, step: 0.5 }}
-                      size="small"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="intervention-estimated-duration">
+                        {t('interventions.fields.estimatedDuration')}
+                      </FieldLabel>
+                      <Input
+                        id="intervention-estimated-duration"
+                        type="number"
+                        required
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onBlur={field.onBlur}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        aria-invalid={!!fieldState.error}
+                        min={0.5}
+                        max={24}
+                        step={0.5}
+                      />
+                      {fieldState.error
+                        ? <FieldError>{fieldState.error.message}</FieldError>
+                        : <FieldDescription>En heures (ex: 1.5 = 1h30)</FieldDescription>}
+                    </Field>
                   )}
                 />
               </div>
@@ -260,17 +290,23 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                   name="progressPercentage"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.initialProgress')}
-                      type="number"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      inputProps={{ min: 0, max: 100 }}
-                      size="small"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="intervention-progress">
+                        {t('interventions.fields.initialProgress')}
+                      </FieldLabel>
+                      <Input
+                        id="intervention-progress"
+                        type="number"
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onBlur={field.onBlur}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        aria-invalid={!!fieldState.error}
+                        min={0}
+                        max={100}
+                      />
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>

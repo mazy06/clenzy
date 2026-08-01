@@ -3,10 +3,19 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, TextField, Button, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink, MenuItem } from '@mui/material';
+import { Box, Button, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
@@ -487,33 +496,46 @@ export default function Inscription() {
         {activeStep === 0 && (
           <Stack spacing={2}>
             <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.fullNameLabel', 'Nom complet *')}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder={t('auth.inscription.fields.fullNamePlaceholder', 'Jean Dupont')}
-                helperText={t('auth.inscription.fields.fullNameHelper', 'Prenom et nom de famille')}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.emailLabel', 'Email *')}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('auth.inscription.fields.emailPlaceholder', 'jean@exemple.fr')}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.phoneLabel', 'Telephone')}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={t('auth.inscription.fields.phonePlaceholder', '07 66 72 91 09')}
-                helperText={t('auth.inscription.fields.phoneHelper', 'Optionnel')}
-              />
+              <Field>
+                <FieldLabel htmlFor="inscription-full-name">
+                  {t('auth.inscription.fields.fullNameLabel', 'Nom complet *')}
+                </FieldLabel>
+                <Input
+                  id="inscription-full-name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder={t('auth.inscription.fields.fullNamePlaceholder', 'Jean Dupont')}
+                />
+                <FieldDescription>
+                  {t('auth.inscription.fields.fullNameHelper', 'Prenom et nom de famille')}
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="inscription-email">
+                  {t('auth.inscription.fields.emailLabel', 'Email *')}
+                </FieldLabel>
+                <Input
+                  id="inscription-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.inscription.fields.emailPlaceholder', 'jean@exemple.fr')}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="inscription-phone">
+                  {t('auth.inscription.fields.phoneLabel', 'Telephone')}
+                </FieldLabel>
+                <Input
+                  id="inscription-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('auth.inscription.fields.phonePlaceholder', '07 66 72 91 09')}
+                />
+                <FieldDescription>
+                  {t('auth.inscription.fields.phoneHelper', 'Optionnel')}
+                </FieldDescription>
+              </Field>
             </div>
 
             {/* Selection du type d'organisation */}
@@ -539,16 +561,27 @@ export default function Inscription() {
 
             {/* Nom de la societe (conditionnel, requis pour type pro) */}
             {isProType && (
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.companyLabel', 'Nom de la societe *')}
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder={t('auth.inscription.fields.companyPlaceholder', 'Ma Societe SARL')}
-                error={isProType && companyName.trim() === ''}
-                helperText={t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
-              />
+              <Field>
+                <FieldLabel htmlFor="inscription-company">
+                  {t('auth.inscription.fields.companyLabel', 'Nom de la societe *')}
+                </FieldLabel>
+                <Input
+                  id="inscription-company"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder={t('auth.inscription.fields.companyPlaceholder', 'Ma Societe SARL')}
+                  aria-invalid={companyName.trim() === ''}
+                />
+                {companyName.trim() === '' ? (
+                  <FieldError>
+                    {t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
+                  </FieldError>
+                ) : (
+                  <FieldDescription>
+                    {t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
+                  </FieldDescription>
+                )}
+              </Field>
             )}
 
             {/* Selection du forfait si non pre-rempli */}
@@ -647,41 +680,48 @@ export default function Inscription() {
             {/* Code promo + source d'acquisition (optionnels, collapsibles visuellement) */}
             <Divider sx={{ my: 1 }} />
             <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.promoLabel', 'Code promo / parrainage')}
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                placeholder={t('auth.inscription.promoPlaceholder', 'Optionnel')}
-                inputProps={{ maxLength: 50, style: { textTransform: 'uppercase' } }}
-                helperText={t('auth.inscription.promoHelper', 'Si vous en avez un')}
-              />
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label={t('auth.inscription.referralLabel', 'Comment nous avez-vous connu ?')}
-                value={referralSource}
-                onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
-                helperText={t('auth.inscription.referralHelper', 'Optionnel — nous aide à mieux vous servir')}
-                SelectProps={{ displayEmpty: true }}
-                // displayEmpty affiche le placeholder « Sélectionner… » dans le
-                // champ ; sans shrink, le label flottant ne remonte pas et
-                // CHEVAUCHE le placeholder. On force le label remonté (notch).
-                InputLabelProps={{ shrink: true }}
-              >
-                <MenuItem value="">
-                  <span className="cn-text-body2 text-muted-foreground opacity-60">
+              <Field>
+                <FieldLabel htmlFor="inscription-promo-code">
+                  {t('auth.inscription.promoLabel', 'Code promo / parrainage')}
+                </FieldLabel>
+                <Input
+                  id="inscription-promo-code"
+                  className="uppercase"
+                  maxLength={50}
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder={t('auth.inscription.promoPlaceholder', 'Optionnel')}
+                />
+                <FieldDescription>
+                  {t('auth.inscription.promoHelper', 'Si vous en avez un')}
+                </FieldDescription>
+              </Field>
+              {/* Le libelle est desormais statique au-dessus du champ : plus de
+                  chevauchement possible entre lui et l'option vide, donc plus
+                  besoin des reglages displayEmpty / shrink de MUI. */}
+              <Field>
+                <FieldLabel htmlFor="inscription-referral-source">
+                  {t('auth.inscription.referralLabel', 'Comment nous avez-vous connu ?')}
+                </FieldLabel>
+                <NativeSelect
+                  id="inscription-referral-source"
+                  className="w-full"
+                  value={referralSource}
+                  onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
+                >
+                  <NativeSelectOption value="">
                     {t('auth.inscription.referralPlaceholder', 'Sélectionner…')}
-                  </span>
-                </MenuItem>
-                {REFERRAL_SOURCE_VALUES.map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {getReferralSourceLabel(t, value)}
-                  </MenuItem>
-                ))}
-              </TextField>
+                  </NativeSelectOption>
+                  {REFERRAL_SOURCE_VALUES.map((value) => (
+                    <NativeSelectOption key={value} value={value}>
+                      {getReferralSourceLabel(t, value)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+                <FieldDescription>
+                  {t('auth.inscription.referralHelper', 'Optionnel — nous aide à mieux vous servir')}
+                </FieldDescription>
+              </Field>
             </div>
 
             {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { ButtonBase, TextField } from '@mui/material';
+import { ButtonBase } from '@mui/material';
+import { Input } from '../../../../components/ui';
 import { X, Plus, Save, Boxes, Eye } from 'lucide-react';
 import grapesjs, { type Editor, type ToolbarButtonProps, type Component } from 'grapesjs';
 import { registerBookingComponents, setupEditorInteraction, setCanvasInert, blockLabelHtml } from './bookingComponents';
@@ -305,8 +306,15 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
         <div className="shrink-0 w-[300px] h-full flex flex-col border-s border-[var(--line)] bg-[var(--card)]">
           {/* En-tête fixe : nom + onglets Blocs / Style. */}
           <div className="p-3 pb-1.5 flex flex-col gap-2 shrink-0">
-            <TextField value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du composite" size="small" fullWidth
-              sx={{ '& .MuiInputBase-root': { bgcolor: 'var(--field)', color: 'var(--ink)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--line)' }, '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' } }} />
+            {/* Pas de libelle visible dans cette barre d'outils dense : le nom
+                du composite est porte par le placeholder + aria-label. */}
+            <Input
+              id="composite-name"
+              aria-label="Nom du composite"
+              placeholder="Nom du composite"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
             <div className="flex gap-0.5 p-0.5 bg-[var(--field)] rounded-[var(--radius-md)]">
               {(['blocks', 'style'] as const).map((tab) => (
                 <ButtonBase key={tab} onClick={() => setRightTab(tab)}

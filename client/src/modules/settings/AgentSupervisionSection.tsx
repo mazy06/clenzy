@@ -3,7 +3,8 @@ import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, Divider, Select, MenuItem, TextField, Snackbar, useTheme, alpha } from '@mui/material';
+import { Switch, Divider, Select, MenuItem, Snackbar, useTheme, alpha } from '@mui/material';
+import { Input } from '../../components/ui';
 import AiSettingsCard from './AiSettingsCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -153,9 +154,11 @@ export default function AgentSupervisionSection() {
           {/* ── Budget (plafond de scans automatiques) ── */}
           <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
             <div className="flex-1 min-w-0 pe-3">
-              <p className="cn-text-body2 font-semibold">
+              {/* Le titre du reglage EST le libelle du champ : rendu en <label>
+                  pour que le clic et le lecteur d'ecran atteignent l'input. */}
+              <label htmlFor="supervision-daily-budget" className="cn-text-body2 font-semibold block">
                 {t('settings.ai.supervision.budget.label', 'Plafond de scans automatiques')}
-              </p>
+              </label>
               <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.budget.description',
@@ -163,15 +166,16 @@ export default function AgentSupervisionSection() {
                 )}
               </span>
             </div>
-            <TextField
+            <Input
+              id="supervision-daily-budget"
               type="number"
-              size="small"
+              min={0}
+              step={1}
+              className="w-16 shrink-0 text-end tabular-nums"
               value={budgetInput}
               onChange={(e) => setBudgetInput(e.target.value)}
               onBlur={handleBudgetCommit}
               disabled={!canEdit || busy || !config.enabled}
-              inputProps={{ min: 0, step: 1, style: { textAlign: 'right', width: 64 } }}
-              sx={{ flexShrink: 0 }}
             />
           </div>
 

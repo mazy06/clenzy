@@ -1,9 +1,8 @@
 import React from 'react';
-import { TextField } from '@mui/material';
 import { AccessTime } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
-import { FIELD_SX, AdornIcon } from './reservationDialogStyles';
+import { Field, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput } from '../ui';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 
 interface Props {
@@ -54,28 +53,36 @@ const StaySection: React.FC<Props> = ({ form }) => {
 
       {/* Heures arrivée / départ */}
       <div className="grid grid-cols-[1fr_1fr] gap-3">
-        <TextField
-          label={t('reservations.fields.checkIn')}
-          type="time"
-          value={form.checkInTime}
-          onChange={(e) => form.setCheckInTime(e.target.value)}
-          fullWidth
-          disabled={form.fieldsLocked}
-          InputProps={{ startAdornment: <AdornIcon><AccessTime size={15} strokeWidth={1.75} /></AdornIcon> }}
-          InputLabelProps={{ shrink: true }}
-          sx={FIELD_SX}
-        />
-        <TextField
-          label={t('reservations.fields.checkOut')}
-          type="time"
-          value={form.checkOutTime}
-          onChange={(e) => form.setCheckOutTime(e.target.value)}
-          fullWidth
-          disabled={form.fieldsLocked}
-          InputProps={{ startAdornment: <AdornIcon><AccessTime size={15} strokeWidth={1.75} /></AdornIcon> }}
-          InputLabelProps={{ shrink: true }}
-          sx={FIELD_SX}
-        />
+        <Field>
+          <FieldLabel htmlFor="stay-check-in-time">{t('reservations.fields.checkIn')}</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <AccessTime size={15} strokeWidth={1.75} />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="stay-check-in-time"
+              type="time"
+              value={form.checkInTime}
+              onChange={(e) => form.setCheckInTime(e.target.value)}
+              disabled={form.fieldsLocked}
+            />
+          </InputGroup>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="stay-check-out-time">{t('reservations.fields.checkOut')}</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <AccessTime size={15} strokeWidth={1.75} />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="stay-check-out-time"
+              type="time"
+              value={form.checkOutTime}
+              onChange={(e) => form.setCheckOutTime(e.target.value)}
+              disabled={form.fieldsLocked}
+            />
+          </InputGroup>
+        </Field>
       </div>
     </>
   );

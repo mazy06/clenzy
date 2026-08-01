@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, TextField } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
+import { FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch } from '@mui/material';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
@@ -182,15 +183,19 @@ export default function AiAutonomySection() {
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
-          <TextField
-            label={t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
-            type="number"
-            size="small"
-            value={capCredits}
-            onChange={(e) => setCapCredits(e.target.value)}
-            inputProps={{ min: 0, style: { fontVariantNumeric: 'tabular-nums' } }}
-            sx={{ width: 200 }}
-          />
+          <Field className="w-[200px]">
+            <FieldLabel htmlFor="ai-autonomy-cap">
+              {t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
+            </FieldLabel>
+            <Input
+              id="ai-autonomy-cap"
+              type="number"
+              min={0}
+              className="tabular-nums"
+              value={capCredits}
+              onChange={(e) => setCapCredits(e.target.value)}
+            />
+          </Field>
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel>{t('aiAutonomy.onCapLabel', 'Au plafond')}</InputLabel>
             <Select

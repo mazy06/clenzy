@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Alert, AlertDescription, Button } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+} from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link, MenuItem, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 
@@ -120,97 +129,124 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         )}
 
         <div className="flex flex-col gap-3">
-          <TextField
-            label="Access ID"
-            value={accessId}
-            onChange={(e) => setAccessId(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-          />
-          <TextField
-            label="Access Secret"
-            value={accessSecret}
-            onChange={(e) => setAccessSecret(e.target.value)}
-            type="password"
-            fullWidth
-            autoComplete="new-password"
-            disabled={saving}
-            placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
-            helperText={
-              alreadyConfigured
-                ? 'Laissez vide pour conserver le secret déjà enregistré.'
-                : undefined
-            }
-          />
-          <TextField
-            label="Data center"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            select
-            fullWidth
-            disabled={saving}
-            helperText="Région du projet Tuya (doit correspondre à celle choisie sur iot.tuya.com)."
-          >
-            {DATA_CENTERS.map((dc) => (
-              <MenuItem key={dc.value} value={dc.value}>
-                {dc.label}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="tuya-access-id">Access ID</FieldLabel>
+            <Input
+              id="tuya-access-id"
+              value={accessId}
+              onChange={(e) => setAccessId(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tuya-access-secret">Access Secret</FieldLabel>
+            <Input
+              id="tuya-access-secret"
+              value={accessSecret}
+              onChange={(e) => setAccessSecret(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              disabled={saving}
+              placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
+            />
+            {alreadyConfigured && (
+              <FieldDescription>Laissez vide pour conserver le secret déjà enregistré.</FieldDescription>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tuya-region">Data center</FieldLabel>
+            <NativeSelect
+              id="tuya-region"
+              className="w-full"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              disabled={saving}
+            >
+              {DATA_CENTERS.map((dc) => (
+                <option key={dc.value} value={dc.value}>
+                  {dc.label}
+                </option>
+              ))}
+            </NativeSelect>
+            <FieldDescription>
+              Région du projet Tuya (doit correspondre à celle choisie sur iot.tuya.com).
+            </FieldDescription>
+          </Field>
           <Divider sx={{ mt: 0.5 }} />
           <span className="cn-text-caption text-muted-foreground font-bold">
             App SDK mobile (appairage — modèle C)
           </span>
-          <TextField
-            label="App SDK schema (optionnel)"
-            value={appSchema}
-            onChange={(e) => setAppSchema(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-            helperText="Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile. Laisser vide si non utilisé."
-          />
-          <TextField
-            label="AppKey iOS (App SDK)"
-            value={appKey}
-            onChange={(e) => setAppKey(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-            helperText="AppKey iOS de l'App SDK Tuya (console → App → Get Key → iOS)."
-          />
-          <TextField
-            label="AppSecret iOS (App SDK)"
-            value={appSecret}
-            onChange={(e) => setAppSecret(e.target.value)}
-            type="password"
-            fullWidth
-            autoComplete="new-password"
-            disabled={saving}
-            placeholder={current?.appKey ? '•••••••• (inchangé si laissé vide)' : undefined}
-            helperText="Laisser vide pour conserver l'AppSecret iOS déjà enregistré."
-          />
-          <TextField
-            label="AppKey Android (App SDK)"
-            value={androidAppKey}
-            onChange={(e) => setAndroidAppKey(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-            helperText="AppKey Android de l'App SDK Tuya (console → App → Get Key → Android) — distinct de l'iOS."
-          />
-          <TextField
-            label="AppSecret Android (App SDK)"
-            value={androidAppSecret}
-            onChange={(e) => setAndroidAppSecret(e.target.value)}
-            type="password"
-            fullWidth
-            autoComplete="new-password"
-            disabled={saving}
-            placeholder={current?.androidAppKey ? '•••••••• (inchangé si laissé vide)' : undefined}
-            helperText="Laisser vide pour conserver l'AppSecret Android déjà enregistré."
-          />
+          <Field>
+            <FieldLabel htmlFor="tuya-app-schema">App SDK schema (optionnel)</FieldLabel>
+            <Input
+              id="tuya-app-schema"
+              value={appSchema}
+              onChange={(e) => setAppSchema(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+            <FieldDescription>
+              Schema de l'App SDK Tuya (console → App → App SDK) — requis pour l'appairage mobile.
+              Laisser vide si non utilisé.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tuya-app-key-ios">AppKey iOS (App SDK)</FieldLabel>
+            <Input
+              id="tuya-app-key-ios"
+              value={appKey}
+              onChange={(e) => setAppKey(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+            <FieldDescription>
+              AppKey iOS de l'App SDK Tuya (console → App → Get Key → iOS).
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tuya-app-secret-ios">AppSecret iOS (App SDK)</FieldLabel>
+            <Input
+              id="tuya-app-secret-ios"
+              value={appSecret}
+              onChange={(e) => setAppSecret(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              disabled={saving}
+              placeholder={current?.appKey ? '•••••••• (inchangé si laissé vide)' : undefined}
+            />
+            <FieldDescription>
+              Laisser vide pour conserver l'AppSecret iOS déjà enregistré.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tuya-app-key-android">AppKey Android (App SDK)</FieldLabel>
+            <Input
+              id="tuya-app-key-android"
+              value={androidAppKey}
+              onChange={(e) => setAndroidAppKey(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+            <FieldDescription>
+              AppKey Android de l'App SDK Tuya (console → App → Get Key → Android) — distinct de l'iOS.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="tuya-app-secret-android">AppSecret Android (App SDK)</FieldLabel>
+            <Input
+              id="tuya-app-secret-android"
+              value={androidAppSecret}
+              onChange={(e) => setAndroidAppSecret(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              disabled={saving}
+              placeholder={current?.androidAppKey ? '•••••••• (inchangé si laissé vide)' : undefined}
+            />
+            <FieldDescription>
+              Laisser vide pour conserver l'AppSecret Android déjà enregistré.
+            </FieldDescription>
+          </Field>
         </div>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

@@ -3,8 +3,16 @@ import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Paper, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Paper, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -155,14 +163,22 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
         {/* Étape 2 — Service / marque */}
         {step === 1 && kind && (
           <div className="mt-2">
-            <TextField
-              select fullWidth size="small" label="Service / marque" value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-            >
-              {PROVIDERS[kind].map((p) => (
-                <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
-              ))}
-            </TextField>
+            <Field>
+              <FieldLabel htmlFor="wizard-provider">Service / marque</FieldLabel>
+              <NativeSelect
+                className="w-full"
+                id="wizard-provider"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+              >
+                {/* Option vide explicite : un select natif afficherait sinon le
+                    premier service alors qu'aucun n'est encore choisi. */}
+                <NativeSelectOption value="">—</NativeSelectOption>
+                {PROVIDERS[kind].map((p) => (
+                  <NativeSelectOption key={p.value} value={p.value}>{p.label}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
             <Alert variant="info" className="mt-2">
               <Info />
               <AlertDescription>Le service doit être relié dans <strong>Réglages → Services connectés</strong>pour piloter l'objet à distance.</AlertDescription>
@@ -173,25 +189,59 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
         {/* Étape 3 — Affectation */}
         {step === 2 && kind && (
           <div className="mt-2 flex flex-col gap-2">
-            <TextField
-              select fullWidth size="small" label="Logement" value={propertyId}
-              onChange={(e) => setPropertyId(Number(e.target.value))}
-            >
-              {properties.map((p) => (
-                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField fullWidth size="small" label={kind === 'keybox' ? 'Nom du point' : "Nom de l'objet"} value={name} onChange={(e) => setName(e.target.value)} />
+            <Field>
+              <FieldLabel htmlFor="wizard-property">Logement</FieldLabel>
+              <NativeSelect
+                className="w-full"
+                id="wizard-property"
+                value={propertyId}
+                onChange={(e) => setPropertyId(e.target.value === '' ? '' : Number(e.target.value))}
+              >
+                {/* Option vide explicite : un select natif afficherait sinon le
+                    premier logement alors qu'aucun n'est encore affecte. */}
+                <NativeSelectOption value="">—</NativeSelectOption>
+                {properties.map((p) => (
+                  <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="wizard-name">
+                {kind === 'keybox' ? 'Nom du point' : "Nom de l'objet"}
+              </FieldLabel>
+              <Input
+                id="wizard-name"
+                className="w-full"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Field>
             {kind !== 'keybox' && (
-              <TextField fullWidth size="small" label="Pièce (optionnel)" value={roomName} onChange={(e) => setRoomName(e.target.value)} />
+              <Field>
+                <FieldLabel htmlFor="wizard-room">Pièce (optionnel)</FieldLabel>
+                <Input
+                  id="wizard-room"
+                  className="w-full"
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                />
+              </Field>
             )}
             {kind === 'camera' && provider !== 'TUYA' && (
-              <TextField
-                fullWidth size="small" required label="URL du flux (RTSP recommandé)"
-                placeholder="rtsp://user:pass@192.168.1.50:554/stream"
-                helperText="RTSP recommandé : lecture directe et fluide. Une URL HTTP/HLS est transcodée (CPU, qualité réduite — pour test). Chiffré côté serveur."
-                value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)}
-              />
+              <Field>
+                <FieldLabel htmlFor="wizard-rtsp-url">URL du flux (RTSP recommandé)</FieldLabel>
+                <Input
+                  id="wizard-rtsp-url"
+                  className="w-full"
+                  required
+                  placeholder="rtsp://user:pass@192.168.1.50:554/stream"
+                  value={rtspUrl}
+                  onChange={(e) => setRtspUrl(e.target.value)}
+                />
+                <FieldDescription>
+                  RTSP recommandé : lecture directe et fluide. Une URL HTTP/HLS est transcodée (CPU, qualité réduite — pour test). Chiffré côté serveur.
+                </FieldDescription>
+              </Field>
             )}
             {kind === 'camera' && /^https?:\/\//i.test(rtspUrl.trim()) && (
               <Alert variant="warning" className="py-0.5">
@@ -207,17 +257,25 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               <TuyaDevicePicker category={kind === 'thermostat' ? 'wk' : undefined} selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
             {kind === 'lock' && (
-              <TextField
-                select fullWidth size="small" label={t('connectedObjects.codeMode.label', "Origine du code d'accès")}
-                value={accessCodeMode}
-                onChange={(e) => setAccessCodeMode(e.target.value as SmartLockAccessCodeMode)}
-                helperText={accessCodeMode === 'PMS_GENERATED'
-                  ? t('connectedObjects.codeMode.helperPms', 'Le code configuré dans le PMS est poussé à la serrure.')
-                  : t('connectedObjects.codeMode.helperLock', 'La serrure génère son propre code ; le PMS le récupère.')}
-              >
-                <MenuItem value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</MenuItem>
-                <MenuItem value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</MenuItem>
-              </TextField>
+              <Field>
+                <FieldLabel htmlFor="wizard-access-code-mode">
+                  {t('connectedObjects.codeMode.label', "Origine du code d'accès")}
+                </FieldLabel>
+                <NativeSelect
+                  className="w-full"
+                  id="wizard-access-code-mode"
+                  value={accessCodeMode}
+                  onChange={(e) => setAccessCodeMode(e.target.value as SmartLockAccessCodeMode)}
+                >
+                  <NativeSelectOption value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</NativeSelectOption>
+                  <NativeSelectOption value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</NativeSelectOption>
+                </NativeSelect>
+                <FieldDescription>
+                  {accessCodeMode === 'PMS_GENERATED'
+                    ? t('connectedObjects.codeMode.helperPms', 'Le code configuré dans le PMS est poussé à la serrure.')
+                    : t('connectedObjects.codeMode.helperLock', 'La serrure génère son propre code ; le PMS le récupère.')}
+                </FieldDescription>
+              </Field>
             )}
             {kind === 'climate' && provider === 'NETATMO' && (
               <NetatmoDevicePicker source="weather" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
@@ -229,11 +287,18 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               <NetatmoDevicePicker source="thermostat" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider !== 'TUYA' && (
-              <TextField
-                fullWidth size="small" label="Identifiant externe (optionnel)"
-                helperText={kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}
-                value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)}
-              />
+              <Field>
+                <FieldLabel htmlFor="wizard-external-device-id">Identifiant externe (optionnel)</FieldLabel>
+                <Input
+                  id="wizard-external-device-id"
+                  className="w-full"
+                  value={externalDeviceId}
+                  onChange={(e) => setExternalDeviceId(e.target.value)}
+                />
+                <FieldDescription>
+                  {kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}
+                </FieldDescription>
+              </Field>
             )}
             {error && <Alert variant="destructive">
               <TriangleAlert />

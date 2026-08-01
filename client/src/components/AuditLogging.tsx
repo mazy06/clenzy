@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StatusChip from './StatusChip';
-import { Alert as BuiAlert, AlertDescription, Button } from './ui';
+import { Alert as BuiAlert, AlertDescription, Button, Field, FieldLabel, Input } from './ui';
 import { Info as BuiInfo } from 'lucide-react';
 import { Spinner } from './ui';
-import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Divider, Alert } from '@mui/material';
+import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem, Divider, Alert } from '@mui/material';
 import {
   Info,
   Warning,
@@ -223,13 +223,15 @@ const AuditLogging: React.FC = () => {
               </FormControl>
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              <TextField
-                fullWidth
-                size="small"
-                label="ID Acteur"
-                value={filters.actorId}
-                onChange={(e) => handleFilterChange('actorId', e.target.value)}
-              />
+              <Field>
+                <FieldLabel htmlFor="audit-actor-id">ID Acteur</FieldLabel>
+                <Input
+                  id="audit-actor-id"
+                  className="w-full"
+                  value={filters.actorId}
+                  onChange={(e) => handleFilterChange('actorId', e.target.value)}
+                />
+              </Field>
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
               <Button variant="outline" size="sm" onClick={clearFilters}>

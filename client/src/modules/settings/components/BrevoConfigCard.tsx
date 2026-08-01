@@ -4,7 +4,8 @@ import { Alert as UiAlert, AlertDescription, Button } from '../../../components/
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { TextField, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../../components/ui';
+import { Switch, FormControlLabel, Alert, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -82,31 +83,33 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
     value: number | null,
     field: 'waitlistListId' | 'newsletterListId' | 'prospectsListId' | 'leadsListId',
   ) => (
-    <TextField
-      select
-      fullWidth
-      size="small"
-      label={label}
-      value={value != null ? String(value) : ''}
-      disabled={!data.configured || listsLoading}
-      onChange={(e) => {
-        const v = e.target.value === '' ? null : Number(e.target.value);
-        setLists.mutate({
-          waitlistListId: field === 'waitlistListId' ? v : data.waitlistListId,
-          newsletterListId: field === 'newsletterListId' ? v : data.newsletterListId,
-          prospectsListId: field === 'prospectsListId' ? v : data.prospectsListId,
-          leadsListId: field === 'leadsListId' ? v : data.leadsListId,
-        });
-      }}
-    >
-      <MenuItem value="">— Aucune —</MenuItem>
-      {(brevoLists ?? []).map((l) => (
-        <MenuItem key={l.id} value={String(l.id)}>
-          {l.name} (#{l.id}
-          {l.totalSubscribers != null ? `, ${l.totalSubscribers}` : ''})
-        </MenuItem>
-      ))}
-    </TextField>
+    // `field` est la cle de mapping : elle donne un id stable et unique par select.
+    <Field>
+      <FieldLabel htmlFor={`brevo-list-${field}`}>{label}</FieldLabel>
+      <NativeSelect
+        className="w-full"
+        id={`brevo-list-${field}`}
+        value={value != null ? String(value) : ''}
+        disabled={!data.configured || listsLoading}
+        onChange={(e) => {
+          const v = e.target.value === '' ? null : Number(e.target.value);
+          setLists.mutate({
+            waitlistListId: field === 'waitlistListId' ? v : data.waitlistListId,
+            newsletterListId: field === 'newsletterListId' ? v : data.newsletterListId,
+            prospectsListId: field === 'prospectsListId' ? v : data.prospectsListId,
+            leadsListId: field === 'leadsListId' ? v : data.leadsListId,
+          });
+        }}
+      >
+        <NativeSelectOption value="">— Aucune —</NativeSelectOption>
+        {(brevoLists ?? []).map((l) => (
+          <NativeSelectOption key={l.id} value={String(l.id)}>
+            {l.name} (#{l.id}
+            {l.totalSubscribers != null ? `, ${l.totalSubscribers}` : ''})
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+    </Field>
   );
 
   const toggleRow = (label: string, desc: string, checked: boolean, key: keyof MarketingTogglesPayload) => (
@@ -149,12 +152,15 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
       <div className="p-3 flex flex-col gap-3">
         {/* Clé API */}
         <div>
-          <p className={labelClass}>Clé API Brevo (v3)</p>
+          {/* Le titre de section fait office de libelle : le champ MUI n'en portait
+              aucun, on l'associe par aria-labelledby sans toucher a la mise en page. */}
+          <p className={labelClass} id="brevo-api-key-label">Clé API Brevo (v3)</p>
           <div className="flex gap-1.5 mt-0.5">
-            <TextField
+            <Input
+              id="brevo-api-key"
+              aria-labelledby="brevo-api-key-label"
+              className="w-full"
               type="password"
-              size="small"
-              fullWidth
               autoComplete="off"
               placeholder={data.configured ? `Configurée (${data.apiKeyMasked})` : 'xkeysib-…'}
               value={keyInput}

@@ -4,8 +4,8 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button } from '../../../components/ui';
-import { Alert, TextField } from '@mui/material';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
+import { Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -356,19 +356,24 @@ export default function OtaInfoDialog({
                   : `Renseignez vos credentials ${ota.name}. Ils sont chiffrés (AES-256) avant stockage.`}
               </p>
 
-              {fields.map((field) => (
-                <TextField
-                  key={field.key}
-                  label={FIELD_LABELS[field.key] ?? field.key}
-                  type={field.type}
-                  size="small"
-                  fullWidth
-                  required={field.required}
-                  placeholder={field.placeholder}
-                  value={formData[field.key] ?? ''}
-                  onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                  autoComplete="off"
-                />
+              {fields.map((credentialField) => (
+                // L'id derive de la cle du credential (hotelId, apiKey...) : stable
+                // et unique dans la modale, contrairement a un index de boucle.
+                <Field key={credentialField.key}>
+                  <FieldLabel htmlFor={`ota-credential-${credentialField.key}`}>
+                    {FIELD_LABELS[credentialField.key] ?? credentialField.key}
+                  </FieldLabel>
+                  <Input
+                    id={`ota-credential-${credentialField.key}`}
+                    className="w-full"
+                    type={credentialField.type}
+                    required={credentialField.required}
+                    placeholder={credentialField.placeholder}
+                    value={formData[credentialField.key] ?? ''}
+                    onChange={(e) => handleFieldChange(credentialField.key, e.target.value)}
+                    autoComplete="off"
+                  />
+                </Field>
               ))}
 
               {/* Resultat test */}

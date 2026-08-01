@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Stack, Link } from '@mui/material';
+import { Stack, Link } from '@mui/material';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 
@@ -82,14 +82,16 @@ export default function ForgotPassword() {
       ) : (
         <form onSubmit={handleSubmit} noValidate>
           <Stack spacing={2.5}>
-            <div>
-              <label className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="forgot-password-email">
+            <Field>
+              <FieldLabel
+                className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]"
+                htmlFor="forgot-password-email"
+              >
                 {t('auth.forgotPassword.emailLabel', 'Adresse email')}
-              </label>
-              <TextField
+              </FieldLabel>
+              <Input
                 id="forgot-password-email"
-                fullWidth
-                size="medium"
+                className="w-full"
                 placeholder={t('auth.forgotPassword.emailPlaceholder', 'vous@exemple.com')}
                 type="email"
                 value={email}
@@ -99,7 +101,7 @@ export default function ForgotPassword() {
                 autoComplete="email"
                 autoFocus
               />
-            </div>
+            </Field>
 
             {error && (
               <Alert variant="destructive">

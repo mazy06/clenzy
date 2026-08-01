@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupTextarea,
+} from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
@@ -200,6 +211,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   name="recipientId"
                   control={control}
                   render={({ field }) => (
+                    // Le champ de ce bloc reste en TextField MUI : c'est le `renderInput`
+                    // d'un <Autocomplete>, qui lui injecte ses props internes
+                    // (params.InputProps, ref du popper, aria du combobox) que les
+                    // primitives du kit ne savent pas porter.
                     <Autocomplete
                       freeSolo
                       options={usersList}
@@ -303,16 +318,25 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   name="subject"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('contact.subject')}
-                      error={!!errors.subject}
-                      helperText={errors.subject?.message}
-                      InputProps={{
-                        startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><SubjectIcon  /></span>
-                      }}
-                    />
+                    // field.ref n'est pas transmis : les primitives du kit sont des
+                    // composants fonction sans forwardRef (React 18).
+                    <Field>
+                      <FieldLabel htmlFor="contact-subject">{t('contact.subject')}</FieldLabel>
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <span className="inline-flex text-muted-foreground"><SubjectIcon /></span>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="contact-subject"
+                          name={field.name}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={!!errors.subject}
+                        />
+                      </InputGroup>
+                      {errors.subject && <FieldError>{errors.subject.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>
@@ -377,18 +401,26 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   name="message"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('contact.message')}
-                      multiline
-                      rows={6}
-                      error={!!errors.message}
-                      helperText={errors.message?.message}
-                      InputProps={{
-                        startAdornment: <span className="inline-flex text-muted-foreground me-1.5 self-start mt-1.5"><MessageIcon  /></span>
-                      }}
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="contact-message">{t('contact.message')}</FieldLabel>
+                      <InputGroup>
+                        {/* block-start : sur un textarea de 6 lignes, un addon inline
+                            centrerait l'icone a mi-hauteur du champ. */}
+                        <InputGroupAddon align="block-start">
+                          <span className="inline-flex text-muted-foreground"><MessageIcon /></span>
+                        </InputGroupAddon>
+                        <InputGroupTextarea
+                          id="contact-message"
+                          rows={6}
+                          name={field.name}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={!!errors.message}
+                        />
+                      </InputGroup>
+                      {errors.message && <FieldError>{errors.message.message}</FieldError>}
+                    </Field>
                   )}
                 />
               </div>

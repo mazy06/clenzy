@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
-import { Checkbox, Skeleton, Tooltip, TextField } from '@mui/material';
+import { Checkbox, Skeleton, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Field, FieldLabel, Input } from '../../../components/ui';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
   Replay,
@@ -231,13 +232,15 @@ const OutboxTab: React.FC = () => {
           allLabel="Tous"
           size="compact"
         />
-        <TextField
-          size="small"
-          label="Topic"
-          value={topic}
-          onChange={(e) => { setTopic(e.target.value); setPage(0); }}
-          sx={{ width: 180 }}
-        />
+        <Field className="w-[180px]">
+          <FieldLabel htmlFor="outbox-filter-topic">Topic</FieldLabel>
+          <Input
+            id="outbox-filter-topic"
+            className="w-full"
+            value={topic}
+            onChange={(e) => { setTopic(e.target.value); setPage(0); }}
+          />
+        </Field>
       </div>,
     );
     return () => setHeaderFilters(null);

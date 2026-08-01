@@ -4,8 +4,9 @@ import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
+import { Field, FieldLabel, Input } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Paper, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
+import { Paper, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
@@ -283,15 +284,17 @@ const ContractSignPage: React.FC = () => {
               <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', p: { xs: 2, md: 3 }, borderColor: BRAND }}>
                 <SectionLabel>{L.signTitle}</SectionLabel>
                 <div className="flex flex-col gap-3">
-                  <TextField
-                    label={L.signerNameLabel}
-                    placeholder={L.signerNamePlaceholder}
-                    value={signerName}
-                    onChange={(e) => setSignerName(e.target.value)}
-                    fullWidth
-                    size="small"
-                    autoComplete="name"
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="contract-signer-name">{L.signerNameLabel}</FieldLabel>
+                    <Input
+                      id="contract-signer-name"
+                      className="w-full"
+                      placeholder={L.signerNamePlaceholder}
+                      value={signerName}
+                      onChange={(e) => setSignerName(e.target.value)}
+                      autoComplete="name"
+                    />
+                  </Field>
                   <FormControlLabel
                     control={
                       <Checkbox

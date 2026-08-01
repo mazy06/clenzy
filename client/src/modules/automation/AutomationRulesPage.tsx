@@ -3,8 +3,8 @@ import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Skeleton } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
+import { Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, ListSubheader, Select, FormControl, InputLabel, Card, CardContent, Skeleton } from '@mui/material';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button, Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Add as AddIcon,
@@ -533,13 +533,17 @@ const AutomationRulesPage: React.FC = () => {
             : t('automation.createTitle', 'Nouvelle regle d\'automatisation')}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label={t('automation.form.name', 'Nom de la regle')}
-            size="small"
-            fullWidth
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
+          <Field>
+            <FieldLabel htmlFor="automation-rule-name">
+              {t('automation.form.name', 'Nom de la regle')}
+            </FieldLabel>
+            <Input
+              id="automation-rule-name"
+              className="w-full"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </Field>
 
           <FormControl size="small" fullWidth>
             <InputLabel>{t('automation.form.trigger', 'Declencheur')}</InputLabel>
@@ -580,24 +584,31 @@ const AutomationRulesPage: React.FC = () => {
           {/* Décalage/heure : uniquement pour les déclencheurs « cycle de vie ». */}
           {isLifecycleTrigger(formData.triggerType) && (
             <div className="flex gap-2">
-              <TextField
-                label={t('automation.form.offset', 'Delai (jours)')}
-                type="number"
-                size="small"
-                fullWidth
-                value={formData.triggerOffsetDays}
-                onChange={(e) => setFormData({ ...formData, triggerOffsetDays: Number(e.target.value) })}
-                inputProps={{ min: -30, max: 30, step: 1 }}
-              />
-              <TextField
-                label={t('automation.form.time', 'Heure')}
-                type="time"
-                size="small"
-                fullWidth
-                value={formData.triggerTime ?? '09:00'}
-                onChange={(e) => setFormData({ ...formData, triggerTime: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-              />
+              <Field className="flex-1">
+                <FieldLabel htmlFor="automation-offset-days">
+                  {t('automation.form.offset', 'Delai (jours)')}
+                </FieldLabel>
+                <Input
+                  id="automation-offset-days"
+                  type="number"
+                  value={formData.triggerOffsetDays}
+                  onChange={(e) => setFormData({ ...formData, triggerOffsetDays: Number(e.target.value) })}
+                  min={-30}
+                  max={30}
+                  step={1}
+                />
+              </Field>
+              <Field className="flex-1">
+                <FieldLabel htmlFor="automation-trigger-time">
+                  {t('automation.form.time', 'Heure')}
+                </FieldLabel>
+                <Input
+                  id="automation-trigger-time"
+                  type="time"
+                  value={formData.triggerTime ?? '09:00'}
+                  onChange={(e) => setFormData({ ...formData, triggerTime: e.target.value })}
+                />
+              </Field>
             </div>
           )}
 
@@ -645,16 +656,24 @@ const AutomationRulesPage: React.FC = () => {
 
           {/* Délai de grâce (action_config) : uniquement pour la révocation de code. */}
           {formData.actionType && actionUsesGraceHours(formData.actionType) && (
-            <TextField
-              label={t('automation.form.graceHours', 'Delai de grace (heures)')}
-              type="number"
-              size="small"
-              fullWidth
-              value={parseActionConfig(formData.actionConfig).graceHours ?? 4}
-              onChange={(e) => setFormData({ ...formData, actionConfig: stringifyGraceHours(Number(e.target.value)) })}
-              inputProps={{ min: 0, max: 72, step: 1 }}
-              helperText={t('automation.form.graceHoursHelp', "Le code d'acces est revoque ce nombre d'heures apres le check-out.")}
-            />
+            <Field>
+              <FieldLabel htmlFor="automation-grace-hours">
+                {t('automation.form.graceHours', 'Delai de grace (heures)')}
+              </FieldLabel>
+              <Input
+                id="automation-grace-hours"
+                type="number"
+                className="w-full"
+                value={parseActionConfig(formData.actionConfig).graceHours ?? 4}
+                onChange={(e) => setFormData({ ...formData, actionConfig: stringifyGraceHours(Number(e.target.value)) })}
+                min={0}
+                max={72}
+                step={1}
+              />
+              <FieldDescription>
+                {t('automation.form.graceHoursHelp', "Le code d'acces est revoque ce nombre d'heures apres le check-out.")}
+              </FieldDescription>
+            </Field>
           )}
 
           <ConditionsEditor

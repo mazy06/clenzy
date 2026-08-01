@@ -1,5 +1,13 @@
 import React from 'react';
-import { TextField, Switch, FormControlLabel, InputAdornment, Divider } from '@mui/material';
+import { Switch, FormControlLabel, Divider } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
 import { Percent } from '../../icons';
 import type { CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -40,22 +48,27 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
           />
         </div>
         <div className="col-span-6">
-          <TextField
-            label={t('tarification.commission.rate')}
-            type="number"
-            size="small"
-            fullWidth
-            value={commission.rate}
-            onChange={(e) => {
-              const num = parseFloat(e.target.value);
-              if (!isNaN(num)) onChange({ ...commission, rate: num });
-            }}
-            disabled={!canEdit || !commission.enabled}
-            inputProps={{ step: 0.5, min: 0, max: 100 }}
-            InputProps={{
-              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="commission-rate">{t('tarification.commission.rate')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="commission-rate"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                disabled={!canEdit || !commission.enabled}
+                value={commission.rate}
+                onChange={(e) => {
+                  const num = parseFloat(e.target.value);
+                  if (!isNaN(num)) onChange({ ...commission, rate: num });
+                }}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>%</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </div>
       </div>
     </>

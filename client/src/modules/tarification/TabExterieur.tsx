@@ -1,6 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { TextField, InputAdornment, Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Button } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Yard, Add, Delete } from '../../icons';
 import type { PricingConfig, ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
@@ -101,19 +110,28 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
                   />
                 </TableCell>
                 <TableCell className="text-end w-[140px]">
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={item.basePrice}
-                    onChange={(e) => {
-                      const num = parseFloat(e.target.value);
-                      if (!isNaN(num)) updateItem(index, { basePrice: num });
-                    }}
-                    disabled={!canEdit || !item.enabled}
-                    inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                    sx={{ width: 120 }}
-                  />
+                  {/* Pas de libelle visible dans la cellule : l'en-tete de
+                      colonne le porte, le champ reprend le nom de la ligne en
+                      aria-label. */}
+                  <InputGroup className="w-[120px]">
+                    <InputGroupInput
+                      id={`exterieur-price-${item.interventionType}`}
+                      aria-label={t(`tarification.exterieur.types.${item.interventionType}`, item.interventionType)}
+                      type="number"
+                      step={1}
+                      min={0}
+                      className="text-end tabular-nums"
+                      value={item.basePrice}
+                      onChange={(e) => {
+                        const num = parseFloat(e.target.value);
+                        if (!isNaN(num)) updateItem(index, { basePrice: num });
+                      }}
+                      disabled={!canEdit || !item.enabled}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
                 </TableCell>
                 {canEdit && (
                   <TableCell className="text-center">
@@ -146,23 +164,30 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label={t('tarification.newItem.name')}
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            size="small"
-            fullWidth
-            autoFocus
-          />
-          <TextField
-            label={t('tarification.newItem.price')}
-            type="number"
-            value={newItemPrice}
-            onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
-            size="small"
-            fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-          />
+          <Field>
+            <FieldLabel htmlFor="exterieur-new-name">{t('tarification.newItem.name')}</FieldLabel>
+            <Input
+              id="exterieur-new-name"
+              autoFocus
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="exterieur-new-price">{t('tarification.newItem.price')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="exterieur-new-price"
+                type="number"
+                className="tabular-nums"
+                value={newItemPrice}
+                onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>

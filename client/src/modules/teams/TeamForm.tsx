@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Badge, Button } from '../../components/ui';
+import { Badge, Button, Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -296,16 +296,20 @@ const TeamForm: React.FC = () => {
                     <Controller
                       name="name"
                       control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label={`${t('teams.fields.teamName')} *`}
-                          placeholder={t('teams.fields.teamNamePlaceholder')}
-                          size="small"
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                        />
+                      // Le `ref` de react-hook-form est ecarte : Input/Textarea du kit
+                      // sont des composants fonction sans forwardRef (React 18 avertirait).
+                      render={({ field: { ref: _nameRef, ...field }, fieldState }) => (
+                        <Field>
+                          <FieldLabel htmlFor="team-name">{`${t('teams.fields.teamName')} *`}</FieldLabel>
+                          <Input
+                            {...field}
+                            id="team-name"
+                            className="w-full"
+                            placeholder={t('teams.fields.teamNamePlaceholder')}
+                            aria-invalid={!!fieldState.error}
+                          />
+                          {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                        </Field>
                       )}
                     />
                   </div>
@@ -314,19 +318,20 @@ const TeamForm: React.FC = () => {
                     <Controller
                       name="description"
                       control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          value={field.value ?? ''}
-                          fullWidth
-                          label={t('teams.fields.description')}
-                          placeholder={t('teams.fields.descriptionPlaceholder')}
-                          multiline
-                          rows={3}
-                          size="small"
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                        />
+                      render={({ field: { ref: _descRef, ...field }, fieldState }) => (
+                        <Field>
+                          <FieldLabel htmlFor="team-description">{t('teams.fields.description')}</FieldLabel>
+                          <Textarea
+                            {...field}
+                            value={field.value ?? ''}
+                            id="team-description"
+                            className="w-full"
+                            rows={3}
+                            placeholder={t('teams.fields.descriptionPlaceholder')}
+                            aria-invalid={!!fieldState.error}
+                          />
+                          {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                        </Field>
                       )}
                     />
                   </div>

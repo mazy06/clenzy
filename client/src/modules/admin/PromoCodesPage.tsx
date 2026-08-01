@@ -4,7 +4,19 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
+import { Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+  NativeSelect,
+  Textarea,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
@@ -142,93 +154,100 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
             </BuiAlert>
           )}
 
-          <TextField
-            label="Code *"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="WELCOME2026"
-            inputProps={{ style: { textTransform: 'uppercase' }, maxLength: 50 }}
-            helperText="Sera normalisé en majuscules"
-            autoFocus
-            fullWidth
-            size="small"
-          />
+          <Field>
+            <FieldLabel htmlFor="promo-code">Code *</FieldLabel>
+            <Input
+              id="promo-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="WELCOME2026"
+              maxLength={50}
+              className="uppercase"
+              autoFocus
+            />
+            <FieldDescription>Sera normalisé en majuscules</FieldDescription>
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <TextField
-              select
-              label="Type de réduction *"
-              value={discountType}
-              onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
-              size="small"
-            >
-              <MenuItem value="PERCENTAGE">Pourcentage (%)</MenuItem>
-              <MenuItem value="FIXED">Montant fixe (€)</MenuItem>
-            </TextField>
+            <Field>
+              <FieldLabel htmlFor="promo-discount-type">Type de réduction *</FieldLabel>
+              <NativeSelect
+                id="promo-discount-type"
+                className="w-full"
+                value={discountType}
+                onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
+              >
+                <option value="PERCENTAGE">Pourcentage (%)</option>
+                <option value="FIXED">Montant fixe (€)</option>
+              </NativeSelect>
+            </Field>
 
-            <TextField
-              label={discountType === 'PERCENTAGE' ? 'Pourcentage *' : 'Montant en centimes *'}
-              value={discountValue}
-              onChange={(e) => setDiscountValue(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder={discountType === 'PERCENTAGE' ? '30' : '500'}
-              helperText={
-                discountType === 'PERCENTAGE'
-                  ? 'Entre 1 et 100'
-                  : "Centimes (500 = 5,00€)"
-              }
-              size="small"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {discountType === 'PERCENTAGE' ? '%' : 'centimes'}
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <Field>
+              <FieldLabel htmlFor="promo-discount-value">
+                {discountType === 'PERCENTAGE' ? 'Pourcentage *' : 'Montant en centimes *'}
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="promo-discount-value"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder={discountType === 'PERCENTAGE' ? '30' : '500'}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>{discountType === 'PERCENTAGE' ? '%' : 'centimes'}</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+              <FieldDescription>
+                {discountType === 'PERCENTAGE' ? 'Entre 1 et 100' : 'Centimes (500 = 5,00€)'}
+              </FieldDescription>
+            </Field>
           </div>
 
-          <TextField
-            label="Nombre maximum d'utilisations"
-            value={maxUses}
-            onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ''))}
-            placeholder="Laisser vide pour illimité"
-            helperText="Vide = utilisations illimitées"
-            size="small"
-            fullWidth
-          />
+          <Field>
+            <FieldLabel htmlFor="promo-max-uses">Nombre maximum d'utilisations</FieldLabel>
+            <Input
+              id="promo-max-uses"
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Laisser vide pour illimité"
+            />
+            <FieldDescription>Vide = utilisations illimitées</FieldDescription>
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <TextField
-              label="Valide à partir du"
-              type="date"
-              value={validFrom}
-              onChange={(e) => setValidFrom(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              helperText="Optionnel"
-            />
-            <TextField
-              label="Valide jusqu'au"
-              type="date"
-              value={validUntil}
-              onChange={(e) => setValidUntil(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              helperText="Optionnel"
-            />
+            <Field>
+              <FieldLabel htmlFor="promo-valid-from">Valide à partir du</FieldLabel>
+              <Input
+                id="promo-valid-from"
+                type="date"
+                value={validFrom}
+                onChange={(e) => setValidFrom(e.target.value)}
+              />
+              <FieldDescription>Optionnel</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="promo-valid-until">Valide jusqu'au</FieldLabel>
+              <Input
+                id="promo-valid-until"
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+              />
+              <FieldDescription>Optionnel</FieldDescription>
+            </Field>
           </div>
 
-          <TextField
-            label="Description (interne)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ex : campagne lancement Q3 2026"
-            multiline
-            rows={2}
-            inputProps={{ maxLength: 255 }}
-            size="small"
-            fullWidth
-          />
+          <Field>
+            <FieldLabel htmlFor="promo-description">Description (interne)</FieldLabel>
+            <Textarea
+              id="promo-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ex : campagne lancement Q3 2026"
+              rows={2}
+              maxLength={255}
+            />
+          </Field>
         </div>
       </DialogContent>
       <DialogActions>

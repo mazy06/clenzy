@@ -3,8 +3,8 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, TextField, Tooltip } from '@mui/material';
-import { Card } from '../../components/ui';
+import { IconButton, Tooltip } from '@mui/material';
+import { Card, Field, FieldLabel, Input } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -291,22 +291,26 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
       </p>
 
       <div className="flex gap-2 items-center flex-wrap mb-3">
-        <TextField
-          size="small"
-          type="date"
-          label={t('touristTax.report.from', 'Du')}
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t('touristTax.report.to', 'Au')}
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
+        {/* Largeur bornee : le Field du kit est w-full, il pousserait les boutons
+            de la rangee a la ligne suivante. */}
+        <Field className="w-[160px]">
+          <FieldLabel htmlFor="tourist-tax-report-from">{t('touristTax.report.from', 'Du')}</FieldLabel>
+          <Input
+            id="tourist-tax-report-from"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </Field>
+        <Field className="w-[160px]">
+          <FieldLabel htmlFor="tourist-tax-report-to">{t('touristTax.report.to', 'Au')}</FieldLabel>
+          <Input
+            id="tourist-tax-report-to"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </Field>
         <BuiButton size="sm" onClick={loadReport} disabled={!validRange || reportLoading}>
           {reportLoading ? <Spinner className="size-4" /> : t('touristTax.report.generate', 'Générer')}
         </BuiButton>

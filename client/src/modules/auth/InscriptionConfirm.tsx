@@ -6,7 +6,8 @@ import { Spinner, Button } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Paper, TextField, Stack, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, Stack, ThemeProvider, CssBaseline } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -216,35 +217,45 @@ export default function InscriptionConfirm() {
               )}
 
               <Stack spacing={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t('auth.inscriptionConfirm.passwordLabel', 'Mot de passe *')}
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  helperText={t('auth.inscriptionConfirm.passwordHelper', 'Minimum 8 caracteres')}
-                  autoFocus
-                />
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t('auth.inscriptionConfirm.confirmPasswordLabel', 'Confirmer le mot de passe *')}
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  error={confirmPassword.length > 0 && password !== confirmPassword}
-                  helperText={
-                    confirmPassword.length > 0 && password !== confirmPassword
-                      ? t('auth.inscriptionConfirm.passwordMismatch', 'Les mots de passe ne correspondent pas')
-                      : ''
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && isPasswordValid) {
-                      handleSubmit();
-                    }
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="inscription-password">
+                    {t('auth.inscriptionConfirm.passwordLabel', 'Mot de passe *')}
+                  </FieldLabel>
+                  <Input
+                    id="inscription-password"
+                    className="w-full"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
+                  />
+                  <FieldDescription>
+                    {t('auth.inscriptionConfirm.passwordHelper', 'Minimum 8 caracteres')}
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="inscription-confirm-password">
+                    {t('auth.inscriptionConfirm.confirmPasswordLabel', 'Confirmer le mot de passe *')}
+                  </FieldLabel>
+                  <Input
+                    id="inscription-confirm-password"
+                    className="w-full"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && isPasswordValid) {
+                        handleSubmit();
+                      }
+                    }}
+                  />
+                  {confirmPassword.length > 0 && password !== confirmPassword && (
+                    <FieldError>
+                      {t('auth.inscriptionConfirm.passwordMismatch', 'Les mots de passe ne correspondent pas')}
+                    </FieldError>
+                  )}
+                </Field>
 
                 <Button
                   size="lg"

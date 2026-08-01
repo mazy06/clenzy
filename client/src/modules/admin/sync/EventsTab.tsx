@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Card, CardContent, TextField } from '@mui/material';
+import { Skeleton, Card, CardContent } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -110,22 +111,25 @@ const EventsTab: React.FC = () => {
           allLabel="Tous"
           size="compact"
         />
-        <TextField
-          size="small"
-          label="Status"
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-          sx={{ width: 140 }}
-        />
-        <TextField
-          size="small"
-          label="Depuis"
-          type="datetime-local"
-          value={from}
-          onChange={(e) => { setFrom(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-          sx={{ width: 200 }}
-        />
+        {/* Largeurs figees : ces filtres vivent dans une rangee flex, le `w-full`
+            du kit les etalerait chacun sur toute la largeur du header. */}
+        <Field className="w-[140px]">
+          <FieldLabel htmlFor="sync-events-status">Status</FieldLabel>
+          <Input
+            id="sync-events-status"
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(0); }}
+          />
+        </Field>
+        <Field className="w-[200px]">
+          <FieldLabel htmlFor="sync-events-from">Depuis</FieldLabel>
+          <Input
+            id="sync-events-from"
+            type="datetime-local"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setPage(0); }}
+          />
+        </Field>
       </div>,
     );
     return () => setHeaderFilters(null);

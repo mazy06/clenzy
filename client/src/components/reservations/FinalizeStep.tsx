@@ -1,10 +1,11 @@
 import React from 'react';
-import { Typography, TextField, Tooltip } from '@mui/material';
+import { Typography, Tooltip } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, InputGroup, InputGroupInput, InputGroupAddon } from '../ui';
 import { CheckCircle, CreditCard, Mail } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, AdornIcon } from './reservationDialogStyles';
+import { SEC_SX } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
@@ -67,19 +68,25 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
 
       {/* Email destinataire du lien de paiement (déplacé de GuestSection) */}
       {form.requestPayment && (
-        <TextField
-          label={t('reservations.dialog.paymentEmail')}
-          type="email"
-          value={form.paymentEmail}
-          onChange={(e) => form.setPaymentEmail(e.target.value)}
-          placeholder={form.selectedGuest?.email || ''}
-          required
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          helperText={t('reservations.dialog.paymentEmailHelp')}
-          InputProps={{ startAdornment: <AdornIcon><Mail size={15} strokeWidth={1.75} /></AdornIcon> }}
-          sx={{ ...FIELD_SX, '& .MuiFormHelperText-root': { fontSize: '11px', color: 'var(--accent)', marginLeft: '2px' } }}
-        />
+        <Field>
+          <FieldLabel htmlFor="finalize-payment-email">{t('reservations.dialog.paymentEmail')}</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <Mail size={15} strokeWidth={1.75} />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="finalize-payment-email"
+              type="email"
+              required
+              value={form.paymentEmail}
+              onChange={(e) => form.setPaymentEmail(e.target.value)}
+              placeholder={form.selectedGuest?.email || ''}
+            />
+          </InputGroup>
+          <FieldDescription className="text-[11px] text-[var(--accent)]">
+            {t('reservations.dialog.paymentEmailHelp')}
+          </FieldDescription>
+        </Field>
       )}
 
       {/* Récapitulatif lecture seule */}

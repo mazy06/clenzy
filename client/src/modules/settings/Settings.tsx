@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, Alert, Snackbar } from '@mui/material';
+import { Alert, Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -813,16 +813,13 @@ export default function Settings() {
                 description="Temps limite pour annuler une demande approuvée"
                 control={(
                   <div className="flex items-center gap-0.5">
-                    <TextField
+                    <Input
                       type="number"
                       value={workflowSettings.cancellationDeadlineHours}
                       onChange={(e) => updateWorkflowSettings({ cancellationDeadlineHours: parseInt(e.target.value) })}
-                      sx={{
-                        width: 72,
-                        '& input': { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
-                      }}
-                      size="small"
-                      inputProps={{ min: 0, 'aria-label': "Délai d'annulation en heures" }}
+                      min={0}
+                      aria-label="Délai d'annulation en heures"
+                      className="w-[72px] text-center font-semibold tabular-nums"
                     />
                     <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
                       h

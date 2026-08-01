@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { IconButton, TextField, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { IconButton, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Input } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Add,
@@ -104,11 +105,16 @@ interface Props {
 
 // ─── Field label helper ──────────────────────────────────────────────────────
 
-const FieldLabel = ({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) => (
-  <span className="cn-text-caption flex items-center gap-0.5 font-bold text-[var(--faint)] mb-0.5 uppercase tracking-[.06em] text-[10.5px]">
+// Libelle local (icone + texte) — homonyme du FieldLabel du kit, volontairement
+// conserve. Rendu en <label> pour porter le htmlFor quand il designe un champ.
+const FieldLabel = ({ icon, htmlFor, children }: { icon: React.ReactNode; htmlFor?: string; children: React.ReactNode }) => (
+  <label
+    htmlFor={htmlFor}
+    className="cn-text-caption flex items-center gap-0.5 font-bold text-[var(--faint)] mb-0.5 uppercase tracking-[.06em] text-[10.5px]"
+  >
     {icon}
     {children}
-  </span>
+  </label>
 );
 
 // ─── Inline form (used both for "add" at top and "edit" inline on a row) ─────
@@ -194,6 +200,9 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
 }
 
 function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitting }: InlineFormProps) {
+  // Le formulaire est monte deux fois (ajout en tete + edition d'une ligne) :
+  // les identifiants doivent etre uniques par instance.
+  const uid = React.useId();
   const incrementQty = (delta: number) =>
     onChange({ ...value, quantity: Math.max(1, value.quantity + delta) });
 
@@ -208,14 +217,15 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
 
         {/* Designation */}
         <div>
-          <FieldLabel icon={<Label size={12} strokeWidth={1.75} />}>Designation</FieldLabel>
-          <TextField
+          <FieldLabel icon={<Label size={12} strokeWidth={1.75} />} htmlFor={`${uid}-name`}>
+            Designation
+          </FieldLabel>
+          <Input
+            id={`${uid}-name`}
+            required
+            placeholder="Ex : Canape 3 places, Lave-linge Bosch..."
             value={value.name}
             onChange={(e) => onChange({ ...value, name: e.target.value })}
-            required
-            fullWidth
-            size="small"
-            placeholder="Ex : Canape 3 places, Lave-linge Bosch..."
             onKeyDown={(e) => {
               if (e.key === 'Enter' && value.name.trim()) {
                 e.preventDefault();
@@ -281,7 +291,9 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
 
         {/* Quantite */}
         <div>
-          <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />}>Quantite</FieldLabel>
+          <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />} htmlFor={`${uid}-quantity`}>
+            Quantite
+          </FieldLabel>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <IconButton
               onClick={() => incrementQty(-1)}
@@ -291,18 +303,15 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
             >
               <Remove size={14} strokeWidth={1.75} />
             </IconButton>
-            <TextField
+            <Input
+              id={`${uid}-quantity`}
               type="number"
+              min={1}
+              className="w-14 text-center font-semibold tabular-nums"
               value={value.quantity}
               onChange={(e) =>
                 onChange({ ...value, quantity: Math.max(1, parseInt(e.target.value) || 1) })
               }
-              size="small"
-              inputProps={{
-                min: 1,
-                style: { textAlign: 'center', fontWeight: 600, padding: '4px 4px' },
-              }}
-              sx={{ width: 56 }}
             />
             <IconButton
               onClick={() => incrementQty(1)}
@@ -316,15 +325,14 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
 
         {/* Notes */}
         <div>
-          <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />}>
+          <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />} htmlFor={`${uid}-notes`}>
             Notes <span className="font-normal ms-[3px] normal-case tracking-0">(optionnel)</span>
           </FieldLabel>
-          <TextField
+          <Input
+            id={`${uid}-notes`}
+            placeholder="Marque, modele, emplacement..."
             value={value.notes}
             onChange={(e) => onChange({ ...value, notes: e.target.value })}
-            size="small"
-            fullWidth
-            placeholder="Marque, modele, emplacement..."
           />
         </div>
       </div>

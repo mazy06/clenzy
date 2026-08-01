@@ -1,8 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton } from '@mui/material';
-import { Button } from '../../components/ui';
+import { Accordion, AccordionSummary, AccordionDetails, Alert, Skeleton, Switch, FormControlLabel, IconButton } from '@mui/material';
+import {
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
@@ -116,9 +127,8 @@ const numOrUndef = (value: string): number | undefined => {
   return isNaN(n) ? undefined : n;
 };
 
-const NUM_FIELD_SX = {
-  '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
-} as const;
+/** Report en classes de l'ancien `NUM_FIELD_SX` (font-variant-numeric sur l'input). */
+const NUM_FIELD_CLASS = 'tabular-nums';
 
 interface TabMenageProps {
   config: PricingConfig;
@@ -242,7 +252,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     staleTime: 0,
   });
 
+  // `id` est explicite (et non derive du libelle traduit) : c'est lui qui relie
+  // le FieldLabel a son champ, il doit rester stable quelle que soit la langue.
   const numberField = (
+    id: string,
     label: string,
     value: number | undefined,
     placeholder: number,
@@ -250,20 +263,37 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     adornment?: string,
     step = 1,
   ) => (
-    <TextField
-      label={label}
-      type="number"
-      size="small"
-      fullWidth
-      value={value ?? ''}
-      placeholder={String(placeholder)}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={!canEdit}
-      inputProps={{ min: 0, step }}
-      InputProps={adornment ? { endAdornment: <InputAdornment position="end">{adornment}</InputAdornment> } : undefined}
-      InputLabelProps={{ shrink: true }}
-      sx={NUM_FIELD_SX}
-    />
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {adornment ? (
+        <InputGroup>
+          <InputGroupInput
+            id={id}
+            type="number"
+            min={0}
+            step={step}
+            className={NUM_FIELD_CLASS}
+            value={value ?? ''}
+            placeholder={String(placeholder)}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={!canEdit}
+          />
+          <InputGroupAddon align="inline-end">{adornment}</InputGroupAddon>
+        </InputGroup>
+      ) : (
+        <Input
+          id={id}
+          type="number"
+          min={0}
+          step={step}
+          className={`w-full ${NUM_FIELD_CLASS}`}
+          value={value ?? ''}
+          placeholder={String(placeholder)}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={!canEdit}
+        />
+      )}
+    </Field>
   );
 
   return (
@@ -288,6 +318,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             {BEDROOM_KEYS.map((key) => (
               <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={key}>
                 {numberField(
+                  `menage-base-bedrooms-${key}`,
                   key === '5plus' ? t('tarification.cleaning.bedrooms5plus') : t('tarification.cleaning.bedroomsN', { n: key }),
                   cm.baseByBedrooms?.[key],
                   ENGINE_DEFAULTS.baseByBedrooms[key],
@@ -299,28 +330,28 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           </div>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.perExtraBathroom'), cm.perExtraBathroom, ENGINE_DEFAULTS.perExtraBathroom, (v) => setComponent('perExtraBathroom', v), 'min')}
+              {numberField('menage-per-extra-bathroom', t('tarification.cleaning.perExtraBathroom'), cm.perExtraBathroom, ENGINE_DEFAULTS.perExtraBathroom, (v) => setComponent('perExtraBathroom', v), 'min')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.surfaceThreshold'), cm.surfaceThresholdSqm, ENGINE_DEFAULTS.surfaceThresholdSqm, (v) => setComponent('surfaceThresholdSqm', v), 'm²')}
+              {numberField('menage-surface-threshold', t('tarification.cleaning.surfaceThreshold'), cm.surfaceThresholdSqm, ENGINE_DEFAULTS.surfaceThresholdSqm, (v) => setComponent('surfaceThresholdSqm', v), 'm²')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.surfaceStep'), cm.perSurfaceStepSqm, ENGINE_DEFAULTS.perSurfaceStepSqm, (v) => setComponent('perSurfaceStepSqm', v), 'm²')}
+              {numberField('menage-surface-step', t('tarification.cleaning.surfaceStep'), cm.perSurfaceStepSqm, ENGINE_DEFAULTS.perSurfaceStepSqm, (v) => setComponent('perSurfaceStepSqm', v), 'm²')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.surfaceStepMinutes'), cm.surfaceStepMinutes, ENGINE_DEFAULTS.surfaceStepMinutes, (v) => setComponent('surfaceStepMinutes', v), 'min')}
+              {numberField('menage-surface-step-minutes', t('tarification.cleaning.surfaceStepMinutes'), cm.surfaceStepMinutes, ENGINE_DEFAULTS.surfaceStepMinutes, (v) => setComponent('surfaceStepMinutes', v), 'min')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.perExtraFloor'), cm.perExtraFloor, ENGINE_DEFAULTS.perExtraFloor, (v) => setComponent('perExtraFloor', v), 'min')}
+              {numberField('menage-per-extra-floor', t('tarification.cleaning.perExtraFloor'), cm.perExtraFloor, ENGINE_DEFAULTS.perExtraFloor, (v) => setComponent('perExtraFloor', v), 'min')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.exterior'), cm.exterior, ENGINE_DEFAULTS.exterior, (v) => setComponent('exterior', v), 'min')}
+              {numberField('menage-exterior', t('tarification.cleaning.exterior'), cm.exterior, ENGINE_DEFAULTS.exterior, (v) => setComponent('exterior', v), 'min')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.laundry'), cm.laundry, ENGINE_DEFAULTS.laundry, (v) => setComponent('laundry', v), 'min')}
+              {numberField('menage-laundry', t('tarification.cleaning.laundry'), cm.laundry, ENGINE_DEFAULTS.laundry, (v) => setComponent('laundry', v), 'min')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.perGuestAbove4'), cm.perGuestAbove4, ENGINE_DEFAULTS.perGuestAbove4, (v) => setComponent('perGuestAbove4', v), 'min')}
+              {numberField('menage-per-guest-above-4', t('tarification.cleaning.perGuestAbove4'), cm.perGuestAbove4, ENGINE_DEFAULTS.perGuestAbove4, (v) => setComponent('perGuestAbove4', v), 'min')}
             </div>
           </div>
         </AccordionDetails>
@@ -337,16 +368,16 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
         <AccordionDetails>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
+              {numberField('menage-hourly-rate', t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.rangePercent'), draft.rangePercent, ENGINE_DEFAULTS.rangePercent, (v) => setRoot('rangePercent', v), '%')}
+              {numberField('menage-range-percent', t('tarification.cleaning.rangePercent'), draft.rangePercent, ENGINE_DEFAULTS.rangePercent, (v) => setRoot('rangePercent', v), '%')}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), currencySymbol)}
+              {numberField('menage-round-to', t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), currencySymbol)}
             </div>
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
-              {numberField(t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
+              {numberField('menage-min-price', t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
             </div>
           </div>
         </AccordionDetails>
@@ -365,6 +396,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             {MULTIPLIER_KEYS.map((key) => (
               <div className="col-span-12 min-[600px]:col-span-4" key={key}>
                 {numberField(
+                  `menage-multiplier-${key}`,
                   t(`properties.priceEstimation.cleaningTypes.${key}`),
                   draft.cleaningTypeMultipliers?.[key],
                   ENGINE_DEFAULTS.multipliers[key],
@@ -396,54 +428,69 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             const percentInvalid = mod.percent != null && !isValidPercent(mod.percent);
             return (
               <div className="flex gap-2 items-start mb-2 flex-wrap" key={index}>
-                <TextField
-                  label={t('tarification.cleaning.seasonal.from')}
-                  size="small"
-                  value={mod.from ?? ''}
-                  placeholder="07-01"
-                  onChange={(e) => setSeasonalField(index, 'from', e.target.value)}
-                  disabled={!canEdit}
-                  error={fromInvalid}
-                  helperText={fromInvalid ? t('tarification.cleaning.seasonal.formatHint') : undefined}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ width: 110, ...NUM_FIELD_SX }}
-                />
-                <TextField
-                  label={t('tarification.cleaning.seasonal.to')}
-                  size="small"
-                  value={mod.to ?? ''}
-                  placeholder="08-31"
-                  onChange={(e) => setSeasonalField(index, 'to', e.target.value)}
-                  disabled={!canEdit}
-                  error={toInvalid}
-                  helperText={toInvalid ? t('tarification.cleaning.seasonal.formatHint') : undefined}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ width: 110, ...NUM_FIELD_SX }}
-                />
-                <TextField
-                  label={t('tarification.cleaning.seasonal.percent')}
-                  size="small"
-                  type="number"
-                  value={mod.percent ?? ''}
-                  placeholder="20"
-                  onChange={(e) => setSeasonalField(index, 'percent', e.target.value)}
-                  disabled={!canEdit}
-                  error={percentInvalid}
-                  helperText={percentInvalid ? t('tarification.cleaning.seasonal.percentHint') : undefined}
-                  inputProps={{ min: -50, max: 100, step: 1 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ width: 130, ...NUM_FIELD_SX }}
-                />
-                <TextField
-                  label={t('tarification.cleaning.seasonal.label')}
-                  size="small"
-                  value={mod.label ?? ''}
-                  onChange={(e) => setSeasonalField(index, 'label', e.target.value)}
-                  disabled={!canEdit}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ flex: 1, minWidth: 160 }}
-                />
+                <Field className="w-[110px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-from`}>
+                    {t('tarification.cleaning.seasonal.from')}
+                  </FieldLabel>
+                  <Input
+                    id={`menage-seasonal-${index}-from`}
+                    className={NUM_FIELD_CLASS}
+                    value={mod.from ?? ''}
+                    placeholder="07-01"
+                    onChange={(e) => setSeasonalField(index, 'from', e.target.value)}
+                    disabled={!canEdit}
+                    aria-invalid={fromInvalid}
+                  />
+                  {fromInvalid && <FieldError>{t('tarification.cleaning.seasonal.formatHint')}</FieldError>}
+                </Field>
+                <Field className="w-[110px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-to`}>
+                    {t('tarification.cleaning.seasonal.to')}
+                  </FieldLabel>
+                  <Input
+                    id={`menage-seasonal-${index}-to`}
+                    className={NUM_FIELD_CLASS}
+                    value={mod.to ?? ''}
+                    placeholder="08-31"
+                    onChange={(e) => setSeasonalField(index, 'to', e.target.value)}
+                    disabled={!canEdit}
+                    aria-invalid={toInvalid}
+                  />
+                  {toInvalid && <FieldError>{t('tarification.cleaning.seasonal.formatHint')}</FieldError>}
+                </Field>
+                <Field className="w-[130px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-percent`}>
+                    {t('tarification.cleaning.seasonal.percent')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id={`menage-seasonal-${index}-percent`}
+                      type="number"
+                      min={-50}
+                      max={100}
+                      step={1}
+                      className={NUM_FIELD_CLASS}
+                      value={mod.percent ?? ''}
+                      placeholder="20"
+                      onChange={(e) => setSeasonalField(index, 'percent', e.target.value)}
+                      disabled={!canEdit}
+                      aria-invalid={percentInvalid}
+                    />
+                    <InputGroupAddon align="inline-end">%</InputGroupAddon>
+                  </InputGroup>
+                  {percentInvalid && <FieldError>{t('tarification.cleaning.seasonal.percentHint')}</FieldError>}
+                </Field>
+                <Field className="flex-1 min-w-[160px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-label`}>
+                    {t('tarification.cleaning.seasonal.label')}
+                  </FieldLabel>
+                  <Input
+                    id={`menage-seasonal-${index}-label`}
+                    value={mod.label ?? ''}
+                    onChange={(e) => setSeasonalField(index, 'label', e.target.value)}
+                    disabled={!canEdit}
+                  />
+                </Field>
                 {canEdit && (
                   <IconButton
                     size="small"
@@ -518,30 +565,36 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           </Alert>
 
           <div className="flex gap-2 mb-3 flex-wrap">
-            <TextField
-              select
-              size="small"
-              label={t('tarification.cleaning.simulatorProperty')}
-              value={simPropertyId === '' ? '' : simPropertyId}
-              onChange={(e) => setSimPropertyId(Number(e.target.value))}
-              sx={{ minWidth: 280 }}
-              InputLabelProps={{ shrink: true }}
-              SelectProps={{ displayEmpty: true }}
-            >
-              <MenuItem value="" disabled>{t('tarification.cleaning.simulatorSelectProperty')}</MenuItem>
-              {(propertiesQuery.data ?? []).map((p) => (
-                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              type="date"
-              size="small"
-              label={t('tarification.cleaning.simulatorDate')}
-              value={simServiceDate}
-              onChange={(e) => setSimServiceDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ width: 180, ...NUM_FIELD_SX }}
-            />
+            <Field className="w-auto min-w-[280px]">
+              <FieldLabel htmlFor="menage-sim-property">
+                {t('tarification.cleaning.simulatorProperty')}
+              </FieldLabel>
+              <NativeSelect
+                id="menage-sim-property"
+                className="w-full"
+                value={simPropertyId === '' ? '' : simPropertyId}
+                onChange={(e) => setSimPropertyId(Number(e.target.value))}
+              >
+                <NativeSelectOption value="" disabled>
+                  {t('tarification.cleaning.simulatorSelectProperty')}
+                </NativeSelectOption>
+                {(propertiesQuery.data ?? []).map((p) => (
+                  <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field className="w-[180px]">
+              <FieldLabel htmlFor="menage-sim-date">
+                {t('tarification.cleaning.simulatorDate')}
+              </FieldLabel>
+              <Input
+                id="menage-sim-date"
+                type="date"
+                className={NUM_FIELD_CLASS}
+                value={simServiceDate}
+                onChange={(e) => setSimServiceDate(e.target.value)}
+              />
+            </Field>
           </div>
 
           {typeof simPropertyId === 'number' && (estimateQuery.isPending || previewQuery.isPending) && (

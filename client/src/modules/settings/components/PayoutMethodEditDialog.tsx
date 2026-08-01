@@ -3,7 +3,16 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, MenuItem } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 import { Close as CloseIcon, Save } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { accountingApi } from '../../../services/api/accountingApi';
@@ -443,54 +452,56 @@ export default function PayoutMethodEditDialog({
                 ? 'Wise utilisera ces coordonnées pour créer le recipient. Le virement sera converti automatiquement dans la devise du compte destinataire.'
                 : 'Coordonnées du compte destinataire utilisées pour le fichier SEPA pain.001 et le virement bancaire.'}</AlertDescription>
             </Alert>
-            <TextField
-              label="IBAN"
-              value={iban}
-              onChange={(e) => {
-                setIban(e.target.value);
-                setIbanError('');
-              }}
-              onFocus={(e) => {
-                // Si le champ contient encore le mask (****0189), on selectionne
-                // tout le contenu pour qu'un nouveau collage/saisie le remplace
-                // d'un seul coup. UX standard pour les champs pre-remplis.
-                if (ibanUnchanged) {
-                  e.target.select();
-                }
-              }}
-              error={!!ibanError}
-              helperText={
-                ibanError ||
-                (hasExistingIban
-                  ? ibanUnchanged
-                    ? 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.'
-                    : 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'
-                  : 'Format : FR76 1234 5678 9012 3456 7890 123')
-              }
-              size="small"
-              fullWidth
-              InputProps={{
-                sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' },
-              }}
-            />
-            <Stack direction="row" spacing={1.5}>
-              <TextField
-                label="BIC / SWIFT"
-                value={bic}
-                onChange={(e) => setBic(e.target.value)}
-                size="small"
-                sx={{ flex: 1 }}
-                InputProps={{
-                  sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' },
+            <Field>
+              <FieldLabel htmlFor="payout-iban">IBAN</FieldLabel>
+              <Input
+                id="payout-iban"
+                className="font-mono text-[0.875rem] tabular-nums"
+                value={iban}
+                onChange={(e) => {
+                  setIban(e.target.value);
+                  setIbanError('');
                 }}
+                onFocus={(e) => {
+                  // Si le champ contient encore le mask (****0189), on selectionne
+                  // tout le contenu pour qu'un nouveau collage/saisie le remplace
+                  // d'un seul coup. UX standard pour les champs pre-remplis.
+                  if (ibanUnchanged) {
+                    e.target.select();
+                  }
+                }}
+                aria-invalid={!!ibanError}
               />
-              <TextField
-                label="Titulaire du compte"
-                value={holder}
-                onChange={(e) => setHolder(e.target.value)}
-                size="small"
-                sx={{ flex: 2 }}
-              />
+              {ibanError ? (
+                <FieldError>{ibanError}</FieldError>
+              ) : (
+                <FieldDescription>
+                  {hasExistingIban
+                    ? ibanUnchanged
+                      ? 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.'
+                      : 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'
+                    : 'Format : FR76 1234 5678 9012 3456 7890 123'}
+                </FieldDescription>
+              )}
+            </Field>
+            <Stack direction="row" spacing={1.5}>
+              <Field className="flex-1">
+                <FieldLabel htmlFor="payout-bic">BIC / SWIFT</FieldLabel>
+                <Input
+                  id="payout-bic"
+                  className="tabular-nums uppercase tracking-[0.04em]"
+                  value={bic}
+                  onChange={(e) => setBic(e.target.value)}
+                />
+              </Field>
+              <Field className="flex-[2]">
+                <FieldLabel htmlFor="payout-holder">Titulaire du compte</FieldLabel>
+                <Input
+                  id="payout-holder"
+                  value={holder}
+                  onChange={(e) => setHolder(e.target.value)}
+                />
+              </Field>
             </Stack>
           </Stack>
         )}
@@ -504,45 +515,46 @@ export default function PayoutMethodEditDialog({
               de votre banque pour signer le SCA bancaire. Le consent est valable 90 jours et permet à Baitly
               d'initier des virements SEPA depuis votre compte sans repasser par 2FA.</AlertDescription>
             </Alert>
-            <TextField
-              label="Banque"
-              value={institutionId}
-              onChange={(e) => setInstitutionId(e.target.value)}
-              size="small"
-              fullWidth
-              select
-              disabled={institutionsLoading}
-              helperText={
-                institutionsLoading
+            <Field>
+              <FieldLabel htmlFor="payout-institution">Banque</FieldLabel>
+              <NativeSelect
+                id="payout-institution"
+                className="w-full"
+                value={institutionId}
+                onChange={(e) => setInstitutionId(e.target.value)}
+                disabled={institutionsLoading}
+              >
+                {institutions && institutions.length > 0 ? (
+                  // Liste dynamique GoCardless
+                  institutions.map((inst) => (
+                    <NativeSelectOption key={inst.id} value={inst.id}>
+                      {inst.name}
+                    </NativeSelectOption>
+                  ))
+                ) : (
+                  // Fallback : liste codée en dur si l'API GoCardless n'est pas joignable
+                  <>
+                    <NativeSelectOption value="SANDBOXFINANCE_SFIN0000">
+                      Sandbox Finance (test uniquement)
+                    </NativeSelectOption>
+                    <NativeSelectOption value="BNP_PARIBAS_BNPAFRPP">BNP Paribas</NativeSelectOption>
+                    <NativeSelectOption value="SOCIETE_GENERALE_SOGEFRPP">Société Générale</NativeSelectOption>
+                    <NativeSelectOption value="LCL_CRLYFRPP">LCL</NativeSelectOption>
+                    <NativeSelectOption value="CREDIT_AGRICOLE_AGRIFRPP">Crédit Agricole</NativeSelectOption>
+                    <NativeSelectOption value="CIC_CMCIFRPP">CIC</NativeSelectOption>
+                    <NativeSelectOption value="BANQUE_POSTALE_PSSTFRPP">La Banque Postale</NativeSelectOption>
+                    <NativeSelectOption value="HSBC_FR_CCFRFRPP">HSBC</NativeSelectOption>
+                  </>
+                )}
+              </NativeSelect>
+              <FieldDescription>
+                {institutionsLoading
                   ? 'Chargement de la liste des banques…'
                   : institutions && institutions.length > 0
                     ? `${institutions.length} banques disponibles via GoCardless.`
-                    : 'Liste GoCardless indisponible — utilisez la liste de secours ci-dessous ou Sandbox pour les tests.'
-              }
-            >
-              {institutions && institutions.length > 0 ? (
-                // Liste dynamique GoCardless
-                institutions.map((inst) => (
-                  <MenuItem key={inst.id} value={inst.id} sx={{ fontSize: '0.82rem' }}>
-                    {inst.name}
-                  </MenuItem>
-                ))
-              ) : (
-                // Fallback : liste codée en dur si l'API GoCardless n'est pas joignable
-                <>
-                  <MenuItem value="SANDBOXFINANCE_SFIN0000" sx={{ fontSize: '0.82rem' }}>
-                    Sandbox Finance (test uniquement)
-                  </MenuItem>
-                  <MenuItem value="BNP_PARIBAS_BNPAFRPP" sx={{ fontSize: '0.82rem' }}>BNP Paribas</MenuItem>
-                  <MenuItem value="SOCIETE_GENERALE_SOGEFRPP" sx={{ fontSize: '0.82rem' }}>Société Générale</MenuItem>
-                  <MenuItem value="LCL_CRLYFRPP" sx={{ fontSize: '0.82rem' }}>LCL</MenuItem>
-                  <MenuItem value="CREDIT_AGRICOLE_AGRIFRPP" sx={{ fontSize: '0.82rem' }}>Crédit Agricole</MenuItem>
-                  <MenuItem value="CIC_CMCIFRPP" sx={{ fontSize: '0.82rem' }}>CIC</MenuItem>
-                  <MenuItem value="BANQUE_POSTALE_PSSTFRPP" sx={{ fontSize: '0.82rem' }}>La Banque Postale</MenuItem>
-                  <MenuItem value="HSBC_FR_CCFRFRPP" sx={{ fontSize: '0.82rem' }}>HSBC</MenuItem>
-                </>
-              )}
-            </TextField>
+                    : 'Liste GoCardless indisponible — utilisez la liste de secours ci-dessous ou Sandbox pour les tests.'}
+              </FieldDescription>
+            </Field>
             {currentConfig?.openBankingConsentActive && (
               <Alert variant="success" className="text-[0.8rem]">
                 <CircleCheck />

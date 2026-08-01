@@ -5,7 +5,8 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
+import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -262,26 +263,34 @@ const YieldRulesPanel: React.FC = () => {
           />
           {config?.orphanGapEnabled && (
             <>
-              <TextField
-                label={t('yieldRules.automations.orphanGap.maxNights', 'Trou max (nuits)')}
-                type="number"
-                size="small"
-                value={config.orphanGapMaxNights}
-                onChange={(e) =>
-                  void updateConfig({ ...config, orphanGapMaxNights: Number(e.target.value) })}
-                inputProps={{ min: 1, max: 7 }}
-                sx={{ width: 130 }}
-              />
-              <TextField
-                label={t('yieldRules.automations.orphanGap.discountPct', 'Remise (%)')}
-                type="number"
-                size="small"
-                value={config.orphanGapDiscountPct}
-                onChange={(e) =>
-                  void updateConfig({ ...config, orphanGapDiscountPct: Number(e.target.value) })}
-                inputProps={{ min: 0, max: 50 }}
-                sx={{ width: 110 }}
-              />
+              <Field className="w-[130px]">
+                <FieldLabel htmlFor="yield-orphan-max-nights">
+                  {t('yieldRules.automations.orphanGap.maxNights', 'Trou max (nuits)')}
+                </FieldLabel>
+                <Input
+                  id="yield-orphan-max-nights"
+                  type="number"
+                  min={1}
+                  max={7}
+                  value={config.orphanGapMaxNights}
+                  onChange={(e) =>
+                    void updateConfig({ ...config, orphanGapMaxNights: Number(e.target.value) })}
+                />
+              </Field>
+              <Field className="w-[110px]">
+                <FieldLabel htmlFor="yield-orphan-discount-pct">
+                  {t('yieldRules.automations.orphanGap.discountPct', 'Remise (%)')}
+                </FieldLabel>
+                <Input
+                  id="yield-orphan-discount-pct"
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={config.orphanGapDiscountPct}
+                  onChange={(e) =>
+                    void updateConfig({ ...config, orphanGapDiscountPct: Number(e.target.value) })}
+                />
+              </Field>
             </>
           )}
         </div>
@@ -304,26 +313,34 @@ const YieldRulesPanel: React.FC = () => {
           />
           {config?.minStayAutoEnabled && (
             <>
-              <TextField
-                label={t('yieldRules.automations.minStay.reduceWithinDays', 'Fenêtre (jours)')}
-                type="number"
-                size="small"
-                value={config.minStayReduceWithinDays}
-                onChange={(e) =>
-                  void updateConfig({ ...config, minStayReduceWithinDays: Number(e.target.value) })}
-                inputProps={{ min: 1, max: 60 }}
-                sx={{ width: 130 }}
-              />
-              <TextField
-                label={t('yieldRules.automations.minStay.reducedValue', 'Séjour min réduit')}
-                type="number"
-                size="small"
-                value={config.minStayReducedValue}
-                onChange={(e) =>
-                  void updateConfig({ ...config, minStayReducedValue: Number(e.target.value) })}
-                inputProps={{ min: 1, max: 30 }}
-                sx={{ width: 140 }}
-              />
+              <Field className="w-[130px]">
+                <FieldLabel htmlFor="yield-minstay-window">
+                  {t('yieldRules.automations.minStay.reduceWithinDays', 'Fenêtre (jours)')}
+                </FieldLabel>
+                <Input
+                  id="yield-minstay-window"
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={config.minStayReduceWithinDays}
+                  onChange={(e) =>
+                    void updateConfig({ ...config, minStayReduceWithinDays: Number(e.target.value) })}
+                />
+              </Field>
+              <Field className="w-[140px]">
+                <FieldLabel htmlFor="yield-minstay-reduced">
+                  {t('yieldRules.automations.minStay.reducedValue', 'Séjour min réduit')}
+                </FieldLabel>
+                <Input
+                  id="yield-minstay-reduced"
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={config.minStayReducedValue}
+                  onChange={(e) =>
+                    void updateConfig({ ...config, minStayReducedValue: Number(e.target.value) })}
+                />
+              </Field>
             </>
           )}
         </div>
@@ -444,32 +461,40 @@ const YieldRulesPanel: React.FC = () => {
                 <TableRow key={b.propertyId}>
                   <TableCell>{b.propertyName}</TableCell>
                   <TableCell className="text-end">
-                    <TextField
-                      size="small"
-                      value={value.floor}
-                      onChange={(e) =>
-                        setBoundsDraft((prev) => ({
-                          ...prev,
-                          [b.propertyId]: { ...value, floor: e.target.value },
-                        }))
-                      }
-                      inputProps={{ inputMode: 'decimal', style: { textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }}
-                      sx={{ width: 110 }}
-                    />
+                    {/* Pas de libellé visible : l'en-tête de colonne le porte. On garde
+                        donc un aria-label nommant le bien pour le lecteur d'écran. */}
+                    <div className="flex justify-end">
+                      <Input
+                        id={`yield-bounds-floor-${b.propertyId}`}
+                        aria-label={`${t('yieldRules.col.floor', 'Plancher (€)')} — ${b.propertyName}`}
+                        inputMode="decimal"
+                        className="w-[110px] text-end tabular-nums"
+                        value={value.floor}
+                        onChange={(e) =>
+                          setBoundsDraft((prev) => ({
+                            ...prev,
+                            [b.propertyId]: { ...value, floor: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
                   </TableCell>
                   <TableCell className="text-end">
-                    <TextField
-                      size="small"
-                      value={value.ceiling}
-                      onChange={(e) =>
-                        setBoundsDraft((prev) => ({
-                          ...prev,
-                          [b.propertyId]: { ...value, ceiling: e.target.value },
-                        }))
-                      }
-                      inputProps={{ inputMode: 'decimal', style: { textAlign: 'right', fontVariantNumeric: 'tabular-nums' } }}
-                      sx={{ width: 110 }}
-                    />
+                    <div className="flex justify-end">
+                      <Input
+                        id={`yield-bounds-ceiling-${b.propertyId}`}
+                        aria-label={`${t('yieldRules.col.ceiling', 'Plafond (€)')} — ${b.propertyName}`}
+                        inputMode="decimal"
+                        className="w-[110px] text-end tabular-nums"
+                        value={value.ceiling}
+                        onChange={(e) =>
+                          setBoundsDraft((prev) => ({
+                            ...prev,
+                            [b.propertyId]: { ...value, ceiling: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
                   </TableCell>
                   <TableCell className="text-end">
                     <Tooltip title={t('yieldRules.saveBounds', 'Enregistrer les bornes')}>
@@ -569,13 +594,15 @@ const YieldRulesPanel: React.FC = () => {
             : t('yieldRules.newRule', 'Nouvelle règle de yield')}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
-          <TextField
-            label={t('yieldRules.field.name', 'Nom')}
-            value={draft.name}
-            onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-            size="small"
-            fullWidth
-          />
+          <Field>
+            <FieldLabel htmlFor="yield-rule-name">{t('yieldRules.field.name', 'Nom')}</FieldLabel>
+            <Input
+              id="yield-rule-name"
+              className="w-full"
+              value={draft.name}
+              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+            />
+          </Field>
           <FormControl size="small" fullWidth>
             <InputLabel>{t('yieldRules.field.scope', 'Périmètre')}</InputLabel>
             <Select
@@ -610,49 +637,67 @@ const YieldRulesPanel: React.FC = () => {
                 <MenuItem value="ABOVE">{t('yieldRules.above', 'Supérieure à (→ hausse)')}</MenuItem>
               </Select>
             </FormControl>
-            <TextField
-              label={t('yieldRules.field.threshold', 'Seuil (%)')}
-              type="number"
-              size="small"
-              value={draft.occupancyThresholdPct}
-              onChange={(e) => setDraft((d) => ({ ...d, occupancyThresholdPct: Number(e.target.value) }))}
-              inputProps={{ min: 0, max: 100 }}
-              sx={{ width: 120 }}
-            />
-            <TextField
-              label={t('yieldRules.field.window', 'Fenêtre (j)')}
-              type="number"
-              size="small"
-              value={draft.windowDaysAhead}
-              onChange={(e) => setDraft((d) => ({ ...d, windowDaysAhead: Number(e.target.value) }))}
-              inputProps={{ min: 1, max: 365 }}
-              sx={{ width: 120 }}
-            />
+            <Field className="w-[120px]">
+              <FieldLabel htmlFor="yield-rule-threshold">
+                {t('yieldRules.field.threshold', 'Seuil (%)')}
+              </FieldLabel>
+              <Input
+                id="yield-rule-threshold"
+                type="number"
+                min={0}
+                max={100}
+                value={draft.occupancyThresholdPct}
+                onChange={(e) => setDraft((d) => ({ ...d, occupancyThresholdPct: Number(e.target.value) }))}
+              />
+            </Field>
+            <Field className="w-[120px]">
+              <FieldLabel htmlFor="yield-rule-window">
+                {t('yieldRules.field.window', 'Fenêtre (j)')}
+              </FieldLabel>
+              <Input
+                id="yield-rule-window"
+                type="number"
+                min={1}
+                max={365}
+                value={draft.windowDaysAhead}
+                onChange={(e) => setDraft((d) => ({ ...d, windowDaysAhead: Number(e.target.value) }))}
+              />
+            </Field>
           </div>
           <div className="flex gap-3 items-center">
-            <TextField
-              label={t('yieldRules.field.adjustment', 'Ajustement (%)')}
-              type="number"
-              size="small"
-              value={draft.adjustmentPct}
-              onChange={(e) => setDraft((d) => ({ ...d, adjustmentPct: Number(e.target.value) }))}
-              inputProps={{ min: 0.5, max: 50, step: 0.5 }}
-              helperText={
-                draft.comparison === 'BELOW'
+            <Field className="w-[160px]">
+              <FieldLabel htmlFor="yield-rule-adjustment">
+                {t('yieldRules.field.adjustment', 'Ajustement (%)')}
+              </FieldLabel>
+              <Input
+                id="yield-rule-adjustment"
+                type="number"
+                min={0.5}
+                max={50}
+                step={0.5}
+                value={draft.adjustmentPct}
+                onChange={(e) => setDraft((d) => ({ ...d, adjustmentPct: Number(e.target.value) }))}
+              />
+              <FieldDescription>
+                {draft.comparison === 'BELOW'
                   ? t('yieldRules.adjustmentHelpDown', 'Appliqué en baisse')
-                  : t('yieldRules.adjustmentHelpUp', 'Appliqué en hausse')
-              }
-              sx={{ width: 160 }}
-            />
-            <TextField
-              label={t('yieldRules.field.dailyCap', 'Cap / jour (%)')}
-              type="number"
-              size="small"
-              value={draft.maxDailyChangePct}
-              onChange={(e) => setDraft((d) => ({ ...d, maxDailyChangePct: Number(e.target.value) }))}
-              inputProps={{ min: 1, max: 50, step: 0.5 }}
-              sx={{ width: 160 }}
-            />
+                  : t('yieldRules.adjustmentHelpUp', 'Appliqué en hausse')}
+              </FieldDescription>
+            </Field>
+            <Field className="w-[160px]">
+              <FieldLabel htmlFor="yield-rule-daily-cap">
+                {t('yieldRules.field.dailyCap', 'Cap / jour (%)')}
+              </FieldLabel>
+              <Input
+                id="yield-rule-daily-cap"
+                type="number"
+                min={1}
+                max={50}
+                step={0.5}
+                value={draft.maxDailyChangePct}
+                onChange={(e) => setDraft((d) => ({ ...d, maxDailyChangePct: Number(e.target.value) }))}
+              />
+            </Field>
             <FormControlLabel
               control={
                 <Switch

@@ -3,7 +3,8 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../../components/ui';
+import { Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Payment,
@@ -238,15 +239,18 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           <p className="cn-text-body1 text-[0.75rem] mb-3">
             Intervention : <strong>{intervention.title}</strong>
           </p>
-          <TextField
-            fullWidth
-            size="small"
-            label="Coût final estimé (EUR)"
-            type="number"
-            value={validateCost}
-            onChange={(e) => setValidateCost(e.target.value)}
-            inputProps={{ min: 0, step: 0.01 }}
-          />
+          <Field>
+            <FieldLabel htmlFor="validate-final-cost">Coût final estimé (EUR)</FieldLabel>
+            <Input
+              id="validate-final-cost"
+              className="w-full tabular-nums"
+              type="number"
+              value={validateCost}
+              onChange={(e) => setValidateCost(e.target.value)}
+              min={0}
+              step={0.01}
+            />
+          </Field>
           {validateError && <Alert variant="destructive" className="text-[0.6875rem] mt-1.5">
             <TriangleAlert />
             <AlertDescription>{validateError}</AlertDescription>

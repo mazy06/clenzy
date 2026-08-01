@@ -1,6 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { TextField, InputAdornment, Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -101,19 +109,27 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                   />
                 </TableCell>
                 <TableCell className="text-end w-[140px]">
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={item.price}
-                    onChange={(e) => {
-                      const num = parseFloat(e.target.value);
-                      if (!isNaN(num)) updateItem(index, { price: num });
-                    }}
-                    disabled={!canEdit || !item.enabled}
-                    inputProps={{ step: 0.5, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                    sx={{ width: 120 }}
-                  />
+                  {/* Pas de libelle visible : l'en-tete de colonne porte le sens,
+                      l'aria-label nomme la ligne concernee pour le lecteur d'ecran. */}
+                  <InputGroup className="w-[120px]">
+                    <InputGroupInput
+                      id={`laundry-price-${item.key}`}
+                      aria-label={t(`tarification.blanchisserie.items.${item.key}`, item.label)}
+                      type="number"
+                      className="text-end"
+                      value={item.price}
+                      onChange={(e) => {
+                        const num = parseFloat(e.target.value);
+                        if (!isNaN(num)) updateItem(index, { price: num });
+                      }}
+                      disabled={!canEdit || !item.enabled}
+                      step={0.5}
+                      min={0}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <CurrencySymbol code={currency} />
+                    </InputGroupAddon>
+                  </InputGroup>
                 </TableCell>
                 {canEdit && (
                   <TableCell className="text-center">
@@ -142,23 +158,29 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{t('tarification.addArticle')}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label={t('tarification.newItem.label')}
-            value={newItemLabel}
-            onChange={(e) => setNewItemLabel(e.target.value)}
-            size="small"
-            fullWidth
-            autoFocus
-          />
-          <TextField
-            label={t('tarification.newItem.price')}
-            type="number"
-            value={newItemPrice}
-            onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
-            size="small"
-            fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-          />
+          <Field>
+            <FieldLabel htmlFor="laundry-new-label">{t('tarification.newItem.label')}</FieldLabel>
+            <Input
+              id="laundry-new-label"
+              value={newItemLabel}
+              onChange={(e) => setNewItemLabel(e.target.value)}
+              autoFocus
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="laundry-new-price">{t('tarification.newItem.price')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="laundry-new-price"
+                type="number"
+                value={newItemPrice}
+                onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+              />
+              <InputGroupAddon align="inline-end">
+                <CurrencySymbol code={currency} />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </DialogContent>
         <DialogActions>
           <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>

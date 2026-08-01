@@ -4,7 +4,8 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Divider, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
   ArrowBack,
@@ -362,11 +363,23 @@ const TemplateDetails: React.FC = () => {
 
               {editing ? (
                 <div className="flex flex-col gap-3">
-                  <TextField label="Nom" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} fullWidth size="small" />
-                  <TextField label="Description" value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} fullWidth size="small" multiline rows={2} />
+                  <Field>
+                    <FieldLabel htmlFor="template-name">Nom</FieldLabel>
+                    <Input id="template-name" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-description">Description</FieldLabel>
+                    <Textarea id="template-description" rows={2} value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} />
+                  </Field>
                   <Divider />
-                  <TextField label="Objet email" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} fullWidth size="small" />
-                  <TextField label="Corps email" value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} fullWidth size="small" multiline rows={3} />
+                  <Field>
+                    <FieldLabel htmlFor="template-email-subject">Objet email</FieldLabel>
+                    <Input id="template-email-subject" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-email-body">Corps email</FieldLabel>
+                    <Textarea id="template-email-body" rows={3} value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} />
+                  </Field>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">

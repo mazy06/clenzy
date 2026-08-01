@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Divider, InputAdornment, Stack, TextField, Tooltip } from '@mui/material';
+import { Divider, Stack, Tooltip } from '@mui/material';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { Search } from '../../../icons';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
@@ -118,25 +119,23 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
     <Stack spacing={2}>
       {/* Search bar discrete */}
       {variables.length > 10 && (
-        <TextField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filtrer les variables…"
-          size="small"
-          fullWidth
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <span className="inline-flex text-muted-foreground opacity-60">
-                  <Search size={14} strokeWidth={1.75} />
-                </span>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--field)' },
-          }}
-        />
+        <InputGroup className="bg-[var(--field)]">
+          <InputGroupAddon align="inline-start">
+            <span className="inline-flex text-muted-foreground opacity-60">
+              <Search size={14} strokeWidth={1.75} />
+            </span>
+          </InputGroupAddon>
+          {/* Champ de recherche sans libelle visible : le placeholder ne suffit
+              pas a un lecteur d'ecran, d'ou l'aria-label. */}
+          <InputGroupInput
+            id="variable-picker-search"
+            aria-label="Filtrer les variables"
+            placeholder="Filtrer les variables…"
+            className="text-[0.8125rem]"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </InputGroup>
       )}
 
       {/* Variables systeme (HTML-safe, non insertables) */}

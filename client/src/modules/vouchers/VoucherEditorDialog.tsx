@@ -2,8 +2,18 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import TagChip from '../../components/TagChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Button } from '../../components/ui';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Textarea,
+} from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, FormHelperText } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, FormHelperText } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -189,14 +199,17 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
         <div className="grid grid-cols-12 gap-3">
           {/* Identite */}
           <div className="col-span-12 min-[900px]:col-span-8">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.name')}
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              required
-              helperText={t('vouchers.editor.nameHelper')}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-name">{t('vouchers.editor.name')}</FieldLabel>
+              <Input
+                id="voucher-name"
+                className="w-full"
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                required
+              />
+              <FieldDescription>{t('vouchers.editor.nameHelper')}</FieldDescription>
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
             <FormControl fullWidth>
@@ -214,14 +227,16 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
           </div>
 
           <div className="col-span-12">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.description')}
-              value={form.description}
-              onChange={(e) => update('description', e.target.value)}
-              multiline
-              rows={2}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-description">{t('vouchers.editor.description')}</FieldLabel>
+              <Textarea
+                id="voucher-description"
+                className="w-full"
+                rows={2}
+                value={form.description}
+                onChange={(e) => update('description', e.target.value)}
+              />
+            </Field>
           </div>
 
           {/* Type + Code */}
@@ -244,16 +259,18 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
           </div>
           <div className="col-span-12 min-[900px]:col-span-6">
             {!isAuto && (
-              <TextField
-                fullWidth
-                label={t('vouchers.editor.code')}
-                value={form.code}
-                onChange={(e) => update('code', e.target.value.toUpperCase())}
-                required
-                placeholder="WELCOME20"
-                inputProps={{ style: { fontFamily: 'monospace', letterSpacing: 1 } }}
-                helperText={t('vouchers.editor.codeHelper')}
-              />
+              <Field>
+                <FieldLabel htmlFor="voucher-code">{t('vouchers.editor.code')}</FieldLabel>
+                <Input
+                  id="voucher-code"
+                  className="w-full font-mono tracking-[1px]"
+                  value={form.code}
+                  onChange={(e) => update('code', e.target.value.toUpperCase())}
+                  required
+                  placeholder="WELCOME20"
+                />
+                <FieldDescription>{t('vouchers.editor.codeHelper')}</FieldDescription>
+              </Field>
             )}
           </div>
 
@@ -275,17 +292,19 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
             </FormControl>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.discountValue')}
-              type="number"
-              value={form.discountValue}
-              onChange={(e) => update('discountValue', e.target.value)}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">{discountUnit}</InputAdornment>,
-              }}
-              required
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-discount-value">{t('vouchers.editor.discountValue')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="voucher-discount-value"
+                  type="number"
+                  value={form.discountValue}
+                  onChange={(e) => update('discountValue', e.target.value)}
+                  required
+                />
+                <InputGroupAddon align="inline-end">{discountUnit}</InputGroupAddon>
+              </InputGroup>
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
             <FormControl fullWidth>
@@ -306,78 +325,98 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
 
           {/* Validite */}
           <div className="col-span-12 min-[900px]:col-span-6">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.validFrom')}
-              type="datetime-local"
-              value={form.validFrom}
-              onChange={(e) => update('validFrom', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              helperText={t('vouchers.editor.validFromHelper')}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-valid-from">{t('vouchers.editor.validFrom')}</FieldLabel>
+              <Input
+                id="voucher-valid-from"
+                className="w-full"
+                type="datetime-local"
+                value={form.validFrom}
+                onChange={(e) => update('validFrom', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.validFromHelper')}</FieldDescription>
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-6">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.validUntil')}
-              type="datetime-local"
-              value={form.validUntil}
-              onChange={(e) => update('validUntil', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              helperText={t('vouchers.editor.validUntilHelper')}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-valid-until">{t('vouchers.editor.validUntil')}</FieldLabel>
+              <Input
+                id="voucher-valid-until"
+                className="w-full"
+                type="datetime-local"
+                value={form.validUntil}
+                onChange={(e) => update('validUntil', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.validUntilHelper')}</FieldDescription>
+            </Field>
           </div>
 
           {/* Limites usage */}
           <div className="col-span-12 min-[900px]:col-span-6">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.maxUsesTotal')}
-              type="number"
-              value={form.maxUsesTotal}
-              onChange={(e) => update('maxUsesTotal', e.target.value)}
-              helperText={t('vouchers.editor.maxUsesTotalHelper')}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-max-uses-total">{t('vouchers.editor.maxUsesTotal')}</FieldLabel>
+              <Input
+                id="voucher-max-uses-total"
+                className="w-full"
+                type="number"
+                value={form.maxUsesTotal}
+                onChange={(e) => update('maxUsesTotal', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.maxUsesTotalHelper')}</FieldDescription>
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-6">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.maxUsesPerGuest')}
-              type="number"
-              value={form.maxUsesPerGuest}
-              onChange={(e) => update('maxUsesPerGuest', e.target.value)}
-              helperText={t('vouchers.editor.maxUsesPerGuestHelper')}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-max-uses-per-guest">{t('vouchers.editor.maxUsesPerGuest')}</FieldLabel>
+              <Input
+                id="voucher-max-uses-per-guest"
+                className="w-full"
+                type="number"
+                value={form.maxUsesPerGuest}
+                onChange={(e) => update('maxUsesPerGuest', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.maxUsesPerGuestHelper')}</FieldDescription>
+            </Field>
           </div>
 
           {/* Contraintes sejour */}
           <div className="col-span-12 min-[900px]:col-span-4">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.minStayNights')}
-              type="number"
-              value={form.minStayNights}
-              onChange={(e) => update('minStayNights', e.target.value)}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-min-stay-nights">{t('vouchers.editor.minStayNights')}</FieldLabel>
+              <Input
+                id="voucher-min-stay-nights"
+                className="w-full"
+                type="number"
+                value={form.minStayNights}
+                onChange={(e) => update('minStayNights', e.target.value)}
+              />
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.maxStayNights')}
-              type="number"
-              value={form.maxStayNights}
-              onChange={(e) => update('maxStayNights', e.target.value)}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-max-stay-nights">{t('vouchers.editor.maxStayNights')}</FieldLabel>
+              <Input
+                id="voucher-max-stay-nights"
+                className="w-full"
+                type="number"
+                value={form.maxStayNights}
+                onChange={(e) => update('maxStayNights', e.target.value)}
+              />
+            </Field>
           </div>
           <div className="col-span-12 min-[900px]:col-span-4">
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.minTotalAmount')}
-              type="number"
-              value={form.minTotalAmount}
-              onChange={(e) => update('minTotalAmount', e.target.value)}
-              InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-            />
+            <Field>
+              <FieldLabel htmlFor="voucher-min-total-amount">{t('vouchers.editor.minTotalAmount')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="voucher-min-total-amount"
+                  type="number"
+                  value={form.minTotalAmount}
+                  onChange={(e) => update('minTotalAmount', e.target.value)}
+                />
+                <InputGroupAddon align="inline-end">€</InputGroupAddon>
+              </InputGroup>
+            </Field>
           </div>
 
           {/* Scope properties */}

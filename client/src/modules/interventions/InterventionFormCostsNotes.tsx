@@ -1,5 +1,6 @@
 import React from 'react';
-import { TextField, Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
+import { Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,17 +30,24 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
                 name="estimatedCost"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <TextField
-                    fullWidth
-                    label={t('interventions.fields.estimatedCost')}
-                    type="number"
-                    value={field.value ?? ''}
-                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    inputProps={{ min: 0, step: 0.01 }}
-                    size="small"
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="intervention-estimated-cost">
+                      {t('interventions.fields.estimatedCost')}
+                    </FieldLabel>
+                    <Input
+                      id="intervention-estimated-cost"
+                      className="w-full"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onBlur={field.onBlur}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                      aria-invalid={!!fieldState.error}
+                    />
+                    {fieldState.error?.message && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
             </CardContent>
@@ -57,17 +65,22 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
               name="notes"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t('interventions.fields.notes')}
-                  multiline
-                  rows={3}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  sx={{ mb: 1.5 }}
-                  size="small"
-                />
+                // `field` n'est pas etale : sa prop `ref` irait sur un composant
+                // fonction du kit, que React 18 ne sait pas referencer.
+                <Field className="mb-[9px]">
+                  <FieldLabel htmlFor="intervention-notes">{t('interventions.fields.notes')}</FieldLabel>
+                  <Textarea
+                    id="intervention-notes"
+                    className="w-full"
+                    rows={3}
+                    name={field.name}
+                    value={field.value ?? ''}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    aria-invalid={!!fieldState.error}
+                  />
+                  {fieldState.error?.message && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
 
@@ -75,15 +88,20 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
               name="photos"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t('interventions.fields.photosUrl')}
-                  placeholder={t('interventions.fields.photosUrlPlaceholder')}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  size="small"
-                />
+                <Field>
+                  <FieldLabel htmlFor="intervention-photos">{t('interventions.fields.photosUrl')}</FieldLabel>
+                  <Input
+                    id="intervention-photos"
+                    className="w-full"
+                    placeholder={t('interventions.fields.photosUrlPlaceholder')}
+                    name={field.name}
+                    value={field.value ?? ''}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    aria-invalid={!!fieldState.error}
+                  />
+                  {fieldState.error?.message && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
           </CardContent>

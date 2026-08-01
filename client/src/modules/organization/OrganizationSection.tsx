@@ -177,6 +177,8 @@ export default function OrganizationSection({ organizationId }: Props) {
                 );
               }}
               renderInput={(params) => (
+                // Champ laisse en MUI : c'est le renderInput de l'Autocomplete, il recoit
+                // des props internes (ref, InputProps, inputProps) que le kit ne porte pas.
                 <TextField
                   {...params}
                   label="Sélectionner une organisation"

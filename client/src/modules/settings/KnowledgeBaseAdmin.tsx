@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { Divider, IconButton, TextField, Tooltip } from '@mui/material';
+import { Divider, IconButton, Tooltip } from '@mui/material';
+import { Input } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
@@ -483,9 +484,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             et montre les extraits retrouvés avec leur score de pertinence.
           </p>
           <div className="flex gap-1.5 items-center mb-3">
-            <TextField
-              size="small"
-              fullWidth
+            {/* Pas de libelle visible : le champ suit le titre « Tester la
+                recherche » — d'ou l'aria-label qui le nomme pour l'assistance. */}
+            <Input
+              aria-label="Question à tester"
               placeholder="Ex. : comment configurer la taxe de séjour ?"
               value={testQuery}
               onChange={(e) => setTestQuery(e.target.value)}

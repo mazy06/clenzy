@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, MenuItem, TextField, Skeleton } from '@mui/material';
+import { Paper, Skeleton } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
   AccountBalance,
   Gavel as StepTvaIcon,
@@ -108,48 +109,53 @@ const FiscalReportSection: React.FC = () => {
             ariaLabel="Granularité de la période"
           />
 
-          <TextField
-            select
-            label="Annee"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            size="small"
-            sx={{ minWidth: 100 }}
-          >
-            {yearOptions.map(y => (
-              <MenuItem key={y} value={y}>{y}</MenuItem>
-            ))}
-          </TextField>
+          {/* Largeur bornee : le Field du kit est w-full, il occuperait toute la
+              rangee au lieu de se ranger a cote du segmente de periode. */}
+          <Field className="w-[110px]">
+            <FieldLabel htmlFor="fiscal-report-year">Annee</FieldLabel>
+            <NativeSelect
+              id="fiscal-report-year"
+              className="w-full"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+            >
+              {yearOptions.map(y => (
+                <NativeSelectOption key={y} value={y}>{y}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
           {mode === 'monthly' && (
-            <TextField
-              select
-              label="Mois"
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              size="small"
-              sx={{ minWidth: 140 }}
-            >
-              {MONTHS.map((m, i) => (
-                <MenuItem key={m} value={i + 1}>{m}</MenuItem>
-              ))}
-            </TextField>
+            <Field className="w-[150px]">
+              <FieldLabel htmlFor="fiscal-report-month">Mois</FieldLabel>
+              <NativeSelect
+                id="fiscal-report-month"
+                className="w-full"
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+              >
+                {MONTHS.map((m, i) => (
+                  <NativeSelectOption key={m} value={i + 1}>{m}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
           )}
 
           {mode === 'quarterly' && (
-            <TextField
-              select
-              label="Trimestre"
-              value={quarter}
-              onChange={(e) => setQuarter(Number(e.target.value))}
-              size="small"
-              sx={{ minWidth: 120 }}
-            >
-              <MenuItem value={1}>T1 (Jan-Mar)</MenuItem>
-              <MenuItem value={2}>T2 (Avr-Jun)</MenuItem>
-              <MenuItem value={3}>T3 (Jul-Sep)</MenuItem>
-              <MenuItem value={4}>T4 (Oct-Dec)</MenuItem>
-            </TextField>
+            <Field className="w-[140px]">
+              <FieldLabel htmlFor="fiscal-report-quarter">Trimestre</FieldLabel>
+              <NativeSelect
+                id="fiscal-report-quarter"
+                className="w-full"
+                value={quarter}
+                onChange={(e) => setQuarter(Number(e.target.value))}
+              >
+                <NativeSelectOption value={1}>T1 (Jan-Mar)</NativeSelectOption>
+                <NativeSelectOption value={2}>T2 (Avr-Jun)</NativeSelectOption>
+                <NativeSelectOption value={3}>T3 (Jul-Sep)</NativeSelectOption>
+                <NativeSelectOption value={4}>T4 (Oct-Dec)</NativeSelectOption>
+              </NativeSelect>
+            </Field>
           )}
         </div>
       </Paper>

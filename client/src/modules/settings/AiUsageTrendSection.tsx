@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { MenuItem, Select, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
+import { Field, FieldLabel, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
+import { MenuItem, Select, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, type AiDailyUsage } from '../../services/api/aiApi';
@@ -138,16 +139,21 @@ export default function AiUsageTrendSection() {
           <span className="cn-text-caption text-muted-foreground">{t('settings.ai.usage.totalCost', 'Coût total')}</span>
           <h6 className="cn-text-h6 font-bold tabular-nums">{fmtCost(totalCost)}</h6>
         </div>
-        <TextField
-          size="small"
-          type="number"
-          value={threshold}
-          onChange={(e) => setThreshold(e.target.value)}
-          label={t('settings.ai.usage.threshold', 'Seuil d’alerte ($)')}
-          placeholder="ex : 20"
-          sx={{ ml: 'auto', width: 170 }}
-          InputProps={{ startAdornment: <span className="me-0.5 text-muted-foreground">$</span> }}
-        />
+        <Field className="ms-auto w-[170px]">
+          <FieldLabel htmlFor="ai-usage-threshold">{t('settings.ai.usage.threshold', 'Seuil d’alerte ($)')}</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <span className="text-muted-foreground">$</span>
+            </InputGroupAddon>
+            <InputGroupInput
+              id="ai-usage-threshold"
+              type="number"
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              placeholder="ex : 20"
+            />
+          </InputGroup>
+        </Field>
       </div>
 
       {over && (

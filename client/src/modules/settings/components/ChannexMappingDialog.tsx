@@ -20,7 +20,8 @@ import { Badge, Button } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, ButtonBase, TextField, Alert, Stack, Divider, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, ButtonBase, Alert, Stack, Divider, Tooltip } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, Input } from '../../../components/ui';
 import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -1039,45 +1040,48 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           {/* Champs IDs : visibles uniquement en mode IMPORT */}
           {connectForm.mode === 'IMPORT_EXISTING' && (
             <Stack spacing={1.5}>
-              <TextField
-                label="Property ID (hub)"
-                fullWidth
-                size="small"
-                value={connectForm.channexPropertyId}
-                onChange={(e) =>
-                  setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
-                }
-                disabled={connectForm.submitting}
-                placeholder="ex: 8f8a2c1a-4b5e-..."
-                helperText="UUID de la Property dans le hub de distribution"
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Room Type ID (hub)"
-                fullWidth
-                size="small"
-                value={connectForm.channexRoomTypeId}
-                onChange={(e) =>
-                  setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
-                }
-                disabled={connectForm.submitting}
-                placeholder="ex: 1d2e3f4a-..."
-                helperText="Room Type rattache a la property"
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Default Rate Plan ID (hub)"
-                fullWidth
-                size="small"
-                value={connectForm.channexDefaultRatePlanId}
-                onChange={(e) =>
-                  setConnectForm((s) => ({ ...s, channexDefaultRatePlanId: e.target.value }))
-                }
-                disabled={connectForm.submitting}
-                placeholder="ex: 5b6c7d8e-..."
-                helperText="Rate Plan par defaut utilise pour pousser les prix"
-                InputLabelProps={{ shrink: true }}
-              />
+              <Field>
+                <FieldLabel htmlFor="channex-property-id">Property ID (hub)</FieldLabel>
+                <Input
+                  id="channex-property-id"
+                  className="w-full"
+                  value={connectForm.channexPropertyId}
+                  onChange={(e) =>
+                    setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
+                  }
+                  disabled={connectForm.submitting}
+                  placeholder="ex: 8f8a2c1a-4b5e-..."
+                />
+                <FieldDescription>UUID de la Property dans le hub de distribution</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="channex-room-type-id">Room Type ID (hub)</FieldLabel>
+                <Input
+                  id="channex-room-type-id"
+                  className="w-full"
+                  value={connectForm.channexRoomTypeId}
+                  onChange={(e) =>
+                    setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
+                  }
+                  disabled={connectForm.submitting}
+                  placeholder="ex: 1d2e3f4a-..."
+                />
+                <FieldDescription>Room Type rattache a la property</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="channex-rate-plan-id">Default Rate Plan ID (hub)</FieldLabel>
+                <Input
+                  id="channex-rate-plan-id"
+                  className="w-full"
+                  value={connectForm.channexDefaultRatePlanId}
+                  onChange={(e) =>
+                    setConnectForm((s) => ({ ...s, channexDefaultRatePlanId: e.target.value }))
+                  }
+                  disabled={connectForm.submitting}
+                  placeholder="ex: 5b6c7d8e-..."
+                />
+                <FieldDescription>Rate Plan par defaut utilise pour pousser les prix</FieldDescription>
+              </Field>
             </Stack>
           )}
 

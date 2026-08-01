@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
-import { TextField, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
+import { Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
@@ -410,53 +411,56 @@ export default function OwnerPayoutSettings() {
           {t('settings.ownerPayout.editSepaTitle', 'Coordonnées bancaires SEPA')}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: '16px !important' }}>
-          <TextField
-            label={t('settings.ownerPayout.iban', 'IBAN')}
-            value={sepaIban}
-            onChange={(e) => {
-              setSepaIban(e.target.value);
-              setIbanError('');
-            }}
-            onFocus={(e) => {
-              // Si le champ contient encore le mask, on selectionne tout :
-              // l'utilisateur peut taper un nouvel IBAN directement, ou
-              // cliquer ailleurs pour conserver l'existant.
-              if (isSepaIbanUnchanged) {
-                e.target.select();
-              }
-            }}
-            error={!!ibanError}
-            helperText={
-              ibanError ||
-              (sepaTarget?.maskedIban
-                ? (isSepaIbanUnchanged
+          <Field>
+            <FieldLabel htmlFor="sepa-iban">{t('settings.ownerPayout.iban', 'IBAN')}</FieldLabel>
+            <Input
+              id="sepa-iban"
+              className="w-full font-mono text-[0.875rem] tabular-nums"
+              value={sepaIban}
+              onChange={(e) => {
+                setSepaIban(e.target.value);
+                setIbanError('');
+              }}
+              onFocus={(e) => {
+                // Si le champ contient encore le mask, on selectionne tout :
+                // l'utilisateur peut taper un nouvel IBAN directement, ou
+                // cliquer ailleurs pour conserver l'existant.
+                if (isSepaIbanUnchanged) {
+                  e.target.select();
+                }
+              }}
+              aria-invalid={!!ibanError}
+            />
+            {ibanError ? (
+              <FieldError>{ibanError}</FieldError>
+            ) : (
+              <FieldDescription>
+                {sepaTarget?.maskedIban
+                  ? (isSepaIbanUnchanged
                     ? t('settings.ownerPayout.ibanPreserved', 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.')
                     : t('settings.ownerPayout.ibanNewFormat', 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'))
-                : t('settings.ownerPayout.ibanFormat', 'Format : FR76 1234 5678 9012 3456 7890 123'))
-            }
-            size="small"
-            fullWidth
-            InputProps={{
-              sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' },
-            }}
-          />
-          <TextField
-            label={t('settings.ownerPayout.bic', 'BIC/SWIFT')}
-            value={sepaBic}
-            onChange={(e) => setSepaBic(e.target.value)}
-            size="small"
-            fullWidth
-            InputProps={{
-              sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' },
-            }}
-          />
-          <TextField
-            label={t('settings.ownerPayout.holder', 'Titulaire du compte')}
-            value={sepaHolder}
-            onChange={(e) => setSepaHolder(e.target.value)}
-            size="small"
-            fullWidth
-          />
+                  : t('settings.ownerPayout.ibanFormat', 'Format : FR76 1234 5678 9012 3456 7890 123')}
+              </FieldDescription>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="sepa-bic">{t('settings.ownerPayout.bic', 'BIC/SWIFT')}</FieldLabel>
+            <Input
+              id="sepa-bic"
+              className="w-full tabular-nums tracking-[0.04em] uppercase"
+              value={sepaBic}
+              onChange={(e) => setSepaBic(e.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="sepa-holder">{t('settings.ownerPayout.holder', 'Titulaire du compte')}</FieldLabel>
+            <Input
+              id="sepa-holder"
+              className="w-full"
+              value={sepaHolder}
+              onChange={(e) => setSepaHolder(e.target.value)}
+            />
+          </Field>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button

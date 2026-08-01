@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Spinner } from '../../../components/ui';
-import { Alert, IconButton, TextField } from '@mui/material';
+import { Spinner, Field, FieldLabel, Input } from '../../../components/ui';
+import { Alert, IconButton } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -359,24 +359,30 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
           {/* Check-in */}
           <div>
             <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-in</span>
+            {/* L'overline coiffe la PAIRE date + heure : il ne peut pas servir de
+                libellé à un champ unique, d'où un FieldLabel sr-only par champ. */}
             <div className="flex gap-1.5">
-              <TextField
-                type="date"
-                size="small"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
-              <TextField
-                type="time"
-                size="small"
-                value={checkInTime}
-                onChange={(e) => setCheckInTime(e.target.value)}
-                placeholder="HH:mm"
-                sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
+              <Field className="flex-1">
+                <FieldLabel className="sr-only" htmlFor="panel-check-in-date">Date de check-in</FieldLabel>
+                <Input
+                  id="panel-check-in-date"
+                  type="date"
+                  className="text-xs"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                />
+              </Field>
+              <Field className="w-[100px]">
+                <FieldLabel className="sr-only" htmlFor="panel-check-in-time">Heure de check-in</FieldLabel>
+                <Input
+                  id="panel-check-in-time"
+                  type="time"
+                  className="text-xs"
+                  value={checkInTime}
+                  onChange={(e) => setCheckInTime(e.target.value)}
+                  placeholder="HH:mm"
+                />
+              </Field>
             </div>
           </div>
 
@@ -384,23 +390,27 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
           <div>
             <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-out</span>
             <div className="flex gap-1.5">
-              <TextField
-                type="date"
-                size="small"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
-              <TextField
-                type="time"
-                size="small"
-                value={checkOutTime}
-                onChange={(e) => setCheckOutTime(e.target.value)}
-                placeholder="HH:mm"
-                sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
+              <Field className="flex-1">
+                <FieldLabel className="sr-only" htmlFor="panel-check-out-date">Date de check-out</FieldLabel>
+                <Input
+                  id="panel-check-out-date"
+                  type="date"
+                  className="text-xs"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                />
+              </Field>
+              <Field className="w-[100px]">
+                <FieldLabel className="sr-only" htmlFor="panel-check-out-time">Heure de check-out</FieldLabel>
+                <Input
+                  id="panel-check-out-time"
+                  type="time"
+                  className="text-xs"
+                  value={checkOutTime}
+                  onChange={(e) => setCheckOutTime(e.target.value)}
+                  placeholder="HH:mm"
+                />
+              </Field>
             </div>
           </div>
 

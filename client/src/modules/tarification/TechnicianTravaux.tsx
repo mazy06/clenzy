@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
-import { Snackbar, Alert, Switch, TextField, InputAdornment } from '@mui/material';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
+import { Snackbar, Alert, Switch } from '@mui/material';
 import { Save, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -157,19 +158,27 @@ export default function TechnicianTravaux() {
                       />
                     </TableCell>
                     <TableCell className="text-end w-[140px]">
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={row.price}
-                        onChange={(e) => {
-                          const num = parseFloat(e.target.value);
-                          if (!isNaN(num)) updateRow(index, { price: num });
-                        }}
-                        disabled={!row.offered}
-                        inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                        sx={{ width: 120 }}
-                      />
+                      {/* Pas de libelle propre : l'entete de colonne « Mon prix »
+                          nomme la saisie, d'ou l'aria-label porte par le champ. */}
+                      <InputGroup className="w-[120px] ms-auto">
+                        <InputGroupInput
+                          id={`technician-price-${row.interventionType}`}
+                          type="number"
+                          step={1}
+                          min={0}
+                          className="text-end"
+                          aria-label={row.label}
+                          value={row.price}
+                          onChange={(e) => {
+                            const num = parseFloat(e.target.value);
+                            if (!isNaN(num)) updateRow(index, { price: num });
+                          }}
+                          disabled={!row.offered}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <CurrencySymbol code={currency} />
+                        </InputGroupAddon>
+                      </InputGroup>
                     </TableCell>
                   </TableRow>
                 ))}

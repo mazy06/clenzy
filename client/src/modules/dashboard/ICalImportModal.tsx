@@ -5,7 +5,18 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -27,8 +38,6 @@ import {
   useICalPreview,
   useICalImport,
 } from './useICalImport';
-import { RM_FIELD_SX } from '../../components/rmFieldSx';
-
 // ─── Source logos ─────────────────────────────────────────────────────────────
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
@@ -87,14 +96,8 @@ const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> 
 
 const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
 
-// ─── Stable sx — pattern « Signature » (champs à libellé notché .rm-field) ─────
-//
-// Source de vérité unique partagée (RM_FIELD_SX, cf. components/rmFieldSx.ts),
-// reprise fidèlement de PlanningQuickCreateDialog. REQUIERT
-// `InputLabelProps={{ shrink: true }}` sur chaque champ pour que le libellé soit
-// TOUJOURS notché sur la bordure haute (sinon il flotte dans le champ).
-
-const SX_FIELD = RM_FIELD_SX;
+// Les champs de ce formulaire sont passes aux primitives du kit : le libelle
+// notche sur la bordure (pattern .rm-field) laisse place au libelle statique.
 
 /** Toggle « Signature » (.rm-toggle) — accent quand coché, conserve la taille small. */
 const SWITCH_SX = {
@@ -329,112 +332,106 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       </div>
 
       {/* URL du calendrier */}
-      <TextField
-        label="Lien iCal (.ics)"
-        placeholder="https://www.airbnb.fr/calendar/ical/12345.ics?s=..."
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        fullWidth
-        required
-        disabled={!hasAccess}
-        helperText="Copiez le lien iCal depuis votre plateforme de réservation"
-        sx={SX_FIELD}
-        InputLabelProps={{ shrink: true }}
-        InputProps={{
-          startAdornment: <span className="inline-flex text-[var(--faint)] me-1.5"><CalendarIcon size={18} strokeWidth={1.75} /></span>,
-        }}
-      />
+      <Field>
+        <FieldLabel htmlFor="ical-url">Lien iCal (.ics)</FieldLabel>
+        <InputGroup>
+          <InputGroupAddon>
+            <span className="inline-flex text-[var(--faint)]"><CalendarIcon size={18} strokeWidth={1.75} /></span>
+          </InputGroupAddon>
+          <InputGroupInput
+            id="ical-url"
+            placeholder="https://www.airbnb.fr/calendar/ical/12345.ics?s=..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            required
+            disabled={!hasAccess}
+          />
+        </InputGroup>
+        <FieldDescription>Copiez le lien iCal depuis votre plateforme de réservation</FieldDescription>
+      </Field>
 
       {/* 2-column grid — champs principaux */}
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
         {/* Proprietaire */}
         {canChangeOwner ? (
-          <TextField
-            select
-            fullWidth
-            label="Propriétaire"
-            value={ownerId}
-            onChange={(e) => {
-              setOwnerId(e.target.value as unknown as number);
-              setPropertyId('');
-            }}
-            disabled={!hasAccess}
-            sx={SX_FIELD}
-            InputLabelProps={{ shrink: true }}
-          >
-            {owners.map((owner) => (
-              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
-                {owner.firstName} {owner.lastName} — {owner.email}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="ical-owner">Propriétaire</FieldLabel>
+            <NativeSelect
+              id="ical-owner"
+              className="w-full"
+              value={ownerId}
+              // Un select natif renvoie toujours une chaine : la conversion en
+              // nombre est indispensable, les comparaisons en aval sont strictes.
+              onChange={(e) => {
+                setOwnerId(e.target.value === '' ? '' : Number(e.target.value));
+                setPropertyId('');
+              }}
+              disabled={!hasAccess}
+            >
+              <NativeSelectOption value="">Sélectionner un propriétaire</NativeSelectOption>
+              {owners.map((owner) => (
+                <NativeSelectOption key={owner.id} value={owner.id}>
+                  {owner.firstName} {owner.lastName} — {owner.email}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
         ) : (
-          <TextField
-            label="Propriétaire"
-            value={getOwnerDisplayName()}
-            fullWidth
-            disabled
-            InputLabelProps={{ shrink: true }}
-            sx={{
-              ...SX_FIELD,
-              '& .MuiInputBase-input.Mui-disabled': {
-                WebkitTextFillColor: 'var(--body)',
-              },
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="ical-owner-readonly">Propriétaire</FieldLabel>
+            <Input
+              id="ical-owner-readonly"
+              className="w-full"
+              value={getOwnerDisplayName()}
+              disabled
+            />
+          </Field>
         )}
 
         {/* Source (auto-detected from URL) */}
-        <TextField
-          label="Source"
-          value={detectedSource.label}
-          fullWidth
-          disabled
-          InputLabelProps={{ shrink: true }}
-          sx={{
-            ...SX_FIELD,
-            '& .MuiInputBase-input.Mui-disabled': {
-              WebkitTextFillColor: 'var(--ink)',
-              fontWeight: 600,
-            },
-          }}
-          InputProps={{
-            startAdornment: detectedSource.logo ? (
-              <div className="me-1.5 flex items-center">
+        <Field>
+          <FieldLabel htmlFor="ical-source">Source</FieldLabel>
+          <InputGroup>
+            {detectedSource.logo && (
+              <InputGroupAddon>
                 <SourceLogoIcon logo={detectedSource.logo} label={detectedSource.label} size={22} />
-              </div>
-            ) : undefined,
-          }}
-          helperText="Détecté automatiquement depuis l'URL"
-        />
+              </InputGroupAddon>
+            )}
+            <InputGroupInput
+              id="ical-source"
+              className="font-semibold"
+              value={detectedSource.label}
+              disabled
+            />
+          </InputGroup>
+          <FieldDescription>Détecté automatiquement depuis l'URL</FieldDescription>
+        </Field>
 
         {/* Propriete */}
-        <TextField
-          select
-          fullWidth
-          required
-          label="Propriété"
-          value={propertyId}
-          onChange={(e) => setPropertyId(e.target.value as unknown as number)}
-          disabled={!hasAccess || (canChangeOwner && !ownerId)}
-          sx={SX_FIELD}
-          InputLabelProps={{ shrink: true }}
-        >
-          {filteredProperties.map((p) => (
-            <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-              {p.name} — {p.city}
-            </MenuItem>
-          ))}
-          {filteredProperties.length === 0 && (
-            <MenuItem disabled value="">
-              <p className="cn-text-body2 text-[var(--muted)] italic text-[0.8125rem]">
-                {canChangeOwner && !ownerId
+        <Field>
+          <FieldLabel htmlFor="ical-property">Propriété</FieldLabel>
+          <NativeSelect
+            id="ical-property"
+            className="w-full"
+            required
+            value={propertyId}
+            onChange={(e) => setPropertyId(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={!hasAccess || (canChangeOwner && !ownerId)}
+          >
+            <NativeSelectOption value="">
+              {filteredProperties.length === 0
+                ? (canChangeOwner && !ownerId
                   ? 'Sélectionnez d\'abord un propriétaire'
-                  : 'Aucune propriété disponible'}
-              </p>
-            </MenuItem>
-          )}
-        </TextField>
+                  : 'Aucune propriété disponible')
+                : 'Sélectionner une propriété'}
+            </NativeSelectOption>
+            {filteredProperties.map((p) => (
+              <NativeSelectOption key={p.id} value={p.id}>
+                {p.name} — {p.city}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
       </div>
 
       {/* Menage automatique — ligne inline legere */}

@@ -1,7 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Badge, Button } from '../../components/ui';
+import {
+  Badge,
+  Button,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip } from '@mui/material';
@@ -1267,65 +1277,70 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* ── Étape 0 — Logement ── */}
       {step === 0 && (
       <>
-      <TextField
-        select
-        label={t('welcomeGuide.fields.property', 'Logement')}
-        value={propertyId}
-        onChange={(e) => {
-          setPropertyId(e.target.value);
-          // Nouveau logement → on réinitialise le hero pour reprendre ses photos.
-          setHeroPhotoIds([]);
-          setHeroTouched(false);
-        }}
-        disabled={editingId != null}
-        fullWidth
-        size="small"
-        helperText={
-          editingId != null
-            ? t('welcomeGuide.fields.propertyLocked', 'Le logement ne peut pas être changé après création')
-            : undefined
-        }
-      >
-        {properties.map((p) => (
-          <MenuItem key={p.id} value={p.id}>
-            {p.name}
-          </MenuItem>
-        ))}
-      </TextField>
+      <Field>
+        <FieldLabel htmlFor="guide-property">{t('welcomeGuide.fields.property', 'Logement')}</FieldLabel>
+        <NativeSelect
+          id="guide-property"
+          value={propertyId}
+          onChange={(e) => {
+            setPropertyId(e.target.value);
+            // Nouveau logement → on réinitialise le hero pour reprendre ses photos.
+            setHeroPhotoIds([]);
+            setHeroTouched(false);
+          }}
+          disabled={editingId != null}
+        >
+          {/* Option vide obligatoire : un select natif sans elle afficherait le
+              premier logement alors que propertyId vaut encore ''. */}
+          <NativeSelectOption value="" />
+          {properties.map((p) => (
+            <NativeSelectOption key={p.id} value={p.id}>
+              {p.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        {editingId != null && (
+          <FieldDescription>
+            {t('welcomeGuide.fields.propertyLocked', 'Le logement ne peut pas être changé après création')}
+          </FieldDescription>
+        )}
+      </Field>
 
-      <TextField
-        label={t('welcomeGuide.fields.title', 'Titre du livret')}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        fullWidth
-        size="small"
-        placeholder={t('welcomeGuide.fields.titlePlaceholder', 'Bienvenue à l’Appartement du Vieux-Port')}
-      />
+      <Field>
+        <FieldLabel htmlFor="guide-title">{t('welcomeGuide.fields.title', 'Titre du livret')}</FieldLabel>
+        <Input
+          id="guide-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t('welcomeGuide.fields.titlePlaceholder', 'Bienvenue à l’Appartement du Vieux-Port')}
+        />
+      </Field>
 
       <div className="flex gap-3 flex-wrap">
-        <TextField
-          select
-          label={t('welcomeGuide.fields.language', 'Langue')}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          size="small"
-          sx={{ minWidth: 160 }}
-        >
-          {LANGUAGES.map((lng) => (
-            <MenuItem key={lng} value={lng}>
-              {t(`welcomeGuide.languages.${lng}`, lng.toUpperCase())}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Field className="w-auto min-w-[160px]">
+          <FieldLabel htmlFor="guide-language">{t('welcomeGuide.fields.language', 'Langue')}</FieldLabel>
+          <NativeSelect
+            id="guide-language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            {LANGUAGES.map((lng) => (
+              <NativeSelectOption key={lng} value={lng}>
+                {t(`welcomeGuide.languages.${lng}`, lng.toUpperCase())}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
 
-        <TextField
-          label={t('welcomeGuide.fields.logoUrl', 'URL du logo')}
-          value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
-          size="small"
-          sx={{ flex: 1, minWidth: 220 }}
-          placeholder="https://…"
-        />
+        <Field className="flex-1 min-w-[220px]">
+          <FieldLabel htmlFor="guide-logo-url">{t('welcomeGuide.fields.logoUrl', 'URL du logo')}</FieldLabel>
+          <Input
+            id="guide-logo-url"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://…"
+          />
+        </Field>
       </div>
 
       {/* Réservation rattachée (lecture seule) + badge Lié/Non lié */}
@@ -1349,6 +1364,10 @@ const WelcomeGuideAdmin: React.FC = () => {
           )}
         </span>
         <Stack spacing={1.5}>
+          {/* Laisse en MUI : ce champ a besoin d'un handle sur le textarea pour
+              inserer le tag prenom a la position du curseur. Le Textarea du kit
+              est un composant fonction simple — sous React 18 il ne transmet pas
+              ref, et l'insertion retomberait en simple ajout en fin de texte. */}
           <TextField
             label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
             inputRef={welcomeMessageRef}
@@ -1378,14 +1397,17 @@ const WelcomeGuideAdmin: React.FC = () => {
           <span className="cn-text-caption text-muted-foreground">
             {t('welcomeGuide.welcomeNote.tagHint', 'Le tag {prénom} sera remplacé par le prénom du voyageur.')}
           </span>
-          <TextField
-            label={t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
-            value={hostNames}
-            onChange={(e) => setHostNames(e.target.value)}
-            size="small"
-            sx={{ maxWidth: 320 }}
-            placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
-          />
+          <Field className="max-w-[320px]">
+            <FieldLabel htmlFor="guide-host-names">
+              {t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
+            </FieldLabel>
+            <Input
+              id="guide-host-names"
+              value={hostNames}
+              onChange={(e) => setHostNames(e.target.value)}
+              placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
+            />
+          </Field>
         </Stack>
       </div>
       </>
@@ -1535,81 +1557,96 @@ const WelcomeGuideAdmin: React.FC = () => {
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                   <div className="flex gap-1.5 items-start mb-1.5 flex-wrap">
                     <IconSelect value={s.icon} onChange={(v) => updateSection(idx, { icon: v })} label={t('welcomeGuide.fields.sectionIcon', 'Icône')} />
-                    <TextField
-                      label={t('welcomeGuide.fields.sectionTitle', 'Titre')}
-                      value={s.title}
-                      onChange={(e) => updateSection(idx, { title: e.target.value })}
-                      size="small"
-                      sx={{ flex: 1, minWidth: 150 }}
-                    />
-                    <TextField
-                      select
-                      label={t('welcomeGuide.fields.sectionLayout', 'Type')}
-                      value={s.layout}
-                      onChange={(e) => updateSection(idx, { layout: e.target.value as GuideSectionLayout })}
-                      size="small"
-                      sx={{ width: 150 }}
-                    >
-                      {SECTION_LAYOUT_OPTIONS.map((l) => (
-                        <MenuItem key={l} value={l}>{t(`welcomeGuide.layouts.${l}`, l)}</MenuItem>
-                      ))}
-                    </TextField>
+                    <Field className="flex-1 min-w-[150px]">
+                      <FieldLabel htmlFor={`guide-section-${s.id}-title`}>
+                        {t('welcomeGuide.fields.sectionTitle', 'Titre')}
+                      </FieldLabel>
+                      <Input
+                        id={`guide-section-${s.id}-title`}
+                        value={s.title}
+                        onChange={(e) => updateSection(idx, { title: e.target.value })}
+                      />
+                    </Field>
+                    <Field className="w-[150px]">
+                      <FieldLabel htmlFor={`guide-section-${s.id}-layout`}>
+                        {t('welcomeGuide.fields.sectionLayout', 'Type')}
+                      </FieldLabel>
+                      <NativeSelect
+                        id={`guide-section-${s.id}-layout`}
+                        value={s.layout}
+                        onChange={(e) => updateSection(idx, { layout: e.target.value as GuideSectionLayout })}
+                      >
+                        {SECTION_LAYOUT_OPTIONS.map((l) => (
+                          <NativeSelectOption key={l} value={l}>{t(`welcomeGuide.layouts.${l}`, l)}</NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </Field>
                     <IconButton size="small" color="error" onClick={() => removeSection(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </div>
-                  <TextField
-                    label={t('welcomeGuide.fields.sectionSubtitle', 'Sous-titre (liste de navigation)')}
-                    value={s.subtitle}
-                    onChange={(e) => updateSection(idx, { subtitle: e.target.value })}
-                    fullWidth
-                    size="small"
-                    sx={{ mb: 1.25 }}
-                  />
-                  {s.layout === 'text' ? (
-                    <TextField
-                      label={t('welcomeGuide.fields.sectionBody', 'Contenu')}
-                      value={s.body}
-                      onChange={(e) => updateSection(idx, { body: e.target.value })}
-                      fullWidth
-                      size="small"
-                      multiline
-                      minRows={3}
+                  <Field className="mb-[7.5px]">
+                    <FieldLabel htmlFor={`guide-section-${s.id}-subtitle`}>
+                      {t('welcomeGuide.fields.sectionSubtitle', 'Sous-titre (liste de navigation)')}
+                    </FieldLabel>
+                    <Input
+                      id={`guide-section-${s.id}-subtitle`}
+                      value={s.subtitle}
+                      onChange={(e) => updateSection(idx, { subtitle: e.target.value })}
                     />
+                  </Field>
+                  {s.layout === 'text' ? (
+                    <Field>
+                      <FieldLabel htmlFor={`guide-section-${s.id}-body`}>
+                        {t('welcomeGuide.fields.sectionBody', 'Contenu')}
+                      </FieldLabel>
+                      <Textarea
+                        id={`guide-section-${s.id}-body`}
+                        value={s.body}
+                        onChange={(e) => updateSection(idx, { body: e.target.value })}
+                        rows={3}
+                      />
+                    </Field>
                   ) : (
                     <div>
                       {s.items.map((item, iIdx) => (
                         <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[1.5px] bg-[var(--hover)]" key={item.id}>
                           <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
                           <div className="flex-1 min-w-0">
-                            <TextField
-                              label={t('welcomeGuide.sectionItems.label', 'Intitulé')}
-                              value={item.label}
-                              onChange={(e) => updateSectionItem(idx, iIdx, { label: e.target.value })}
-                              fullWidth
-                              size="small"
-                            />
-                            {s.layout === 'list' ? (
-                              <TextField
-                                label={t('welcomeGuide.sectionItems.detail', 'Détail')}
-                                value={item.detail}
-                                onChange={(e) => updateSectionItem(idx, iIdx, { detail: e.target.value })}
-                                fullWidth
-                                size="small"
-                                sx={{ mt: 1 }}
+                            <Field>
+                              <FieldLabel htmlFor={`guide-item-${item.id}-label`}>
+                                {t('welcomeGuide.sectionItems.label', 'Intitulé')}
+                              </FieldLabel>
+                              <Input
+                                id={`guide-item-${item.id}-label`}
+                                value={item.label}
+                                onChange={(e) => updateSectionItem(idx, iIdx, { label: e.target.value })}
                               />
+                            </Field>
+                            {s.layout === 'list' ? (
+                              <Field className="mt-1.5">
+                                <FieldLabel htmlFor={`guide-item-${item.id}-detail`}>
+                                  {t('welcomeGuide.sectionItems.detail', 'Détail')}
+                                </FieldLabel>
+                                <Input
+                                  id={`guide-item-${item.id}-detail`}
+                                  value={item.detail}
+                                  onChange={(e) => updateSectionItem(idx, iIdx, { detail: e.target.value })}
+                                />
+                              </Field>
                             ) : null}
                             {s.layout === 'steps' ? (
-                              <TextField
-                                label={t('welcomeGuide.sectionItems.steps', 'Étapes (une par ligne)')}
-                                value={item.steps.join('\n')}
-                                onChange={(e) => updateSectionItem(idx, iIdx, { steps: e.target.value.split('\n') })}
-                                fullWidth
-                                size="small"
-                                multiline
-                                minRows={2}
-                                sx={{ mt: 1 }}
-                              />
+                              <Field className="mt-1.5">
+                                <FieldLabel htmlFor={`guide-item-${item.id}-steps`}>
+                                  {t('welcomeGuide.sectionItems.steps', 'Étapes (une par ligne)')}
+                                </FieldLabel>
+                                <Textarea
+                                  id={`guide-item-${item.id}-steps`}
+                                  value={item.steps.join('\n')}
+                                  onChange={(e) => updateSectionItem(idx, iIdx, { steps: e.target.value.split('\n') })}
+                                  rows={2}
+                                />
+                              </Field>
                             ) : null}
                           </div>
                           <IconButton size="small" color="error" onClick={() => removeSectionItem(idx, iIdx)}>
@@ -1661,36 +1698,44 @@ const WelcomeGuideAdmin: React.FC = () => {
                   <div className="flex gap-1.5 items-start">
                     <div className="flex-1">
                       <div className="flex gap-1.5 mb-1.5 flex-wrap">
-                        <TextField
-                          select
-                          size="small"
-                          label={t('welcomeGuide.pois.category', 'Catégorie')}
-                          value={p.category}
-                          onChange={(e) => updatePoi(idx, { category: e.target.value })}
-                          sx={{ minWidth: 160 }}
-                        >
-                          {POI_CATEGORIES.map((c) => (
-                            <MenuItem key={c.id} value={c.id}>
-                              {poiLabel(c.id, currentLanguage)}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.pois.name', 'Nom')}
-                          value={p.name}
-                          onChange={(e) => updatePoi(idx, { name: e.target.value })}
-                          sx={{ flex: 1, minWidth: 180 }}
-                        />
+                        <Field className="w-auto min-w-[160px]">
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-category`}>
+                            {t('welcomeGuide.pois.category', 'Catégorie')}
+                          </FieldLabel>
+                          <NativeSelect
+                            id={`guide-poi-${p.id}-category`}
+                            value={p.category}
+                            onChange={(e) => updatePoi(idx, { category: e.target.value })}
+                          >
+                            {POI_CATEGORIES.map((c) => (
+                              <NativeSelectOption key={c.id} value={c.id}>
+                                {poiLabel(c.id, currentLanguage)}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field className="flex-1 min-w-[180px]">
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-name`}>
+                            {t('welcomeGuide.pois.name', 'Nom')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-poi-${p.id}-name`}
+                            value={p.name}
+                            onChange={(e) => updatePoi(idx, { name: e.target.value })}
+                          />
+                        </Field>
                       </div>
-                      <div className="flex gap-1.5 mb-1.5 items-center">
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.pois.address', 'Adresse')}
-                          value={p.address}
-                          onChange={(e) => updatePoi(idx, { address: e.target.value })}
-                          fullWidth
-                        />
+                      <div className="flex gap-1.5 mb-1.5 items-end">
+                        <Field>
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-address`}>
+                            {t('welcomeGuide.pois.address', 'Adresse')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-poi-${p.id}-address`}
+                            value={p.address}
+                            onChange={(e) => updatePoi(idx, { address: e.target.value })}
+                          />
+                        </Field>
                         <Tooltip title={t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}>
                           <span>
                             <IconButton size="small" onClick={() => geocodePoi(idx)} disabled={geocoding === p.id}>
@@ -1703,21 +1748,27 @@ const WelcomeGuideAdmin: React.FC = () => {
                           </span>
                         </Tooltip>
                       </div>
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.pois.note', 'Note (optionnel)')}
-                        value={p.note}
-                        onChange={(e) => updatePoi(idx, { note: e.target.value })}
-                        fullWidth
-                      />
-                      <div className="flex gap-2 items-center mt-1.5 flex-wrap">
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.pois.type', 'Type (ex : Bistrot)')}
-                          value={p.type}
-                          onChange={(e) => updatePoi(idx, { type: e.target.value })}
-                          sx={{ flex: 1, minWidth: 160 }}
+                      <Field>
+                        <FieldLabel htmlFor={`guide-poi-${p.id}-note`}>
+                          {t('welcomeGuide.pois.note', 'Note (optionnel)')}
+                        </FieldLabel>
+                        <Input
+                          id={`guide-poi-${p.id}-note`}
+                          value={p.note}
+                          onChange={(e) => updatePoi(idx, { note: e.target.value })}
                         />
+                      </Field>
+                      <div className="flex gap-2 items-end mt-1.5 flex-wrap">
+                        <Field className="flex-1 min-w-[160px]">
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-type`}>
+                            {t('welcomeGuide.pois.type', 'Type (ex : Bistrot)')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-poi-${p.id}-type`}
+                            value={p.type}
+                            onChange={(e) => updatePoi(idx, { type: e.target.value })}
+                          />
+                        </Field>
                         <FormControlLabel
                           control={<Switch size="small" checked={p.featured} onChange={(e) => updatePoi(idx, { featured: e.target.checked })} />}
                           label={t('welcomeGuide.pois.featured', 'Coup de cœur')}
@@ -1777,49 +1828,61 @@ const WelcomeGuideAdmin: React.FC = () => {
                   <div className="flex gap-1.5 items-start">
                     <div className="flex-1">
                       <div className="flex gap-1.5 mb-1.5 flex-wrap">
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.curation.activityTitle', 'Titre')}
-                          value={a.title}
-                          onChange={(e) => updateActivity(idx, { title: e.target.value })}
-                          sx={{ flex: 1, minWidth: 180 }}
-                        />
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.curation.price', 'Prix')}
-                          value={a.price ?? ''}
-                          onChange={(e) => updateActivity(idx, { price: e.target.value || null })}
-                          sx={{ width: 120 }}
-                          placeholder="ex : 29 €"
-                        />
+                        <Field className="flex-1 min-w-[180px]">
+                          <FieldLabel htmlFor={`guide-activity-${a.id}-title`}>
+                            {t('welcomeGuide.curation.activityTitle', 'Titre')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-activity-${a.id}-title`}
+                            value={a.title}
+                            onChange={(e) => updateActivity(idx, { title: e.target.value })}
+                          />
+                        </Field>
+                        <Field className="w-[120px]">
+                          <FieldLabel htmlFor={`guide-activity-${a.id}-price`}>
+                            {t('welcomeGuide.curation.price', 'Prix')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-activity-${a.id}-price`}
+                            value={a.price ?? ''}
+                            onChange={(e) => updateActivity(idx, { price: e.target.value || null })}
+                            placeholder="ex : 29 €"
+                          />
+                        </Field>
                       </div>
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.curation.bookingUrl', 'Lien de réservation')}
-                        value={a.bookingUrl}
-                        onChange={(e) => updateActivity(idx, { bookingUrl: e.target.value })}
-                        fullWidth
-                        placeholder="https://…"
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.curation.imageUrl', "URL de l'image (optionnel)")}
-                        value={a.imageUrl ?? ''}
-                        onChange={(e) => updateActivity(idx, { imageUrl: e.target.value || null })}
-                        fullWidth
-                        placeholder="https://…"
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.curation.description', 'Description (optionnel)')}
-                        value={a.description}
-                        onChange={(e) => updateActivity(idx, { description: e.target.value })}
-                        fullWidth
-                        multiline
-                        minRows={2}
-                      />
+                      <Field className="mb-1.5">
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-booking-url`}>
+                          {t('welcomeGuide.curation.bookingUrl', 'Lien de réservation')}
+                        </FieldLabel>
+                        <Input
+                          id={`guide-activity-${a.id}-booking-url`}
+                          value={a.bookingUrl}
+                          onChange={(e) => updateActivity(idx, { bookingUrl: e.target.value })}
+                          placeholder="https://…"
+                        />
+                      </Field>
+                      <Field className="mb-1.5">
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-image-url`}>
+                          {t('welcomeGuide.curation.imageUrl', "URL de l'image (optionnel)")}
+                        </FieldLabel>
+                        <Input
+                          id={`guide-activity-${a.id}-image-url`}
+                          value={a.imageUrl ?? ''}
+                          onChange={(e) => updateActivity(idx, { imageUrl: e.target.value || null })}
+                          placeholder="https://…"
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-description`}>
+                          {t('welcomeGuide.curation.description', 'Description (optionnel)')}
+                        </FieldLabel>
+                        <Textarea
+                          id={`guide-activity-${a.id}-description`}
+                          value={a.description}
+                          onChange={(e) => updateActivity(idx, { description: e.target.value })}
+                          rows={2}
+                        />
+                      </Field>
                       <FormControlLabel
                         sx={{ mt: 0.5 }}
                         control={
@@ -1999,12 +2062,13 @@ const WelcomeGuideAdmin: React.FC = () => {
               'Lien de partage manuel (aperçu). La diffusion automatique d’un lien propre à chaque réservation — valable uniquement le temps du séjour — arrive prochainement.',
             )}
           </p>
-          <TextField
+          <Input
+            id="guide-share-link"
             value={linkDialog.link}
-            fullWidth
-            size="small"
-            InputProps={{ readOnly: true }}
+            readOnly
+            aria-label={t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}
             onFocus={(e) => e.target.select()}
+            className="w-full"
           />
           {linkDialog.qrCode ? (
             <div className="flex flex-col items-center mt-3 gap-1.5">

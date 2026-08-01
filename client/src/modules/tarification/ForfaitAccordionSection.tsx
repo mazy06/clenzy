@@ -2,7 +2,17 @@ import React, { useCallback, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import { Badge, Button } from '../../components/ui';
-import { TextField, InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
+import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AutoAwesome,
@@ -61,6 +71,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
   ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge, currencySymbol }) => {
     const { t } = useTranslation();
     const { currency } = useCurrency();
+    // Un accordeon par forfait peut etre monte plusieurs fois dans la page :
+    // les id des champs doivent donc etre derives d un prefixe unique.
+    const uid = React.useId();
 
     // ─── Add prestation dialog ─────────────────────────────────────────
     const [addPrestationOpen, setAddPrestationOpen] = useState(false);
@@ -181,28 +194,36 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.priceCoefficients')}</p>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-6">
-              <TextField
-                label={t('tarification.forfaitSection.coeffMin')}
-                type="number"
-                size="small"
-                fullWidth
-                value={forfait.coeffMin}
-                onChange={(e) => updateCoeff('coeffMin', e.target.value)}
-                disabled={!canEdit}
-                inputProps={{ step: 0.05, min: 0.1, max: 5.0 }}
-              />
+              <Field>
+                <FieldLabel htmlFor={`${uid}-coeff-min`}>{t('tarification.forfaitSection.coeffMin')}</FieldLabel>
+                <Input
+                  id={`${uid}-coeff-min`}
+                  type="number"
+                  className="w-full"
+                  value={forfait.coeffMin}
+                  onChange={(e) => updateCoeff('coeffMin', e.target.value)}
+                  disabled={!canEdit}
+                  step={0.05}
+                  min={0.1}
+                  max={5.0}
+                />
+              </Field>
             </div>
             <div className="col-span-6">
-              <TextField
-                label={t('tarification.forfaitSection.coeffMax')}
-                type="number"
-                size="small"
-                fullWidth
-                value={forfait.coeffMax}
-                onChange={(e) => updateCoeff('coeffMax', e.target.value)}
-                disabled={!canEdit}
-                inputProps={{ step: 0.05, min: 0.1, max: 5.0 }}
-              />
+              <Field>
+                <FieldLabel htmlFor={`${uid}-coeff-max`}>{t('tarification.forfaitSection.coeffMax')}</FieldLabel>
+                <Input
+                  id={`${uid}-coeff-max`}
+                  type="number"
+                  className="w-full"
+                  value={forfait.coeffMax}
+                  onChange={(e) => updateCoeff('coeffMax', e.target.value)}
+                  disabled={!canEdit}
+                  step={0.05}
+                  min={0.1}
+                  max={5.0}
+                />
+              </Field>
             </div>
           </div>
         </div>
@@ -343,31 +364,41 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                   <TableRow key={index}>
                     <TableCell>
                       {tier.maxSurface !== null ? (
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={tier.maxSurface}
-                          onChange={(e) => updateSurfaceBasePrice(index, 'maxSurface', e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ min: 1, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                          InputProps={{ endAdornment: <InputAdornment position="end">m²</InputAdornment> }}
-                        />
+                        // Pas de FieldLabel : l en-tete de colonne porte deja le libelle,
+                        // l aria-label rend le champ nommable pour un lecteur d ecran.
+                        <InputGroup className="w-[100px]">
+                          <InputGroupInput
+                            type="number"
+                            aria-label={t('tarification.forfaitSection.maxThreshold')}
+                            className="text-end tabular-nums"
+                            value={tier.maxSurface}
+                            onChange={(e) => updateSurfaceBasePrice(index, 'maxSurface', e.target.value)}
+                            disabled={!canEdit}
+                            min={1}
+                          />
+                          <InputGroupAddon align="inline-end">
+                            <InputGroupText>m²</InputGroupText>
+                          </InputGroupAddon>
+                        </InputGroup>
                       ) : (
                         <Badge variant="secondary" className="h-[24px]">{t('tarification.forfaitSection.unlimited')}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-end">
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={tier.base}
-                        onChange={(e) => updateSurfaceBasePrice(index, 'base', e.target.value)}
-                        disabled={!canEdit}
-                        inputProps={{ min: 0, style: { textAlign: 'right' } }}
-                        sx={{ width: 100 }}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                      />
+                      <InputGroup className="w-[100px]">
+                        <InputGroupInput
+                          type="number"
+                          aria-label={t('tarification.forfaitSection.basePrice')}
+                          className="text-end tabular-nums"
+                          value={tier.base}
+                          onChange={(e) => updateSurfaceBasePrice(index, 'base', e.target.value)}
+                          disabled={!canEdit}
+                          min={0}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
                     </TableCell>
                     {canEdit && (
                       <TableCell className="text-center">
@@ -401,17 +432,26 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           <div className="grid grid-cols-12 gap-1.5">
             {availableSurcharges.map((s) => (
               <div className="col-span-6 min-[600px]:col-span-4" key={s.key}>
-                <TextField
-                  label={t(`tarification.forfaitSection.surcharge_${s.key}`, s.label)}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={(forfait.surcharges || {})[s.key] ?? 0}
-                  onChange={(e) => updateSurcharge(s.key, e.target.value)}
-                  disabled={!canEdit}
-                  inputProps={{ step: 1, min: 0 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{s.unit}</InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor={`${uid}-surcharge-${s.key}`}>
+                    {t(`tarification.forfaitSection.surcharge_${s.key}`, s.label)}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id={`${uid}-surcharge-${s.key}`}
+                      type="number"
+                      className="tabular-nums"
+                      value={(forfait.surcharges || {})[s.key] ?? 0}
+                      onChange={(e) => updateSurcharge(s.key, e.target.value)}
+                      disabled={!canEdit}
+                      step={1}
+                      min={0}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>{s.unit}</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
               </div>
             ))}
           </div>
@@ -430,22 +470,26 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
         <Dialog open={addPrestationOpen} onClose={() => setAddPrestationOpen(false)} maxWidth="xs" fullWidth>
           <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-            <TextField
-              label={t('tarification.newItem.key')}
-              value={newPrestationKey}
-              onChange={(e) => setNewPrestationKey(e.target.value)}
-              size="small"
-              fullWidth
-              autoFocus
-              helperText={t('tarification.newItem.keyHelp')}
-            />
-            <TextField
-              label={t('tarification.newItem.label')}
-              value={newPrestationLabel}
-              onChange={(e) => setNewPrestationLabel(e.target.value)}
-              size="small"
-              fullWidth
-            />
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-prestation-key`}>{t('tarification.newItem.key')}</FieldLabel>
+              <Input
+                id={`${uid}-new-prestation-key`}
+                className="w-full"
+                value={newPrestationKey}
+                onChange={(e) => setNewPrestationKey(e.target.value)}
+                autoFocus
+              />
+              <FieldDescription>{t('tarification.newItem.keyHelp')}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-prestation-label`}>{t('tarification.newItem.label')}</FieldLabel>
+              <Input
+                id={`${uid}-new-prestation-label`}
+                className="w-full"
+                value={newPrestationLabel}
+                onChange={(e) => setNewPrestationLabel(e.target.value)}
+              />
+            </Field>
           </DialogContent>
           <DialogActions>
             <Button variant="ghost" onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
@@ -459,22 +503,26 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
         <Dialog open={addSurchargeOpen} onClose={() => setAddSurchargeOpen(false)} maxWidth="xs" fullWidth>
           <DialogTitle>{t('tarification.addSurcharge')}</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-            <TextField
-              label={t('tarification.newItem.key')}
-              value={newSurchargeKey}
-              onChange={(e) => setNewSurchargeKey(e.target.value)}
-              size="small"
-              fullWidth
-              autoFocus
-              helperText={t('tarification.newItem.keyHelp')}
-            />
-            <TextField
-              label={t('tarification.newItem.label')}
-              value={newSurchargeLabel}
-              onChange={(e) => setNewSurchargeLabel(e.target.value)}
-              size="small"
-              fullWidth
-            />
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-surcharge-key`}>{t('tarification.newItem.key')}</FieldLabel>
+              <Input
+                id={`${uid}-new-surcharge-key`}
+                className="w-full"
+                value={newSurchargeKey}
+                onChange={(e) => setNewSurchargeKey(e.target.value)}
+                autoFocus
+              />
+              <FieldDescription>{t('tarification.newItem.keyHelp')}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-surcharge-label`}>{t('tarification.newItem.label')}</FieldLabel>
+              <Input
+                id={`${uid}-new-surcharge-label`}
+                className="w-full"
+                value={newSurchargeLabel}
+                onChange={(e) => setNewSurchargeLabel(e.target.value)}
+              />
+            </Field>
           </DialogContent>
           <DialogActions>
             <Button variant="ghost" onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>

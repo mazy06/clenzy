@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { Spinner } from '../ui';
-import { TextField, MenuItem } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Lock, Build } from '../../icons';
+import { Lock } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { planningKeys } from '../../modules/planning/hooks/usePlanningData';
 import { reservationsKeys } from '../../hooks/useReservations';
-import { INTERVENTION_TYPE_TOKEN_COLORS } from '../../modules/planning/constants';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { FIELD_SX, TEXTAREA_SX } from './reservationDialogStyles';
 import PropertySelectField from './PropertySelectField';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 import ConflictAlert from './ConflictAlert';
@@ -101,32 +105,20 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           />
         </div>
 
-        <TextField
-          select
-          label={t('reservations.dialog.blockTypeLabel')}
-          value={blockType}
-          onChange={(e) => setBlockType(e.target.value as BlockType)}
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          sx={FIELD_SX}
-        >
-          <MenuItem value="BLOCKED">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.blocked }}>
-                <Lock size={15} strokeWidth={1.75} />
-              </span>
-              {t('reservations.dialog.blockTypeBlocked')}
-            </div>
-          </MenuItem>
-          <MenuItem value="MAINTENANCE">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
-                <Build size={15} strokeWidth={1.75} />
-              </span>
-              {t('reservations.dialog.blockTypeMaintenance')}
-            </div>
-          </MenuItem>
-        </TextField>
+        {/* Un select natif ne peut pas peindre d icone dans ses options :
+            les pastilles Lock / Build de l ancien menu MUI disparaissent. */}
+        <Field>
+          <FieldLabel htmlFor="block-type">{t('reservations.dialog.blockTypeLabel')}</FieldLabel>
+          <NativeSelect
+            id="block-type"
+            className="w-full"
+            value={blockType}
+            onChange={(e) => setBlockType(e.target.value as BlockType)}
+          >
+            <NativeSelectOption value="BLOCKED">{t('reservations.dialog.blockTypeBlocked')}</NativeSelectOption>
+            <NativeSelectOption value="MAINTENANCE">{t('reservations.dialog.blockTypeMaintenance')}</NativeSelectOption>
+          </NativeSelect>
+        </Field>
 
         {nights > 0 && (
           <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
@@ -134,17 +126,17 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           </p>
         )}
 
-        <TextField
-          label={t('reservations.dialog.blockReason')}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('reservations.dialog.blockReasonPlaceholder')}
-          multiline
-          minRows={2}
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          sx={TEXTAREA_SX}
-        />
+        <Field>
+          <FieldLabel htmlFor="block-reason">{t('reservations.dialog.blockReason')}</FieldLabel>
+          <Textarea
+            id="block-reason"
+            className="w-full"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('reservations.dialog.blockReasonPlaceholder')}
+          />
+        </Field>
 
         <ConflictAlert form={form} />
 

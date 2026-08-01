@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button, Card } from '../../../components/ui';
-import { Alert, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
+import { Button, Card, Field, FieldLabel, Input } from '../../../components/ui';
+import { Alert, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -116,6 +116,10 @@ export default function ApiKeyConnectionCard<P extends string>({
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+
+  // Prefixe d'id unique : cette card est generique et plusieurs instances
+  // (signature / tarification / conformite) coexistent sur le meme ecran.
+  const fieldId = useId();
 
   // Pattern "latest callback ref" — evite la boucle de render quand le
   // parent passe une arrow function inline (sinon nouvelle ref a chaque
@@ -255,34 +259,37 @@ export default function ApiKeyConnectionCard<P extends string>({
               )}
               . L'API key est chiffrée avant stockage (AES-256-GCM).
             </p>
-            <TextField
-              label="URL serveur"
-              placeholder={meta.serverUrlPlaceholder}
-              size="small"
-              fullWidth
-              required
-              value={form.serverUrl}
-              onChange={(e) => setForm({ ...form, serverUrl: e.target.value })}
-            />
-            {meta.accountIdentifierLabel && (
-              <TextField
-                label={meta.accountIdentifierLabel}
-                size="small"
-                fullWidth
-                value={form.accountIdentifier}
-                onChange={(e) => setForm({ ...form, accountIdentifier: e.target.value })}
+            <Field>
+              <FieldLabel htmlFor={`${fieldId}-server-url`}>URL serveur</FieldLabel>
+              <Input
+                id={`${fieldId}-server-url`}
+                placeholder={meta.serverUrlPlaceholder}
+                required
+                value={form.serverUrl}
+                onChange={(e) => setForm({ ...form, serverUrl: e.target.value })}
               />
+            </Field>
+            {meta.accountIdentifierLabel && (
+              <Field>
+                <FieldLabel htmlFor={`${fieldId}-account-identifier`}>{meta.accountIdentifierLabel}</FieldLabel>
+                <Input
+                  id={`${fieldId}-account-identifier`}
+                  value={form.accountIdentifier}
+                  onChange={(e) => setForm({ ...form, accountIdentifier: e.target.value })}
+                />
+              </Field>
             )}
-            <TextField
-              label="API key"
-              type="password"
-              size="small"
-              fullWidth
-              required
-              value={form.apiKey}
-              onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-              inputProps={{ minLength: 8 }}
-            />
+            <Field>
+              <FieldLabel htmlFor={`${fieldId}-api-key`}>API key</FieldLabel>
+              <Input
+                id={`${fieldId}-api-key`}
+                type="password"
+                required
+                value={form.apiKey}
+                onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                minLength={8}
+              />
+            </Field>
             <div>
               <Button type="submit" size="sm" disabled={submitting}>
                 {submitting ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}

@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, Button } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -112,60 +120,70 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             )}
           </label>
 
-          <TextField
-            label="Nom du template *"
-            size="small"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            fullWidth
-          />
+          <Field>
+            <FieldLabel htmlFor="template-name">Nom du template *</FieldLabel>
+            <Input
+              id="template-name"
+              className="w-full"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </Field>
 
-          <TextField
-            label="Type de document *"
-            select
-            size="small"
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-            fullWidth
-          >
-            {documentTypes.map((t) => (
-              <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="template-document-type">Type de document *</FieldLabel>
+            <NativeSelect
+              className="w-full"
+              id="template-document-type"
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+            >
+              {/* Option vide explicite : un select natif afficherait sinon le
+                  premier type alors que l'etat vaut encore '' (submit desactive). */}
+              <NativeSelectOption value="">—</NativeSelectOption>
+              {documentTypes.map((t) => (
+                <NativeSelectOption key={t.value} value={t.value}>{t.label}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label="Description"
-            size="small"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            fullWidth
-            multiline
-            rows={2}
-          />
+          <Field>
+            <FieldLabel htmlFor="template-description">Description</FieldLabel>
+            <Textarea
+              id="template-description"
+              className="w-full"
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
 
           <Divider sx={{ my: 1 }}>
             <span className="cn-text-caption text-muted-foreground">Configuration email (optionnel)</span>
           </Divider>
 
-          <TextField
-            label="Objet de l'email"
-            size="small"
-            value={emailSubject}
-            onChange={(e) => setEmailSubject(e.target.value)}
-            fullWidth
-            placeholder="Ex: Votre facture Baitly"
-          />
+          <Field>
+            <FieldLabel htmlFor="template-email-subject">Objet de l'email</FieldLabel>
+            <Input
+              id="template-email-subject"
+              className="w-full"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Ex: Votre facture Baitly"
+            />
+          </Field>
 
-          <TextField
-            label="Corps de l'email (HTML)"
-            size="small"
-            value={emailBody}
-            onChange={(e) => setEmailBody(e.target.value)}
-            fullWidth
-            multiline
-            rows={3}
-            placeholder="HTML du corps de l'email..."
-          />
+          <Field>
+            <FieldLabel htmlFor="template-email-body">Corps de l'email (HTML)</FieldLabel>
+            <Textarea
+              id="template-email-body"
+              className="w-full"
+              rows={3}
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="HTML du corps de l'email..."
+            />
+          </Field>
         </div>
       </DialogContent>
       <DialogActions>

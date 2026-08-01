@@ -4,9 +4,18 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Textarea,
+} from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
-import { Box, Paper, TextField, Button, Alert, IconButton, InputAdornment, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
+import { Box, Paper, Button, Alert, IconButton, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
 import {
   VpnKey as KeyIcon,
   Wifi as WifiIcon,
@@ -146,13 +155,6 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
   );
 }
 
-// ─── Field styles ───────────────────────────────────────────────────────────
-
-const FIELD_SX = {
-  '& .MuiInputBase-input': { fontSize: '0.8125rem' },
-  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-} as const;
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ propertyId }) => {
@@ -191,6 +193,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
   const [extraCodes, setExtraCodes] = useState<Array<{ label: string; code: string }>>([]);
   // Ouverture de la porte depuis le livret guest (opt-in, serrure connectée requise).
   const [guestUnlock, setGuestUnlock] = useState(false);
+  // Prefixe d'id pour les codes additionnels : la liste est dynamique, seul un id
+  // genere garantit que chaque libelle designe bien son propre champ.
+  const extraCodesFieldId = React.useId();
 
   // Fetch existing instructions
   useEffect(() => {
@@ -455,104 +460,100 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             totalCount={3}
           >
             <div className="grid gap-[9px] grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr]">
-              <TextField
-                label={t('channels.checkIn.accessCode')}
-                value={form.accessCode ?? ''}
-                placeholder={t('channels.checkIn.generator.open', 'Cliquer pour générer')}
-                size="small"
-                onClick={() => setGenOpen(true)}
-                sx={{
-                  ...FIELD_SX,
-                  '& .MuiInputBase-root': { cursor: 'pointer' },
-                  '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.9375rem', fontWeight: 600, letterSpacing: '0.05em', cursor: 'pointer' },
-                }}
-                InputProps={{
-                  readOnly: true,
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {hasSmartLock ? (
-                        <Tooltip title={t('channels.checkIn.smartLockFetch', 'Récupérer le code de la serrure connectée')}>
-                          <span>
-                            <IconButton size="small" edge="end" disabled={fetchingLock} onClick={(e) => { e.stopPropagation(); fetchSmartLockCode(); }}>
-                              <CloudDownload size={15} strokeWidth={1.85} />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      ) : null}
-                      <Tooltip title={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}>
-                        <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); regenerateAccessCode(); }}>
-                          <Autorenew size={15} strokeWidth={1.85} />
-                        </IconButton>
-                      </Tooltip>
-                      {form.accessCode ? (
-                        <Tooltip title={copiedField === 'accessCode' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
-                          <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}>
-                            {copiedField === 'accessCode' ? (
-                              <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
-                            ) : (
-                              <ContentCopy size={14} strokeWidth={1.75} />
-                            )}
+              <Field>
+                <FieldLabel htmlFor="checkin-access-code">{t('channels.checkIn.accessCode')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="checkin-access-code"
+                    value={form.accessCode ?? ''}
+                    placeholder={t('channels.checkIn.generator.open', 'Cliquer pour générer')}
+                    readOnly
+                    // Champ non saisissable : le clic ouvre le generateur, d'ou le
+                    // curseur pointeur au lieu du caret.
+                    className="cursor-pointer font-mono text-[0.9375rem] font-semibold tracking-[0.05em]"
+                    onClick={() => setGenOpen(true)}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    {hasSmartLock ? (
+                      <Tooltip title={t('channels.checkIn.smartLockFetch', 'Récupérer le code de la serrure connectée')}>
+                        <span>
+                          <IconButton size="small" disabled={fetchingLock} onClick={(e) => { e.stopPropagation(); fetchSmartLockCode(); }}>
+                            <CloudDownload size={15} strokeWidth={1.85} />
                           </IconButton>
-                        </Tooltip>
-                      ) : null}
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                label={t('channels.checkIn.wifiName')}
-                value={form.wifiName ?? ''}
-                onChange={(e) => handleChange('wifiName', e.target.value)}
-                size="small"
-                sx={FIELD_SX}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <span className="inline-flex text-muted-foreground">
-                        <WifiIcon size={16} strokeWidth={1.75} />
-                      </span>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                label={t('channels.checkIn.wifiPassword')}
-                value={form.wifiPassword ?? ''}
-                onChange={(e) => handleChange('wifiPassword', e.target.value)}
-                size="small"
-                type={showWifiPassword ? 'text' : 'password'}
-                sx={FIELD_SX}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Stack direction="row" spacing={0}>
-                        {form.wifiPassword && (
-                          <Tooltip title={copiedField === 'wifiPassword' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
-                            <IconButton size="small" onClick={() => handleCopy('wifiPassword', form.wifiPassword)}>
-                              {copiedField === 'wifiPassword' ? (
-                                <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
-                              ) : (
-                                <ContentCopy size={14} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <IconButton
-                          size="small"
-                          onClick={() => setShowWifiPassword((v) => !v)}
-                          edge="end"
-                        >
-                          {showWifiPassword ? (
-                            <VisibilityOff size={16} strokeWidth={1.75} />
+                        </span>
+                      </Tooltip>
+                    ) : null}
+                    <Tooltip title={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); regenerateAccessCode(); }}>
+                        <Autorenew size={15} strokeWidth={1.85} />
+                      </IconButton>
+                    </Tooltip>
+                    {form.accessCode ? (
+                      <Tooltip title={copiedField === 'accessCode' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}>
+                          {copiedField === 'accessCode' ? (
+                            <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
                           ) : (
-                            <Visibility size={16} strokeWidth={1.75} />
+                            <ContentCopy size={14} strokeWidth={1.75} />
                           )}
                         </IconButton>
-                      </Stack>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+                      </Tooltip>
+                    ) : null}
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="checkin-wifi-name">{t('channels.checkIn.wifiName')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <span className="inline-flex text-muted-foreground">
+                      <WifiIcon size={16} strokeWidth={1.75} />
+                    </span>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="checkin-wifi-name"
+                    value={form.wifiName ?? ''}
+                    onChange={(e) => handleChange('wifiName', e.target.value)}
+                  />
+                </InputGroup>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="checkin-wifi-password">{t('channels.checkIn.wifiPassword')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="checkin-wifi-password"
+                    value={form.wifiPassword ?? ''}
+                    onChange={(e) => handleChange('wifiPassword', e.target.value)}
+                    type={showWifiPassword ? 'text' : 'password'}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    {form.wifiPassword && (
+                      <Tooltip title={copiedField === 'wifiPassword' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
+                        <IconButton size="small" onClick={() => handleCopy('wifiPassword', form.wifiPassword)}>
+                          {copiedField === 'wifiPassword' ? (
+                            <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
+                          ) : (
+                            <ContentCopy size={14} strokeWidth={1.75} />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <IconButton
+                      size="small"
+                      onClick={() => setShowWifiPassword((v) => !v)}
+                      aria-label={showWifiPassword
+                        ? t('channels.checkIn.hidePassword', 'Masquer le mot de passe')
+                        : t('channels.checkIn.showPassword', 'Afficher le mot de passe')}
+                    >
+                      {showWifiPassword ? (
+                        <VisibilityOff size={16} strokeWidth={1.75} />
+                      ) : (
+                        <Visibility size={16} strokeWidth={1.75} />
+                      )}
+                    </IconButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
             </div>
             {hasSmartLock ? (
               <span className="cn-text-caption text-muted-foreground block mt-1.5 max-w-[560px]">
@@ -610,17 +611,28 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                 {extraCodes.map((ec, i) => {
                   const slug = slugify(ec.label);
                   return (
-                    <div className="flex gap-1.5 items-center flex-wrap" key={i}>
-                      <TextField
-                        size="small" label={t('channels.checkIn.extraCodeLabel', 'Libellé')}
-                        value={ec.label} onChange={(e) => updateExtraCode(i, 'label', e.target.value)}
-                        sx={{ flex: '1 1 150px' }}
-                      />
-                      <TextField
-                        size="small" label={t('channels.checkIn.extraCodeValue', 'Code')}
-                        value={ec.code} onChange={(e) => updateExtraCode(i, 'code', e.target.value)}
-                        sx={{ flex: '1 1 110px', '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
-                      />
+                    <div className="flex gap-1.5 items-end flex-wrap" key={i}>
+                      <Field className="flex-[1_1_150px]">
+                        <FieldLabel htmlFor={`${extraCodesFieldId}-label-${i}`}>
+                          {t('channels.checkIn.extraCodeLabel', 'Libellé')}
+                        </FieldLabel>
+                        <Input
+                          id={`${extraCodesFieldId}-label-${i}`}
+                          value={ec.label}
+                          onChange={(e) => updateExtraCode(i, 'label', e.target.value)}
+                        />
+                      </Field>
+                      <Field className="flex-[1_1_110px]">
+                        <FieldLabel htmlFor={`${extraCodesFieldId}-code-${i}`}>
+                          {t('channels.checkIn.extraCodeValue', 'Code')}
+                        </FieldLabel>
+                        <Input
+                          id={`${extraCodesFieldId}-code-${i}`}
+                          className="font-mono"
+                          value={ec.code}
+                          onChange={(e) => updateExtraCode(i, 'code', e.target.value)}
+                        />
+                      </Field>
                       {slug ? (
                         <Tooltip title={copiedField === `extraTag${i}` ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.extraCodeTagCopy', 'Copier le tag email')}>
                           {/* Le span porte la ref que Tooltip pose sur son enfant :
@@ -661,17 +673,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.parking}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.parkingInfo')}
-            value={form.parkingInfo ?? ''}
-            onChange={(e) => handleChange('parkingInfo', e.target.value)}
-            size="small"
-            multiline
-            rows={2}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder="Ex : Parking gratuit en face du bâtiment, place numéro 12..."
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-parking-info">{t('channels.checkIn.parkingInfo')}</FieldLabel>
+            <Textarea
+              id="checkin-parking-info"
+              rows={2}
+              value={form.parkingInfo ?? ''}
+              onChange={(e) => handleChange('parkingInfo', e.target.value)}
+              placeholder="Ex : Parking gratuit en face du bâtiment, place numéro 12..."
+            />
+          </Field>
         </SectionCard>
 
         {/* Arrivée */}
@@ -683,17 +694,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.arrival}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.arrivalInstructions')}
-            value={form.arrivalInstructions ?? ''}
-            onChange={(e) => handleChange('arrivalInstructions', e.target.value)}
-            size="small"
-            multiline
-            rows={3}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder={t('channels.checkIn.arrivalPlaceholder')}
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-arrival-instructions">{t('channels.checkIn.arrivalInstructions')}</FieldLabel>
+            <Textarea
+              id="checkin-arrival-instructions"
+              rows={3}
+              value={form.arrivalInstructions ?? ''}
+              onChange={(e) => handleChange('arrivalInstructions', e.target.value)}
+              placeholder={t('channels.checkIn.arrivalPlaceholder')}
+            />
+          </Field>
         </SectionCard>
 
         {/* Photos d'accès */}
@@ -720,14 +730,14 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                       <CloseIcon size={14} strokeWidth={2} />
                     </IconButton>
                   </div>
-                  <TextField
+                  {/* Legende sans libelle visible : la vignette la porte, d'ou
+                      l'aria-label plutot qu'un FieldLabel. */}
+                  <Input
+                    className="mt-1 text-[0.75rem]"
                     value={p.caption}
                     onChange={(e) => handlePhotoCaption(p.key, e.target.value)}
-                    size="small"
-                    fullWidth
-                    variant="standard"
+                    aria-label={t('channels.checkIn.photoCaption', 'Légende…')}
                     placeholder={t('channels.checkIn.photoCaption', 'Légende…')}
-                    sx={{ mt: 0.5, '& .MuiInputBase-input': { fontSize: '0.75rem' } }}
                   />
                 </div>
               ))}
@@ -763,17 +773,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.departure}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.departureInstructions')}
-            value={form.departureInstructions ?? ''}
-            onChange={(e) => handleChange('departureInstructions', e.target.value)}
-            size="small"
-            multiline
-            rows={3}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder={t('channels.checkIn.departurePlaceholder')}
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-departure-instructions">{t('channels.checkIn.departureInstructions')}</FieldLabel>
+            <Textarea
+              id="checkin-departure-instructions"
+              rows={3}
+              value={form.departureInstructions ?? ''}
+              onChange={(e) => handleChange('departureInstructions', e.target.value)}
+              placeholder={t('channels.checkIn.departurePlaceholder')}
+            />
+          </Field>
         </SectionCard>
 
         {/* Règlement */}
@@ -785,17 +794,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.rules}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.houseRules')}
-            value={form.houseRules ?? ''}
-            onChange={(e) => handleChange('houseRules', e.target.value)}
-            size="small"
-            multiline
-            rows={3}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder="Pas de fête, pas de fumeurs, animaux acceptés..."
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-house-rules">{t('channels.checkIn.houseRules')}</FieldLabel>
+            <Textarea
+              id="checkin-house-rules"
+              rows={3}
+              value={form.houseRules ?? ''}
+              onChange={(e) => handleChange('houseRules', e.target.value)}
+              placeholder="Pas de fête, pas de fumeurs, animaux acceptés..."
+            />
+          </Field>
         </SectionCard>
 
         {/* Urgence — full width, alert-styled */}
@@ -808,24 +816,22 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={stats.emergency}
             totalCount={1}
           >
-            <TextField
-              label={t('channels.checkIn.emergencyContact')}
-              value={form.emergencyContact ?? ''}
-              onChange={(e) => handleChange('emergencyContact', e.target.value)}
-              size="small"
-              fullWidth
-              sx={FIELD_SX}
-              placeholder="Ex : +33 6 12 34 56 78 — Marie (gestionnaire)"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <span className="inline-flex text-[#E5484D]">
-                      <PhoneIcon size={16} strokeWidth={1.75} />
-                    </span>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <Field>
+              <FieldLabel htmlFor="checkin-emergency-contact">{t('channels.checkIn.emergencyContact')}</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <span className="inline-flex text-[#E5484D]">
+                    <PhoneIcon size={16} strokeWidth={1.75} />
+                  </span>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="checkin-emergency-contact"
+                  value={form.emergencyContact ?? ''}
+                  onChange={(e) => handleChange('emergencyContact', e.target.value)}
+                  placeholder="Ex : +33 6 12 34 56 78 — Marie (gestionnaire)"
+                />
+              </InputGroup>
+            </Field>
           </SectionCard>
         </div>
 
@@ -839,17 +845,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={stats.additional}
             totalCount={1}
           >
-            <TextField
-              label={t('channels.checkIn.additionalNotes')}
-              value={form.additionalNotes ?? ''}
-              onChange={(e) => handleChange('additionalNotes', e.target.value)}
-              size="small"
-              multiline
-              rows={3}
-              fullWidth
-              sx={FIELD_SX}
-              placeholder="Boulangerie au coin de la rue, supermarché à 200m, conseils transports..."
-            />
+            <Field>
+              <FieldLabel htmlFor="checkin-additional-notes">{t('channels.checkIn.additionalNotes')}</FieldLabel>
+              <Textarea
+                id="checkin-additional-notes"
+                rows={3}
+                value={form.additionalNotes ?? ''}
+                onChange={(e) => handleChange('additionalNotes', e.target.value)}
+                placeholder="Boulangerie au coin de la rue, supermarché à 200m, conseils transports..."
+              />
+            </Field>
           </SectionCard>
         </div>
       </div>

@@ -4,8 +4,17 @@ import { CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Stack, TextField, Tooltip } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Snackbar, Stack, Tooltip } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -317,67 +326,75 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
         <DialogTitle>{t('issues.create.title', 'Signaler une anomalie')}</DialogTitle>
         <DialogContent dividers>
           <Stack gap={2} sx={{ pt: 0.5 }}>
-            <TextField
-              select
-              required
-              label={t('issues.create.property', 'Logement')}
-              value={createPropertyId === '' ? '' : createPropertyId}
-              onChange={(e) => setCreatePropertyId(Number(e.target.value))}
-              size="small"
-              fullWidth
-              SelectProps={{ displayEmpty: true }}
-              InputLabelProps={{ shrink: true }}
-            >
-              <MenuItem value="" disabled>{t('issues.create.selectProperty', 'Sélectionner un logement')}</MenuItem>
-              {properties.map((property) => (
-                <MenuItem key={property.id} value={property.id}>{property.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              required
-              label={t('issues.columns.title', 'Anomalie')}
-              value={createTitle}
-              onChange={(e) => setCreateTitle(e.target.value)}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label={t('issues.create.description', 'Description (optionnelle)')}
-              value={createDescription}
-              onChange={(e) => setCreateDescription(e.target.value)}
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-            />
+            <Field>
+              <FieldLabel htmlFor="issue-create-property">{t('issues.create.property', 'Logement')}</FieldLabel>
+              <NativeSelect
+                id="issue-create-property"
+                className="w-full"
+                required
+                value={createPropertyId === '' ? '' : String(createPropertyId)}
+                onChange={(e) => setCreatePropertyId(Number(e.target.value))}
+              >
+                <NativeSelectOption value="" disabled>
+                  {t('issues.create.selectProperty', 'Sélectionner un logement')}
+                </NativeSelectOption>
+                {properties.map((property) => (
+                  <NativeSelectOption key={property.id} value={property.id}>{property.name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="issue-create-title">{t('issues.columns.title', 'Anomalie')}</FieldLabel>
+              <Input
+                id="issue-create-title"
+                className="w-full"
+                required
+                value={createTitle}
+                onChange={(e) => setCreateTitle(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="issue-create-description">
+                {t('issues.create.description', 'Description (optionnelle)')}
+              </FieldLabel>
+              <Textarea
+                id="issue-create-description"
+                className="w-full"
+                rows={2}
+                value={createDescription}
+                onChange={(e) => setCreateDescription(e.target.value)}
+              />
+            </Field>
             <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-              <TextField
-                select
-                label={t('issues.fields.category', 'Catégorie')}
-                value={createCategory}
-                onChange={(e) => setCreateCategory(e.target.value)}
-                size="small"
-                fullWidth
-              >
-                <MenuItem value="">{t('issues.create.noCategory', 'Sans catégorie')}</MenuItem>
-                {ISSUE_CATEGORIES.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    {t(`issues.categories.${category.toLowerCase()}`, category)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label={t('issues.fields.severity', 'Sévérité')}
-                value={createSeverity}
-                onChange={(e) => setCreateSeverity(e.target.value as IssueSeverity)}
-                size="small"
-                sx={{ minWidth: 150 }}
-              >
-                {SEVERITIES.map((severity) => (
-                  <MenuItem key={severity} value={severity}>{severityLabel(severity)}</MenuItem>
-                ))}
-              </TextField>
+              <Field>
+                <FieldLabel htmlFor="issue-create-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
+                <NativeSelect
+                  id="issue-create-category"
+                  className="w-full"
+                  value={createCategory}
+                  onChange={(e) => setCreateCategory(e.target.value)}
+                >
+                  <NativeSelectOption value="">{t('issues.create.noCategory', 'Sans catégorie')}</NativeSelectOption>
+                  {ISSUE_CATEGORIES.map((category) => (
+                    <NativeSelectOption key={category} value={category}>
+                      {t(`issues.categories.${category.toLowerCase()}`, category)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <Field className="min-w-[150px]">
+                <FieldLabel htmlFor="issue-create-severity">{t('issues.fields.severity', 'Sévérité')}</FieldLabel>
+                <NativeSelect
+                  id="issue-create-severity"
+                  className="w-full"
+                  value={createSeverity}
+                  onChange={(e) => setCreateSeverity(e.target.value as IssueSeverity)}
+                >
+                  {SEVERITIES.map((severity) => (
+                    <NativeSelectOption key={severity} value={severity}>{severityLabel(severity)}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
             </Stack>
             {createError && (
               <p className="cn-text-body2 text-[var(--err)]">{createError}</p>
@@ -465,35 +482,43 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                       {t('issues.qualifySection', 'Qualification')}
                     </h6>
                     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-                      <TextField
-                        label={t('issues.fields.category', 'Catégorie')}
-                        value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value)}
-                        size="small"
-                        fullWidth
-                        helperText={t('issues.fields.categoryHelp', 'Alignée sur le catalogue travaux → chiffrage automatique')}
-                      />
-                      <TextField
-                        select
-                        label={t('issues.fields.severity', 'Sévérité')}
-                        value={editSeverity}
-                        onChange={(e) => setEditSeverity(e.target.value as IssueSeverity)}
-                        size="small"
-                        sx={{ minWidth: 140 }}
-                      >
-                        {SEVERITIES.map((severity) => (
-                          <MenuItem key={severity} value={severity}>{severityLabel(severity)}</MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        label={t('issues.fields.suggestedCost', 'Coût (€)')}
-                        value={editCost}
-                        onChange={(e) => setEditCost(e.target.value.replace(',', '.'))}
-                        size="small"
-                        type="number"
-                        inputProps={{ min: 0, step: '0.01' }}
-                        sx={{ minWidth: 120 }}
-                      />
+                      <Field>
+                        <FieldLabel htmlFor="issue-edit-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
+                        <Input
+                          id="issue-edit-category"
+                          className="w-full"
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                        />
+                        <FieldDescription>
+                          {t('issues.fields.categoryHelp', 'Alignée sur le catalogue travaux → chiffrage automatique')}
+                        </FieldDescription>
+                      </Field>
+                      <Field className="min-w-[140px]">
+                        <FieldLabel htmlFor="issue-edit-severity">{t('issues.fields.severity', 'Sévérité')}</FieldLabel>
+                        <NativeSelect
+                          id="issue-edit-severity"
+                          className="w-full"
+                          value={editSeverity}
+                          onChange={(e) => setEditSeverity(e.target.value as IssueSeverity)}
+                        >
+                          {SEVERITIES.map((severity) => (
+                            <NativeSelectOption key={severity} value={severity}>{severityLabel(severity)}</NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field className="min-w-[120px]">
+                        <FieldLabel htmlFor="issue-edit-cost">{t('issues.fields.suggestedCost', 'Coût (€)')}</FieldLabel>
+                        <Input
+                          id="issue-edit-cost"
+                          className="w-full"
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={editCost}
+                          onChange={(e) => setEditCost(e.target.value.replace(',', '.'))}
+                        />
+                      </Field>
                     </Stack>
                   </Stack>
                 )}
@@ -511,13 +536,17 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 )}
 
                 {canManage && isActionable && !confirmConvert && (
-                  <TextField
-                    label={t('issues.fields.dismissReason', 'Motif de rejet (optionnel)')}
-                    value={dismissReason}
-                    onChange={(e) => setDismissReason(e.target.value)}
-                    size="small"
-                    fullWidth
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="issue-dismiss-reason">
+                      {t('issues.fields.dismissReason', 'Motif de rejet (optionnel)')}
+                    </FieldLabel>
+                    <Input
+                      id="issue-dismiss-reason"
+                      className="w-full"
+                      value={dismissReason}
+                      onChange={(e) => setDismissReason(e.target.value)}
+                    />
+                  </Field>
                 )}
 
                 {error && (

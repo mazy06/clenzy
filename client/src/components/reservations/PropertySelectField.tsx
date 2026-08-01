@@ -1,8 +1,7 @@
 import React from 'react';
-import { TextField, MenuItem } from '@mui/material';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
-import { FIELD_SX } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
@@ -14,27 +13,28 @@ const PropertySelectField: React.FC<Props> = ({ form }) => {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <TextField
-        select
-        label={t('reservations.fields.property')}
-        value={form.propertyId === '' ? '' : form.propertyId}
-        onChange={(e) => form.setPropertyId(Number(e.target.value))}
-        fullWidth
-        required
-        disabled={!form.isPlatformStaff || form.propertiesLoading}
-        InputLabelProps={{ shrink: true }}
-        sx={FIELD_SX}
-        SelectProps={{ displayEmpty: true }}
-      >
-        <MenuItem value="" disabled>
-          {t('reservations.dialog.propertyPlaceholder')}
-        </MenuItem>
-        {form.properties.map((p) => (
-          <MenuItem key={p.id} value={p.id}>
-            {p.name}
-          </MenuItem>
-        ))}
-      </TextField>
+      <Field>
+        <FieldLabel htmlFor="reservation-property">{t('reservations.fields.property')}</FieldLabel>
+        <NativeSelect
+          id="reservation-property"
+          className="w-full"
+          required
+          disabled={!form.isPlatformStaff || form.propertiesLoading}
+          value={form.propertyId === '' ? '' : form.propertyId}
+          onChange={(e) => form.setPropertyId(Number(e.target.value))}
+        >
+          {/* Option vide desactivee : reprend le `displayEmpty` de MUI, elle sert
+              de placeholder tant qu'aucun logement n'est choisi. */}
+          <NativeSelectOption value="" disabled>
+            {t('reservations.dialog.propertyPlaceholder')}
+          </NativeSelectOption>
+          {form.properties.map((p) => (
+            <NativeSelectOption key={p.id} value={p.id}>
+              {p.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </Field>
       {!form.isPlatformStaff && form.propertyName && (
         <p className="cn-text-body1 text-[11px] text-[var(--muted)] italic">
           {t('reservations.dialog.propertyAutoSelected')}

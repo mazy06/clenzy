@@ -1,6 +1,14 @@
 import React, { useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { TextField, MenuItem } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
@@ -108,40 +116,47 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               name="countryCode"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  select
-                  fullWidth
-                  label={t('properties.country')}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  onChange={(e) => {
-                    const code = e.target.value;
-                    if (code === field.value) return;
-                    field.onChange(code);
-                    const c = COUNTRY_BY_CODE[code];
-                    if (c) {
-                      setValue('country', c.name, { shouldValidate: true });
-                    }
-                    // Reset des champs dependants : adresse / ville / CP / GPS / departement / arrondissement
-                    setValue('address', '', { shouldValidate: true });
-                    setValue('city', '', { shouldValidate: true });
-                    setValue('postalCode', '', { shouldValidate: true });
-                    setValue('latitude', null);
-                    setValue('longitude', null);
-                    setValue('department', null);
-                    setValue('arrondissement', null);
-                  }}
-                >
-                  {COUNTRIES.map((c) => (
-                    <MenuItem key={c.code} value={c.code}>
-                      <span style={{ marginRight: 8 }}>{c.flag}</span>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="property-country-code">{t('properties.country')}</FieldLabel>
+                  {/* field.ref n'est pas transmis : les primitives du kit sont des
+                      composants fonction sans forwardRef (React 18), le passer
+                      declencherait un avertissement sans jamais s'attacher. */}
+                  <NativeSelect
+                    id="property-country-code"
+                    className="w-full"
+                    name={field.name}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    required
+                    aria-invalid={!!fieldState.error}
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      if (code === field.value) return;
+                      field.onChange(code);
+                      const c = COUNTRY_BY_CODE[code];
+                      if (c) {
+                        setValue('country', c.name, { shouldValidate: true });
+                      }
+                      // Reset des champs dependants : adresse / ville / CP / GPS / departement / arrondissement
+                      setValue('address', '', { shouldValidate: true });
+                      setValue('city', '', { shouldValidate: true });
+                      setValue('postalCode', '', { shouldValidate: true });
+                      setValue('latitude', null);
+                      setValue('longitude', null);
+                      setValue('department', null);
+                      setValue('arrondissement', null);
+                    }}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <NativeSelectOption key={c.code} value={c.code}>
+                        {c.flag} {c.name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  {fieldState.error?.message && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </Field>
               )}
             />
           </div>
@@ -204,16 +219,22 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               name="postalCode"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t('properties.postalCode')}
-                  required
-                  placeholder={t('properties.postalCodePlaceholder')}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-postal-code">{t('properties.postalCode')}</FieldLabel>
+                  <Input
+                    id="property-postal-code"
+                    name={field.name}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    required
+                    placeholder={t('properties.postalCodePlaceholder')}
+                    aria-invalid={!!fieldState.error}
+                  />
+                  {fieldState.error?.message && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </Field>
               )}
             />
           </div>
@@ -227,20 +248,27 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                   ? [field.value, ...TIMEZONES]
                   : TIMEZONES;
                 return (
-                  <TextField
-                    {...field}
-                    value={field.value || 'Europe/Paris'}
-                    select
-                    fullWidth
-                    size="small"
-                    label={t('properties.timezone', 'Fuseau horaire')}
-                    helperText={t('properties.timezoneHelp', "Heure locale du logement (codes d'accès, planning)")}
-                    error={!!fieldState.error}
-                  >
-                    {opts.map((tz) => (
-                      <MenuItem key={tz} value={tz}>{tz}</MenuItem>
-                    ))}
-                  </TextField>
+                  <Field>
+                    <FieldLabel htmlFor="property-timezone">
+                      {t('properties.timezone', 'Fuseau horaire')}
+                    </FieldLabel>
+                    <NativeSelect
+                      id="property-timezone"
+                      className="w-full"
+                      name={field.name}
+                      value={field.value || 'Europe/Paris'}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      aria-invalid={!!fieldState.error}
+                    >
+                      {opts.map((tz) => (
+                        <NativeSelectOption key={tz} value={tz}>{tz}</NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                    <FieldDescription>
+                      {t('properties.timezoneHelp', "Heure locale du logement (codes d'accès, planning)")}
+                    </FieldDescription>
+                  </Field>
                 );
               }}
             />

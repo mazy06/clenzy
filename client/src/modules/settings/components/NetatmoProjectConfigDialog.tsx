@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Alert, AlertDescription, Button } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+} from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Link } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
@@ -91,34 +99,47 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
         </Alert>}
 
         <div className="flex flex-col gap-3">
-          <TextField
-            label="Client ID"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-          />
-          <TextField
-            label="Client Secret"
-            value={clientSecret}
-            onChange={(e) => setClientSecret(e.target.value)}
-            type="password"
-            fullWidth
-            autoComplete="new-password"
-            disabled={saving}
-            placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
-            helperText={alreadyConfigured ? 'Laissez vide pour conserver le secret déjà enregistré.' : undefined}
-          />
-          <TextField
-            label="Redirect URI"
-            value={redirectUri}
-            onChange={(e) => setRedirectUri(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-            helperText="Doit correspondre exactement à l'URI de redirection déclarée dans l'app Netatmo."
-          />
+          <Field>
+            <FieldLabel htmlFor="netatmo-client-id">Client ID</FieldLabel>
+            <Input
+              id="netatmo-client-id"
+              className="w-full"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="netatmo-client-secret">Client Secret</FieldLabel>
+            <Input
+              id="netatmo-client-secret"
+              className="w-full"
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              disabled={saving}
+              placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
+            />
+            {alreadyConfigured && (
+              <FieldDescription>Laissez vide pour conserver le secret déjà enregistré.</FieldDescription>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="netatmo-redirect-uri">Redirect URI</FieldLabel>
+            <Input
+              id="netatmo-redirect-uri"
+              className="w-full"
+              value={redirectUri}
+              onChange={(e) => setRedirectUri(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+            <FieldDescription>
+              Doit correspondre exactement à l'URI de redirection déclarée dans l'app Netatmo.
+            </FieldDescription>
+          </Field>
         </div>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

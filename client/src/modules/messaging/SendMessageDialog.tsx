@@ -3,7 +3,8 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X, CircleCheck, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -117,18 +118,24 @@ export default function SendMessageDialog({
           </div>
         ) : (
           <>
-            <TextField
-              select
-              fullWidth
-              label={t('messaging.send.channel', 'Canal')}
-              value={channel}
-              onChange={(e) => setChannel(e.target.value as MessageChannel)}
-              size="small"
-              sx={{ mb: 2 }}
-            >
-              <MenuItem value="EMAIL">{t('messaging.send.channelEmail', 'Email')}</MenuItem>
-              <MenuItem value="WHATSAPP">{t('messaging.send.channelWhatsapp', 'WhatsApp')}</MenuItem>
-            </TextField>
+            <Field className="mb-3">
+              <FieldLabel htmlFor="send-message-channel">
+                {t('messaging.send.channel', 'Canal')}
+              </FieldLabel>
+              <NativeSelect
+                id="send-message-channel"
+                className="w-full"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value as MessageChannel)}
+              >
+                <NativeSelectOption value="EMAIL">
+                  {t('messaging.send.channelEmail', 'Email')}
+                </NativeSelectOption>
+                <NativeSelectOption value="WHATSAPP">
+                  {t('messaging.send.channelWhatsapp', 'WhatsApp')}
+                </NativeSelectOption>
+              </NativeSelect>
+            </Field>
 
             {channel === 'WHATSAPP' && (
               <BuiAlert variant="info" className="mb-3">
@@ -140,21 +147,28 @@ export default function SendMessageDialog({
               </BuiAlert>
             )}
 
-            <TextField
-              select
-              fullWidth
-              label={t('messaging.send.selectTemplate')}
-              value={selectedTemplateId}
-              onChange={(e) => setSelectedTemplateId(Number(e.target.value))}
-              size="small"
-              sx={{ mb: 2 }}
-            >
-              {templates.map((tpl) => (
-                <MenuItem key={tpl.id} value={tpl.id}>
-                  {tpl.name} ({tpl.type})
-                </MenuItem>
-              ))}
-            </TextField>
+            <Field className="mb-3">
+              <FieldLabel htmlFor="send-message-template">
+                {t('messaging.send.selectTemplate')}
+              </FieldLabel>
+              <NativeSelect
+                id="send-message-template"
+                className="w-full"
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(Number(e.target.value))}
+              >
+                {/* Option vide obligatoire : sans elle un select natif afficherait
+                    le premier modele alors qu'aucun n'est encore choisi. */}
+                <NativeSelectOption value="" disabled>
+                  {t('messaging.send.selectTemplate')}
+                </NativeSelectOption>
+                {templates.map((tpl) => (
+                  <NativeSelectOption key={tpl.id} value={tpl.id}>
+                    {tpl.name} ({tpl.type})
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
 
             {selectedTemplate && (
               <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">

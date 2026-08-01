@@ -17,10 +17,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { cn } from '../../../utils/cn';
-import { Badge, Button } from '../../../components/ui';
+import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Box, Stack, TextField, InputAdornment, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Stack, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Search,
   Plus,
@@ -374,20 +374,19 @@ export default function AmenityMappingPage() {
       {tab === 'unmapped' && (
         <Stack spacing={2}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-            <TextField
-              size="small"
-              placeholder="Rechercher…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{ minWidth: 240 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={14} />
-                  </InputAdornment>
-                ),
-              }}
-            />
+            {/* Champ sans libelle visible : aria-label sinon le champ n'a plus
+                de nom accessible (le placeholder n'en fait pas office). */}
+            <InputGroup className="w-auto min-w-[240px]">
+              <InputGroupAddon>
+                <Search size={14} />
+              </InputGroupAddon>
+              <InputGroupInput
+                aria-label="Rechercher une commodité OTA"
+                placeholder="Rechercher…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </InputGroup>
             <div className="flex-1" />
             {selectedRaw.size > 0 && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{

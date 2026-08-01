@@ -3,7 +3,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
+import { Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import {
   MoreVert,
   Edit,
@@ -467,17 +468,20 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         <DialogContent sx={{ pt: 1.5 }}>
           <div className="grid grid-cols-12 gap-3 mt-[3px]">
             <div className="col-span-12">
-              <TextField
-                fullWidth
-                size="small"
-                label="Nom de l'organisation *"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                required
-                autoFocus
-              />
+              <Field>
+                <FieldLabel htmlFor="org-form-name">Nom de l'organisation *</FieldLabel>
+                <Input
+                  id="org-form-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                  autoFocus
+                />
+              </Field>
             </div>
             <div className="col-span-12">
+              {/* Select laisse en MUI : ses options portent une icone coloree par
+                  type d'organisation, qu'une <option> native ne peut pas rendre. */}
               <FormControl fullWidth size="small">
                 <InputLabel>Type</InputLabel>
                 <Select

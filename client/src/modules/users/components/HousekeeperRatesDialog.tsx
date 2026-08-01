@@ -2,7 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupText,
+} from '../../../components/ui';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -15,10 +23,6 @@ import {
 // Consomme GET/PUT /housekeeper-rates/user/{userId} (gardes backend :
 // SUPER_ADMIN / SUPER_MANAGER). Score qualité 30 j + taux horaire + forfaits
 // par logement avec le nudge fourchette conseil (jamais bloquant).
-
-const NUM_SX = {
-  '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
-} as const;
 
 interface HousekeeperRatesDialogProps {
   userId: number | null;
@@ -146,17 +150,25 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                 {t('settings.myRates.hourlySection', 'Taux horaire')}
               </p>
               <div className="flex items-center gap-3 flex-wrap">
-                <TextField
-                  label={t('settings.myRates.hourlyRate', 'Taux horaire')}
-                  type="number"
-                  size="small"
-                  value={hourly}
-                  onChange={(e) => setHourly(e.target.value)}
-                  inputProps={{ min: 0, step: 0.5 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€/h</InputAdornment> }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ ...NUM_SX, width: 200 }}
-                />
+                <Field className="w-[200px]">
+                  <FieldLabel htmlFor="housekeeper-rates-hourly">
+                    {t('settings.myRates.hourlyRate', 'Taux horaire')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="housekeeper-rates-hourly"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      className="tabular-nums"
+                      value={hourly}
+                      onChange={(e) => setHourly(e.target.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>€/h</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
                 <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                   {t('settings.myRates.referenceRate', 'Taux de référence plateforme')} : {data.referenceHourlyRate} €/h
                 </p>
@@ -182,16 +194,24 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                         <p className="cn-text-body1 flex-1 min-w-[140px] text-[13px] font-semibold text-[var(--ink)]">
                           {property.propertyName}
                         </p>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={raw}
-                          placeholder={String(property.advisoryRecommended)}
-                          onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                          inputProps={{ min: 0, step: 1 }}
-                          InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                          sx={{ ...NUM_SX, width: 130 }}
-                        />
+                        {/* Champ sans libelle visible (le nom du logement est a
+                            gauche) : l'aria-label reste la seule etiquette. */}
+                        <InputGroup className="w-[130px]">
+                          <InputGroupInput
+                            id={`housekeeper-rates-flat-${property.propertyId}`}
+                            type="number"
+                            min={0}
+                            step={1}
+                            className="tabular-nums"
+                            aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
+                            value={raw}
+                            placeholder={String(property.advisoryRecommended)}
+                            onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
+                          />
+                          <InputGroupAddon align="inline-end">
+                            <InputGroupText>€</InputGroupText>
+                          </InputGroupAddon>
+                        </InputGroup>
                         <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums whitespace-nowrap">
                           {property.advisoryMin}–{property.advisoryMax} €
                         </p>

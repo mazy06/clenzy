@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { Spinner } from '../../components/ui';
-import { Switch, TextField, Alert, Snackbar } from '@mui/material';
+import { Switch, Alert, Snackbar } from '@mui/material';
+import { Input } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -206,27 +207,30 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
 
         {/* Grace period */}
         <div className="p-2 rounded-[8px] border border-[var(--line)]">
-          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
+          {/* Le titre du bloc fait office de libelle : le champ MUI n'en portait
+              aucun, on l'associe par aria-labelledby sans toucher a la mise en page. */}
+          <p
+            id="payout-grace-period-label"
+            className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]"
+          >
             {t('settings.payoutSchedule.gracePeriod')}
           </p>
           <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-1.5">
             {t('settings.payoutSchedule.gracePeriodHelper')}
           </p>
           <div className="inline-flex items-center gap-1">
-            <TextField
+            <Input
+              id="payout-grace-period"
+              aria-labelledby="payout-grace-period-label"
+              className="w-[80px] text-center tabular-nums font-semibold"
               type="number"
+              min={0}
+              max={30}
               value={gracePeriod}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
                 if (!isNaN(val) && val >= 0 && val <= 30) setGracePeriod(val);
               }}
-              size="small"
-              inputProps={{
-                min: 0,
-                max: 30,
-                style: { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
-              }}
-              sx={{ width: 80 }}
             />
             <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
               {t('common.daysShort', 'jours')}

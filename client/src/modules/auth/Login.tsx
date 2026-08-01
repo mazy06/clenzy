@@ -1,10 +1,21 @@
 import React, { useState, useCallback } from 'react';
-import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import {
+  Alert as UiAlert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../../components/ui';
 import { CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Stack, Alert, IconButton, InputAdornment, Link } from '@mui/material';
+import { Stack, Alert, Link } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -175,14 +186,13 @@ export default function Login() {
       {/* ── Form ── */}
       <form onSubmit={handleSubmit} noValidate>
         <Stack spacing={2.5}>
-          <div>
-            <label className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
+          <Field>
+            <FieldLabel className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
               {t('auth.login.emailLabel', "Email ou nom d'utilisateur")}
-            </label>
-            <TextField
+            </FieldLabel>
+            <Input
               id="login-email"
-              fullWidth
-              size="medium"
+              className="w-full"
               placeholder={t('auth.login.emailPlaceholder', 'vous@exemple.com')}
               type="text"
               value={email}
@@ -192,13 +202,13 @@ export default function Login() {
               autoComplete="username"
               autoFocus
             />
-          </div>
+          </Field>
 
-          <div>
+          <Field>
             <div className="flex justify-between items-baseline mb-1">
-              <label className="cn-text-body2 font-semibold text-[0.8125rem]" htmlFor="login-password">
+              <FieldLabel className="cn-text-body2 font-semibold text-[0.8125rem]" htmlFor="login-password">
                 {t('auth.login.passwordLabel', 'Mot de passe')}
-              </label>
+              </FieldLabel>
               <Link
                 component={RouterLink}
                 to="/forgot-password"
@@ -213,39 +223,36 @@ export default function Login() {
                 {t('auth.login.forgotPassword', 'Mot de passe oublié ?')}
               </Link>
             </div>
-            <TextField
-              id="login-password"
-              fullWidth
-              size="medium"
-              placeholder={t('auth.login.passwordPlaceholder', 'Votre mot de passe')}
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              autoComplete="current-password"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={
-                        showPassword
-                          ? t('auth.login.hidePassword', 'Masquer le mot de passe')
-                          : t('auth.login.showPassword', 'Afficher le mot de passe')
-                      }
-                      onClick={() => setShowPassword(!showPassword)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      edge="end"
-                      size="small"
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </div>
+            <InputGroup>
+              <InputGroupInput
+                id="login-password"
+                placeholder={t('auth.login.passwordPlaceholder', 'Votre mot de passe')}
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="current-password"
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={
+                    showPassword
+                      ? t('auth.login.hidePassword', 'Masquer le mot de passe')
+                      : t('auth.login.showPassword', 'Afficher le mot de passe')
+                  }
+                  onClick={() => setShowPassword(!showPassword)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="text-[var(--muted)]"
+                >
+                  {showPassword
+                    ? <VisibilityOff size={16} strokeWidth={1.75} />
+                    : <Visibility size={16} strokeWidth={1.75} />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
 
           {error && (
             <Alert

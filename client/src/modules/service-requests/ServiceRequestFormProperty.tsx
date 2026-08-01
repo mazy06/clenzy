@@ -2,7 +2,8 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText, TextField } from '@mui/material';
+import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import {
   Home,
   Person,
@@ -217,24 +218,27 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
             name="title"
             control={control}
             render={({ field, fieldState }) => (
-              <FormControl fullWidth error={!!fieldState.error}>
-                <InputLabel shrink>
+              <Field>
+                <FieldLabel htmlFor="service-request-title">
                   {t('serviceRequests.fields.title')} *
-                </InputLabel>
-                <TextField
-                  {...field}
-                  fullWidth
+                </FieldLabel>
+                {/* field.ref n'est pas transmis : les primitives du kit sont des
+                    composants fonction sans forwardRef (React 18), le passer
+                    declencherait un avertissement sans jamais s'attacher. */}
+                <Input
+                  id="service-request-title"
+                  className="w-full"
+                  name={field.name}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                   disabled={disabled}
+                  required
                   placeholder={t('serviceRequests.fields.titlePlaceholder')}
-                  size="small"
-                  error={!!fieldState.error}
-                  InputLabelProps={{ shrink: true }}
-                  label={`${t('serviceRequests.fields.title')} *`}
+                  aria-invalid={!!fieldState.error}
                 />
-                {fieldState.error && (
-                  <FormHelperText>{fieldState.error.message}</FormHelperText>
-                )}
-              </FormControl>
+                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+              </Field>
             )}
           />
         </div>

@@ -2,7 +2,8 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, IconButton } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import { Close, CheckCircle, Science } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useConnectChannel, useTestChannelConnection } from '../../hooks/useChannelConnections';
@@ -134,19 +135,21 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
         </p>
 
         <div className="flex flex-col gap-3">
-          {fields.map((field) => (
-            <TextField
-              key={field.key}
-              label={t(field.labelKey)}
-              type={field.type}
-              value={formData[field.key] ?? ''}
-              onChange={(e) => handleFieldChange(field.key, e.target.value)}
-              required={field.required}
-              placeholder={field.placeholder}
-              size="small"
-              fullWidth
-              autoComplete="off"
-            />
+          {fields.map((credential) => (
+            // L'identifiant derive de la cle du credential : stable et unique dans
+            // la modale, contrairement a l'index de la boucle.
+            <Field key={credential.key}>
+              <FieldLabel htmlFor={`channel-cred-${credential.key}`}>{t(credential.labelKey)}</FieldLabel>
+              <Input
+                id={`channel-cred-${credential.key}`}
+                type={credential.type}
+                value={formData[credential.key] ?? ''}
+                onChange={(e) => handleFieldChange(credential.key, e.target.value)}
+                required={credential.required}
+                placeholder={credential.placeholder}
+                autoComplete="off"
+              />
+            </Field>
           ))}
         </div>
 

@@ -4,7 +4,8 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent } from '@mui/material';
+import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
+import { Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel, Skeleton, Tabs, Tab, Card, CardContent } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -587,16 +588,18 @@ export const PayoutsTab: React.FC = () => {
               {t('accounting.paySubtitle', 'Payout')} #{payTarget.id} — {fmtCurrency(payTarget.netAmount)}
             </p>
           )}
-          <TextField
-            label={t('accounting.form.payRef', 'Reference de paiement')}
-            size="small"
-            fullWidth
-            value={payRef}
-            onChange={(e) => setPayRef(e.target.value)}
-            placeholder="VIR-2024-001, CB-xxx..."
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="payout-payment-ref">
+              {t('accounting.form.payRef', 'Reference de paiement')}
+            </FieldLabel>
+            <Input
+              id="payout-payment-ref"
+              className="w-full text-[0.8125rem]"
+              value={payRef}
+              onChange={(e) => setPayRef(e.target.value)}
+              placeholder="VIR-2024-001, CB-xxx..."
+            />
+          </Field>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
@@ -1196,38 +1199,46 @@ export const ExpensesTab: React.FC = () => {
             </FormControl>
           </div>
 
-          <TextField
-            label={t('accounting.expenses.description', 'Description')}
-            size="small"
-            fullWidth
-            value={form.description ?? ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-description">
+              {t('accounting.expenses.description', 'Description')}
+            </FieldLabel>
+            <Input
+              id="expense-description"
+              className="w-full text-[0.8125rem]"
+              value={form.description ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+          </Field>
 
           <div className="flex gap-2">
-            <TextField
-              label={t('accounting.expenses.amountHt', 'Montant HT')}
-              type="number"
-              size="small"
-              fullWidth
-              value={form.amountHt ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, amountHt: parseFloat(e.target.value) || 0 }))}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-            />
-            <TextField
-              label={t('accounting.expenses.taxRate', 'TVA %')}
-              type="number"
-              size="small"
-              sx={{ width: 120 }}
-              value={form.taxRate != null ? (form.taxRate * 100).toFixed(0) : ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, taxRate: (parseFloat(e.target.value) || 0) / 100 }))}
-              inputProps={{ min: 0, max: 100, step: 1 }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-            />
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-amount-ht">
+                {t('accounting.expenses.amountHt', 'Montant HT')}
+              </FieldLabel>
+              <Input
+                id="expense-amount-ht"
+                type="number"
+                className="w-full text-[0.8125rem]"
+                value={form.amountHt ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, amountHt: parseFloat(e.target.value) || 0 }))}
+              />
+            </Field>
+            <Field className="w-[120px] shrink-0">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-tax-rate">
+                {t('accounting.expenses.taxRate', 'TVA %')}
+              </FieldLabel>
+              <Input
+                id="expense-tax-rate"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                className="w-full text-[0.8125rem]"
+                value={form.taxRate != null ? (form.taxRate * 100).toFixed(0) : ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, taxRate: (parseFloat(e.target.value) || 0) / 100 }))}
+              />
+            </Field>
             <p className="cn-text-body1 self-center text-[0.8125rem] font-semibold min-w-[100px]">
               TTC: {fmtCurrency((form.amountHt ?? 0) * (1 + (form.taxRate ?? 0)))}
             </p>
@@ -1249,39 +1260,44 @@ export const ExpensesTab: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label={t('accounting.expenses.date', 'Date')}
-              type="date"
-              size="small"
-              fullWidth
-              value={form.expenseDate ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, expenseDate: e.target.value }))}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-date">
+                {t('accounting.expenses.date', 'Date')}
+              </FieldLabel>
+              <Input
+                id="expense-date"
+                type="date"
+                className="w-full text-[0.8125rem]"
+                value={form.expenseDate ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, expenseDate: e.target.value }))}
+              />
+            </Field>
           </div>
 
-          <TextField
-            label={t('accounting.expenses.invoiceRef', 'Ref. facture')}
-            size="small"
-            fullWidth
-            value={form.invoiceReference ?? ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, invoiceReference: e.target.value }))}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-invoice-ref">
+              {t('accounting.expenses.invoiceRef', 'Ref. facture')}
+            </FieldLabel>
+            <Input
+              id="expense-invoice-ref"
+              className="w-full text-[0.8125rem]"
+              value={form.invoiceReference ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, invoiceReference: e.target.value }))}
+            />
+          </Field>
 
-          <TextField
-            label={t('accounting.expenses.notes', 'Notes')}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            value={form.notes ?? ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-notes">
+              {t('accounting.expenses.notes', 'Notes')}
+            </FieldLabel>
+            <Textarea
+              id="expense-notes"
+              rows={2}
+              className="w-full text-[0.8125rem]"
+              value={form.notes ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+            />
+          </Field>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <BuiButton variant="ghost" size="sm" onClick={() => setCreateOpen(false)}>
@@ -1315,16 +1331,18 @@ export const ExpensesTab: React.FC = () => {
               {payTarget.description} — {fmtCurrency(payTarget.amountTtc, payTarget.currency)}
             </p>
           )}
-          <TextField
-            label={t('accounting.expenses.paymentRef', 'Reference de paiement')}
-            size="small"
-            fullWidth
-            value={payRef}
-            onChange={(e) => setPayRef(e.target.value)}
-            placeholder="VIR-2024-001, CB-xxx..."
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-payment-ref">
+              {t('accounting.expenses.paymentRef', 'Reference de paiement')}
+            </FieldLabel>
+            <Input
+              id="expense-payment-ref"
+              className="w-full text-[0.8125rem]"
+              value={payRef}
+              onChange={(e) => setPayRef(e.target.value)}
+              placeholder="VIR-2024-001, CB-xxx..."
+            />
+          </Field>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
@@ -1478,24 +1496,24 @@ export const ExportsTab: React.FC = () => {
           {t('accounting.exports.period', 'Periode d\'export')}
         </p>
         <div className="flex gap-3 flex-wrap items-center">
-          <TextField
-            type="date"
-            label={t('accounting.exports.from', 'Du')}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 160 }}
-          />
-          <TextField
-            type="date"
-            label={t('accounting.exports.to', 'Au')}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 160 }}
-          />
+          <Field className="w-auto min-w-[160px]">
+            <FieldLabel htmlFor="export-period-from">{t('accounting.exports.from', 'Du')}</FieldLabel>
+            <Input
+              id="export-period-from"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </Field>
+          <Field className="w-auto min-w-[160px]">
+            <FieldLabel htmlFor="export-period-to">{t('accounting.exports.to', 'Au')}</FieldLabel>
+            <Input
+              id="export-period-to"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </Field>
         </div>
       </Paper>
 
