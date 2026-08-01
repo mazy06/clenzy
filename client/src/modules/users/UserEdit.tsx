@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Autocomplete } from '@mui/material';
+import { TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Autocomplete } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -418,13 +418,7 @@ const UserEdit: React.FC = () => {
             icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
             disableGrid
           >
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 2,
-              }}
-            >
+            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
               <FormControl fullWidth required size="small">
                 <InputLabel>Rôle</InputLabel>
                 <Select
@@ -487,22 +481,11 @@ const UserEdit: React.FC = () => {
                   Le statut détermine si l'utilisateur peut se connecter
                 </FormHelperText>
               </FormControl>
-            </Box>
+            </div>
 
             {/* Aperçu inline du rôle sélectionné — utilise le même badge que la liste */}
             {selectedRoleInfo && (
-              <Box
-                sx={{
-                  mt: 2,
-                  p: 1.5,
-                  borderRadius: '12px',
-                  bgcolor: 'var(--accent-soft)',
-                  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.25,
-                }}
-              >
+              <div className="mt-3 p-[9px] rounded-[12px] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)] flex items-center gap-[7.5px]">
                 <RoleIconBadge role={selectedRoleInfo.value} size={32} />
                 <div className="min-w-0">
                   <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground mb-0">
@@ -512,7 +495,7 @@ const UserEdit: React.FC = () => {
                     {selectedRoleInfo.description}
                   </p>
                 </div>
-              </Box>
+              </div>
             )}
           </DetailSection>
 
@@ -523,7 +506,7 @@ const UserEdit: React.FC = () => {
             icon={<Business size={14} strokeWidth={1.75} />}
             disableGrid
           >
-            <Box sx={{ maxWidth: { xs: '100%', md: '50%' } }}>
+            <div className="max-w-full min-[900px]:max-w-[50%]">
               <Autocomplete
                 size="small"
                 options={organizations}
@@ -571,7 +554,7 @@ const UserEdit: React.FC = () => {
               <FormHelperText sx={{ fontSize: '0.7rem', mt: 0.5 }}>
                 Organisation à laquelle l'utilisateur est rattaché
               </FormHelperText>
-            </Box>
+            </div>
           </DetailSection>
 
           {/* Changement de mot de passe — accent muted red (security cue) */}
@@ -591,13 +574,7 @@ const UserEdit: React.FC = () => {
             <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.75rem]">
               Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
             </p>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 2,
-              }}
-            >
+            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
               <TextField
                 fullWidth
                 size="small"
@@ -658,7 +635,7 @@ const UserEdit: React.FC = () => {
                   ),
                 }}
               />
-            </Box>
+            </div>
           </DetailSection>
         </div>
       </form>

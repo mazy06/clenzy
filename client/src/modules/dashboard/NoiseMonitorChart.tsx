@@ -112,7 +112,7 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
         const status = getNoiseStatus(entry.value);
         return (
           <div className="flex items-center gap-0.5 mb-0.5" key={entry.name}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
+            <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: entry.color }} />
             <p className="cn-text-body1 text-[0.6875rem] flex-1">{entry.name}</p>
             <StatusChip size="sm" tone={status.tone} label={`${entry.value} dB`} />
           </div>
@@ -368,27 +368,8 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 title={`Moy: ${prop.averageLevel} dB | Max: ${prop.maxLevel} dB`}
                 arrow
               >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    bgcolor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`,
-                    border: '1px solid',
-                    borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30`,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      bgcolor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length],
-                    }}
-                  />
+                <div className="flex items-center gap-[3px] px-[4.5px] py-[1.5px] rounded-[8px] border border-solid" style={{ backgroundColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`, borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30` }}>
+                  <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length] }} />
                   <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
                     {prop.propertyName}
                   </p>
@@ -399,7 +380,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                     label={`${prop.currentLevel} dB`}
                     className="text-[0.5625rem] [&>svg]:size-3"
                   />
-                </Box>
+                </div>
               </Tooltip>
             );
           })}

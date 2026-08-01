@@ -89,19 +89,12 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
       }}
     >
       {/* ── Ligne 1 : Description (gauche) + Forfaits (droite) ──────── */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 2.5,
-          alignItems: { md: 'flex-start' },
-        }}
-      >
+      <div className="flex flex-col min-[900px]:flex-row gap-[15px] min-[900px]:items-start">
         {/* Colonne gauche : icone + texte descriptif */}
-        <Box sx={{ display: 'flex', gap: 2, flex: '1 1 0', minWidth: 0 }}>
+        <div className="flex gap-3 flex-[1_1_0] min-w-0">
           {/* Icone cercle */}
           <div className="w-[48px] h-[48px] rounded-[50%] bg-[rgba(107,138,154,0.08)] flex items-center justify-center shrink-0">
-            <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><CalendarIcon size={24} strokeWidth={1.75} /></Box>
+            <span className="inline-flex" style={{ color: C.primary }}><CalendarIcon size={24} strokeWidth={1.75} /></span>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -117,18 +110,10 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
               forfait Confort pour automatiser la gestion de vos reservations.
             </p>
           </div>
-        </Box>
+        </div>
 
         {/* Colonne droite : 3 forfaits cote a cote */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1.5,
-            flex: '1 1 0',
-            minWidth: 0,
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex gap-[9px] flex-[1_1_0] min-w-0 shrink-0">
           {Object.entries(FORFAITS).map(([key, { label, features, highlight }]) => {
             const isCurrent = key === currentForfait?.toLowerCase();
             return (
@@ -182,16 +167,9 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 </Typography>
                 {features.map((f) => (
                   <div className="flex items-center gap-1 mb-0.5" key={f}>
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        color: highlight ? C.primary : isCurrent ? 'text.disabled' : C.primaryLight,
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="inline-flex shrink-0" style={{ color: highlight ? C.primary : isCurrent ? 'text.disabled' : C.primaryLight }}>
                       <CheckIcon size={13} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                     <Typography
                       variant="caption"
                       sx={{
@@ -208,8 +186,8 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
               </Box>
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ── Ligne 2 : Boutons CTA en dessous ────────────────────────── */}
       <div className="flex gap-2 items-center flex-wrap">

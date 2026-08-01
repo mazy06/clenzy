@@ -94,26 +94,13 @@ interface EmptyStateProps {
 
 function EmptyState({ icon, message, action }: EmptyStateProps) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 5,
-        textAlign: 'center',
-        border: '1px dashed var(--line-2)',
-        bgcolor: 'var(--field)',
-        borderRadius: '12px',
-        flex: 1,
-      }}
-    >
+    <div className="flex flex-col items-center justify-center py-[30px] text-center border border-dashed border-[var(--line-2)] bg-[var(--field)] rounded-[12px] flex-1">
       <div className="text-muted-foreground opacity-60 mb-1.5">{icon}</div>
       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', mb: action ? 2 : 0 }}>
         {message}
       </Typography>
       {action}
-    </Box>
+    </div>
   );
 }
 
@@ -178,7 +165,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
   }
 
   const actionButtons = (
-    <Box display="flex" gap={1}>
+    <div className="flex gap-1.5">
       <Button
         variant="outlined"
         size="small"
@@ -199,7 +186,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
       >
         {t('portfolios.associateTeamsUsers')}
       </Button>
-    </Box>
+    </div>
   );
 
   return (
@@ -265,7 +252,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                         }}
                       >
                         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                          <Box display="flex" alignItems="center">
+                          <div className="flex items-center">
                             <Avatar
                               sx={{
                                 bgcolor: 'var(--accent)',
@@ -281,15 +268,15 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             >
                               {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                             </Avatar>
-                            <Box flex={1} minWidth={0}>
+                            <div className="flex-1 min-w-0">
                               <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                                 {client.firstName} {client.lastName}
                               </h6>
                               <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
                                 {client.email}
                               </span>
-                            </Box>
-                            <Box display="flex" alignItems="center" gap={0.5} ml={1}>
+                            </div>
+                            <div className="flex items-center gap-[3px] ms-1.5">
                               <StatusChip tokens={{ color: semChip(getRoleColor(client.role)).fg, bg: semChip(getRoleColor(client.role)).bg }} label={getRoleLabel(client.role)} className="text-[0.65rem]" />
                               <Tooltip title={t('portfolios.fields.reassignClient')}>
                                 <IconButton
@@ -309,15 +296,15 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                   <DeleteIcon size={16} strokeWidth={1.75} />
                                 </IconButton>
                               </Tooltip>
-                            </Box>
-                          </Box>
+                            </div>
+                          </div>
                           {client.phoneNumber && (
-                            <Box display="flex" alignItems="center" mt={0.75} ml={5.5}>
+                            <div className="flex items-center mt-[4.5px] ms-[33px]">
                               <span className="inline-flex text-muted-foreground me-0.5"><Phone size={14} strokeWidth={1.75} /></span>
                               <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                                 {client.phoneNumber}
                               </span>
-                            </Box>
+                            </div>
                           )}
                           <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.65rem]">
                             {t('portfolios.fields.associatedOn')} {formatDate(client.associatedAt)}
@@ -359,17 +346,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       const clientProperties = properties.filter(prop => prop.ownerId === client.id);
                       return (
                         <div key={client.id}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              mb: 0.75,
-                              cursor: 'pointer',
-                              '&:hover': { opacity: 0.8 },
-                            }}
-                            onClick={() => toggleClientExpansion(client.id)}
-                          >
+                          <div className="flex items-center justify-between mb-[4.5px] cursor-pointer hover:opacity-80" onClick={() => toggleClientExpansion(client.id)}>
                             <div className="flex items-center gap-1">
                               <Avatar
                                 sx={{
@@ -397,7 +374,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                 <ExpandMoreIcon size={18} strokeWidth={1.75} />
                               )}
                             </IconButton>
-                          </Box>
+                          </div>
 
                           {clientProperties.length > 0 ? (
                             expandedClients.has(client.id) ? (
@@ -414,7 +391,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                     }}
                                   >
                                     <CardContent sx={{ py: 1.25, px: 1.5, '&:last-child': { pb: 1.25 } }}>
-                                      <Box display="flex" alignItems="flex-start">
+                                      <div className="flex items-start">
                                         <Avatar
                                           sx={{
                                             bgcolor: '#7B68A818',
@@ -427,18 +404,18 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                         >
                                           <Home size={14} strokeWidth={1.75} />
                                         </Avatar>
-                                        <Box flex={1} minWidth={0}>
+                                        <div className="flex-1 min-w-0">
                                           <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
                                             {property.name}
                                           </h6>
-                                          <Box display="flex" alignItems="center">
+                                          <div className="flex items-center">
                                             <span className="inline-flex text-muted-foreground me-0.5"><LocationOn size={13} strokeWidth={1.75} /></span>
                                             <span className="cn-text-caption text-muted-foreground text-[0.7rem] truncate">
                                               {property.address}, {property.city}
                                             </span>
-                                          </Box>
-                                        </Box>
-                                        <Box display="flex" alignItems="center" gap={0.5} ml={0.5} flexWrap="wrap">
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-[3px] ms-[3px] flex-wrap">
                                           <Badge variant="secondary" className="h-[20px] text-[0.6rem]">{property.type}</Badge>
                                           {propertyTeamMap.get(property.id) ? (
                                             <StatusChip
@@ -464,8 +441,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                               <DeleteIcon size={14} strokeWidth={1.75} />
                                             </IconButton>
                                           </Tooltip>
-                                        </Box>
-                                      </Box>
+                                        </div>
+                                      </div>
                                       <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-7 text-[0.62rem]">
                                         {t('portfolios.fields.createdOn')} {formatDate(property.createdAt)}
                                       </span>
@@ -523,7 +500,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       }}
                     >
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box display="flex" alignItems="center">
+                        <div className="flex items-center">
                           <Avatar
                             sx={{
                               bgcolor: 'var(--ok-soft)',
@@ -536,14 +513,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           >
                             <Group size={16} strokeWidth={1.75} />
                           </Avatar>
-                          <Box flex={1} minWidth={0}>
+                          <div className="flex-1 min-w-0">
                             <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                               {team.name}
                             </h6>
                             <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                               {team.memberCount} {t('portfolios.fields.members')}
                             </span>
-                          </Box>
+                          </div>
                           <Tooltip title={t('portfolios.confirmations.unassignTeamTitle')}>
                             <IconButton
                               size="small"
@@ -553,7 +530,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               <DeleteIcon size={16} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
-                        </Box>
+                        </div>
                         {team.description && (
                           <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.72rem]">
                             {team.description}
@@ -607,7 +584,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       }}
                     >
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box display="flex" alignItems="center">
+                        <div className="flex items-center">
                           <Avatar
                             sx={{
                               bgcolor: 'var(--warn-soft)',
@@ -623,15 +600,15 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           >
                             {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
                           </Avatar>
-                          <Box flex={1} minWidth={0}>
+                          <div className="flex-1 min-w-0">
                             <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                               {portfolioUser.firstName} {portfolioUser.lastName}
                             </h6>
                             <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
                               {portfolioUser.email}
                             </span>
-                          </Box>
-                          <Box display="flex" alignItems="center" gap={0.5} ml={1}>
+                          </div>
+                          <div className="flex items-center gap-[3px] ms-1.5">
                             <StatusChip tokens={{ color: semChip(getRoleColor(portfolioUser.role)).fg, bg: semChip(getRoleColor(portfolioUser.role)).bg }} label={getRoleLabel(portfolioUser.role)} className="text-[0.65rem]" />
                             <Tooltip title={t('portfolios.confirmations.unassignUserTitle')}>
                               <IconButton
@@ -642,8 +619,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                 <DeleteIcon size={16} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
                           {t('portfolios.fields.associatedOn')} {formatDate(portfolioUser.assignedAt)}
                         </span>

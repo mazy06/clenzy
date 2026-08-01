@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Typography, Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, Typography, Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -256,7 +256,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
       {/* ─── KPIs (StatTile baseline) ──────────────────────────────────── */}
       {stats && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 1, mb: 2 }}>
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(160px,_1fr))] gap-1.5 mb-3">
           {summaryCards.map((card) => (
             <StatTile
               key={card.label}
@@ -267,7 +267,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               loading={isLoading}
             />
           ))}
-        </Box>
+        </div>
       )}
 
       {/* ─── Filters (panneau hairline plat) ─────────────────────────────── */}

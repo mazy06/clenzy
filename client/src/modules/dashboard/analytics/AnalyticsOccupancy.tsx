@@ -139,7 +139,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
                 </div>
               ) : (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '2px', mt: 0.5 }}>
+                <div className="flex flex-wrap gap-0.5 mt-[3px]">
                   {data.heatmap.map((day) => (
                     <Box
                       key={day.date}
@@ -154,7 +154,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                       title={`${day.date}: ${Math.round(day.rate * 100)}%`}
                     />
                   ))}
-                </Box>
+                </div>
               )}
               {/* Legend */}
               <div className="flex gap-1 mt-1 items-center">
@@ -166,7 +166,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                   { label: '100%', color: '#4A9B8E' },
                 ].map((item) => (
                   <div className="flex items-center gap-0.5" key={item.label}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: item.color }} />
+                    <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: item.color }} />
                     <p className="cn-text-body1 text-[0.5rem] text-muted-foreground opacity-60">{item.label}</p>
                   </div>
                 ))}

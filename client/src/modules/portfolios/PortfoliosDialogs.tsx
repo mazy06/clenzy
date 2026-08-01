@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
 import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
@@ -66,12 +66,12 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
           borderColor: 'divider',
         }}
       >
-        <Box display="flex" alignItems="center" gap={1}>
+        <div className="flex items-center gap-1.5">
           <SwapHorizIcon color="primary" size={22} strokeWidth={1.75} />
           <div className="cn-text-h6 text-[1rem] font-semibold">
             {t('portfolios.fields.reassignClient')}
           </div>
-        </Box>
+        </div>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
           <CloseIcon fontSize="small" />
         </IconButton>

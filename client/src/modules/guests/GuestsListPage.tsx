@@ -250,24 +250,9 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                     <TableCell>
                       {/* Avatar initiales display r13 (densité table → 34) + nom */}
                       <div className="flex items-center gap-2">
-                        <Box
-                          sx={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: '13px',
-                            flexShrink: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            color: '#fff',
-                            bgcolor: avatarColor(guest.fullName || '?'),
-                          }}
-                        >
+                        <div className="w-[34px] h-[34px] rounded-[13px] shrink-0 flex items-center justify-center font-semibold text-[12.5px] text-[#fff]" style={{ fontFamily: 'var(--font-display)', backgroundColor: avatarColor(guest.fullName || '?') }}>
                           {initialsOf(guest.fullName || '?')}
-                        </Box>
+                        </div>
                         <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">
                           {guest.fullName}
                         </p>

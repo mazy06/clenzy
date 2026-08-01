@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, alpha } from '@mui/material';
+import { alpha } from '@mui/material';
 import {
   RoleSuperAdmin,
   RoleSuperManager,
@@ -90,21 +90,8 @@ export const RoleIconBadge: React.FC<{
   const entry = getRoleEntry(role);
   if (!entry) return null;
   return (
-    <Box
-      sx={{
-        width: size,
-        height: size,
-        borderRadius: 0.75,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: alpha(entry.hex, 0.14),
-        color: entry.hex,
-        flexShrink: 0,
-      }}
-      aria-hidden
-    >
+    <div className="rounded-[6px] inline-flex items-center justify-center shrink-0" style={{ width: size, height: size, backgroundColor: alpha(entry.hex, 0.14), color: entry.hex }} aria-hidden>
       {entry.icon}
-    </Box>
+    </div>
   );
 };

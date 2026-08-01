@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Box, Button, Grid, Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
+import { Button, Grid, Card, CardContent, CardActions, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -343,21 +343,9 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     {/* Header — badge icône fond soft (pattern .mg-avt) */}
                     <div className="flex justify-between items-start mb-2 gap-1.5">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Box
-                          sx={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: '10px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            bgcolor: `${typeColor}1F`,
-                            color: typeColor,
-                            flexShrink: 0,
-                          }}
-                        >
+                        <div className="w-[38px] h-[38px] rounded-[10px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: `${typeColor}1F`, color: typeColor }}>
                           <TypeIcon size={18} strokeWidth={1.75} />
-                        </Box>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
                             {org.name}
@@ -508,9 +496,9 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     return (
                       <MenuItem key={t.value} value={t.value}>
                         <div className="flex items-center gap-1.5">
-                          <Box sx={{ display: 'inline-flex', color: t.hex }}>
+                          <div className="inline-flex" style={{ color: t.hex }}>
                             <TypeIcon size={16} strokeWidth={1.75} />
-                          </Box>
+                          </div>
                           <p className="cn-text-body2">{t.label}</p>
                         </div>
                       </MenuItem>

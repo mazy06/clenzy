@@ -363,32 +363,10 @@ const TeamForm: React.FC = () => {
               <CardContent sx={{ p: 0 }}>
                 {/* Bandeau catégorie : panneau plat -soft (badge icône + libellés) */}
                 {selectedCategory && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.25,
-                      px: 1.5,
-                      py: 1.25,
-                      backgroundColor: `${selectedCategory.color}18`,
-                      borderBottom: '1px solid var(--line)',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '10px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'var(--card)',
-                        color: selectedCategory.color,
-                        flexShrink: 0,
-                      }}
-                    >
+                  <div className="flex items-center gap-[7.5px] px-[9px] py-[7.5px]" style={{ backgroundColor: `${selectedCategory.color}18`, borderBottom: '1px solid var(--line)' }}>
+                    <div className="w-[36px] h-[36px] rounded-[10px] inline-flex items-center justify-center bg-[var(--card)] shrink-0" style={{ color: selectedCategory.color }}>
                       {getCategoryIcon(selectedCategory.value, 20)}
-                    </Box>
+                    </div>
                     <div className="min-w-0">
                       <span className="cn-text-caption text-[var(--ink)] font-bold text-[0.75rem] tracking-[0.5px] uppercase block">
                         {selectedCategory.label}
@@ -397,7 +375,7 @@ const TeamForm: React.FC = () => {
                         {selectedCategory.description}
                       </span>
                     </div>
-                  </Box>
+                  </div>
                 )}
 
                 <div className="p-2">
@@ -453,18 +431,12 @@ const TeamForm: React.FC = () => {
                 </div>
 
                 {zoneFields.length === 0 ? (
-                  <Box sx={{
-                    textAlign: 'center',
-                    py: 3,
-                    border: '1px dashed var(--line-2)',
-                    borderRadius: '12px',
-                    bgcolor: 'var(--field)',
-                  }}>
+                  <div className="text-center py-[18px] border border-dashed border-[var(--line-2)] rounded-[12px] bg-[var(--field)]">
                     <span className="inline-flex text-muted-foreground opacity-60 mb-0.5"><MapIcon size={32} strokeWidth={1.75} /></span>
                     <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                       {t('teams.noCoverageZones')}
                     </p>
-                  </Box>
+                  </div>
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {zoneFields.map((zoneField, index) => {
@@ -491,7 +463,7 @@ const TeamForm: React.FC = () => {
                             '&:hover': { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' },
                           }}
                         >
-                          <Box sx={{ flex: '0 0 180px', minWidth: 0 }}>
+                          <div className="flex-[0_0_180px] min-w-0">
                             <Controller
                               name={`coverageZones.${index}.country`}
                               control={control}
@@ -516,7 +488,7 @@ const TeamForm: React.FC = () => {
                                 />
                               )}
                             />
-                          </Box>
+                          </div>
 
                           {isFr ? (
                             <>
@@ -642,13 +614,7 @@ const TeamForm: React.FC = () => {
                 </div>
 
                 {fields.length === 0 ? (
-                  <Box sx={{
-                    textAlign: 'center',
-                    py: 4,
-                    border: '1px dashed var(--line-2)',
-                    borderRadius: '12px',
-                    bgcolor: 'var(--field)',
-                  }}>
+                  <div className="text-center py-6 border border-dashed border-[var(--line-2)] rounded-[12px] bg-[var(--field)]">
                     <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><GroupIcon size={36} strokeWidth={1.75} /></span>
                     <p className="cn-text-body2 text-muted-foreground mb-2 text-[0.8125rem]">
                       {t('teams.fields.noMemberAdded')}
@@ -662,7 +628,7 @@ const TeamForm: React.FC = () => {
                     >
                       {filteredUsers.length === 0 ? t('teams.fields.noUserAvailable') : t('teams.fields.addFirstMember')}
                     </Button>
-                  </Box>
+                  </div>
                 ) : (
                   <div>
                     {fields.map((field, index) => (
@@ -707,7 +673,7 @@ const TeamForm: React.FC = () => {
                         </Avatar>
 
                         {/* User select */}
-                        <Box sx={{ flex: 2, minWidth: 0 }}>
+                        <div className="flex-[2] min-w-0">
                           <Controller
                             name={`members.${index}.userId`}
                             control={control}
@@ -742,7 +708,7 @@ const TeamForm: React.FC = () => {
                               />
                             )}
                           />
-                        </Box>
+                        </div>
 
                         {/* Role select */}
                         <div className="flex-1 min-w-[120px]">

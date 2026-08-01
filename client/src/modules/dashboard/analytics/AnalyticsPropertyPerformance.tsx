@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, LinearProgress, Grid } from '@mui/material';
+import { Typography, Card, CardContent, LinearProgress, Grid } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -88,22 +88,9 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Rank + Name */}
                   <div className="flex items-center gap-1 mb-1">
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        bgcolor: index < 3 ? `${getScoreColor(prop.score)}15` : 'grey.100',
-                        color: index < 3 ? getScoreColor(prop.score) : 'text.disabled',
-                        fontSize: '0.625rem',
-                        fontWeight: 700,
-                      }}
-                    >
+                    <div className="flex items-center justify-center min-w-[22px] h-[22px] rounded-[50%] text-[0.625rem] font-bold" style={{ backgroundColor: index < 3 ? `${getScoreColor(prop.score)}15` : 'grey.100', color: index < 3 ? getScoreColor(prop.score) : 'text.disabled' }}>
                       #{index + 1}
-                    </Box>
+                    </div>
                     <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap flex-1">
                       {prop.name}
                     </p>

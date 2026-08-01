@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
   PieChart, Pie, Cell, BarChart, Bar,
@@ -121,7 +121,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {data.byChannel.map((ch) => (
                       <div className="flex items-center gap-0.5" key={ch.name}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: ch.color, flexShrink: 0 }} />
+                        <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: ch.color }} />
                         <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground">
                           {ch.name}
                         </p>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, CardContent, alpha } from '@mui/material';
+import { Card, CardContent, alpha } from '@mui/material';
 
 interface DetailSectionProps {
   /** Overline title — uppercase, short. */
@@ -61,21 +61,9 @@ const DetailSection: React.FC<DetailSectionProps> = ({
         {/* Section header */}
         <div className="flex items-center gap-1.5 mb-3">
           {icon && (
-            <Box
-              sx={{
-                width: 24,
-                height: 24,
-                borderRadius: 0.75,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: alpha(accent, 0.12),
-                color: accent,
-                flexShrink: 0,
-              }}
-            >
+            <div className="w-[24px] h-[24px] rounded-[6px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: alpha(accent, 0.12), color: accent }}>
               {icon}
-            </Box>
+            </div>
           )}
           <p className="cn-text-body1 text-[10.5px] font-bold tracking-[0.06em] uppercase text-[var(--faint)] flex-1">
             {title}
@@ -89,15 +77,9 @@ const DetailSection: React.FC<DetailSectionProps> = ({
         {disableGrid ? (
           children
         ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
-              gap: 2,
-            }}
-          >
+          <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
             {children}
-          </Box>
+          </div>
         )}
       </CardContent>
     </Card>

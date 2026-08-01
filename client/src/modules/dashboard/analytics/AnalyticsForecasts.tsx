@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
@@ -132,7 +132,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
                       const colors = ['#4A9B8E', '#6B8A9A', '#C97A7A'];
                       return (
                         <div className="flex items-center gap-1" key={s.label}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors[i], flexShrink: 0 }} />
+                          <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: colors[i] }} />
                           <div className="flex-1">
                             <p className="cn-text-body1 text-[0.6875rem] font-semibold text-foreground leading-[1.2]">
                               {s.label}

@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Box, Button, Grid, Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
+import { Button, Grid, Card, CardContent, CardActions, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -738,9 +738,9 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     return (
                       <MenuItem key={role.value} value={role.value}>
                         <div className="flex items-center gap-1.5">
-                          <Box sx={{ display: 'inline-flex', color: role.hex }}>
+                          <div className="inline-flex" style={{ color: role.hex }}>
                             <RoleIcon size={16} strokeWidth={1.75} />
-                          </Box>
+                          </div>
                           <p className="cn-text-body2">{role.label}</p>
                         </div>
                       </MenuItem>

@@ -59,15 +59,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
       }}
     >
       <CardContent sx={{ p: { xs: 2, md: 2.75 }, '&:last-child': { pb: { xs: 2, md: 2.75 } } }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: { xs: 'flex-start', md: 'center' },
-            justifyContent: 'space-between',
-            gap: 2,
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="flex items-start min-[900px]:items-center justify-between gap-3 flex-wrap">
           {/* Identity */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="relative shrink-0">
@@ -134,7 +126,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
                 </span>} />
             <StatusChip tokens={{ color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg, bg: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg }} label={statusInfo.label} />
           </div>
-        </Box>
+        </div>
 
         {/* Meta row — replaces the 3-up centered KPI tiles. */}
         <Box

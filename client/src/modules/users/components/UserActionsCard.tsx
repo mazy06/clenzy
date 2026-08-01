@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Button } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Button } from '@mui/material';
 import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
 
@@ -20,16 +21,10 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
   if (!lockoutStatus.isLocked && lockoutStatus.failedAttempts === 0) return null;
 
   return (
-    <Box sx={{
-      border: '1px solid',
-      borderColor: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)',
-      borderRadius: '12px',
-      p: 2,
-      bgcolor: lockoutStatus.isLocked ? 'var(--err-soft)' : 'var(--warn-soft)',
-    }}>
+    <div className={cn('border border-solid rounded-[12px] p-3', lockoutStatus.isLocked ? 'border-[var(--err)]' : 'border-[var(--warn)]', lockoutStatus.isLocked ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]')}>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-1.5">
-            <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)' }}><Lock size={20} strokeWidth={1.75} /></Box>
+            <span className={cn('inline-flex', lockoutStatus.isLocked ? 'text-[var(--err)]' : 'text-[var(--warn)]')}><Lock size={20} strokeWidth={1.75} /></span>
             <div>
               <p className="cn-text-body2 font-semibold">
                 {lockoutStatus.isLocked
@@ -59,7 +54,7 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
             {unlocking ? 'Deblocage...' : 'Debloquer'}
           </Button>
         </div>
-    </Box>
+    </div>
   );
 };
 

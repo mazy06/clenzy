@@ -1,6 +1,6 @@
 import React from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
+import { Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
 import {
   Assignment,
   CheckCircle,
@@ -147,9 +147,9 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
             {t('teams.workload.title')}
           </h6>
           {(() => { const c = getWorkloadHex(); return (
-            <Box sx={{ px: 1.5, py: 0.5, borderRadius: '999px', backgroundColor: `${c}18`, color: c }}>
+            <div className="px-[9px] py-[3px] rounded-[999px]" style={{ backgroundColor: `${c}18`, color: c }}>
               <span className="cn-text-caption font-semibold">{getWorkloadLabel()}</span>
-            </Box>
+            </div>
           ); })()}
         </div>
 

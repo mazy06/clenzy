@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
 import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -185,7 +186,7 @@ export default function VouchersPage({
   );
 
   return (
-    <Box sx={{ p: embedded ? 0 : 3 }}>
+    <div className={cn(embedded ? 'p-0' : 'p-[18px]')}>
       {/* Mode standalone : on rend notre propre PageHeader. */}
       {!embedded && (
         <PageHeader
@@ -200,7 +201,7 @@ export default function VouchersPage({
       {embedded && actionsContainer ? createPortal(actions, actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
-      <Box sx={{ p: embedded ? 3 : 0 }}>
+      <div className={cn(embedded ? 'p-[18px]' : 'p-0')}>
         <VoucherAnalyticsPanel />
 
         {/* Mode standalone : filter inline sous l'analytics panel. */}
@@ -258,7 +259,7 @@ export default function VouchersPage({
             </Table>
           </TableContainer>
         )}
-      </Box>
+      </div>
 
       {(creating || editing) && (
         <VoucherEditorDialog
@@ -312,7 +313,7 @@ export default function VouchersPage({
           </Alert>
         ) : undefined}
       </Snackbar>
-    </Box>
+    </div>
   );
 }
 

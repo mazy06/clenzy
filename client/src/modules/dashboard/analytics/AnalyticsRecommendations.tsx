@@ -139,16 +139,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                       +<Money value={rec.estimatedImpact} from="EUR" decimals={0} />
                     </p>
                     <StatusChip size="sm" tokens={{ color: 'text.secondary', bg: 'rgba(107, 138, 154, 0.08)' }} label={`${rec.confidence}%`} className="text-[0.5625rem]" />
-                    <Box
-                      sx={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        bgcolor: PRIORITY_COLORS[rec.priority],
-                        ml: 'auto',
-                      }}
-                      title={rec.priority}
-                    />
+                    <div className="w-[6px] h-[6px] rounded-[50%] ms-auto" style={{ backgroundColor: PRIORITY_COLORS[rec.priority] }} title={rec.priority} />
                   </div>
                 </CardContent>
               </Card>

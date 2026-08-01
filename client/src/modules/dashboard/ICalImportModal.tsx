@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
@@ -124,16 +125,7 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
       return (
         <React.Fragment key={label}>
           {idx > 0 && (
-            <Box
-              sx={{
-                width: 48,
-                height: 2,
-                backgroundColor: isDone ? 'var(--accent)' : 'var(--line)',
-                mx: 0.5,
-                borderRadius: 1,
-                transition: 'background-color 0.3s',
-              }}
-            />
+            <div className={cn('w-[48px] h-[2px] mx-[3px] rounded-[8px]', isDone ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ transition: 'background-color 0.3s' }} />
           )}
           <div className="flex flex-col items-center gap-0.5">
             <Box
@@ -392,7 +384,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       />
 
       {/* 2-column grid — champs principaux */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
         {/* Proprietaire */}
         {canChangeOwner ? (
           <TextField
@@ -481,7 +473,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             </MenuItem>
           )}
         </TextField>
-      </Box>
+      </div>
 
       {/* Menage automatique — ligne inline legere */}
       <div className="flex items-center gap-1.5 py-0.5 cursor-pointer" onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}>
@@ -640,23 +632,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     return (
       <div className="flex flex-col gap-3.5 items-center py-4">
         {/* Success/Warning icon */}
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: hasErrors ? 'rgba(255, 152, 0, 0.08)' : 'rgba(76, 175, 80, 0.08)',
-          }}
-        >
+        <div className={cn('w-[64px] h-[64px] rounded-[50%] flex items-center justify-center', hasErrors ? 'bg-[rgba(255,_152,_0,_0.08)]' : 'bg-[rgba(76,_175,_80,_0.08)]')}>
           {!hasErrors ? (
             <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={36} strokeWidth={1.75} /></span>
           ) : (
             <span className="inline-flex text-[var(--bui-warning-ink)]"><ErrorIcon size={36} strokeWidth={1.75} /></span>
           )}
-        </Box>
+        </div>
 
         <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
           Import terminé
@@ -738,14 +720,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           borderBottom: '1px solid var(--line)',
         }}
       >
-        <Box display="flex" alignItems="center" gap={1}>
+        <div className="flex items-center gap-1.5">
           <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center bg-[var(--accent-soft)]">
             <span className="inline-flex text-[var(--accent)]"><CalendarIcon size={18} strokeWidth={1.75} /></span>
           </div>
           <h6 className="cn-text-subtitle1 font-bold text-[0.9375rem] text-[var(--ink)]">
             Import Calendrier iCal
           </h6>
-        </Box>
+        </div>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--err)', backgroundColor: 'var(--hover)' } }}>
           <CloseIcon size={18} strokeWidth={1.75} />
         </IconButton>

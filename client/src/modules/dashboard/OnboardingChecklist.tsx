@@ -479,21 +479,9 @@ const CtaSection: React.FC<CtaSectionProps> = ({
       gap: 2,
     }}
   >
-    <Box
-      sx={{
-        width: 36,
-        height: 36,
-        borderRadius: 'var(--radius-md)',
-        background: gradient,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)`,
-      }}
-    >
+    <div className="w-[36px] h-[36px] rounded-[var(--radius-md)] flex items-center justify-center shrink-0" style={{ background: gradient, boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)` }}>
       {icon}
-    </Box>
+    </div>
     <div className="flex-1 min-w-0">
       <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground leading-[1.3]">
         {title}
