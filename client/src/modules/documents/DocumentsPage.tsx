@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
+import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   ViewList,
   ChatBubbleOutline,
@@ -237,6 +237,15 @@ const DocumentsPage: React.FC = () => {
           title={title}
           subtitle={subtitle}
           iconBadge={<Description />}
+          // Le badge d'echecs de la projection, sur le titre : meme compteur
+          // que la pastille de l'onglet Historique, masque a zero.
+          titleAdornment={
+            failedCount > 0 ? (
+              <Badge variant="destructive">
+                {t('documents.failedBadge', { count: failedCount, defaultValue: '{{count}} échecs' })}
+              </Badge>
+            ) : undefined
+          }
           backPath="/dashboard"
           showBackButton={false}
           actions={headerActionsPortal}

@@ -4753,7 +4753,13 @@
       "locked": "مقفل",
       "countryChanged": "تم تحديث بلد الامتثال بنجاح",
       "countryChangeError": "خطأ أثناء تغيير بلد الامتثال"
-    }
+    },
+    "failedBadge_zero": "لا إخفاقات",
+    "failedBadge_one": "إخفاق واحد",
+    "failedBadge_two": "إخفاقان",
+    "failedBadge_few": "{{count}} إخفاقات",
+    "failedBadge_many": "{{count}} إخفاقًا",
+    "failedBadge_other": "{{count}} إخفاق"
   },
   "messaging": {
     "whatsappStatus": {

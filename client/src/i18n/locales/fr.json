@@ -4772,7 +4772,9 @@
       "locked": "Verrouille",
       "countryChanged": "Pays de conformite mis a jour avec succes",
       "countryChangeError": "Erreur lors du changement de pays de conformite"
-    }
+    },
+    "failedBadge_one": "{{count}} échec",
+    "failedBadge_other": "{{count}} échecs"
   },
   "messaging": {
     "whatsappStatus": {

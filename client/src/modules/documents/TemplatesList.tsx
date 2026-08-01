@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTemplates, useActivateTemplate, useDeleteTemplate } from './hooks/useDocuments';
 import TemplateUpload from './TemplateUpload';
+import { Upload as UploadIcon } from '../../icons';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import EmptyState from '../../components/EmptyState';
 
@@ -85,11 +86,23 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
         </AlertAction>
       </Alert>}
 
+      {/* ─── Zone d'import de la projection : l'entree principale de l'onglet,
+          plus seulement un bouton d'en-tete. ── */}
+      <button
+        type="button"
+        onClick={() => setUploadOpen(true)}
+        className="mb-3 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border p-4 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <UploadIcon size={20} strokeWidth={1.75} />
+        <span className="text-sm font-medium">Importer un template .odt</span>
+        <span className="text-2xs">{'Variables {{...}} remplacées à la génération · 10 Mo max'}</span>
+      </button>
+
       {templates.length === 0 ? (
         <EmptyState
           icon={<Description />}
           title="Aucun template"
-          description='Cliquez sur "Nouveau template" pour en ajouter un.'
+          description="Importez un premier template .odt : il devient un document généré automatiquement (facture, attestation, état des lieux)."
         />
       ) : (
         /* ── Cartes hairline r14 avec overline (type) ── */

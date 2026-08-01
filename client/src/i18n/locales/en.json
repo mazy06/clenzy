@@ -4750,7 +4750,9 @@
       "locked": "Locked",
       "countryChanged": "Compliance country updated successfully",
       "countryChangeError": "Error updating compliance country"
-    }
+    },
+    "failedBadge_one": "{{count}} failure",
+    "failedBadge_other": "{{count}} failures"
   },
   "messaging": {
     "whatsappStatus": {
