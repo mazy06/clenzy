@@ -4626,6 +4626,13 @@
       "notAvailable": "La synchronisation sortante des prix sera disponible prochainement.",
       "success": "Prix synchronises avec succes vers Airbnb",
       "error": "Erreur lors de la synchronisation des prix"
+    },
+    "health": {
+      "ok": "Channel manager opérationnel",
+      "errors_one": "{{count}} logement en erreur de synchronisation",
+      "errors_other": "{{count}} logements en erreur de synchronisation",
+      "detail": "{{active}}/{{total}} mappings actifs · calculé à {{time}}",
+      "journal": "Journal de sync"
     }
   },
   "systemEmailTemplates": {

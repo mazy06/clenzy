@@ -36,6 +36,7 @@ import AirbnbConnectionDetails from './AirbnbConnectionDetails';
 import AirbnbListingsSection from './AirbnbListingsSection';
 import AirbnbSyncStatusSection from './AirbnbSyncStatusSection';
 import ChannelDisconnectDialog from './ChannelDisconnectDialog';
+import ChannelManagerHealthBanner from './ChannelManagerHealthBanner';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -239,6 +240,10 @@ const ChannelsPage: React.FC = () => {
           </div>
         }
       />
+
+      {/* Bandeau de sante du channel manager (projection) — silencieux sans
+          mapping Channex ou sans le droit de lecture. */}
+      <ChannelManagerHealthBanner />
 
       {(connectionError || connectionQueryError) && (
         <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">

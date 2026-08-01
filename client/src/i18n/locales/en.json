@@ -4604,6 +4604,13 @@
       "lastSync": "Last sync",
       "externalId": "External ID",
       "status": "Status"
+    },
+    "health": {
+      "ok": "Channel manager operational",
+      "errors_one": "{{count}} property with sync errors",
+      "errors_other": "{{count}} properties with sync errors",
+      "detail": "{{active}}/{{total}} active mappings · computed at {{time}}",
+      "journal": "Sync journal"
     }
   },
   "systemEmailTemplates": {
