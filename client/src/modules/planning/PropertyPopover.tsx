@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Button, LinearProgress, Popover, Typography, useMediaQuery } from '@mui/material';
+import { Button, LinearProgress, Popover, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -343,9 +343,9 @@ function StatPill({
           {label}
         </span>
       </div>
-      <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+      <p className={cn('cn-text-body1 text-[11.5px] font-semibold leading-[1.2] tabular-nums', highlight ? 'text-[var(--ok)]' : 'text-[var(--ink)]')}>
         {value}
-      </Typography>
+      </p>
     </div>
   );
 }

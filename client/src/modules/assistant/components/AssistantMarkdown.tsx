@@ -1,8 +1,9 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { isArabicHeavy, arabicTextSx, arabicDirProp } from '../../../utils/textDirection';
 
 interface AssistantMarkdownProps {
@@ -34,18 +35,9 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
   const components: Components = React.useMemo(() => ({
     // Paragraphes : corps 13px aligne avec la bulle assistant
     p: ({ children }) => (
-      <Typography
-        component="p"
-        sx={{
-          fontSize: 13,
-          lineHeight: 1.6,
-          color: 'var(--body)',
-          mb: 1,
-          '&:last-child': { mb: 0 },
-        }}
-      >
+      <p className="cn-text-body1 text-[13px] leading-[1.6] text-[var(--body)] mb-1.5 last:mb-0">
         {children}
-      </Typography>
+      </p>
     ),
 
     // Liens : Router pour les routes internes, target="_blank" pour les externes

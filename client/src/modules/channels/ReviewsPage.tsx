@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Typography, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Collapse } from '@mui/material';
+import { Paper, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Collapse } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
@@ -145,7 +146,7 @@ const ReviewsPage: React.FC = () => {
             <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
               {t(`channels.reviews.${cat}`)}
             </p>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.25rem', fontWeight: 600, mt: 0.5, color: RATING_COLORS[cat] }}>{count}</Typography>
+            <p className="cn-text-body1 tabular-nums text-[1.25rem] font-semibold mt-[3px]" style={{ fontFamily: 'var(--font-display)', color: RATING_COLORS[cat] }}>{count}</p>
           </Paper>
         ))}
       </div>

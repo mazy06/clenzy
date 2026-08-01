@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
-import { Grid, Typography, TextField, Checkbox, FormControlLabel } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Grid, TextField, Checkbox, FormControlLabel } from '@mui/material';
 import {
   Euro,
   Bed,
@@ -24,6 +25,9 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+
 const CATEGORY_TITLE_SX = {
   fontSize: '0.75rem',
   fontWeight: 600,
@@ -31,9 +35,15 @@ const CATEGORY_TITLE_SX = {
   mb: 0.75,
 } as const;
 
+/** Report en classes de `CATEGORY_TITLE_SX`. */
+const CATEGORY_TITLE_CLASS = 'text-[0.75rem] font-semibold text-[var(--ink)] mb-[4.5px]';
+
 const CHECKBOX_LABEL_SX = {
   fontSize: '0.8125rem',
 } as const;
+
+/** Report en classes de `CHECKBOX_LABEL_SX`. */
+const CHECKBOX_LABEL_CLASS = 'text-[0.8125rem]';
 
 // ─── Amenities configuration ────────────────────────────────────────────────
 
@@ -60,9 +70,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
 
     return (
       <div>
-        <Typography sx={SECTION_TITLE_SX}>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
           {t('properties.characteristics')}
-        </Typography>
+        </p>
 
         <Grid container spacing={1.5}>
           <Grid item xs={6} md={4}>
@@ -208,9 +218,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
 
         {/* ─── Amenities Section ─────────────────────────────────────────── */}
         <div className="mt-4">
-          <Typography sx={SECTION_TITLE_SX}>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.amenities.title')}
-          </Typography>
+          </p>
 
           <Controller
             name="amenities"
@@ -219,9 +229,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               <div className="flex flex-col gap-3">
                 {AMENITIES_CATEGORIES.map((category) => (
                   <div key={category.key}>
-                    <Typography sx={CATEGORY_TITLE_SX}>
+                    <p className={cn(CATEGORY_TITLE_CLASS, 'cn-text-body1')}>
                       {t(`properties.amenities.categories.${category.key}`)}
-                    </Typography>
+                    </p>
                     <Grid container spacing={0.5}>
                       {category.items.map((amenity) => {
                         const checked = field.value?.includes(amenity) || false;
@@ -241,9 +251,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                                 />
                               }
                               label={
-                                <Typography sx={CHECKBOX_LABEL_SX}>
+                                <p className={cn(CHECKBOX_LABEL_CLASS, 'cn-text-body1')}>
                                   {t(`properties.amenities.items.${amenity}`)}
-                                </Typography>
+                                </p>
                               }
                             />
                           </Grid>

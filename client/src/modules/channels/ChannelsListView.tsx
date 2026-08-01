@@ -87,9 +87,9 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
             {ota.logo ? (
               <img className="h-[22px] max-w-[76px] object-contain" src={ota.logo} alt={ota.name} />
             ) : (
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.75rem', fontWeight: 700, color: ota.brandColor, letterSpacing: '-0.02em' }}>
+              <p className="cn-text-body1 text-[0.75rem] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)', color: ota.brandColor }}>
                 {ota.name}
-              </Typography>
+              </p>
             )}
           </div>
 

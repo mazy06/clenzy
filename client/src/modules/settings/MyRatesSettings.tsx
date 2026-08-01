@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Typography, TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
+import { TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,6 +30,9 @@ const SECTION_TITLE_SX = {
   color: 'var(--faint)',
   mb: 1.5,
 } as const;
+
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-[9px]';
 
 /** Chip d'état du nudge — vert doux si dans la fourchette, neutre sinon. */
 function NudgeBadge({ amount, rate }: { amount: number | null; rate: HousekeeperPropertyRate }) {
@@ -130,7 +134,7 @@ export default function MyRatesSettings() {
       {/* ── Score qualité 30 jours (MM-3D) ───────────────────────────────── */}
       {score != null && (
         <Card className="gap-0 py-0 p-3.5">
-          <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.scoreSection')}</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.scoreSection')}</p>
           <div className="flex items-baseline gap-2 flex-wrap">
             <p className="cn-text-body1 font-[var(--font-display)] text-[26px] font-semibold text-[var(--accent)] tabular-nums">
               {score.score}<span className="text-[14px] text-[var(--muted)] font-medium">/100</span>
@@ -150,7 +154,7 @@ export default function MyRatesSettings() {
 
       {/* ── Taux horaire général ─────────────────────────────────────────── */}
       <Card className="gap-0 py-0 p-3.5">
-        <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.hourlySection')}</Typography>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.hourlySection')}</p>
         <div className="flex items-center gap-3 flex-wrap">
           <TextField
             label={t('settings.myRates.hourlyRate')}
@@ -176,7 +180,7 @@ export default function MyRatesSettings() {
 
       {/* ── Forfaits par logement ────────────────────────────────────────── */}
       <Card className="gap-0 py-0 p-3.5">
-        <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.flatSection')}</Typography>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.flatSection')}</p>
         <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mb-3">
           {t('settings.myRates.flatHint')}
         </p>

@@ -198,9 +198,9 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           <p className="cn-text-body1 font-[var(--font-display)] text-[20px] font-semibold text-[var(--ink)] tracking-[-.01em]">
             {form.fullName || 'Anonyme'}
           </p>
-          <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '2px' }}>
+          <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-0.5">
             {form.subject || `Formulaire #${form.id}`}
-          </Typography>
+          </p>
           {/* .fr-dcontact : email / tél / adresse avec icônes accent */}
           <div className="flex flex-wrap items-center gap-y-[7px] gap-x-4 mt-[11px] text-[13px] text-[var(--body)] [&_svg]:text-[var(--accent)] [&_svg]:shrink-0">
             {form.email && (
@@ -229,17 +229,13 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             <span className="w-[7px] h-[7px] rounded-[50%] bg-[currentColor]" />
             {pill.label}
           </span>
-          <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '8px' }}>
+          <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-2">
             {formatFormDate(form.createdAt)}
-          </Typography>
+          </p>
           {form.ipAddress && (
-            <Typography component="span" sx={{
-              display: 'inline-block', fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--faint)', bgcolor: 'var(--field)', borderRadius: '6px',
-              p: '3px 8px', mt: '8px', fontVariantNumeric: 'tabular-nums',
-            }}>
+            <span className="cn-text-body1 inline-block text-[11px] text-[var(--faint)] bg-[var(--field)] rounded-[6px] p-[3px 8px] mt-2 tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
               IP : {form.ipAddress}
-            </Typography>
+            </span>
           )}
         </div>
       </div>

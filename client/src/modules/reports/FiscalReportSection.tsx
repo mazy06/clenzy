@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, Typography, MenuItem, TextField, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Paper, MenuItem, TextField, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   AccountBalance,
   Gavel as StepTvaIcon,
@@ -196,18 +197,9 @@ const FiscalReportSection: React.FC = () => {
                 <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-0.5">
                   {card.label}
                 </p>
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    letterSpacing: '-0.025em',
-                    fontVariantNumeric: 'tabular-nums',
-                    fontSize: card.isText ? '0.9rem' : '1.1rem',
-                    color: card.primary ? 'var(--accent)' : 'var(--ink)',
-                  }}
-                >
+                <p className={cn('cn-text-body1 font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-[var(--accent)]' : 'text-[var(--ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
                   {card.value}
-                </Typography>
+                </p>
               </Paper>
             ))}
           </div>

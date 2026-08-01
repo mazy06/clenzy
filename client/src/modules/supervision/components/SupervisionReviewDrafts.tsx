@@ -9,8 +9,9 @@
    ============================================================ */
 
 import { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Button, TextField, Typography } from '@mui/material';
+import { Button, TextField } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 
@@ -71,36 +72,26 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
 
   if (drafts.length === 0) {
     return (
-      <Typography sx={{ fontSize: 12.5, color: 'var(--muted, #6b7196)' }}>
+      <p className="cn-text-body1 text-[12.5px] text-[var(--muted,_#6b7196)]">
         {t('supervision.reviewDrafts.empty', 'Aucun brouillon de réponse en attente.')}
-      </Typography>
+      </p>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <Typography
-        sx={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '.06em',
-          textTransform: 'uppercase',
-          color: 'var(--muted, #6b7196)',
-        }}
-      >
+      <p className="cn-text-body1 text-[11px] font-bold tracking-[.06em] uppercase text-[var(--muted,_#6b7196)]">
         {t('supervision.reviewDrafts.title', 'Brouillons de réponse (IA)')}
-      </Typography>
+      </p>
       {drafts.map((review) => (
         <div className="p-[7.5px] rounded-[10px] bg-[var(--surface-2,_#f6f7fb)] border border-solid border-[var(--line,_#e6e8ef)]" key={review.id}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--muted, #6b7196)', mb: 0.5 }}>
+          <p className="cn-text-body1 text-[12px] font-bold text-[var(--muted,_#6b7196)] mb-[3px]">
             {(review.rating != null ? `${review.rating}/5 · ` : '') + (review.guestName || 'Voyageur')}
-          </Typography>
+          </p>
           {review.reviewText && (
-            <Typography
-              sx={{ fontSize: 12, color: 'var(--body, #3a3f5a)', fontStyle: 'italic', mb: 1, lineHeight: 1.4 }}
-            >
+            <p className="cn-text-body1 text-[12px] text-[var(--body,_#3a3f5a)] italic mb-1.5 leading-[1.4]">
               «&nbsp;{review.reviewText.length > 160 ? `${review.reviewText.slice(0, 160)}…` : review.reviewText}&nbsp;»
-            </Typography>
+            </p>
           )}
           <TextField
             value={edited[review.id] ?? ''}

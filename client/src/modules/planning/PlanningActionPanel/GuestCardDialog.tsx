@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useCallback } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Typography, IconButton, Divider, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, IconButton, Divider, TextField } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   Close,
@@ -247,9 +247,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     )}
                   >
                     <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
-                    <Typography sx={{ fontSize: '0.75rem', color: displayEmail ? 'text.secondary' : 'text.disabled', fontStyle: displayEmail ? 'normal' : 'italic' }}>
+                    <p className={cn('cn-text-body1 text-[0.75rem]', displayEmail ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayEmail ? 'not-italic' : 'italic')}>
                       {displayEmail || 'Ajouter un email'}
-                    </Typography>
+                    </p>
                     {onUpdateGuestInfo && (
                       <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
                     )}
@@ -287,9 +287,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     )}
                   >
                     <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
-                    <Typography sx={{ fontSize: '0.75rem', color: displayPhone ? 'text.secondary' : 'text.disabled', fontStyle: displayPhone ? 'normal' : 'italic' }}>
+                    <p className={cn('cn-text-body1 text-[0.75rem]', displayPhone ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayPhone ? 'not-italic' : 'italic')}>
                       {displayPhone || 'Ajouter un telephone'}
-                    </Typography>
+                    </p>
                     {onUpdateGuestInfo && (
                       <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
                     )}

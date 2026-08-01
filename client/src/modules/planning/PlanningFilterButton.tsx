@@ -1,12 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Typography,
-  IconButton,
-  Popover,
-  Divider,
-  Badge,
-  Tooltip,
-} from '@mui/material';
+import { IconButton, Popover, Divider, Badge, Tooltip } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   AttachMoney,
@@ -66,6 +59,9 @@ const OVERLINE_SX = {
   mb: 0.75,
   display: 'block',
 };
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[0.5625rem] font-bold text-[var(--faint)] tracking-[0.08em] mb-[4.5px] block';
 
 /** Equivalent en classes de `sigButtonSx` (= sigChipSx + BUTTON_RESET de
  *  LegendChips), hors couleurs. `chipClsFor` n'est pas exporte la-bas, d'ou la
@@ -209,9 +205,9 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
         {showLegendChips && (
           <>
             <div className="mb-3">
-              <Typography variant="overline" sx={OVERLINE_SX}>
+              <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
                 Canaux
-              </Typography>
+              </span>
               <div className="flex gap-0.5 flex-wrap">
                 <ChannelLegendChips
                   activeChannels={activeChannels}
@@ -225,9 +221,9 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
             <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
 
             <div className="mb-3">
-              <Typography variant="overline" sx={OVERLINE_SX}>
+              <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
                 Statuts
-              </Typography>
+              </span>
               <div className="flex gap-0.5 flex-wrap">
                 <StatusLegendChips
                   activeStatuses={activeStatuses}
@@ -243,9 +239,9 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
         {/* Affichage */}
         <div className="mb-1.5">
-          <Typography variant="overline" sx={OVERLINE_SX}>
+          <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
             Affichage
-          </Typography>
+          </span>
           <div className="flex gap-0.5 flex-wrap">
             {/* Interventions : chip légende (grille) — hébergée ici seulement
                 quand la toolbar ne l'affiche pas. */}
@@ -275,9 +271,9 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
           </div>
 
           {/* Animation d'urgence (briques paiement en attente / info manquante) */}
-          <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
+          <span className={cn(OVERLINE_CLASS, 'cn-text-overline mt-[9px]')}>
             Animation d'urgence
-          </Typography>
+          </span>
           <div className="flex gap-0.5 flex-wrap">
             {URGENCY_ANIMATION_OPTIONS.map((opt) => (
               <ModalToggleChip
@@ -293,22 +289,12 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
         {/* Clear all filters */}
         {(hasActiveFilters || activeFilterCount > 0) && (
           <div className="mt-2 pt-2 border-t border-[var(--line)]">
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'var(--err)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-              onClick={() => {
+            <span className="cn-text-caption text-[var(--err)] cursor-pointer font-semibold text-[0.75rem] hover:decoration-[underline]" onClick={() => {
                 onClearFilters();
                 setFilterAnchor(null);
-              }}
-            >
+              }}>
               Effacer tous les filtres
-            </Typography>
+            </span>
           </div>
         )}
       </Popover>

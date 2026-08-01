@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
+import { cn } from '../utils/cn';
 import { Typography, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../icons';
 import { useUserPreference } from '../hooks/useUserPreference';
@@ -226,17 +227,9 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
       </div>
 
       {/* Description */}
-      <Typography
-        sx={{
-          fontSize: '12.5px',
-          color: 'var(--muted)',
-          lineHeight: 1.55,
-          mb: steps.length > 0 ? 2 : 0,
-          maxWidth: '80ch',
-        }}
-      >
+      <p className={cn('cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.55] max-w-[80ch]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
         {description}
-      </Typography>
+      </p>
 
       {/* Steps — responsive grid, per-step accent breaks templating */}
       <HelpStepsGrid steps={steps} />

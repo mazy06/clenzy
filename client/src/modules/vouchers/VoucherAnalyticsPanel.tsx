@@ -1,9 +1,10 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -144,14 +145,9 @@ export default function VoucherAnalyticsPanel() {
                   </TableCell>
                   <TableCell>
                     {v.voucherCode ? (
-                      <Typography variant="body2" component="span" sx={{
-                        display: 'inline-block', fontFamily: 'var(--font-display)', fontSize: '11.5px',
-                        letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums', color: 'var(--body)',
-                        bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '6px',
-                        px: '8px', py: '3px',
-                      }}>
+                      <span className="cn-text-body2 inline-block text-[11.5px] tracking-[0.04em] tabular-nums text-[var(--body)] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[6px] px-2 py-[3px]" style={{ fontFamily: 'var(--font-display)' }}>
                         {v.voucherCode}
-                      </Typography>
+                      </span>
                     ) : (
                       <span className="cn-text-caption text-muted-foreground">
                         {t('vouchers.autoCampaign')}
@@ -196,18 +192,9 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
       <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] leading-[1.2] block">
         {label}
       </p>
-      <Typography
-        variant="h6"
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontVariantNumeric: 'tabular-nums',
-          fontWeight: 600,
-          color: emphasis ? color : 'var(--ink)',
-          mt: 0.5,
-        }}
-      >
+      <h6 className="cn-text-h6 tabular-nums font-semibold mt-[3px]" style={{ fontFamily: 'var(--font-display)', color: emphasis ? color : 'var(--ink)' }}>
         {value}
-      </Typography>
+      </h6>
     </Card>
   </Grid>
 );

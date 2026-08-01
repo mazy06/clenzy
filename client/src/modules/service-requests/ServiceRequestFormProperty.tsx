@@ -2,15 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
-import {
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  TextField,
-} from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText, TextField } from '@mui/material';
 import {
   Home,
   Person,
@@ -277,11 +269,11 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       renderValue={() => (
                         <div className="flex items-center gap-1">
                           <span className={cn('inline-flex', selectedProp ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Home size={16} strokeWidth={1.75} /></span>
-                          <Typography sx={{ fontSize: '12.5px', color: selectedProp ? 'var(--body)' : 'var(--faint)' }}>
+                          <p className={cn('cn-text-body1 text-[12.5px]', selectedProp ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
                             {selectedProp
                               ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
                               : t('serviceRequests.fields.selectProperty')}
-                          </Typography>
+                          </p>
                         </div>
                       )}
                     >
@@ -347,11 +339,11 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         renderValue={() => (
                           <div className="flex items-center gap-1">
                             <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
-                            <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
+                            <p className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
                               {hasValue
                                 ? `${selectedUser.firstName} ${selectedUser.lastName}`
                                 : t('serviceRequests.fields.selectRequestor')}
-                            </Typography>
+                            </p>
                           </div>
                         )}
                       >

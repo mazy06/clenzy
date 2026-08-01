@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Typography } from '@mui/material';
+
 
 /**
  * Donnees attendues par {@link KpiSummaryWidget}, alignees avec le tool
@@ -44,22 +44,12 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
       {/* Score header — gros chiffre display + statut */}
       {scorePct !== null && (
         <div className={cn('flex items-baseline gap-[9px] mb-3 px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--accent-soft)]')}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '2.25rem',
-              fontWeight: 600,
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.02em',
-              color: critical ? 'var(--err)' : 'var(--accent)',
-            }}
-          >
+          <p className={cn('cn-text-body1 text-[2.25rem] font-semibold leading-[1] tabular-nums tracking-[-0.02em]', critical ? 'text-[var(--err)]' : 'text-[var(--accent)]')} style={{ fontFamily: 'var(--font-display)' }}>
             {scorePct}
             <span className="text-[1.25rem] font-medium ms-0.5">
               %
             </span>
-          </Typography>
+          </p>
           <div>
             <p className="cn-text-body1 block font-bold text-[var(--faint)] text-[10.5px] uppercase tracking-[.06em]">
               Readiness score

@@ -342,33 +342,18 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                       inMonth ? 'opacity-100' : 'opacity-35',
                     )}
                   >
-                    <Typography
-                      sx={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '12px',
-                        fontWeight: isToday || isSelected ? 700 : 500,
-                        textAlign: 'right',
-                        lineHeight: 1.2,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                    <p className={cn('cn-text-body1 text-[12px] text-end leading-[1.2] tabular-nums', isToday || isSelected ? 'font-bold' : 'font-medium')} style={{ fontFamily: 'var(--font-display)' }}>
                       {d.getDate()}
-                    </Typography>
+                    </p>
                     {hasItems && (
                       <div className="flex flex-wrap gap-0.5 mt-auto">
                         {items.slice(0, 3).map((iv) => (
                           <div className={cn('w-[6px] h-[6px] rounded-[3px]', isSelected ? 'opacity-90' : 'opacity-100')} style={{ backgroundColor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg }} key={iv.id} />
                         ))}
                         {items.length > 3 && (
-                          <Typography
-                            sx={{
-                              fontSize: '0.5625rem',
-                              fontWeight: 700,
-                              color: isSelected ? 'var(--on-accent)' : 'var(--muted)',
-                            }}
-                          >
+                          <p className={cn('cn-text-body1 text-[0.5625rem] font-bold', isSelected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
                             +{items.length - 3}
-                          </Typography>
+                          </p>
                         )}
                       </div>
                     )}
@@ -530,9 +515,9 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           )}
                         </div>
                         <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} />
-                        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'right', display: { xs: 'none', sm: 'block' }, fontVariantNumeric: 'tabular-nums' }}>
+                        <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] text-end hidden min-[600px]:block tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
                           {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
-                        </Typography>
+                        </p>
                         <div className="hidden min-[600px]:inline-flex text-[var(--faint)]">
                           <ChevronRight size={16} strokeWidth={1.75} />
                         </div>

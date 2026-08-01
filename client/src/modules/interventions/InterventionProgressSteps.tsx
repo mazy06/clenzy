@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   CheckCircle as CheckCircleIcon,
@@ -142,13 +142,9 @@ const StepperHeader: React.FC<{
                 </span>
               )}
             </div>
-            <Typography
-              variant="caption"
-              fontWeight={isActive ? 700 : 500}
-              sx={{ fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.2, px: 0.25, color: isActive ? 'var(--accent)' : step.completed ? 'var(--ok)' : 'var(--muted)' }}
-            >
+            <span className={cn('cn-text-caption text-[0.7rem] text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--accent)]' : '[object Object]')}>
               {step.label}
-            </Typography>
+            </span>
           </div>
         </React.Fragment>
       );

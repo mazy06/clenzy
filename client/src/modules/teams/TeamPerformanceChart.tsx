@@ -1,6 +1,7 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Typography, Grid } from '@mui/material';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   TrendingUp,
   CalendarMonth,
@@ -115,9 +116,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
             <Grid item xs={4} key={stat.label}>
               <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {stat.icon}
-                <Typography variant="h5" fontWeight={700} sx={{ color: stat.color, mt: 0.5 }}>
+                <h5 className="cn-text-h5 font-bold mt-[3px]" style={{ color: stat.color }}>
                   {stat.value}
-                </Typography>
+                </h5>
                 <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {stat.label}
                 </span>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
-import { Box, Paper, Typography, TextField, Button, Alert, IconButton, InputAdornment, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
+import { Box, Paper, TextField, Button, Alert, IconButton, InputAdornment, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
 import {
   VpnKey as KeyIcon,
   Wifi as WifiIcon,
@@ -413,9 +414,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           </div>
           <Stack spacing={0.75} alignItems="flex-end" sx={{ minWidth: 200 }}>
             <div className="flex items-center gap-1.5">
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-semibold uppercase tracking-[0.5px]">
                 Complétude
-              </Typography>
+              </p>
               <StatusChip tokens={{ color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText', bg: stats.filled === stats.total ? '#3E9C8015' : 'primary.main' }} label={`${stats.filled}/${stats.total}`} className="h-[20px]" />
             </div>
             <LinearProgress

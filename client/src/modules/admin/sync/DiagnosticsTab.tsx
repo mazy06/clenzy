@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Typography, Grid, Card, CardContent, Divider } from '@mui/material';
+import { Skeleton, Grid, Card, CardContent, Divider } from '@mui/material';
 import {
   Hub,
   CheckCircle,
@@ -21,6 +22,9 @@ const OVERLINE_SX = {
   textTransform: 'uppercase',
   color: 'var(--faint)',
 } as const;
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]';
 
 const DiagnosticsTab: React.FC = () => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsSummary | null>(null);
@@ -109,9 +113,9 @@ const DiagnosticsTab: React.FC = () => {
           {Object.keys(diagnostics.syncLogsByStatus).length > 0 && (
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
-                <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                   Sync Logs par Status
-                </Typography>
+                </p>
                 <Grid container spacing={1}>
                   {Object.entries(diagnostics.syncLogsByStatus).map(([status, count]) => (
                     <Grid item xs={6} sm={3} key={status}>
@@ -140,9 +144,9 @@ const DiagnosticsTab: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card variant="outlined">
                 <CardContent>
-                  <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Sync Latency P95 (ms)
-                  </Typography>
+                  </p>
                   {Object.keys(metrics.syncLatencyP95).length > 0 ? (
                     Object.entries(metrics.syncLatencyP95).map(([channel, latency]) => (
                       <p className="cn-text-body2 tabular-nums" key={channel}>
@@ -160,9 +164,9 @@ const DiagnosticsTab: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card variant="outlined">
                 <CardContent>
-                  <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Sync Success / Failure
-                  </Typography>
+                  </p>
                   {Object.keys(metrics.syncSuccessCount).length > 0 || Object.keys(metrics.syncFailureCount).length > 0 ? (
                     <>
                       {Object.entries(metrics.syncSuccessCount).map(([channel, count]) => (
@@ -187,9 +191,9 @@ const DiagnosticsTab: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card variant="outlined">
                 <CardContent>
-                  <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Calendrier
-                  </Typography>
+                  </p>
                   <p className="cn-text-body2 tabular-nums">
                     Conflits: <strong>{metrics.calendarConflicts}</strong>
                   </p>

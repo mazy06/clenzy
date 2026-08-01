@@ -1,6 +1,7 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
+import { Card, CardContent, Grid, LinearProgress } from '@mui/material';
 import {
   Assignment,
   CheckCircle,
@@ -158,9 +159,9 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
             <Grid item xs={4} key={metric.label}>
               <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {metric.icon}
-                <Typography variant="h5" sx={{ color: metric.color, mt: 0.5, fontFamily: 'var(--font-display)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                <h5 className="cn-text-h5 mt-[3px] font-semibold tabular-nums" style={{ color: metric.color, fontFamily: 'var(--font-display)' }}>
                   {metric.value}
-                </Typography>
+                </h5>
                 <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {metric.label}
                 </span>
@@ -172,7 +173,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
         <div className="mb-4">
           <div className="flex justify-between items-center mb-0.5">
             <p className="cn-text-body2 font-medium">{t('teams.workload.capacity')}</p>
-            <Typography variant="body2" fontWeight={600} sx={{ color: getWorkloadColor(), fontVariantNumeric: 'tabular-nums' }}>{capacityPercent}%</Typography>
+            <p className="cn-text-body2 font-semibold tabular-nums" style={{ color: getWorkloadColor() }}>{capacityPercent}%</p>
           </div>
           <LinearProgress
             variant="determinate"

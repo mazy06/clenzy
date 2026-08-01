@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton, Typography, Grid, Card, CardContent, TextField } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton, Grid, Card, CardContent, TextField } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
@@ -41,6 +42,9 @@ const OVERLINE_SX = {
   textTransform: 'uppercase',
   color: 'var(--faint)',
 } as const;
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]';
 
 const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<SyncLog[]>([]);
@@ -143,7 +147,7 @@ const EventsTab: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card variant="outlined">
               <CardContent>
-                <Typography sx={OVERLINE_SX}>Total (24h)</Typography>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>Total (24h)</p>
                 <h4 className="cn-text-h4 text-[var(--ink)] tabular-nums">
                   {stats.totalLast24h}
                 </h4>
@@ -153,7 +157,7 @@ const EventsTab: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card variant="outlined">
               <CardContent>
-                <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Channel</Typography>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Channel</p>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
                   <p className="cn-text-body2 tabular-nums" key={ch}>
                     {ch}: {count}
@@ -168,7 +172,7 @@ const EventsTab: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card variant="outlined">
               <CardContent>
-                <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Status</Typography>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Status</p>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
                   <p className="cn-text-body2 tabular-nums" key={s}>
                     {s}: {count}

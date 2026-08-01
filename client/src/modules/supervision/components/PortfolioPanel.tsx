@@ -11,7 +11,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Typography } from '@mui/material';
+
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
 import { useResolutionToasts } from '../core/useResolutionToasts';
@@ -87,20 +87,20 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
 
           {(portfolio.orgAlerts?.length ?? 0) > 0 && (
             <div className={CARD_CLASS}>
-              <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+              <p className="cn-text-body1 p-[14px 16px 8px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
                 {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
-              </Typography>
+              </p>
               <div className="px-2 pb-2 flex flex-col gap-2">
                 {portfolio.orgAlerts!.map((a, i) => (
                   <div className="flex gap-1.5 items-start" key={i}>
                     <div className={cn('w-[8px] h-[8px] rounded-[50%] mt-[5px] shrink-0', a.severity === 'critical' ? 'bg-[var(--err,_#c0392b)]' : '[object Object]')} />
                     <div className="min-w-0">
-                      <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)', lineHeight: 1.3 }}>
+                      <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink,_#1b2240)] leading-[1.3]">
                         {a.title}
-                      </Typography>
-                      <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7280)', lineHeight: 1.35 }}>
+                      </p>
+                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted,_#6b7280)] leading-[1.35]">
                         {a.description}
-                      </Typography>
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -121,9 +121,9 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           </div>
 
           <div className={CARD_CLASS}>
-            <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+            <p className="cn-text-body1 p-[14px 16px 8px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
               {t('supervision.feed.title')}
-            </Typography>
+            </p>
             <div className="px-1.5 pb-1.5 max-h-[220px] overflow-y-auto">
               {portfolio.feed.length > 0 ? (
                 <ActivityFeed entries={portfolio.feed} />

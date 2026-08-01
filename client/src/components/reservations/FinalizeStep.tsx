@@ -88,7 +88,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
         {recapRows.map((row) => (
           <div className="flex items-baseline justify-between gap-3" key={row.label}>
             <p className="cn-text-body1 text-[12px] font-semibold text-[var(--muted)] shrink-0">{row.label}</p>
-            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{row.value}</Typography>
+            <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] text-end tabular-nums">{row.value}</p>
           </div>
         ))}
         <div className="h-px my-[2px] bg-[var(--line)]" />

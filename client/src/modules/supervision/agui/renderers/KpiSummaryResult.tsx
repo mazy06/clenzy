@@ -9,7 +9,7 @@
    ============================================================ */
 import React from 'react';
 import { cn } from '../../../../utils/cn';
-import { Typography } from '@mui/material';
+
 import { Overline } from './shared';
 
 interface Kpi {
@@ -82,22 +82,12 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
     <div className="mt-1.5 mb-2">
       {scorePct !== null && (
         <div className={cn('flex items-baseline gap-[9px] mb-[9px] px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--ok-soft)]')}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '2.25rem',
-              fontWeight: 600,
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.02em',
-              color: critical ? 'var(--err)' : 'var(--ok)',
-            }}
-          >
+          <p className={cn('cn-text-body1 text-[2.25rem] font-semibold leading-[1] tabular-nums tracking-[-0.02em]', critical ? 'text-[var(--err)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
             {scorePct}
             <span className="text-[1.25rem] font-medium ms-0.5">
               %
             </span>
-          </Typography>
+          </p>
           <div>
             <Overline>Readiness score</Overline>
             <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">

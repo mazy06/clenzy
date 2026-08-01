@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, Button, LinearProgress, Alert, Typography, Stack } from '@mui/material';
+import { TextField, Button, LinearProgress, Alert, Stack } from '@mui/material';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
 import { SettingsRounded } from '../../icons';
@@ -133,9 +134,9 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           icon={<CheckCircleOutlineRounded />}
           sx={{ mt: 2 }}
         >
-          <Typography variant="body2" fontWeight={600} sx={{ mb: extractedColors.length > 0 ? 1 : 0 }}>
+          <p className={cn('cn-text-body2 font-semibold', extractedColors.length > 0 ? 'mb-1.5' : 'mb-0')}>
             {t('bookingEngine.ai.analyzeSuccess')}
-          </Typography>
+          </p>
           {extractedColors.length > 0 && (
             <Stack direction="row" spacing={0.5} flexWrap="wrap">
               {extractedColors.map((color, idx) => (

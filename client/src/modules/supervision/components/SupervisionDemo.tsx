@@ -10,8 +10,9 @@
    - à la validation : Revenue agit sur « Léa Marchand » → comète
    ============================================================ */
 
-import { Typography } from '@mui/material';
+
 import { SupervisionView } from './SupervisionView';
+import { cn } from '../../../utils/cn';
 import { MOCK_RESERVATION_FAMILLE_ROUX, MOCK_RESERVATION_LEA_MARCHAND } from '../provider/mockData';
 
 const CELLS = [
@@ -23,14 +24,14 @@ const CELLS = [
 export function SupervisionDemo() {
   return (
     <div className="p-3 max-w-[1100px] mx-auto">
-      <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--muted, #6b7196)', mb: 1 }}>
+      <p className="cn-text-body1 text-[12px] font-bold text-[var(--muted,_#6b7196)] mb-1.5">
         Planning (démo) — cible des comètes
-      </Typography>
+      </p>
       <div className="flex gap-1.5 mb-3">
         {CELLS.map((cell) => (
           <div className="flex-1 p-[7.5px] rounded-[8px] border border-solid border-[var(--line,_#e6e8ef)]" style={{ backgroundColor: cell.bg }} key={cell.id} data-reservation-id={cell.id}>
-            <Typography sx={{ fontSize: 13, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{cell.label}</Typography>
-            <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)' }}>{cell.sub}</Typography>
+            <p className="cn-text-body1 text-[13px] font-extrabold text-[var(--ink,_#1b2240)]">{cell.label}</p>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted,_#6b7196)]">{cell.sub}</p>
           </div>
         ))}
       </div>

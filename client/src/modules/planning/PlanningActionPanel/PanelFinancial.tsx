@@ -768,17 +768,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               Reste a payer
             </p>
             <div className="flex items-center gap-1.5">
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-display)',
-                  fontVariantNumeric: 'tabular-nums',
-                  color: effectiveBalanceDue > 0 ? 'var(--warn)' : 'var(--ok)',
-                }}
-              >
+              <p className={cn('cn-text-body2 font-semibold tabular-nums', effectiveBalanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
                 <Money value={Math.max(0, effectiveBalanceDue)} from="EUR" />
-              </Typography>
+              </p>
               <StatusChip pill tokens={{ color: effectivePaymentStatusTokens.color, bg: effectivePaymentStatusTokens.bg }} label={effectivePaymentStatus} />
             </div>
           </div>
@@ -1243,7 +1235,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><Payment size={20} strokeWidth={1.75} /></span>
-            <Typography component="span" variant="inherit">Historique des paiements</Typography>
+            <span>Historique des paiements</span>
           </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
@@ -1295,9 +1287,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               )}
               <div className="flex justify-between">
                 <span className="cn-text-caption font-semibold text-[0.75rem]">Reste a payer</span>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: balanceDue > 0 ? 'var(--warn)' : 'var(--ok)' }}>
+                <span className={cn('cn-text-caption font-bold text-[0.75rem] tabular-nums', balanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')}>
                   <Money value={Math.max(0, balanceDue)} from="EUR" />
-                </Typography>
+                </span>
               </div>
             </div>
           )}
@@ -1309,7 +1301,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><Add size={20} strokeWidth={1.75} /></span>
-            <Typography component="span" variant="inherit">Ajouter un paiement</Typography>
+            <span>Ajouter un paiement</span>
           </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
@@ -1341,7 +1333,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--accent)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
-            <Typography component="span" variant="inherit">Frais supplementaires</Typography>
+            <span>Frais supplementaires</span>
           </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
@@ -1369,7 +1361,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
-            <Typography component="span" variant="inherit">Confirmer le remboursement</Typography>
+            <span>Confirmer le remboursement</span>
           </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>

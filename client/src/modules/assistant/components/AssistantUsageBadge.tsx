@@ -1,5 +1,6 @@
 import React from 'react';
-import { Tooltip, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Tooltip } from '@mui/material';
 import type { AssistantUsage } from '../../../services/api/assistantApi';
 
 interface AssistantUsageBadgeProps {
@@ -75,12 +76,9 @@ const UsageTooltipContent: React.FC<{
 
   return (
     <div className="min-w-[240px] text-[0.75rem] leading-[1.5]">
-      <Typography
-        variant="overline"
-        sx={{ fontSize: '0.625rem', letterSpacing: 0.8, fontWeight: 700, opacity: 0.7 }}
-      >
+      <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
         {periodLabel}
-      </Typography>
+      </span>
 
       <div className="flex justify-between mt-0.5">
         <span>Cout total</span>
@@ -111,12 +109,9 @@ const UsageTooltipContent: React.FC<{
       {usage.byModel.length > 0 && (
         <>
           <div className="mt-1.5 pt-[4.5px]" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)' }}>
-            <Typography
-              variant="overline"
-              sx={{ fontSize: '0.625rem', letterSpacing: 0.8, fontWeight: 700, opacity: 0.7 }}
-            >
+            <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
               Par modele
-            </Typography>
+            </span>
           </div>
           {usage.byModel.map((m) => (
             <div className="flex justify-between items-baseline" key={m.model}>

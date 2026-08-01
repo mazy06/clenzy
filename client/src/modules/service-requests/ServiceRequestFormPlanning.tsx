@@ -1,14 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import {
-  Typography,
-  TextField,
-  FormHelperText,
-  Chip,
-  Tooltip,
-  Popover,
-} from '@mui/material';
+import { TextField, FormHelperText, Chip, Tooltip, Popover } from '@mui/material';
 import {
   Timer,
   CalendarMonth,
@@ -372,9 +365,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                               >
                                 <span className={cn('inline-flex', isSelected ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><CalendarMonth size={16} strokeWidth={1.75} /></span>
                                 <div className="flex-1">
-                                  <Typography sx={{ fontSize: '12px', fontWeight: isSelected ? 600 : 500, color: isSelected ? 'var(--accent)' : 'var(--ink)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
+                                  <p className={cn('cn-text-body1 text-[12px] leading-[1.3] tabular-nums', isSelected ? 'font-semibold' : 'font-medium', isSelected ? 'text-[var(--accent)]' : 'text-[var(--ink)]')}>
                                     {formatCheckoutDateDisplay(co.checkOut, co.checkOutTime)}
-                                  </Typography>
+                                  </p>
                                   <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] leading-[1.2]">
                                     Départ {co.guestName}
                                   </p>

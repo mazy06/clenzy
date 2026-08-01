@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Tooltip } from '@mui/material';
+import { Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -388,17 +389,9 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                   <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--faint)' : category.color }}>
                     {category.icon}
                   </div>
-                  <Typography
-                    variant="body2"
-                    fontWeight={600}
-                    sx={{
-                      flex: 1,
-                      color: noneEnabled ? 'text.disabled' : 'text.primary',
-                      transition: 'color 0.2s',
-                    }}
-                  >
+                  <p className={cn('cn-text-body2 font-semibold flex-1', noneEnabled ? 'text-[var(--faint)]' : 'text-[var(--ink)]')} style={{ transition: 'color 0.2s' }}>
                     {category.label}
-                  </Typography>
+                  </p>
                   <StatusChip
                     tone={allEnabled ? 'ok' : noneEnabled ? 'neutral' : 'warn'}
                     label={`${stats.enabled}/${stats.total}`}

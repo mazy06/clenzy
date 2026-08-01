@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import { Badge } from '../../components/ui';
-import { Grid, Typography, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import { Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -238,13 +238,13 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                           ) : (
                             <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Group size={16} strokeWidth={1.75} /></span>
                           )}
-                          <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
+                          <p className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
                             {hasValue
                               ? watchedAssignedToType === 'user'
                                 ? `${(selectedItem as typeof users[number]).firstName} ${(selectedItem as typeof users[number]).lastName}`
                                 : (selectedItem as Team).name
                               : t('serviceRequests.fields.select')}
-                          </Typography>
+                          </p>
                         </div>
                       )}
                     >

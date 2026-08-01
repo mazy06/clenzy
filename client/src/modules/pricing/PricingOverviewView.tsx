@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Typography, Paper, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Paper, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -131,13 +132,9 @@ const PropertyRow: React.FC<{
           >
             {entry && entry.nightlyPrice !== null ? (
               <Tooltip title={`${entry.priceSource} - ${dateStr}`} arrow>
-                <Typography
-                  variant="caption"
-                  fontWeight={600}
-                  sx={{ color: sourceColor, cursor: 'default', fontVariantNumeric: 'tabular-nums' }}
-                >
+                <span className="cn-text-caption font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
                   {entry.nightlyPrice}
-                </Typography>
+                </span>
               </Tooltip>
             ) : (
               <span className="cn-text-caption text-muted-foreground opacity-60">

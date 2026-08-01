@@ -24,7 +24,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Typography, IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
+import { IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -68,29 +68,16 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
         <SeverityIcon severity={check.severity} />
       </div>
       <div className="min-w-0 flex-1">
-        <Typography
-          variant="body2"
-          fontWeight={isIssue ? 600 : 500}
-          sx={{ lineHeight: 1.3, color: 'text.primary' }}
-        >
+        <p className={cn('cn-text-body2 leading-[1.3] text-[var(--ink)]', isIssue ? 'font-semibold' : 'font-medium')}>
           {check.label}
-        </Typography>
+        </p>
         <span className="cn-text-caption text-muted-foreground block leading-[1.45] mt-0">
           {check.detail}
         </span>
         {check.remediation && (
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              lineHeight: 1.45,
-              mt: 0.4,
-              color: check.severity === 'BLOCKER' ? 'var(--err)' : 'var(--warn)',
-              fontStyle: 'italic',
-            }}
-          >
+          <span className={cn('cn-text-caption block leading-[1.45] mt-[2.4000000000000004px] italic', check.severity === 'BLOCKER' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
             ↳ {check.remediation}
-          </Typography>
+          </span>
         )}
       </div>
     </div>

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Button, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from '@mui/material';
+import { Button, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, useTheme } from '@mui/material';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -114,12 +115,9 @@ export default function AiCreditsSection() {
               <p className="cn-text-body2 text-muted-foreground">
                 {t('aiCredits.balanceTitle', 'Crédits IA disponibles')}
               </p>
-              <Typography
-                variant="h5"
-                sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: gaugeColor, lineHeight: 1.2 }}
-              >
+              <h5 className="cn-text-h5 tabular-nums font-semibold leading-[1.2]" style={{ color: gaugeColor }}>
                 {balance ? toCredits(balance.totalMillicredits) : '0'}
-              </Typography>
+              </h5>
             </div>
           </div>
           <div className="flex gap-1 flex-wrap">

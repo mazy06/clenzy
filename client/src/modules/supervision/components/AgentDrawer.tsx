@@ -5,7 +5,8 @@
    = répartition de l'activité de l'agent par logement (openPortfolioAgent).
    ============================================================ */
 
-import { Drawer, Typography, IconButton } from '@mui/material';
+import { Drawer, IconButton } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Close, HomeWork } from '../../../icons';
 import { AGENT_META, STATUS } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
@@ -47,8 +48,8 @@ export function AgentDrawer({
               <AgentIcon token={meta.icon} size={20} />
             </div>
             <div className="flex-1 min-w-0">
-              <Typography sx={{ fontSize: 15, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{t(meta.nameKey)}</Typography>
-              <Typography sx={{ fontSize: 12, color: 'var(--muted, #6b7196)' }}>{t(meta.roleKey)}</Typography>
+              <p className="cn-text-body1 text-[15px] font-extrabold text-[var(--ink,_#1b2240)]">{t(meta.nameKey)}</p>
+              <p className="cn-text-body1 text-[12px] text-[var(--muted,_#6b7196)]">{t(meta.roleKey)}</p>
             </div>
             <IconButton onClick={onClose} size="small" aria-label={t('supervision.states.retry')}>
               <Close size={18} />
@@ -57,20 +58,20 @@ export function AgentDrawer({
 
           <div className="flex items-center gap-1 mb-2">
             <div className="w-[8px] h-[8px] rounded-[50%]" style={{ background: STATUS[detail.status].color }} />
-            <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)' }}>
+            <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink,_#1b2240)]">
               {t(STATUS[detail.status].labelKey)}
-            </Typography>
+            </p>
           </div>
 
           {detail.task && (
-            <Typography sx={{ fontSize: 13, color: 'var(--body, #3a3f5a)', lineHeight: 1.5, mb: 2 }}>{detail.task}</Typography>
+            <p className="cn-text-body1 text-[13px] text-[var(--body,_#3a3f5a)] leading-[1.5] mb-3">{detail.task}</p>
           )}
 
           {detail.items.length > 0 ? (
             <>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted, #6b7196)', mb: 1 }}>
+              <p className="cn-text-body1 text-[11px] font-bold tracking-[.06em] uppercase text-[var(--muted,_#6b7196)] mb-1.5">
                 {t('supervision.drawer.ventilation')}
-              </Typography>
+              </p>
               <div className="flex flex-col gap-1.5">
                 {detail.items.map((item) => (
                   <div className="flex gap-1.5 p-1.5 rounded-[10px] bg-[var(--surface-2,_#f6f7fb)]" key={`${item.propertyId}-${item.task}`}>
@@ -79,11 +80,11 @@ export function AgentDrawer({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1">
-                        <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{item.propertyName}</Typography>
+                        <p className="cn-text-body1 text-[12.5px] font-extrabold text-[var(--ink,_#1b2240)]">{item.propertyName}</p>
                         <div className="w-[6px] h-[6px] rounded-[50%]" style={{ background: STATUS[item.status].color }} />
-                        <Typography sx={{ fontSize: 11, color: 'var(--muted, #6b7196)' }}>{t(STATUS[item.status].labelKey)}</Typography>
+                        <p className="cn-text-body1 text-[11px] text-[var(--muted,_#6b7196)]">{t(STATUS[item.status].labelKey)}</p>
                       </div>
-                      <Typography sx={{ fontSize: 12, color: 'var(--body, #3a3f5a)', lineHeight: 1.4 }}>{item.task}</Typography>
+                      <p className="cn-text-body1 text-[12px] text-[var(--body,_#3a3f5a)] leading-[1.4]">{item.task}</p>
                     </div>
                   </div>
                 ))}
@@ -93,15 +94,15 @@ export function AgentDrawer({
             <div className="grid grid-cols-2 gap-1.5">
               {detail.metrics.map((metric) => (
                 <div className="p-[7.5px] rounded-[10px] bg-[var(--surface-2,_#f6f7fb)]" key={metric.label}>
-                  <Typography sx={{ fontSize: 16, fontWeight: 800, color: 'var(--ink, #1b2240)', fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body1 text-[16px] font-extrabold text-[var(--ink,_#1b2240)] tabular-nums">
                     {metric.value}
-                  </Typography>
-                  <Typography sx={{ fontSize: 11, color: 'var(--muted, #6b7196)' }}>{metric.label}</Typography>
+                  </p>
+                  <p className="cn-text-body1 text-[11px] text-[var(--muted,_#6b7196)]">{metric.label}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <Typography sx={{ fontSize: 12.5, color: 'var(--muted, #6b7196)' }}>{t('supervision.drawer.noActivity')}</Typography>
+            <p className="cn-text-body1 text-[12.5px] text-[var(--muted,_#6b7196)]">{t('supervision.drawer.noActivity')}</p>
           )}
 
           {/* Agent Réputation (vue par logement) : brouillons de réponse d'avis à valider (REP). */}

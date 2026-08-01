@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Typography, Button, Snackbar } from '@mui/material';
+import { Button, Snackbar } from '@mui/material';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -237,9 +238,9 @@ export default function InterventionDetailsPage() {
           }
           extraSection={
             <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
-              <Typography sx={WORKFLOW_TITLE_SX}>
+              <p className={cn(WORKFLOW_TITLE_CLASS, 'cn-text-body1')}>
                 {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
-              </Typography>
+              </p>
               <InterventionProgressSteps
                 intervention={intervention}
                 photos={photosProps}
@@ -314,3 +315,6 @@ const WORKFLOW_TITLE_SX = {
   color: 'var(--faint)',
   mb: 1.5,
 } as const;
+
+/** Report en classes de `WORKFLOW_TITLE_SX`. */
+const WORKFLOW_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-[9px]';

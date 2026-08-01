@@ -1,5 +1,6 @@
 import React from 'react';
-import { Typography, Checkbox } from '@mui/material';
+import { cn } from '../utils/cn';
+import { Checkbox } from '@mui/material';
 import {
   Description,
   Checklist,
@@ -91,12 +92,18 @@ const TITLE_SX = {
   mb: 0.5,
 } as const;
 
+/** Report en classes de `TITLE_SX`. */
+const TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] mb-[3px]';
+
 const TEXT_SX = {
   fontSize: '11.5px',
   color: 'var(--muted)',
   lineHeight: 1.4,
   whiteSpace: 'pre-line',
 } as const;
+
+/** Report en classes de `TEXT_SX`. */
+const TEXT_CLASS = 'text-[11.5px] text-[var(--muted)] leading-[1.4] whitespace-pre-line';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -114,17 +121,17 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
         <div className={`${BOX_BASE_CLASS} bg-[var(--surface-2)] border-[var(--line)]`}>
           <span className="inline-flex text-[var(--faint)] mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
           <div className="flex-1">
-            <Typography sx={{ ...TITLE_SX, color: 'var(--faint)' }}>
+            <p className={cn(TITLE_CLASS, 'cn-text-body1 text-[var(--faint)]')}>
               Description du logement
-            </Typography>
+            </p>
             {hasDescription ? (
-              <Typography sx={TEXT_SX}>
+              <p className={cn(TEXT_CLASS, 'cn-text-body1')}>
                 {description}
-              </Typography>
+              </p>
             ) : (
-              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'var(--faint)' }}>
+              <p className={cn(TEXT_CLASS, 'cn-text-body1 italic text-[var(--faint)]')}>
                 Aucune description renseignée
-              </Typography>
+              </p>
             )}
           </div>
         </div>
@@ -136,27 +143,18 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
         >
           {config.icon}
           <div className="flex-1">
-            <Typography sx={{ ...TITLE_SX, color: config.accentColor }}>
+            <p className={cn(TITLE_CLASS, 'cn-text-body1')} style={{ color: config.accentColor }}>
               {config.title}
-            </Typography>
+            </p>
 
             {hasNotes ? (
               <div className="flex flex-col gap-0">
                 {items.map((item, i) => {
                   if (item.isTitle) {
                     return (
-                      <Typography
-                        key={i}
-                        sx={{
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          color: 'var(--body)',
-                          mt: i > 0 ? 0.75 : 0,
-                          mb: 0.25,
-                        }}
-                      >
+                      <p className={cn('cn-text-body1 text-[11.5px] font-bold text-[var(--body)] mb-[1.5px]', i > 0 ? 'mt-[4.5px]' : 'mt-0')} key={i}>
                         {item.text}
-                      </Typography>
+                      </p>
                     );
                   }
 
@@ -180,9 +178,9 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                 })}
               </div>
             ) : (
-              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'var(--faint)' }}>
+              <p className={cn(TEXT_CLASS, 'cn-text-body1 italic text-[var(--faint)]')}>
                 Aucune consigne renseignée
-              </Typography>
+              </p>
             )}
           </div>
         </div>

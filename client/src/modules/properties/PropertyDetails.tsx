@@ -112,6 +112,9 @@ const METRIC_LABEL_SX = {
   mt: '3px',
 } as const;
 
+/** Report en classes de `METRIC_LABEL_SX`. */
+const METRIC_LABEL_CLASS = 'text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mt-[3px]';
+
 // .fr-sec / .pd-sec — overline de section.
 const SECTION_TITLE_SX = {
   fontSize: '10.5px',
@@ -122,6 +125,9 @@ const SECTION_TITLE_SX = {
   mb: 1,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
+
 // .pd-kv — bloc label/valeur (icône accent, label muted 11, valeur ink 13 fw600).
 const INFO_ROW_CLASS = 'flex items-center gap-1.5 py-[4.5px]';
 
@@ -131,12 +137,18 @@ const INFO_LABEL_SX = {
   color: 'var(--muted)',
 } as const;
 
+/** Report en classes de `INFO_LABEL_SX`. */
+const INFO_LABEL_CLASS = 'text-[11px] font-medium text-[var(--muted)]';
+
 const INFO_VALUE_SX = {
   fontSize: '13px',
   fontWeight: 600,
   color: 'var(--ink)',
   mt: '1px',
 } as const;
+
+/** Report en classes de `INFO_VALUE_SX`. */
+const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-[var(--ink)] mt-px';
 
 // .pd-card — carte hairline r14 plate.
 const CARD_SX = {
@@ -439,7 +451,7 @@ const PropertyDetails: React.FC = () => {
                   <Typography sx={METRIC_VALUE_SX}>
                     {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
                   </Typography>
-                  <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningEstimate')}</Typography>
+                  <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
                 </div>
               </Tooltip>
             </Grid>
@@ -447,28 +459,28 @@ const PropertyDetails: React.FC = () => {
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bed size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.bedrooms}</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.bedrooms')}</Typography>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bedrooms')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bathroom size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.bathrooms}</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.bathroomCount')}</Typography>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bathroomCount')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><SquareFoot size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.surfaceArea} m²</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.surface')}</Typography>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.surface')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Group size={16} strokeWidth={1.75} /></div>
                 <Typography sx={METRIC_VALUE_SX}>{property.maxGuests}</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.maxCapacity')}</Typography>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.maxCapacity')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
@@ -477,7 +489,7 @@ const PropertyDetails: React.FC = () => {
                 <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12.5px' }}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
                 </Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
               </div>
             </Grid>
           </Grid>
@@ -485,9 +497,9 @@ const PropertyDetails: React.FC = () => {
           {/* ── Prestations à la carte chips ──────────────────────────── */}
           {featureChips.length > 0 && (
             <div className="flex items-center flex-wrap gap-1 mb-1.5">
-              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0 me-[3px]')}>
                 {t('properties.addOnServices.title')}
-              </Typography>
+              </p>
               {featureChips.map((chip) => (
                 <StatusChip
                   key={chip.label}
@@ -502,9 +514,9 @@ const PropertyDetails: React.FC = () => {
           {/* ── Équipements chips ──────────────────────────────────── */}
           {property.amenities && property.amenities.length > 0 && (
             <div className="flex items-center flex-wrap gap-1 mb-2">
-              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0 me-[3px]')}>
                 {t('properties.amenities.title')}
-              </Typography>
+              </p>
               {property.amenities.map((amenity) => (
                 <StatusChip
                   key={amenity}
@@ -537,16 +549,16 @@ const PropertyDetails: React.FC = () => {
 
               {/* ── Col 2: Informations generales + Tarification menage ── */}
               <div className="flex-1 min-w-0">
-                <Typography sx={SECTION_TITLE_SX}>
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                   {t('properties.informationsGeneral')}
-                </Typography>
+                </p>
                 <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.address')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.address')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                       {property.address}, {property.city} {property.postalCode}
-                    </Typography>
+                    </p>
                   </div>
                 </div>
                 {property.country && (
@@ -555,8 +567,8 @@ const PropertyDetails: React.FC = () => {
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Flag size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.country}</Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.country')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.country}</p>
                       </div>
                     </div>
                   </>
@@ -565,8 +577,8 @@ const PropertyDetails: React.FC = () => {
                 <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.type')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{getPropertyTypeLabel(property.propertyType, t)}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.type')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{getPropertyTypeLabel(property.propertyType, t)}</p>
                   </div>
                 </div>
                 {property.createdAt && (
@@ -575,23 +587,23 @@ const PropertyDetails: React.FC = () => {
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.createdAt')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{formatDate(property.createdAt)}</Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.createdAt')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDate(property.createdAt)}</p>
                       </div>
                     </div>
                   </>
                 )}
 
-                <Typography sx={{ ...SECTION_TITLE_SX, mt: 1.5 }}>
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mt-[9px]')}>
                   {t('properties.cleaningPricing')}
-                </Typography>
+                </p>
                 <div className="flex flex-col gap-0.5">
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Payments size={16} strokeWidth={1.75} /></span>
                       <div>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
-                        <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningBasePrice')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 tabular-nums')} style={{ fontFamily: 'var(--font-display)' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></p>
                       </div>
                     </div>
                   )}
@@ -599,12 +611,12 @@ const PropertyDetails: React.FC = () => {
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Timer size={16} strokeWidth={1.75} /></span>
                       <div>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningDuration')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                           {property.cleaningDurationMinutes >= 60
                             ? `${Math.floor(property.cleaningDurationMinutes / 60)}h${property.cleaningDurationMinutes % 60 > 0 ? String(property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                             : `${property.cleaningDurationMinutes} min`}
-                        </Typography>
+                        </p>
                       </div>
                     </div>
                   )}
@@ -612,21 +624,21 @@ const PropertyDetails: React.FC = () => {
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Stairs size={16} strokeWidth={1.75} /></span>
                       <div>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.numberOfFloors')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.numberOfFloors}</p>
                       </div>
                     </div>
                   )}
                   {property.hasExterior && (
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Deck size={16} strokeWidth={1.75} /></span>
-                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{t('properties.hasExterior')}</p>
                     </div>
                   )}
                   {property.hasLaundry && (
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><LocalLaundryService size={16} strokeWidth={1.75} /></span>
-                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{t('properties.hasLaundry')}</p>
                     </div>
                   )}
                 </div>
@@ -636,12 +648,12 @@ const PropertyDetails: React.FC = () => {
 
               {/* ── Col 3: Configuration ───────────────────────────── */}
               <div className="flex-1 min-w-0">
-                <Typography sx={SECTION_TITLE_SX}>
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                   {t('properties.configuration')}
-                </Typography>
+                </p>
                 <div className={INFO_ROW_CLASS}>
                   <div>
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.status')}</p>
                     <StatusChip
                       tokens={propertyStatusTokens(property.status)}
                       label={getPropertyStatusLabel(property.status, t)}
@@ -655,8 +667,8 @@ const PropertyDetails: React.FC = () => {
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.owner')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.ownerName}</Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.owner')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.ownerName}</p>
                       </div>
                     </div>
                   </>
@@ -669,8 +681,8 @@ const PropertyDetails: React.FC = () => {
                         <div className={INFO_ROW_CLASS}>
                           <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>
                           <div>
-                            <Typography sx={INFO_LABEL_SX}>{t('properties.checkInTime')}</Typography>
-                            <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckInTime)}</Typography>
+                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.checkInTime')}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatTime(property.defaultCheckInTime)}</p>
                           </div>
                         </div>
                       )}
@@ -678,8 +690,8 @@ const PropertyDetails: React.FC = () => {
                         <div className={INFO_ROW_CLASS}>
                           <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>
                           <div>
-                            <Typography sx={INFO_LABEL_SX}>{t('properties.checkOutTime')}</Typography>
-                            <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckOutTime)}</Typography>
+                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.checkOutTime')}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatTime(property.defaultCheckOutTime)}</p>
                           </div>
                         </div>
                       )}
@@ -690,8 +702,8 @@ const PropertyDetails: React.FC = () => {
                 <div className={INFO_ROW_CLASS}>
                   <span className="inline-flex text-[var(--accent)]"><CleaningServices size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
                   </div>
                 </div>
                 {property.lastCleaning && (
@@ -700,8 +712,8 @@ const PropertyDetails: React.FC = () => {
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.lastCleaning')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{formatDate(property.lastCleaning)}</Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.lastCleaning')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDate(property.lastCleaning)}</p>
                       </div>
                     </div>
                   </>
@@ -771,9 +783,9 @@ const PropertyDetails: React.FC = () => {
                 <div className="flex-[6] min-w-0">
                   <Paper sx={CARD_SX}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <Typography sx={SECTION_TITLE_SX}>
+                      <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                         {t('channels.checkIn.title')}
-                      </Typography>
+                      </p>
                       <Button
                         size="small"
                         endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
@@ -792,8 +804,8 @@ const PropertyDetails: React.FC = () => {
                           <div key={field.label} className={INFO_ROW_CLASS}>
                             {field.icon}
                             <div className="flex-1">
-                              <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
-                              <Typography sx={INFO_VALUE_SX}>{field.value}</Typography>
+                              <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{field.label}</p>
+                              <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{field.value}</p>
                             </div>
                           </div>
                         ))}
@@ -807,8 +819,8 @@ const PropertyDetails: React.FC = () => {
                         <div className={INFO_ROW_CLASS}>
                           {field.icon}
                           <div className="flex-1">
-                            <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
-                            <Typography sx={{ ...INFO_VALUE_SX, whiteSpace: 'pre-line' }}>{field.value}</Typography>
+                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{field.label}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 whitespace-pre-line')}>{field.value}</p>
                           </div>
                         </div>
                       </React.Fragment>
@@ -836,7 +848,7 @@ const PropertyDetails: React.FC = () => {
             <Paper sx={CARD_SX}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={airbnbLogoSmall} alt="Airbnb" />
-                <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>Airbnb</Typography>
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>Airbnb</p>
                 <StatusChip tokens={{ color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', bg: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)' }} label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')} className="ms-auto h-[20px]" />
               </div>
               {channelStatus?.airbnb?.linked ? (
@@ -844,18 +856,18 @@ const PropertyDetails: React.FC = () => {
                   <div className={INFO_ROW_CLASS}>
                     <span className={cn('inline-flex', channelStatus.airbnb.syncEnabled ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Sync size={16} strokeWidth={1.75} /></span>
                     <div className="flex-1">
-                      <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
-                      <Typography sx={INFO_VALUE_SX}>
+                      <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('channels.syncStatus.title')}</p>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                         {channelStatus.airbnb.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
-                      </Typography>
+                      </p>
                     </div>
                   </div>
                   {channelStatus.airbnb.lastSyncAt && (
                     <div className={INFO_ROW_CLASS}>
                       <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</Typography>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('channels.syncStatus.lastSync')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</p>
                       </div>
                     </div>
                   )}
@@ -879,7 +891,7 @@ const PropertyDetails: React.FC = () => {
               <Paper key={ch.name} sx={CARD_SX}>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={ch.logo} alt={ch.name} />
-                  <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>{ch.name}</Typography>
+                  <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>{ch.name}</p>
                   <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={t('channels.notConnected')} className="ms-auto h-[20px]" />
                 </div>
                 <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>

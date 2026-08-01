@@ -343,11 +343,11 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
       fullWidth
     >
       <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
+        <h6 className="cn-text-h6 font-bold text-[1.05rem]">
           {editModel
             ? t('settings.ai.platform.editModel')
             : t('settings.ai.platform.addModel')}
-        </Typography>
+        </h6>
       </DialogTitle>
 
       <DialogContent>
@@ -655,9 +655,9 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: providerColor }} />
 
       {/* Name */}
-      <Typography variant="body2" fontWeight={600} sx={{ minWidth: 120, flex: '0 0 auto' }}>
+      <p className="cn-text-body2 font-semibold min-w-[120px] flex-[0_0_auto]">
         {model.name}
-      </Typography>
+      </p>
 
       {/* Provider chip */}
       <StatusChip tokens={{ color: providerColor, bg: alpha(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} className="text-[0.65rem] shrink-0" />
@@ -764,9 +764,9 @@ function UsageBreakdownTooltip({
         <div className="p-2 min-w-[280px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[var(--line)]">
-            <Typography variant="caption" sx={{ fontWeight: 700, color: feature.color, letterSpacing: 0.4 }}>
+            <span className="cn-text-caption font-bold tracking-[0.4px]" style={{ color: feature.color }}>
               {feature.label.toUpperCase()}
-            </Typography>
+            </span>
             <span className="cn-text-caption font-bold tabular-nums">
               ${totalCost.toFixed(4)} USD
             </span>
@@ -924,9 +924,9 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         }}
       >
         <MenuItem value="__none__">
-          <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
+          <p className="cn-text-body2 text-[var(--muted)] italic text-[0.8125rem]">
             {t('settings.ai.platform.noModel')}
-          </Typography>
+          </p>
         </MenuItem>
 
         {/* Providers connectes (OpenAI/Anthropic) — utilises en priorite par l'agent */}
@@ -1181,17 +1181,9 @@ export default function PlatformAiConfigSection() {
     >
       {/* ── Section 1: Configured Models ── */}
       <div className="mb-1.5">
-        <Typography
-          variant="overline"
-          sx={{
-            fontWeight: 700,
-            color: 'text.secondary',
-            letterSpacing: 0.6,
-            fontSize: '0.7rem',
-          }}
-        >
+        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
           {t('settings.ai.platform.models')}
-        </Typography>
+        </span>
       </div>
 
       {modelList.length === 0 ? (
@@ -1218,17 +1210,9 @@ export default function PlatformAiConfigSection() {
 
       {/* ── Section 2: Feature Assignments ── */}
       <div className="mt-4 mb-1.5">
-        <Typography
-          variant="overline"
-          sx={{
-            fontWeight: 700,
-            color: 'text.secondary',
-            letterSpacing: 0.6,
-            fontSize: '0.7rem',
-          }}
-        >
+        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
           {t('settings.ai.platform.featureMapping')}
-        </Typography>
+        </span>
       </div>
 
       {assignError && (
@@ -1274,12 +1258,9 @@ export default function PlatformAiConfigSection() {
 
       {/* ── Section 3: Amorçage des crédits IA ── */}
       <div className="mt-4 mb-1.5">
-        <Typography
-          variant="overline"
-          sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-        >
+        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
           {t('settings.ai.platform.creditsBootstrap', 'Amorçage des crédits')}
-        </Typography>
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 justify-between py-2">
@@ -1338,9 +1319,9 @@ export default function PlatformAiConfigSection() {
       {/* Confirmation de suppression — action destructive, affiche aussi l'erreur */}
       <Dialog open={confirmDeleteId != null} onClose={() => setConfirmDeleteId(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
+          <h6 className="cn-text-h6 font-bold text-[1.05rem]">
             {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
-          </Typography>
+          </h6>
         </DialogTitle>
         <DialogContent>
           <p className="cn-text-body2 text-muted-foreground">

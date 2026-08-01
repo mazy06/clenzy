@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, Card, CardContent, Grid, Typography, Skeleton } from '@mui/material';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
@@ -96,9 +97,9 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
               {item.title}
             </p>
           </div>
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[1.5rem] font-extrabold leading-[1.1] tracking-[-0.02em] tabular-nums">
             {item.value}
-          </Typography>
+          </p>
           {item.subtitle && (
             <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground opacity-60 mt-0.5 leading-[1.2]">
               {item.subtitle}

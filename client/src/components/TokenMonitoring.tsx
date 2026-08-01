@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
-import { Typography, Button, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
+import { Button, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -323,32 +324,13 @@ const TokenMonitoring: React.FC = () => {
             {/* Countdown */}
             {/* Le filet gauche n'apparait qu'a partir du breakpoint MUI md (900px). */}
             <div className="min-w-[200px] pl-[18px] min-[900px]:border-l min-[900px]:border-solid min-[900px]:border-l-[var(--line)]">
-              <Typography
-                sx={{
-                  fontSize: '0.625rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.6,
-                  color: 'text.secondary',
-                  mb: 0.5,
-                }}
-              >
+              <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.6px] text-[var(--muted)] mb-[3px]">
                 <AccessTime size={11} strokeWidth={1.75} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                 Temps avant expiration
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '1.5rem',
-                  fontWeight: 600,
-                  color: tokenStatus.fg,
-                  fontFamily: 'var(--font-display)',
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.1,
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[1.5rem] font-semibold tabular-nums tracking-[-0.02em] leading-[1.1]" style={{ color: tokenStatus.fg, fontFamily: 'var(--font-display)' }}>
                 {formatDuration(timeUntilExpiry)}
-              </Typography>
+              </p>
               {currentToken.expiresAt && (
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
                   {new Date(currentToken.expiresAt).toLocaleString('fr-FR', {
@@ -510,12 +492,12 @@ const TokenMonitoring: React.FC = () => {
           {successRateNum !== null && (
             <div className="mb-3.5">
               <div className="flex justify-between items-center mb-0.5">
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-semibold uppercase tracking-[0.4px]">
                   Fiabilité globale
-                </Typography>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)' }}>
+                </p>
+                <p className={cn('cn-text-body1 text-[0.8125rem] font-bold', successRateNum >= 95 ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                   {successRateNum.toFixed(1)}%
-                </Typography>
+                </p>
               </div>
               <LinearProgress
                 variant="determinate"
@@ -605,9 +587,9 @@ function MetricRow({
         {icon}
       </div>
       <div className="min-w-0">
-        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
+        <p className="cn-text-body1 text-[0.625rem] text-[var(--muted)] font-semibold uppercase tracking-[0.4px] leading-[1.2]">
           {label}
-        </Typography>
+        </p>
         <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] mt-0.5 tabular-nums">
           {value}
         </p>

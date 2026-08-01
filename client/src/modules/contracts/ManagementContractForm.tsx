@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  Typography, TextField, MenuItem, FormControlLabel, Switch,
-  InputAdornment, Tooltip,
-} from '@mui/material';
+import { TextField, MenuItem, FormControlLabel, Switch, InputAdornment, Tooltip } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Check, Home, Handshake } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -228,9 +225,9 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                     <Check size={10} strokeWidth={2.5} />
                   </span>
                 )}
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.3, pr: active ? 2.5 : 0, color: 'var(--ink)' }}>
+                <p className={cn('cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3] text-[var(--ink)]', active ? 'pe-[15px]' : 'pe-0')}>
                   {preset.label}
-                </Typography>
+                </p>
                 <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] leading-[1.45] mt-0.5">
                   {preset.description}
                 </p>

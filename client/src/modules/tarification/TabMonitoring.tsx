@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Box, Typography, TextField, Grid, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
+import { Box, TextField, Grid, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import {
   VolumeUp,
   Handshake,
@@ -270,9 +270,9 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
                 {t('tarification.monitoring.clenzy.total')}
               </h6>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.main', fontSize: '1.25rem' }}>
+              <h6 className="cn-text-h6 font-extrabold text-[var(--ok)] text-[1.25rem]">
                 {clenzyTotalCents > 0 ? <Money value={clenzyTotalCents / 100} decimals={0} /> : <>— <CurrencySymbol code={currency} /></>}
-              </Typography>
+              </h6>
             </div>
 
             <Divider sx={{ my: 1.5 }} />

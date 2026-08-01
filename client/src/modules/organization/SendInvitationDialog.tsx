@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
 import {
   Send,
   ContentCopy,
@@ -306,16 +307,16 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
         ) : memberSuccess ? (
           <div className="flex flex-col gap-3 pt-1.5 items-center">
             <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
-            <Typography variant="body1" textAlign="center">
+            <p className="cn-text-body1 text-center">
               <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> a ete ajoute a l'organisation.
-            </Typography>
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-3 pt-1.5 items-center">
             <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
-            <Typography variant="body1" textAlign="center">
+            <p className="cn-text-body1 text-center">
               L'invitation a ete envoyee a <strong>{result?.invitedEmail}</strong>
-            </Typography>
+            </p>
 
             {result?.invitationLink && (
               <div className="w-full">
@@ -343,14 +344,14 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
               </div>
             )}
 
-            <Typography variant="caption" color="text.secondary" textAlign="center">
+            <span className="cn-text-caption text-[var(--muted)] text-center">
               L'invitation expire le{' '}
               {result?.expiresAt ? new Date(result.expiresAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
               }) : ''}
-            </Typography>
+            </span>
           </div>
         )}
       </DialogContent>

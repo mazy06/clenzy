@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
 import {
   Download,
   Lock,
@@ -461,9 +461,9 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   {/* Nom + méta */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <Typography noWrap sx={{ fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)' }}>
+                      <p className={cn('cn-text-body1 truncate text-[13px] font-semibold', isFailed ? 'text-[var(--err)]' : 'text-[var(--ink)]')}>
                         {row.name}
-                      </Typography>
+                      </p>
                       {row.legalNumber && (
                         <StatusChip
                           tone={row.locked ? 'warn' : 'neutral'}
@@ -473,9 +473,9 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         />
                       )}
                     </div>
-                    <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
+                    <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)] mt-px">
                       {isFailed && row.errorMessage ? `${row.errorMessage} · ${meta}` : meta}
-                    </Typography>
+                    </p>
                   </div>
 
                   {/* Statut -soft + actions */}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -67,9 +68,9 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         <Paper sx={CARD_SX}>
           <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
               {t('bookingEngine.ai.pricing.title')}
-            </Typography>
+            </h6>
           </div>
           <div className="flex flex-col gap-1.5">
             {[1, 2, 3].map((i) => (
@@ -88,16 +89,16 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         <Paper sx={CARD_SX}>
           <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
               {t('bookingEngine.ai.pricing.title')}
-            </Typography>
+            </h6>
           </div>
           {aiNotConfigured ? (
             <Alert variant="info" className="text-[0.75rem]">
               <Info />
-              <AlertDescription><Typography variant="body2" fontSize="0.75rem" sx={{ mb: 1 }}>
+              <AlertDescription><p className="cn-text-body2 text-[0.75rem] mb-1.5">
                 {t('bookingEngine.ai.guidance.pricing.text')}
-              </Typography><Button
+              </p><Button
                 size="small"
                 variant="outlined"
                 startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
@@ -123,13 +124,13 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         <Paper sx={CARD_SX}>
           <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
               {t('bookingEngine.ai.pricing.title')}
-            </Typography>
+            </h6>
           </div>
-          <Typography variant="body2" color="text.secondary" fontSize="0.75rem">
+          <p className="cn-text-body2 text-[var(--muted)] text-[0.75rem]">
             {t('bookingEngine.ai.pricing.loading')}
-          </Typography>
+          </p>
         </Paper>
       );
     }
@@ -139,9 +140,9 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       <Paper sx={CARD_SX}>
         <div className="flex items-center gap-1.5 mb-[9px]">
           <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-          <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+          <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
             {t('bookingEngine.ai.pricing.title')}
-          </Typography>
+          </h6>
           <Badge variant="default" className="h-[20px] text-[0.65rem] font-bold">{`${data.length}`}</Badge>
         </div>
 
@@ -150,16 +151,16 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
             <div className="flex items-center gap-2 p-1.5 rounded-[1px] bg-[var(--hover)]" key={rec.date}>
               {/* Date */}
               <div className="min-w-[60px]">
-                <Typography variant="caption" fontWeight={600} fontSize="0.7rem">
+                <span className="cn-text-caption font-semibold text-[0.7rem]">
                   {rec.date}
-                </Typography>
+                </span>
               </div>
 
               {/* Suggested Price */}
               <div className="min-w-[70px] text-end">
-                <Typography variant="body2" fontWeight={700} fontSize="0.85rem" color="primary.main">
+                <p className="cn-text-body2 font-bold text-[0.85rem] text-[var(--mui-primary)]">
                   {rec.suggestedPrice.toFixed(0)} €
-                </Typography>
+                </p>
               </div>
 
               {/* Confidence */}
@@ -192,9 +193,9 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         {/* Market comparison from first recommendation */}
         {data[0]?.marketComparison && (
           <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
-            <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
+            <span className="cn-text-caption text-[var(--muted)] text-[0.7rem]">
               {t('bookingEngine.ai.pricing.marketComparison')}: {data[0].marketComparison}
-            </Typography>
+            </span>
           </div>
         )}
       </Paper>

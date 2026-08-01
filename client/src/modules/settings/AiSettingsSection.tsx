@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -123,13 +124,13 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
               <Logo size={18} color={accent} />
             </div>
             <div className="min-w-0">
-              <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2} noWrap>
+              <h6 className="cn-text-subtitle2 font-bold leading-[1.2] truncate">
                 {brand.label}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontSize="0.72rem" noWrap display="block">
+              </h6>
+              <span className="cn-text-caption text-[var(--muted)] text-[0.72rem] truncate block">
                 {/* Modèle EFFECTIF (choisi en live), repli sur le défaut — plus figé dans le code. */}
                 {status.modelOverride || brand.model}
-              </Typography>
+              </span>
             </div>
           </div>
 
@@ -265,9 +266,9 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
         <div className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px]" style={{ backgroundColor: alpha(accent, isDark ? 0.12 : 0.08) }}>
           <Logo size={20} color={accent} />
         </div>
-        <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
+        <h6 className="cn-text-h6 font-bold text-[1.05rem]">
           {t('bookingEngine.ai.settings.configureProvider', { provider: brand?.label ?? '' })}
-        </Typography>
+        </h6>
       </DialogTitle>
 
       <DialogContent>

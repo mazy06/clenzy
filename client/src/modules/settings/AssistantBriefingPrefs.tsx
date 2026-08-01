@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Button, Divider } from '@mui/material';
+import { Box, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Button, Divider } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -179,12 +179,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
         {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
         <div className="mb-[18px] grid grid-cols-[1fr] items-start gap-3 min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[minmax(240px,_2fr)_140px_minmax(220px,_1fr)]">
           <div>
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-            >
+            <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
               Fréquence
-            </Typography>
+            </span>
             <Select
               value={prefs.frequency}
               onChange={(e) => update('frequency', e.target.value as Frequency)}
@@ -204,12 +201,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
           </div>
 
           <div>
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-            >
+            <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
               Heure d'envoi
-            </Typography>
+            </span>
             <TextField
               type="time"
               size="small"
@@ -222,12 +216,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
           </div>
 
           <div>
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-            >
+            <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
               Fuseau horaire
-            </Typography>
+            </span>
             <TextField
               size="small"
               fullWidth
@@ -242,12 +233,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
 
         {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}
         <div>
-          <Typography
-            variant="overline"
-            sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-          >
+          <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
             Canaux
-          </Typography>
+          </span>
           <div className="mt-[4.5px] grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
             {CHANNEL_OPTIONS.map((opt) => {
               const checked = prefs.channels.includes(opt.value);

@@ -1,4 +1,5 @@
 import React, { useCallback, useId, useState } from 'react';
+import { cn } from '../utils/cn';
 import { Typography, IconButton, Popover, Tooltip } from '@mui/material';
 import { Info as InfoIcon } from '../icons';
 import { HelpStepsGrid, type HelpStep } from './HelpBanner';
@@ -130,16 +131,9 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
         </div>
 
         {/* Description */}
-        <Typography
-          sx={{
-            fontSize: '12.5px',
-            color: 'var(--muted)',
-            lineHeight: 1.55,
-            mb: steps.length > 0 ? 2 : 0,
-          }}
-        >
+        <p className={cn('cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.55]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
           {description}
-        </Typography>
+        </p>
 
         {/* Étapes — colonne unique pour une lecture verticale dans le popover */}
         <HelpStepsGrid steps={steps} columns={1} />

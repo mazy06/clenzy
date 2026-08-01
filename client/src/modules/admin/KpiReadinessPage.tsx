@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -181,12 +182,9 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
 
       <div className="flex items-baseline gap-1.5 mb-1.5">
         {/* Valeur display tabular-nums — l'accent statut vit dans la valeur + le chip */}
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 600, color: tk.fg, fontVariantNumeric: 'tabular-nums' }}
-        >
+        <h4 className="cn-text-h4 font-semibold tabular-nums" style={{ color: tk.fg }}>
           {displayedValue}
-        </Typography>
+        </h4>
       </div>
 
       <div className="flex justify-between items-center">

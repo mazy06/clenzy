@@ -17,7 +17,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Typography, IconButton, Stack, Skeleton, Tooltip, Button } from '@mui/material';
+import { IconButton, Stack, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AlertCircle,
   AlertTriangle,
@@ -97,9 +97,9 @@ function AttentionRow({
           <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
             {item.propertyName}
           </p>
-          <Typography variant="caption" sx={{ color: meta.color, fontWeight: 500, fontSize: '0.65rem' }}>
+          <span className="cn-text-caption font-medium text-[0.65rem]" style={{ color: meta.color }}>
             #{item.clenzyPropertyId}
-          </Typography>
+          </span>
         </div>
         <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
           {item.reason}

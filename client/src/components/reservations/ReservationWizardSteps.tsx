@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Typography } from '@mui/material';
+
 import { Check } from '../../icons';
 
 interface Props {
@@ -54,17 +54,9 @@ const ReservationWizardSteps: React.FC<Props> = ({ steps, current, reachable, on
             >
               {state === 'done' ? <Check size={12} strokeWidth={2.5} /> : n}
             </div>
-            <Typography
-              component="span"
-              sx={{
-                fontSize: '12px',
-                fontWeight: state === 'current' ? 600 : 500,
-                color: state === 'current' ? 'var(--ink)' : state === 'done' ? 'var(--accent)' : 'var(--muted)',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span className={cn('cn-text-body1 text-[12px] whitespace-nowrap', state === 'current' ? 'font-semibold' : 'font-medium', state === 'current' ? 'text-[var(--ink)]' : '[object Object]')}>
               {label}
-            </Typography>
+            </span>
           </button>
           {i < steps.length - 1 && (
             <div className={cn('flex-1 min-w-[12px] h-[1px]', n < current ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ transition: 'background-color .14s' }} />

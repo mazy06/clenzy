@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Typography } from '@mui/material';
+
 import { BarChartWidget } from './charts/BarChartWidget';
 import { CHART_PRIMARY } from './charts/chartConstants';
 
@@ -95,27 +95,15 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       {/* Bandeau verdict — couleur selon delta */}
       <div className={cn('px-[9px] py-[7.5px] rounded-[12px]', positive ? 'bg-[var(--ok-soft)]' : '[object Object]')}>
         <div className="flex items-baseline gap-2 flex-wrap">
-          <Typography sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1.5rem', fontWeight: 600,
-            color: deltaColor(data.pctRevenueChange),
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight: 1,
-          }}>
+          <p className="cn-text-body1 text-[1.5rem] font-semibold tabular-nums leading-[1]" style={{ fontFamily: 'var(--font-display)', color: deltaColor(data.pctRevenueChange) }}>
             {formatPctSigned(data.pctRevenueChange)}
-          </Typography>
+          </p>
           <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.05em]">
             Revenue projete
           </p>
-          <Typography sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '0.85rem', fontWeight: 600,
-            color: deltaColor(data.deltaRevenue),
-            fontVariantNumeric: 'tabular-nums',
-            ml: 'auto',
-          }}>
+          <p className="cn-text-body1 text-[0.85rem] font-semibold tabular-nums ms-auto" style={{ fontFamily: 'var(--font-display)', color: deltaColor(data.deltaRevenue) }}>
             {formatCurrencySigned(data.deltaRevenue)}
-          </Typography>
+          </p>
         </div>
       </div>
 

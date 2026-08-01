@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import { Typography } from '@mui/material';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -28,6 +29,9 @@ const SUBTITLE_SX = {
   lineHeight: 1.2,
 } as const;
 
+/** Report en classes de `SUBTITLE_SX`. */
+const SUBTITLE_CLASS = 'text-[0.625rem] text-[var(--muted)] mt-[1.5px] leading-[1.2]';
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const GridSection: React.FC<GridSectionProps> = React.memo(({
@@ -45,7 +49,7 @@ const GridSection: React.FC<GridSectionProps> = React.memo(({
       )}
     </div>
     {subtitle && (
-      <Typography sx={SUBTITLE_SX}>{subtitle}</Typography>
+      <p className={cn(SUBTITLE_CLASS, 'cn-text-body1')}>{subtitle}</p>
     )}
 
     {/* Grid content (children handle their own Grid layout) */}

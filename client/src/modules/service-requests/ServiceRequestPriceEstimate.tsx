@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Typography, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import {
   AutoAwesome,
   Timer,
@@ -261,17 +261,9 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                     label={label}
                     className={cn(TIER_CHIP_CLASS, isHighlighted && 'border border-solid border-[var(--accent)]')}
                   />
-                  <Typography sx={{
-                    fontSize: isHighlighted ? '18px' : '16px',
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-display)',
-                    fontVariantNumeric: 'tabular-nums',
-                    color: isHighlighted ? 'var(--accent)' : 'var(--ink)',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                  }}>
+                  <p className={cn('cn-text-body1 font-semibold tabular-nums whitespace-nowrap leading-[1.2]', isHighlighted ? 'text-[18px]' : 'text-[16px]', isHighlighted ? 'text-[var(--accent)]' : 'text-[var(--ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
                     {min === max ? <Money value={min} from="EUR" /> : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
-                  </Typography>
+                  </p>
                   <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
                     par intervention
                   </p>
@@ -293,16 +285,9 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                     label={forfait.label}
                     className={TIER_CHIP_CLASS}
                   />
-                  <Typography sx={{
-                    fontSize: isFirst ? '18px' : '16px',
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-display)',
-                    color: 'var(--faint)',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                  }}>
+                  <p className={cn('cn-text-body1 font-semibold text-[var(--faint)] whitespace-nowrap leading-[1.2]', isFirst ? 'text-[18px]' : 'text-[16px]')} style={{ fontFamily: 'var(--font-display)' }}>
                     —
-                  </Typography>
+                  </p>
                   <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
                     par intervention
                   </p>

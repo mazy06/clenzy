@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
@@ -327,16 +328,9 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                 </p>
                 <span className="cn-text-caption text-muted-foreground">
                   En supprimant les {overTargetCount} hors cible →{' '}
-                  <Typography
-                    component="span"
-                    variant="caption"
-                    sx={{
-                      fontWeight: 600,
-                      color: stats.projectedAvg <= targetMinutes ? 'success.main' : 'warning.main',
-                    }}
-                  >
+                  <span className={cn('cn-text-caption font-semibold', stats.projectedAvg <= targetMinutes ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                     moyenne projetée {formatDuration(stats.projectedAvg)}
-                  </Typography>{' '}
+                  </span>{' '}
                   sur {stats.projectedCount} incident{stats.projectedCount > 1 ? 's' : ''} restant
                   {stats.projectedCount > 1 ? 's' : ''}.
                 </span>
@@ -404,17 +398,9 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                         </TableCell>
                         <TableCell sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                           <div className="inline-flex items-center gap-0.5">
-                            <Typography
-                              component="span"
-                              sx={{
-                                fontSize: '0.8rem',
-                                fontWeight: overTarget ? 600 : 400,
-                                color: overTarget ? 'error.main' : 'inherit',
-                                fontVariantNumeric: 'tabular-nums',
-                              }}
-                            >
+                            <span className={cn('cn-text-body1 text-[0.8rem] tabular-nums', overTarget ? 'font-semibold' : 'font-normal', overTarget ? 'text-[var(--err)]' : 'text-[inherit]')}>
                               {formatDuration(incident.resolutionMinutes)}
-                            </Typography>
+                            </span>
                             {overTarget && (
                               <Tooltip
                                 title={`Au-dessus de la cible (< ${formatDuration(targetMinutes)}) — pollue la moyenne KPI P1. Candidat à suppression pour purger le KPI.`}

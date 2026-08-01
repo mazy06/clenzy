@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
@@ -97,6 +98,9 @@ const KPI_LABEL_SX = {
   color: 'var(--faint)',
   mb: 0.5,
 } as const;
+
+/** Report en classes de `KPI_LABEL_SX`. */
+const KPI_LABEL_CLASS = 'block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px]';
 
 // Valeur KPI : display tabular-nums (pattern StatTile).
 const KPI_VALUE_SX = {
@@ -529,12 +533,9 @@ export const PayoutsTab: React.FC = () => {
                     )}
                     {payout.status === 'PAID' && payout.paymentReference && (
                       <Tooltip title={`Ref: ${payout.paymentReference}`}>
-                        <Typography
-                          component="span"
-                          sx={{ fontSize: '0.6875rem', color: 'text.secondary', cursor: 'help' }}
-                        >
+                        <span className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] cursor-help">
                           {payout.paymentReference}
-                        </Typography>
+                        </span>
                       </Tooltip>
                     )}
                     {/* Detail button — all statuses except PENDING */}
@@ -877,25 +878,25 @@ export const ExpensesTab: React.FC = () => {
       {/* ── Stats — pattern StatTile : label overline + valeur display tabular-nums ── */}
       <div className="flex gap-2 mb-2">
         <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
-          <Typography sx={KPI_LABEL_SX}>
+          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.totalExpenses', 'Total depenses')}
-          </Typography>
+          </p>
           <Typography sx={KPI_VALUE_SX}>
             {fmtCurrency(stats.total)}
           </Typography>
         </Paper>
         <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
-          <Typography sx={KPI_LABEL_SX}>
+          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.pendingCount', 'En attente')}
-          </Typography>
+          </p>
           <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.DRAFT }}>
             {stats.pending}
           </Typography>
         </Paper>
         <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
-          <Typography sx={KPI_LABEL_SX}>
+          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.approvedCount', 'Approuvees')}
-          </Typography>
+          </p>
           <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.APPROVED }}>
             {stats.approved}
           </Typography>

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Typography, Button, IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Button, IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   CloudUpload,
@@ -41,6 +41,9 @@ const SECTION_TITLE_SX = {
   color: 'var(--faint)',
   mb: 1,
 } as const;
+
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
 
 // .pd-card — carte hairline r14 plate.
 const CARD_SX = {
@@ -200,7 +203,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
 
       {/* ── Upload zone ──────────────────────────────────────────────────── */}
       <Paper sx={CARD_SX}>
-        <Typography sx={SECTION_TITLE_SX}>{t('properties.photos.upload')}</Typography>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('properties.photos.upload')}</p>
         <div
           className={cn(DROP_ZONE_CLASS, isDragOver && 'border-[var(--accent)] bg-[var(--accent-soft)]')}
           onDragOver={handleDragOver}
@@ -236,9 +239,9 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       {/* ── Photo grid or empty state ────────────────────────────────────── */}
       {!loading && hasPhotos ? (
         <Paper sx={CARD_SX}>
-          <Typography sx={SECTION_TITLE_SX}>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.photos.title')} ({photos.length})
-          </Typography>
+          </p>
           <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
             {photos.map((photo) => (
               <div

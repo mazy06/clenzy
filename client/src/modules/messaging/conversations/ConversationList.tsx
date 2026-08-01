@@ -3,7 +3,7 @@ import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { InputBase, Tooltip, Typography } from '@mui/material';
+import { InputBase, Tooltip } from '@mui/material';
 import {
   Search as SearchIcon,
   Archive as ArchiveIcon,
@@ -91,9 +91,9 @@ function ConversationRow({
             {formatConvTime(item.lastAt)}
           </span>
         </div>
-        <Typography sx={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, m: '2px 0 3px' }}>
+        <p className="cn-text-body1 text-[11px] text-[var(--accent)] font-semibold m-[2px 0 3px]">
           {item.context}
-        </Typography>
+        </p>
         <p className="cn-text-body1 text-[12px] text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">
           {item.preview}
         </p>

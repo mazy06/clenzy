@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Typography, IconButton, Divider, TextField, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, IconButton, Divider, TextField, Button } from '@mui/material';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -185,9 +186,9 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   </div>
                 </div>
               ) : (
-                <Typography sx={{ fontSize: '0.8125rem', color: guest.notes ? 'text.primary' : 'text.secondary', fontStyle: guest.notes ? 'normal' : 'italic' }}>
+                <p className={cn('cn-text-body1 text-[0.8125rem]', guest.notes ? 'text-[var(--ink)]' : 'text-[var(--muted)]', guest.notes ? 'not-italic' : 'italic')}>
                   {guest.notes || t('channels.guest.noNotes')}
-                </Typography>
+                </p>
               )}
             </div>
 

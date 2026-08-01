@@ -1,4 +1,4 @@
-import { Typography, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
+import { Tooltip, IconButton, alpha, useTheme } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
@@ -72,7 +72,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
       <div className="flex items-baseline gap-1">
         <p className="cn-text-body1 font-[var(--font-display)] text-[1.75rem] font-semibold leading-[1] text-[var(--ink)] tabular-nums">{fmt(currentTempC)}°</p>
         <p className="cn-text-body1 text-[0.95rem] text-muted-foreground opacity-60">→</p>
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 600, color: ACCENT, fontVariantNumeric: 'tabular-nums' }}>{fmt(targetTempC)}°</Typography>
+        <p className="cn-text-body1 text-[1.05rem] font-semibold tabular-nums" style={{ fontFamily: 'var(--font-display)', color: ACCENT }}>{fmt(targetTempC)}°</p>
       </div>
 
       {/* Mode + humidité */}

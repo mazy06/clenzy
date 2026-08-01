@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Typography, Button, Collapse, Divider } from '@mui/material';
+import { Button, Collapse, Divider } from '@mui/material';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -122,13 +123,9 @@ const LaunchSettingsSection: React.FC = () => {
                 key={w.id}
                 className="flex items-center gap-1.5 py-[4.5px] border-b border-solid border-[var(--line)] last-of-type:border-b-0"
               >
-                <Typography sx={{
-                  fontSize: '0.7rem', fontWeight: 600, width: 30, flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: i < founderSpots ? 'primary.main' : 'text.disabled',
-                }}>
+                <p className={cn('cn-text-body1 text-[0.7rem] font-semibold w-[30px] shrink-0 tabular-nums', i < founderSpots ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}>
                   #{i + 1}
-                </Typography>
+                </p>
                 <div className="min-w-0 flex-1">
                   <p className="cn-text-body1 text-[0.78rem] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                     {w.fullName || w.email}

@@ -15,10 +15,11 @@
  * Sans propertyId : montre TOUS les drifts actifs de l'organisation.</p>
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Typography, Button, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Button, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
 import {
   X,
   TrendingDown,
@@ -291,19 +292,9 @@ export default function ChannexPriceDriftsDialog({
             {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
               <div key={groupLabel}>
                 {propertyId == null && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.75,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      color: 'text.secondary',
-                      letterSpacing: 0.4,
-                    }}
-                  >
+                  <span className="cn-text-caption block mb-[4.5px] font-bold uppercase text-[var(--muted)] tracking-[0.4px]">
                     {groupLabel} · {groupDrifts.length} drift{groupDrifts.length > 1 ? 's' : ''}
-                  </Typography>
+                  </span>
                 )}
                 <Stack spacing={1}>
                   {groupDrifts.map((d) => (

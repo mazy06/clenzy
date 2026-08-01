@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Grid, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import { Description } from '../../icons';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
@@ -18,6 +18,9 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface PropertyFormBasicInfoProps {
@@ -34,9 +37,9 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
 
     return (
       <div>
-        <Typography sx={SECTION_TITLE_SX}>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
           {t('properties.tabs.overview')}
-        </Typography>
+        </p>
 
         <Grid container spacing={1.5}>
           <Grid item xs={12} md={8}>

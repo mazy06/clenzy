@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Tooltip, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Alert, Button, Tooltip } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
@@ -214,12 +215,9 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                 <div className="p-2 bg-[var(--hover)] border-b border-[var(--line)]">
                   <div className="flex items-center gap-1 mb-1 text-primary">
                     <SparklesIcon size={16} strokeWidth={1.75} />
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.4 }}
-                    >
+                    <span className="cn-text-caption font-bold text-[var(--mui-primary)] uppercase tracking-[0.4px]">
                       {t('concierge.draftTitle', 'Brouillon Concierge IA')}
-                    </Typography>
+                    </span>
                   </div>
                   <p className="cn-text-body2 mb-1.5 whitespace-pre-wrap text-foreground">
                     {aiDraft}

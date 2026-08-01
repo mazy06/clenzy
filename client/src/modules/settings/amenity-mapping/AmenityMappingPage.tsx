@@ -405,9 +405,9 @@ export default function AmenityMappingPage() {
                 bgcolor: 'var(--accent-soft)',
                 border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
               }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: ACCENT }}>
+                <span className="cn-text-caption font-semibold" style={{ color: ACCENT }}>
                   {selectedRaw.size} sélectionné{selectedRaw.size > 1 ? 's' : ''}
-                </Typography>
+                </span>
                 <FormControl size="small" sx={{ minWidth: 200 }}>
                   <Select
                     value={bulkCode}

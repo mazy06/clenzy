@@ -29,6 +29,9 @@ const TITLE_SX = {
   whiteSpace: 'nowrap',
 } as const;
 
+/** Report en classes de `TITLE_SX`. */
+const TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] whitespace-nowrap';
+
 const CARDS_ROW_CLASS = 'grid grid-cols-[1fr_1fr_1fr] gap-3 max-[700px]:grid-cols-[1fr]';
 
 // Carte option sélectionnable : tuile hairline, sélection accent-soft + bordure accent.
@@ -63,11 +66,17 @@ const RANGE_SX = {
   fontVariantNumeric: 'tabular-nums',
 } as const;
 
+/** Report en classes de `RANGE_SX`. */
+const RANGE_CLASS = 'text-[11.5px] text-[var(--muted)] leading-[1] tabular-nums';
+
 const PER_LABEL_SX = {
   fontSize: '11px',
   color: 'var(--muted)',
   lineHeight: 1,
 } as const;
+
+/** Report en classes de `PER_LABEL_SX`. */
+const PER_LABEL_CLASS = 'text-[11px] text-[var(--muted)] leading-[1]';
 
 const HINT_SX = {
   fontSize: '12.5px',
@@ -76,6 +85,9 @@ const HINT_SX = {
   textAlign: 'center',
   py: 3,
 } as const;
+
+/** Report en classes de `HINT_SX`. */
+const HINT_CLASS = 'text-[12.5px] text-[var(--muted)] italic text-center py-[18px]';
 
 // Bandeau durée : pattern alerte -soft pleine largeur (accent).
 const DURATION_BANNER_CLASS =
@@ -96,6 +108,9 @@ const DURATION_LABEL_SX = {
   fontWeight: 500,
   color: 'var(--body)',
 } as const;
+
+/** Report en classes de `DURATION_LABEL_SX`. */
+const DURATION_LABEL_CLASS = 'text-[11.5px] font-medium text-[var(--body)]';
 
 // Décomposition minutes (pattern price book) : lignes hairline lisibles.
 const BREAKDOWN_CLASS = 'mt-3 border border-solid border-[var(--line)] rounded-[11px] overflow-hidden';
@@ -226,17 +241,17 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-[4.5px]">
           <span className="inline-flex text-[var(--accent)]"><CleaningServices size={20} strokeWidth={1.75} /></span>
-          <Typography sx={TITLE_SX}>
+          <p className={cn(TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.priceEstimation.title')}
-          </Typography>
+          </p>
         </div>
 
         {preview && (
           <div className="flex items-center gap-[3px]">
             <span className="inline-flex text-[var(--muted)]"><TrendingUp size={13} strokeWidth={1.75} /></span>
-            <Typography sx={PER_LABEL_SX}>
+            <p className={cn(PER_LABEL_CLASS, 'cn-text-body1')}>
               {t('properties.cleaningEstimator.engineBadge')}
-            </Typography>
+            </p>
           </div>
         )}
       </div>
@@ -249,9 +264,9 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
             <Typography sx={DURATION_VALUE_SX}>
               {formatDuration(selectedQuote.durationMinutes)}
             </Typography>
-            <Typography sx={DURATION_LABEL_SX}>
+            <p className={cn(DURATION_LABEL_CLASS, 'cn-text-body1')}>
               {t('properties.durationEstimation.title')}
-            </Typography>
+            </p>
           </div>
           <p className="cn-text-body1 text-[10.5px] text-[var(--muted)] italic ms-auto">
             {t('properties.durationEstimation.computed')}
@@ -311,13 +326,13 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                     <Money value={quote.recommended} from="EUR" decimals={0} />
                   </Typography>
                   {/* Fourchette discrète */}
-                  <Typography sx={RANGE_SX}>
+                  <p className={cn(RANGE_CLASS, 'cn-text-body1')}>
                     <Money value={quote.min} from="EUR" decimals={0} /> – <Money value={quote.max} from="EUR" decimals={0} />
                     {' · '}{formatDuration(quote.durationMinutes)}
-                  </Typography>
-                  <Typography sx={PER_LABEL_SX}>
+                  </p>
+                  <p className={cn(PER_LABEL_CLASS, 'cn-text-body1')}>
                     {t('properties.priceEstimation.perIntervention')}
-                  </Typography>
+                  </p>
                 </div>
               );
             })}
@@ -379,9 +394,9 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
           )}
         </>
       ) : !loading ? (
-        <Typography sx={HINT_SX}>
+        <p className={cn(HINT_CLASS, 'cn-text-body1')}>
           {t('properties.priceEstimation.noEstimation')}
-        </Typography>
+        </p>
       ) : null}
     </div>
   );

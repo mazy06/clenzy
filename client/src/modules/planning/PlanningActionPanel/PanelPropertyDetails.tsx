@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Typography, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
@@ -256,19 +257,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
       {/* Nom + statut + ligne « ville · m² · ch » */}
       <div className="flex items-center gap-1.5 mb-0.5">
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: TITLE_FS,
-            fontWeight: 700,
-            flex: 1,
-            lineHeight: 1.25,
-            letterSpacing: '-0.01em',
-            color: 'var(--ink)',
-          }}
-        >
+        <p className="cn-text-body1 font-bold flex-1 leading-[1.25] tracking-[-0.01em] text-[var(--ink)]" style={{ fontFamily: 'var(--font-display)', fontSize: TITLE_FS }}>
           {property.name}
-        </Typography>
+        </p>
         <StatusChip
           pill
           size="sm"
@@ -279,13 +270,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       </div>
 
       {metaLine && (
-        <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', display: 'block', mb: 0.25 }}>
+        <p className="cn-text-body1 text-[var(--muted)] block mb-[1.5px]" style={{ fontSize: BODY_FS }}>
           {metaLine}
-        </Typography>
+        </p>
       )}
-      <Typography sx={{ fontSize: LABEL_FS, color: 'text.secondary', display: 'block', mb: 1.5 }}>
+      <p className="cn-text-body1 text-[var(--muted)] block mb-[9px]" style={{ fontSize: LABEL_FS }}>
         {property.address}, {property.city} {property.postalCode}
-      </Typography>
+      </p>
 
       {/* ─── ACCÈS : Digicode / Étage / Wi-Fi (si données) ───────────── */}
       {accessRows.length > 0 && (
@@ -297,9 +288,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 <span className="inline-flex text-[var(--muted)] shrink-0">
                   {row.icon}
                 </span>
-                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', flexShrink: 0 }}>
+                <p className="cn-text-body1 text-[var(--muted)] shrink-0" style={{ fontSize: BODY_FS }}>
                   {row.label}
-                </Typography>
+                </p>
                 <Typography
                   sx={{
                     ml: 'auto',
@@ -326,8 +317,8 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         {metrics.map((m) => (
           <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[1px] min-w-0 gap-0" key={m.label}>
             <span className="inline-flex text-muted-foreground">{m.icon}</span>
-            <Typography sx={{ fontSize: BODY_FS, fontWeight: 700, lineHeight: 1 }}>{m.value}</Typography>
-            <Typography sx={{ fontSize: MICRO_FS, color: 'text.secondary', lineHeight: 1.1 }}>{m.label}</Typography>
+            <p className="cn-text-body1 font-bold leading-[1]" style={{ fontSize: BODY_FS }}>{m.value}</p>
+            <p className="cn-text-body1 text-[var(--muted)] leading-[1.1]" style={{ fontSize: MICRO_FS }}>{m.label}</p>
           </div>
         ))}
       </div>
@@ -393,7 +384,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             <span className="inline-flex text-primary">
               <CleaningServices size={14} strokeWidth={1.75} />
             </span>
-            <Typography sx={{ fontSize: BODY_FS, fontWeight: 600 }}>Configuration ménage</Typography>
+            <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Configuration ménage</p>
           </div>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, pb: 1.25, px: 1.25 }}>
@@ -454,12 +445,12 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             expandIcon={<ExpandMore size={14} strokeWidth={1.75} />}
             sx={{ minHeight: 34, '& .MuiAccordionSummary-content': { my: 0.5 } }}
           >
-            <Typography sx={{ fontSize: BODY_FS, fontWeight: 600 }}>Notes ménage</Typography>
+            <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Notes ménage</p>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0, px: 1.25, pb: 1.25 }}>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+            <p className="cn-text-body1 text-[var(--muted)] whitespace-pre-wrap leading-[1.5]" style={{ fontSize: BODY_FS }}>
               {property.cleaningNotes}
-            </Typography>
+            </p>
           </AccordionDetails>
         </Accordion>
       )}
@@ -495,9 +486,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {activeSubTab === 'requests' && (
         <>
           {serviceRequests.length === 0 ? (
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 1 }}>
+            <p className="cn-text-body1 text-[var(--muted)] italic text-center py-1.5" style={{ fontSize: BODY_FS }}>
               Aucune demande de service
-            </Typography>
+            </p>
           ) : (
             <div className="flex flex-col gap-0.5">
               {[...serviceRequests]
@@ -536,9 +527,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {activeSubTab === 'interventions' && (
         <>
           {interventions.length === 0 ? (
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 1 }}>
+            <p className="cn-text-body1 text-[var(--muted)] italic text-center py-1.5" style={{ fontSize: BODY_FS }}>
               Aucune intervention planifiée
-            </Typography>
+            </p>
           ) : (
             <div className="flex flex-col gap-0.5">
               {[...interventions]
@@ -620,12 +611,12 @@ function ConfigRow({
           {icon}
         </span>
       )}
-      <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', minWidth: 90 }}>
+      <p className="cn-text-body1 text-[var(--muted)] min-w-[90px]" style={{ fontSize: BODY_FS }}>
         {label} :
-      </Typography>
-      <Typography sx={{ fontSize: BODY_FS, fontWeight: 600, color: 'text.primary', flex: 1 }}>
+      </p>
+      <p className="cn-text-body1 font-semibold text-[var(--ink)] flex-1" style={{ fontSize: BODY_FS }}>
         {children}
-      </Typography>
+      </p>
     </div>
   );
 }

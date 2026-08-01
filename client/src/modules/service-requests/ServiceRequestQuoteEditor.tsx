@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
-import { Typography, TextField, IconButton } from '@mui/material';
+import { TextField, IconButton } from '@mui/material';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -100,19 +101,9 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
             {/* En-têtes de colonnes */}
             <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] px-[1.5px]">
               {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
-                <Typography
-                  key={h || 'actions'}
-                  sx={{
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '.04em',
-                    color: 'var(--faint)',
-                    textAlign: i === 0 ? 'left' : i === 4 ? 'center' : 'right',
-                  }}
-                >
+                <p className={cn('cn-text-body1 text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]', i === 0 ? 'text-start' : '[object Object]')} key={h || 'actions'}>
                   {h}
-                </Typography>
+                </p>
               ))}
             </div>
 

@@ -1658,17 +1658,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <div className="flex items-center gap-1.5">
                           <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><Person size={15} strokeWidth={1.75} /></span>
                           <div>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontSize: '0.8rem',
-                                lineHeight: 1.3,
-                                fontWeight: 500,
-                                color: member.available ? 'text.primary' : 'text.secondary',
-                              }}
-                            >
+                            <p className={cn('cn-text-body2 text-[0.8rem] leading-[1.3] font-medium', member.available ? 'text-[var(--ink)]' : 'text-[var(--muted)]')}>
                               {member.firstName} {member.lastName}
-                            </Typography>
+                            </p>
                             <span className="cn-text-caption text-muted-foreground text-[0.6rem]">
                               {member.role}
                             </span>

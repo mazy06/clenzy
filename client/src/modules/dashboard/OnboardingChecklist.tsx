@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  LinearProgress,
-  IconButton,
-  Tooltip,
-  Button,
-} from '@mui/material';
+import { Box, LinearProgress, IconButton, Tooltip, Button } from '@mui/material';
 import {
   CheckCircle,
   RadioButtonUnchecked,
@@ -353,20 +346,9 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
                 </div>
 
                 {/* Label */}
-                <Typography
-                  sx={{
-                    fontSize: '0.75rem',
-                    fontWeight: isActive ? 700 : 600,
-                    lineHeight: 1.3,
-                    flex: 1,
-                    minWidth: 0,
-                    color: step.completed ? 'text.disabled' : isActive ? 'text.primary' : 'text.secondary',
-                    textDecoration: step.completed ? 'line-through' : 'none',
-                  }}
-                  noWrap
-                >
+                <p className={cn('cn-text-body1 text-[0.75rem] leading-[1.3] flex-1 min-w-0 truncate', isActive ? 'font-bold' : 'font-semibold', step.completed ? 'text-[var(--faint)]' : '[object Object]', step.completed ? 'decoration-[line-through]' : 'decoration-[none]')}>
                   {t(step.labelKey)}
-                </Typography>
+                </p>
 
                 {/* Status */}
                 {step.completed ? (

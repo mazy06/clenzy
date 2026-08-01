@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -318,9 +319,9 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                 <div className="mb-[3px]" style={{ color: kpi.color }}>
                   {React.cloneElement(kpi.icon, { sx: { fontSize: '1.5rem' } })}
                 </div>
-                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: kpi.color }}>
+                <p className="cn-text-body1 text-[1.25rem] font-bold" style={{ color: kpi.color }}>
                   {kpi.value}
-                </Typography>
+                </p>
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5">
                   {kpi.label}
                 </p>

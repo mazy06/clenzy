@@ -17,7 +17,7 @@
  * <p>Le badge est cliquable (curseur pointer) si {@code onClick} est fourni.</p>
  */
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Box, Tooltip } from '@mui/material';
 import { Cable, AlertCircle, Pause, Clock, CheckCircle2 } from 'lucide-react';
 
 import { cn } from '../../../utils/cn';
@@ -84,20 +84,10 @@ export default function ChannexHealthBadge({
         Derniere sync : {lastSyncStr}
       </span>
       {mapping.lastSyncError && mapping.syncStatus === 'ERROR' && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            pt: 0.5,
-            borderTop: '1px solid color-mix(in srgb, var(--bg) 20%, transparent)',
-            opacity: 0.9,
-            fontStyle: 'italic',
-          }}
-        >
+        <span className="cn-text-caption block mt-[3px] pt-[3px] opacity-90 italic" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 20%, transparent)' }}>
           {mapping.lastSyncError.slice(0, 200)}
           {mapping.lastSyncError.length > 200 && '…'}
-        </Typography>
+        </span>
       )}
       {onClick && (
         <span className="cn-text-caption block mt-0.5 text-[0.65rem] opacity-70">

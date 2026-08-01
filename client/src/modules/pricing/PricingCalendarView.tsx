@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Spinner } from '../../components/ui';
-import { Typography, Paper, IconButton, Button } from '@mui/material';
+import { Paper, IconButton, Button } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
@@ -334,22 +334,9 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                   )}
 
                   {pricing && pricing.nightlyPrice !== null && (
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      sx={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: sourceColor,
-                        fontFamily: 'var(--font-display)',
-                        fontVariantNumeric: 'tabular-nums',
-                        fontSize: '0.8125rem',
-                      }}
-                    >
+                    <p className="cn-text-body2 font-semibold flex-1 flex items-center justify-center tabular-nums text-[0.8125rem]" style={{ color: sourceColor, fontFamily: 'var(--font-display)' }}>
                       {pricing.nightlyPrice}
-                    </Typography>
+                    </p>
                   )}
 
                   {pricing && (

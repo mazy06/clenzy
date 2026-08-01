@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Typography, Button, Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Button, Grid, Card, CardContent, Avatar, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -97,9 +98,9 @@ function EmptyState({ icon, message, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-[30px] text-center border border-dashed border-[var(--line-2)] bg-[var(--field)] rounded-[12px] flex-1">
       <div className="text-muted-foreground opacity-60 mb-1.5">{icon}</div>
-      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', mb: action ? 2 : 0 }}>
+      <p className={cn('cn-text-body2 text-[var(--muted)] text-[0.85rem]', action ? 'mb-3' : 'mb-0')}>
         {message}
-      </Typography>
+      </p>
       {action}
     </div>
   );

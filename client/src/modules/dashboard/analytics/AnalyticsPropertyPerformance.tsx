@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import { Typography, Card, CardContent, LinearProgress, Grid } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import GridSection from './GridSection';
@@ -27,6 +28,9 @@ const LABEL_SX = {
   color: 'text.secondary',
   lineHeight: 1.2,
 } as const;
+
+/** Report en classes de `LABEL_SX`. */
+const LABEL_CLASS = 'text-[0.5625rem] text-[var(--muted)] leading-[1.2]';
 
 const VALUE_SX = {
   fontSize: '0.6875rem',
@@ -100,9 +104,9 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                   <div className="mb-1">
                     <div className="flex justify-between mb-0.5">
                       <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground opacity-60">Score</p>
-                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: getScoreColor(prop.score) }}>
+                      <p className="cn-text-body1 text-[0.625rem] font-bold" style={{ color: getScoreColor(prop.score) }}>
                         {prop.score}/100
-                      </Typography>
+                      </p>
                     </div>
                     <LinearProgress
                       variant="determinate"
@@ -122,19 +126,19 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                   {/* Metrics grid */}
                   <div className="flex flex-col gap-0.5">
                     <div className="flex justify-between">
-                      <Typography sx={LABEL_SX}>RevPAN</Typography>
+                      <p className={cn(LABEL_CLASS, 'cn-text-body1')}>RevPAN</p>
                       <Typography sx={VALUE_SX}><Money value={prop.revPan} from="EUR" decimals={2} /></Typography>
                     </div>
                     <div className="flex justify-between">
-                      <Typography sx={LABEL_SX}>{t('dashboard.analytics.occupancyRate')}</Typography>
+                      <p className={cn(LABEL_CLASS, 'cn-text-body1')}>{t('dashboard.analytics.occupancyRate')}</p>
                       <Typography sx={VALUE_SX}>{Math.round(prop.occupancyRate)}%</Typography>
                     </div>
                     <div className="flex justify-between">
-                      <Typography sx={LABEL_SX}>{t('dashboard.analytics.totalRevenue')}</Typography>
+                      <p className={cn(LABEL_CLASS, 'cn-text-body1')}>{t('dashboard.analytics.totalRevenue')}</p>
                       <Typography sx={VALUE_SX}><Money value={prop.revenue} from="EUR" decimals={0} /></Typography>
                     </div>
                     <div className="flex justify-between">
-                      <Typography sx={LABEL_SX}>{t('dashboard.analytics.netMargin')}</Typography>
+                      <p className={cn(LABEL_CLASS, 'cn-text-body1')}>{t('dashboard.analytics.netMargin')}</p>
                       <Typography sx={{ ...VALUE_SX, color: prop.netMargin >= 60 ? 'success.main' : prop.netMargin >= 40 ? 'warning.main' : 'error.main' }}>
                         {Math.round(prop.netMargin)}%
                       </Typography>

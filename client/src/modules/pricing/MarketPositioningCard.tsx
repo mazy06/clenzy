@@ -3,13 +3,16 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Skeleton, Tooltip, Typography } from '@mui/material';
+import { Skeleton, Tooltip } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Remove as Minus, Info } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { marketPositioningApi, type MarketPositioning } from '../../services/api/marketPositioningApi';
 
 const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
+
+/** Report en classes de `NUM_SX`. */
+const NUM_CLASS = 'tabular-nums';
 
 const SOURCE_LABEL: Record<string, string> = {
   FIRST_PARTY: 'Réseau Baitly',
@@ -134,11 +137,11 @@ const SignalBlock: React.FC<{
     <div className="flex gap-3">
       <div>
         <span className="cn-text-caption text-[var(--muted)]">{adrLabel}</span>
-        <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{adr}</Typography>
+        <p className={cn(NUM_CLASS, 'cn-text-body1 font-bold')}>{adr}</p>
       </div>
       <div>
         <span className="cn-text-caption text-[var(--muted)]">{occLabel}</span>
-        <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{occ}</Typography>
+        <p className={cn(NUM_CLASS, 'cn-text-body1 font-bold')}>{occ}</p>
       </div>
     </div>
   </div>

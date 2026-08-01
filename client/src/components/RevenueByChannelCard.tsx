@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../utils/cn';
 import { Card } from '../components/ui';
-import { Typography } from '@mui/material';
+
 import { Money } from './Money';
 
 /**
@@ -45,9 +45,9 @@ export default function RevenueByChannelCard({
 
       <div className="px-[17px] pb-2">
         {channels.length === 0 && (
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', py: '14px' }}>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] py-3.5">
             Aucun revenu par canal sur la période.
-          </Typography>
+          </p>
         )}
         {channels.map((c) => {
           const delta = c.comparePct != null ? Math.round((c.pct - c.comparePct) * 10) / 10 : null;
@@ -79,9 +79,9 @@ export default function RevenueByChannelCard({
                       </span>
                     )}
                     {delta != null && delta !== 0 && (
-                      <Typography component="span" sx={{ fontSize: '10.5px', fontWeight: 700, color: delta > 0 ? 'var(--ok)' : 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span className={cn('cn-text-body1 text-[10.5px] font-bold tabular-nums', delta > 0 ? 'text-[var(--ok)]' : 'text-[var(--err)]')}>
                         {delta > 0 ? '▲' : '▼'}{Math.abs(delta)} pt
-                      </Typography>
+                      </span>
                     )}
                   </div>
                 )}

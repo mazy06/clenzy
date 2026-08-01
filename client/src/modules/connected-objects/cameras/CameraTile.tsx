@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Box, Typography, Tooltip, IconButton, alpha } from '@mui/material';
 import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
@@ -106,7 +107,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               />
             ) : (
               <div className="relative z-[2] text-center px-3">
-                <Typography sx={{ color: alpha('#fff', 0.7), fontSize: '0.66rem' }}>Flux indisponible — passerelle média non configurée.</Typography>
+                <p className="cn-text-body1 text-[0.66rem]" style={{ color: alpha('#fff', 0.7) }}>Flux indisponible — passerelle média non configurée.</p>
               </div>
             )
           ) : (
@@ -144,7 +145,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
             {name}
           </Typography>
           {roomName && (
-            <Typography sx={{ color: alpha('#fff', 0.78), fontSize: '0.65rem', textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</Typography>
+            <p className="cn-text-body1 text-[0.65rem]" style={{ color: alpha('#fff', 0.78), textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</p>
           )}
         </div>
       </Box>

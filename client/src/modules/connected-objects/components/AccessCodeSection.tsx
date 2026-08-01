@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Typography, IconButton, Button, Tooltip, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
+import { IconButton, Button, Tooltip, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
@@ -95,23 +96,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
         ) : hasCode ? (
           <>
             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontVariantNumeric: 'tabular-nums',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                letterSpacing: revealed ? '0.06em' : '0.18em',
-                color: 'var(--ink)',
-                bgcolor: 'var(--field)',
-                borderRadius: '9px',
-                px: 1,
-                py: 0.25,
-                lineHeight: 1.4,
-              }}
-            >
+            <p className={cn('cn-text-body1 tabular-nums font-semibold text-[0.875rem] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-[1.5px] leading-[1.4]', revealed ? 'tracking-[0.06em]' : 'tracking-[0.18em]')} style={{ fontFamily: 'var(--font-display)' }}>
               {revealed ? code!.code : '••••••'}
-            </Typography>
+            </p>
             <Tooltip title={revealed ? 'Masquer' : 'Afficher'} arrow>
               <IconButton size="small" onClick={() => setRevealed((v) => !v)} sx={{ cursor: 'pointer', p: 0.25 }}>
                 {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}

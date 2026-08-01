@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, Typography, TextField, Button, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
+import { Paper, TextField, Button, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -251,7 +252,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
           />
 
           {error && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--err, #C97A7A)' }}>{error}</Typography>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--err,_#C97A7A)]">{error}</p>
           )}
 
           <div className="flex justify-end gap-1.5">

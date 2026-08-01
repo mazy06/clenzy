@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Skeleton, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Skeleton, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   PlayArrow,
   CompareArrows,
@@ -262,27 +263,14 @@ const ReconciliationTab: React.FC = () => {
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.pmsDaysChecked}</TableCell>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.channelDaysChecked}</TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: run.discrepanciesFound > 0 ? 'var(--warn)' : 'var(--body)',
-                            fontWeight: run.discrepanciesFound > 0 ? 600 : 400,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
+                        <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFound > 0 ? 'text-[var(--warn)]' : 'text-[var(--body)]', run.discrepanciesFound > 0 ? 'font-semibold' : 'font-normal')}>
                           {run.discrepanciesFound}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: run.discrepanciesFixed > 0 ? 'var(--ok)' : 'var(--body)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
+                        <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFixed > 0 ? 'text-[var(--ok)]' : 'text-[var(--body)]')}>
                           {run.discrepanciesFixed}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
                         {run.divergencePct ? `${run.divergencePct}%` : '0%'}

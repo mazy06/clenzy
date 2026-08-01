@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -128,17 +128,9 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
             >
               {isDone ? '✓' : idx + 1}
             </div>
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: '0.625rem',
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? 'var(--ink)' : 'var(--muted)',
-                letterSpacing: '0.02em',
-              }}
-            >
+            <span className={cn('cn-text-caption text-[0.625rem] tracking-[0.02em]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--ink)]' : 'text-[var(--muted)]')}>
               {label}
-            </Typography>
+            </span>
           </div>
         </React.Fragment>
       );
@@ -435,11 +427,11 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           ))}
           {filteredProperties.length === 0 && (
             <MenuItem disabled value="">
-              <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
+              <p className="cn-text-body2 text-[var(--muted)] italic text-[0.8125rem]">
                 {canChangeOwner && !ownerId
                   ? 'Sélectionnez d\'abord un propriétaire'
                   : 'Aucune propriété disponible'}
-              </Typography>
+              </p>
             </MenuItem>
           )}
         </TextField>

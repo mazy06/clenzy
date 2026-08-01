@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge as BuiBadge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Card, CardContent, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   History,
@@ -147,9 +148,9 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                       <TableCell sx={cellSx}>{alert.propertyName || `#${alert.propertyId}`}</TableCell>
                       <TableCell sx={cellSx}><SeverityChip severity={alert.severity} /></TableCell>
                       <TableCell sx={cellSx} align="right">
-                        <Typography sx={{ fontWeight: 600, fontSize: '0.75rem', color: alert.severity === 'CRITICAL' ? 'error.main' : 'warning.main' }}>
+                        <p className={cn('cn-text-body1 font-semibold text-[0.75rem]', alert.severity === 'CRITICAL' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
                           {alert.measuredDb.toFixed(0)} dB
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell sx={cellSx} align="right">{alert.thresholdDb} dB</TableCell>
                       <TableCell sx={cellSx}>{alert.timeWindowLabel || '—'}</TableCell>

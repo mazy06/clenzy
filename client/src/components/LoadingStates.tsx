@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../utils/cn';
 import { Spinner } from './ui';
 import { Typography, Button } from '@mui/material';
 import { Refresh, Warning as WarningIcon } from '../icons';
@@ -96,18 +97,9 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
       ) : (
         <>
           <Spinner className="size-8 text-[var(--accent)]" />
-          <Typography
-            textAlign="center"
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 600,
-              letterSpacing: '-.01em',
-              color: 'var(--ink)',
-            }}
-          >
+          <p className="cn-text-body1 text-center text-[16px] font-semibold tracking-[-.01em] text-[var(--ink)]" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
-          </Typography>
+          </p>
           <Typography textAlign="center" sx={{ fontSize: '12.5px', color: 'var(--muted)', mt: -1 }}>
             {description}
           </Typography>

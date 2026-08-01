@@ -1,8 +1,9 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Typography, IconButton, Tooltip } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   Delete,
@@ -119,9 +120,9 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                   {t.name}
                 </p>
                 {t.description && (
-                  <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
+                  <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)] mt-px">
                     {t.description}
-                  </Typography>
+                  </p>
                 )}
               </div>
 

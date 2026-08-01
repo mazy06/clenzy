@@ -1,17 +1,7 @@
 import StatusChip from './StatusChip';
+import { cn } from '../utils/cn';
 import React, { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogActions,
-  Typography,
-  Slider,
-  Chip,
-  IconButton,
-  InputBase,
-  Button,
-  Tooltip,
-} from '@mui/material';
+import { Dialog, DialogContent, DialogActions, Slider, Chip, IconButton, InputBase, Button, Tooltip } from '@mui/material';
 import { Autorenew, Close as CloseIcon, ContentCopy, CheckCircle, VpnKey as KeyIcon } from '../icons';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -245,9 +235,9 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
         <div className="mt-4">
           <div className="flex items-baseline justify-between mb-0.5">
             <p className="cn-text-body2 font-semibold">{t('channels.checkIn.generator.length', 'Longueur')}</p>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: BRAND }}>
+            <p className="cn-text-body2 font-bold tabular-nums" style={{ color: BRAND }}>
               {t('channels.checkIn.generator.chars', '{{n}} caractères', { n: pattern.length })}
-            </Typography>
+            </p>
           </div>
           <Slider
             value={pattern.length}
@@ -294,7 +284,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
                     } as React.CSSProperties}
                   >
                     <p className="cn-text-body1 text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
-                    <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', color: meta.color, mt: 0.25 }}>{meta.abbr}</Typography>
+                    <p className="cn-text-body1 font-bold text-[0.78rem] mt-[1.5px]" style={{ fontFamily: 'monospace', color: meta.color }}>{meta.abbr}</p>
                   </div>
                 </Tooltip>
               );

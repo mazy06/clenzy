@@ -111,9 +111,9 @@ function PlanCard({ icon, label, value }: { icon: React.ReactNode; label: string
         <p className="cn-text-body1 text-[11px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
           {label}
         </p>
-        <Typography sx={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--ink)', mt: '2px' }}>
+        <p className="cn-text-body1 text-[14.5px] font-semibold text-[var(--ink)] mt-0.5">
           {value}
-        </Typography>
+        </p>
       </div>
     </div>
   );
@@ -282,9 +282,9 @@ export default function FormPayloadSections({ form }: { form: ReceivedForm }) {
     data = JSON.parse(form.payload);
   } catch {
     return (
-      <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '20px' }}>
+      <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-5">
         Données non lisibles
-      </Typography>
+      </p>
     );
   }
 

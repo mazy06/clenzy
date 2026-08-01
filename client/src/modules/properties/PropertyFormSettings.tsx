@@ -25,6 +25,9 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+
 const SECTION_TITLE_ICON_SX = {
   ...SECTION_TITLE_SX,
   display: 'flex',
@@ -62,9 +65,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
       <div className="flex flex-col gap-4">
         {/* ── Configuration ────────────────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.configuration')}
-          </Typography>
+          </p>
 
           <Grid container spacing={1.5}>
             <Grid item xs={12}>

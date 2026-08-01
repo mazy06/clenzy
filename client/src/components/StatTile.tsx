@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../utils/cn';
 import { Paper, Typography, Skeleton } from '@mui/material';
 
 interface StatTileProps {
@@ -89,26 +90,14 @@ export default function StatTile({
       {loading ? (
         <Skeleton variant="text" width={90} height={34} sx={{ mt: '11px' }} />
       ) : (
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontVariantNumeric: 'tabular-nums',
-            fontSize: { xs: '1.375rem', md: '1.6875rem' },
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.1,
-            color: 'var(--ink)',
-            mt: '11px',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <p className="cn-text-body1 tabular-nums text-[1.375rem] min-[900px]:text-[1.6875rem] font-semibold tracking-[-0.02em] leading-[1.1] text-[var(--ink)] mt-[11px] whitespace-nowrap" style={{ fontFamily: 'var(--font-display)' }}>
           {value}
           {unit && (
             <span className="text-[0.625em] text-[var(--muted)] ms-1 font-semibold">
               {unit}
             </span>
           )}
-        </Typography>
+        </p>
       )}
 
       {/* Delta / contexte */}

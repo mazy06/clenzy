@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Typography, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -293,20 +294,12 @@ const ReservationsList: React.FC = () => {
                       </p>
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: '0.82rem',
-                          cursor: 'pointer',
-                          '&:hover': { color: 'var(--accent)', textDecoration: 'underline' },
-                        }}
-                        onClick={() => {
+                      <p className="cn-text-body2 text-[0.82rem] cursor-pointer hover:text-[var(--accent)] hover:decoration-[underline]" onClick={() => {
                           setSelectedGuestId(r.id);
                           setGuestDialogOpen(true);
-                        }}
-                      >
+                        }}>
                         {r.guestName}
-                      </Typography>
+                      </p>
                       <span className="cn-text-caption text-muted-foreground">
                         {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
                       </span>

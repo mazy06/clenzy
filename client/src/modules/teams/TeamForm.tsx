@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {
@@ -395,9 +395,9 @@ const TeamForm: React.FC = () => {
                   {/* Compteur utilisateurs */}
                   <div className="flex items-center gap-1">
                     <span className={cn('inline-flex', filteredUsers.length > 0 ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><GroupIcon size={16} strokeWidth={1.75} /></span>
-                    <Typography variant="caption" sx={{ fontSize: '0.72rem', color: filteredUsers.length > 0 ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
+                    <span className={cn('cn-text-caption text-[0.72rem] font-medium', filteredUsers.length > 0 ? 'text-[var(--ink)]' : 'text-[var(--faint)]')}>
                       {filteredUsers.length} {t('teams.fields.usersAvailable')}
-                    </Typography>
+                    </span>
                   </div>
                   {filteredUsers.length === 0 && (
                     <span className="cn-text-caption text-destructive block mt-0.5 text-[0.65rem]">

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
@@ -6,7 +7,7 @@ import { Info, X } from 'lucide-react';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton, Paper, Tooltip, alpha, Snackbar } from '@mui/material';
+import { Box, Button, Skeleton, Paper, Tooltip, alpha, Snackbar } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -215,7 +216,7 @@ export default function ConnectedObjectsHub({
               <span className="text-muted-foreground inline-flex">
                 <Home size={15} strokeWidth={1.75} />
               </span>
-              <Typography className="co-prop-name" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary', transition: 'color 150ms' }}>{group.propertyName}</Typography>
+              <p className="cn-text-body1 co-prop-name font-semibold text-[0.9375rem] text-[var(--ink)]" style={{ transition: 'color 150ms' }}>{group.propertyName}</p>
               <span className="cn-text-caption text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
               {group.propertyId != null && (
                 <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">

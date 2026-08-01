@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, TextField, Button, Typography, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink, MenuItem } from '@mui/material';
+import { Box, TextField, Button, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink, MenuItem } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
@@ -517,19 +518,9 @@ export default function Inscription() {
 
             {/* Selection du type d'organisation */}
             <div>
-              <Typography
-                variant="overline"
-                sx={{
-                  fontWeight: 700,
-                  color: 'text.secondary',
-                  letterSpacing: 0.6,
-                  fontSize: '0.7rem',
-                  display: 'block',
-                  mb: 1,
-                }}
-              >
+              <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem] block mb-1.5">
                 {t('auth.inscription.you', 'Vous êtes')}
-              </Typography>
+              </span>
               <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
                 {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((type) => (
                   <OptionCard
@@ -563,19 +554,9 @@ export default function Inscription() {
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
               <div>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    fontWeight: 700,
-                    color: 'text.secondary',
-                    letterSpacing: 0.6,
-                    fontSize: '0.7rem',
-                    display: 'block',
-                    mb: 1,
-                  }}
-                >
+                <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem] block mb-1.5">
                   {t('auth.inscription.choosePlan', 'Choisissez votre forfait *')}
-                </Typography>
+                </span>
                 <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
                   {(['essentiel', 'confort', 'premium'] as const).map((f) => (
                     <OptionCard
@@ -908,19 +889,9 @@ export default function Inscription() {
           <div className="mt-3 text-center">
             <span className="cn-text-caption text-muted-foreground">
               {t('auth.inscription.alreadyAccount', 'Deja un compte ?')}{' '}
-              <Typography
-                component="span"
-                variant="caption"
-                sx={{
-                  color: 'secondary.main',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-                onClick={() => navigate('/login')}
-              >
+              <span className="cn-text-caption text-[var(--mui-secondary)] font-semibold cursor-pointer hover:decoration-[underline]" onClick={() => navigate('/login')}>
                 {t('auth.inscription.loginLink', 'Se connecter')}
-              </Typography>
+              </span>
             </span>
           </div>
         )}

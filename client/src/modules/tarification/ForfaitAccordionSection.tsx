@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
-import { Typography, TextField, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { TextField, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AutoAwesome,
   Group,
@@ -36,6 +36,9 @@ const SECTION_TITLE_SX = {
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
 } as const;
+
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.625rem] font-semibold text-[var(--muted)] mb-[4.5px] uppercase tracking-[0.05em]';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -174,7 +177,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
       <div className="flex flex-col gap-3.5">
         {/* ─── Coefficients ─────────────────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.priceCoefficients')}</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.priceCoefficients')}</p>
           <Grid container spacing={1.5}>
             <Grid item xs={6}>
               <TextField
@@ -205,7 +208,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Types de service associés ────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.serviceTypes')}</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.serviceTypes')}</p>
           <div className="flex gap-1 flex-wrap">
             {ALL_CLEANING_SERVICE_TYPE_KEYS.map((stKey) => {
               const isSelected = (forfait.serviceTypes || []).includes(stKey);
@@ -228,7 +231,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Prestations incluses / en supplément ─────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.prestations')}</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.prestations')}</p>
           <div className="flex gap-4">
             {/* Incluses */}
             <div className="flex-1">
@@ -295,12 +298,12 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Équipes éligibles ────────────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('tarification.forfaitSection.eligibleTeams')}
             <span className="text-[0.5625rem] font-normal text-muted-foreground opacity-60 ms-1.5">
               {t('tarification.forfaitSection.eligibleTeamsHint')}
             </span>
-          </Typography>
+          </p>
           <div className="flex gap-1 flex-wrap">
             {teams.length === 0 ? (
               <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 italic">
@@ -329,7 +332,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Tarification par surface ─────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surfacePricing')}</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surfacePricing')}</p>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -398,7 +401,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Surcharges ───────────────────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surcharges')}</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surcharges')}</p>
           <Grid container spacing={1}>
             {availableSurcharges.map((s) => (
               <Grid item xs={6} sm={4} key={s.key}>

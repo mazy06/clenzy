@@ -1,7 +1,7 @@
 import React from 'react';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Typography, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
@@ -88,18 +88,9 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
       {channel.logo ? (
         <img className="h-[24px] object-contain max-w-[120px]" src={channel.logo} alt={channel.name} />
       ) : (
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: channel.brandColor,
-            letterSpacing: '-0.02em',
-            lineHeight: 1,
-          }}
-        >
+        <p className="cn-text-body1 text-[1rem] font-bold tracking-[-0.02em] leading-[1]" style={{ fontFamily: 'var(--font-display)', color: channel.brandColor }}>
           {channel.name}
-        </Typography>
+        </p>
       )}
     </div>
   );

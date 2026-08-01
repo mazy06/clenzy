@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import {
   Card,
   CardContent,
@@ -97,6 +98,9 @@ const GROWTH_SX = {
   letterSpacing: '0.01em',
 } as const;
 
+/** Report en classes de `GROWTH_SX`. */
+const GROWTH_CLASS = 'text-[0.5625rem] font-semibold tabular-nums tracking-[0.01em]';
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
@@ -176,20 +180,10 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
                 ) : (
                   <span className="inline-flex text-muted-foreground opacity-60"><Remove size={11} strokeWidth={1.75} /></span>
                 )}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    ...GROWTH_SX,
-                    color: trend.value > 0
-                      ? 'success.main'
-                      : trend.value < 0
-                      ? 'error.main'
-                      : 'text.disabled',
-                  }}
-                >
+                <span className={cn(GROWTH_CLASS, 'cn-text-caption', trend.value > 0 ? 'text-[var(--ok)]' : '[object Object]')}>
                   {trend.value > 0 ? '+' : ''}{trend.value}%
                   {trend.label ? ` ${trend.label}` : ''}
-                </Typography>
+                </span>
               </div>
             )}
 

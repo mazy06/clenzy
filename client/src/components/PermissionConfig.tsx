@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
@@ -429,9 +430,9 @@ const PermissionConfig: React.FC = () => {
               <Grid container spacing={1}>
                 <Grid item xs={3}>
                   <div className="text-center p-1.5">
-                    <Typography variant="h6" color="info.main" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    <h6 className="cn-text-h6 text-[var(--info)] font-semibold mb-[3px]">
                       {allPermissions.length}
-                    </Typography>
+                    </h6>
                     <span className="cn-text-caption text-muted-foreground">
                       Total
                     </span>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -446,17 +447,10 @@ export default function PromoCodesPage() {
                       <span className="cn-text-caption block text-muted-foreground">
                         Du {formatDate(promo.validFrom)}
                       </span>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: 'block',
-                          color: expired ? 'var(--err)' : 'text.secondary',
-                          fontWeight: expired ? 600 : 400,
-                        }}
-                      >
+                      <span className={cn('cn-text-caption block', expired ? 'text-[var(--err)]' : 'text-[var(--muted)]', expired ? 'font-semibold' : 'font-normal')}>
                         Au {formatDate(promo.validUntil)}
                         {expired && ' (expiré)'}
-                      </Typography>
+                      </span>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200 }}>
                       <Typography

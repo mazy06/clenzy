@@ -88,11 +88,17 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-[9px]';
+
 const INFO_LABEL_SX = {
   fontSize: '11px',
   fontWeight: 500,
   color: 'var(--muted)',
 } as const;
+
+/** Report en classes de `INFO_LABEL_SX`. */
+const INFO_LABEL_CLASS = 'text-[11px] font-medium text-[var(--muted)]';
 
 const INFO_VALUE_SX = {
   fontSize: '13px',
@@ -100,6 +106,9 @@ const INFO_VALUE_SX = {
   color: 'var(--ink)',
   mt: '1px',
 } as const;
+
+/** Report en classes de `INFO_VALUE_SX`. */
+const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-[var(--ink)] mt-px';
 
 const METRIC_VALUE_SX = {
   fontSize: '15px',
@@ -118,6 +127,9 @@ const METRIC_LABEL_SX = {
   letterSpacing: '.05em',
   mt: 0.25,
 } as const;
+
+/** Report en classes de `METRIC_LABEL_SX`. */
+const METRIC_LABEL_CLASS = 'text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.05em] mt-[1.5px]';
 
 /**
  * Puce « caracteristique du logement » : encre de corps sur fond de champ,
@@ -352,9 +364,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       {/* ── Status progress bar ──────────────────────────────────────── */}
       <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5 }}>
         <div className="flex items-center justify-between mb-1">
-          <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
             {t('serviceRequests.details.progression')}
-          </Typography>
+          </p>
           <Typography sx={{ fontSize: '12px', fontWeight: 700, color: `${statusProgressColor}.main` }}>
             {vm.statusLabel}
           </Typography>
@@ -367,9 +379,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         />
         <div className="flex justify-between mt-0.5">
           {progressSteps.map((label, i) => (
-            <Typography key={label} sx={{ fontSize: '10px', color: statusProgress >= PROGRESS_VALUES[i] ? `${statusProgressColor}.main` : 'var(--faint)', fontWeight: statusProgress >= PROGRESS_VALUES[i] ? 600 : 400 }}>
+            <p className={cn('cn-text-body1 text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')} style={{ color: statusProgress >= PROGRESS_VALUES[i] ? `${statusProgressColor}.main` : 'var(--faint)' }} key={label}>
               {label}
-            </Typography>
+            </p>
           ))}
         </div>
       </Paper>
@@ -382,7 +394,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
               {getInterventionTypeLabel(vm.type, t)}
             </Typography>
-            <Typography sx={METRIC_LABEL_SX}>{t('common.type')}</Typography>
+            <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('common.type')}</p>
           </div>
         </Grid>
         {vm.estimatedDurationHours != null && (
@@ -392,7 +404,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <Typography sx={METRIC_VALUE_SX}>
                 {formatDuration(vm.estimatedDurationHours)}
               </Typography>
-              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
+              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.estimatedDurationLabel')}</p>
             </div>
           </Grid>
         )}
@@ -402,7 +414,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
               {formatDateTime(vm.dueDate) || '—'}
             </Typography>
-            <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.dueDateShort')}</Typography>
+            <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.dueDateShort')}</p>
           </div>
         </Grid>
         {vm.estimatedCost != null && (
@@ -412,7 +424,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <Typography sx={METRIC_VALUE_SX}>
                 <Money value={vm.estimatedCost} from="EUR" />
               </Typography>
-              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.estimatedCost')}</Typography>
+              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.estimatedCost')}</p>
               {/* Moteur Ménage 2A : écart vs barème conseil (snapshot recommended_cost). */}
               {vm.recommendedCost != null && vm.recommendedCost > 0 && (() => {
                 const delta = vm.estimatedCost! - vm.recommendedCost!;
@@ -446,7 +458,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <Typography sx={{ ...METRIC_VALUE_SX, color: 'var(--ok)' }}>
                 <Money value={vm.actualCost} from="EUR" />
               </Typography>
-              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.actualCost')}</Typography>
+              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.actualCost')}</p>
             </div>
           </Grid>
         )}
@@ -457,7 +469,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
                 {formatDateTime(vm.createdAt)}
               </Typography>
-              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.createdDateShort')}</Typography>
+              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.createdDateShort')}</p>
             </div>
           </Grid>
         )}
@@ -468,7 +480,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px', ...(m.tone ? { color: m.tone } : {}) }}>
                 {m.value}
               </Typography>
-              <Typography sx={METRIC_LABEL_SX}>{m.label}</Typography>
+              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{m.label}</p>
             </div>
           </Grid>
         ))}
@@ -482,10 +494,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Description */}
           {vm.description && (
             <Paper sx={CARD_SX}>
-              <Typography sx={SECTION_TITLE_SX}>
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                 <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.fields.detailedDescription')}
-              </Typography>
+              </p>
               <div className="flex items-start gap-1.5">
                 {vm.importSource && ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()] && (
                   <div className="w-[22px] h-[22px] min-w-[22px] rounded-[50%] border-[1.5px] border-solid border-[var(--line)] bg-[#fff] flex items-center justify-center shrink-0 mt-[1.5px]">
@@ -508,18 +520,18 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Propriété */}
           <Paper sx={CARD_SX}>
             <div className="flex items-center justify-between mb-1.5">
-              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
                 <Home size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.sections.property')}
-              </Typography>
+              </p>
               {propertyAction}
             </div>
 
             <div className="flex items-center gap-1.5 py-[4.5px]">
               <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
-                <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.propertyNameLabel')}</Typography>
-                <Typography sx={INFO_VALUE_SX}>{p.name}</Typography>
+                <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.propertyNameLabel')}</p>
+                <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{p.name}</p>
               </div>
             </div>
 
@@ -529,8 +541,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fullAddressLabel')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{addressLine}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.fullAddressLabel')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{addressLine}</p>
                   </div>
                 </div>
               </>
@@ -542,8 +554,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Flag size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{p.country}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.country')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{p.country}</p>
                   </div>
                 </div>
               </>
@@ -570,10 +582,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Notes et Consignes */}
           {hasNotesSection && (
             <Paper sx={CARD_SX}>
-              <Typography sx={{ ...SECTION_TITLE_SX, mb: 1.5 }}>
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-[9px]')}>
                 <NoteAlt size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.details.notesInstructions')}
-              </Typography>
+              </p>
 
               <DescriptionNotesDisplay
                 description={p.description}
@@ -598,9 +610,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                     <VpnKey size={12} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                     {t('serviceRequests.details.accessNotes')}
                   </p>
-                  <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'var(--warn-soft)', p: 1.25, borderRadius: '9px', border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)' }}>
+                  <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.5] whitespace-pre-line bg-[var(--warn-soft)] p-[7.5px] rounded-[9px] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]">
                     {vm.accessNotes}
-                  </Typography>
+                  </p>
                 </div>
               )}
             </Paper>
@@ -613,17 +625,17 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Personnes impliquées */}
           {(vm.requestor || vm.assignee) && (
             <Paper sx={CARD_SX}>
-              <Typography sx={SECTION_TITLE_SX}>
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                 {t('serviceRequests.peopleInvolved')}
-              </Typography>
+              </p>
 
               {vm.requestor && (
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fields.requestor')}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.fields.requestor')}</p>
                     <div className="flex items-center gap-1">
-                      <Typography sx={INFO_VALUE_SX}>{vm.requestor.name}</Typography>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{vm.requestor.name}</p>
                       {vm.requestor.roleLabel && (
                         <Badge variant="outline" className="h-[18px] text-[0.5625rem] px-0.5">{vm.requestor.roleLabel}</Badge>
                       )}
@@ -647,10 +659,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                     <span className="inline-flex text-[var(--muted)]"><Assignment size={16} strokeWidth={1.75} /></span>
                   )}
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.assignedTo')}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.assignedTo')}</p>
                     {vm.assignee.name ? (
                       <div className="flex items-center gap-1">
-                        <Typography sx={INFO_VALUE_SX}>{vm.assignee.name}</Typography>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{vm.assignee.name}</p>
                         {vm.assignee.typeLabel && (
                           <StatusChip
                             tone={vm.assignee.type === 'team' ? 'info' : 'neutral'}
@@ -661,9 +673,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                         )}
                       </div>
                     ) : (
-                      <Typography sx={{ ...INFO_VALUE_SX, color: 'var(--faint)', fontStyle: 'italic' }}>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 text-[var(--faint)] italic')}>
                         {t('serviceRequests.fields.noAssignment')}
-                      </Typography>
+                      </p>
                     )}
                     {vm.assignee.email && vm.assignee.type === 'user' && (
                       <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
@@ -678,16 +690,16 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
           {/* Détail du temps */}
           <Paper sx={CARD_SX}>
-            <Typography sx={SECTION_TITLE_SX}>
+            <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
               <AccessTime size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
               {t('serviceRequests.layout.timeDetail', 'Détail du temps')}
-            </Typography>
+            </p>
 
             <div className="flex items-center gap-1.5 py-[4.5px]">
               <span className="inline-flex text-[var(--muted)]"><CalendarToday size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
-                <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.dueDateLabel')}</Typography>
-                <Typography sx={INFO_VALUE_SX}>{formatDateTime(vm.dueDate) || '—'}</Typography>
+                <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.dueDateLabel')}</p>
+                <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDateTime(vm.dueDate) || '—'}</p>
               </div>
             </div>
 
@@ -697,8 +709,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{formatDuration(vm.estimatedDurationHours)}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.estimatedDurationLabel')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDuration(vm.estimatedDurationHours)}</p>
                   </div>
                 </div>
               </>
@@ -710,12 +722,12 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                       {vm.property.cleaningDurationMinutes >= 60
                         ? `${Math.floor(vm.property.cleaningDurationMinutes / 60)}h${vm.property.cleaningDurationMinutes % 60 > 0 ? String(vm.property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                         : `${vm.property.cleaningDurationMinutes} min`}
-                    </Typography>
+                    </p>
                   </div>
                 </div>
               </>
@@ -727,8 +739,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]">{row.icon}</span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{row.label}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{row.value}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{row.label}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{row.value}</p>
                   </div>
                 </div>
               </React.Fragment>
@@ -740,8 +752,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.createdDateLabel')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{formatDateTime(vm.createdAt)}</Typography>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.createdDateLabel')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDateTime(vm.createdAt)}</p>
                   </div>
                 </div>
               </>

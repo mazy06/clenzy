@@ -21,7 +21,8 @@
  * dans le dialog. Le stepper sert juste de boussole.</p>
  */
 import React from 'react';
-import { Typography, Stack } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Stack } from '@mui/material';
 import { Cable, Search, Check, ArrowRight } from 'lucide-react';
 
 interface ChannexImportProgressStepperProps {
@@ -116,30 +117,12 @@ function StepBubble({ step }: { step: Step }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            fontWeight: 700,
-            fontSize: '0.78rem',
-            color: step.status === 'UPCOMING' ? 'text.disabled' : 'text.primary',
-            lineHeight: 1.3,
-          }}
-        >
+        <span className={cn('cn-text-caption block font-bold text-[0.78rem] leading-[1.3]', step.status === 'UPCOMING' ? 'text-[var(--faint)]' : 'text-[var(--ink)]')}>
           {step.title}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{
-            display: 'block',
-            fontSize: '0.68rem',
-            lineHeight: 1.4,
-            opacity: step.status === 'UPCOMING' ? 0.6 : 1,
-          }}
-        >
+        </span>
+        <span className={cn('cn-text-caption text-[var(--muted)] block text-[0.68rem] leading-[1.4]', step.status === 'UPCOMING' ? 'opacity-60' : 'opacity-100')}>
           {step.hint}
-        </Typography>
+        </span>
       </div>
     </div>
   );

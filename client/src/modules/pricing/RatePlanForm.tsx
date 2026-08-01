@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Typography, Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
+import { Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -213,16 +213,9 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
                       : 'border-[var(--field-line)] bg-[var(--field)] hover:border-[var(--faint)]',
                   )}
                 >
-                  <Typography
-                    variant="caption"
-                    fontWeight={selected ? 700 : 500}
-                    sx={{
-                      fontSize: '0.5625rem',
-                      color: selected ? 'var(--accent)' : 'var(--muted)',
-                    }}
-                  >
+                  <span className={cn('cn-text-caption text-[0.5625rem]', selected ? 'font-bold' : 'font-medium', selected ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                     {label}
-                  </Typography>
+                  </span>
                 </div>
               );
               });

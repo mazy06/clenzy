@@ -15,7 +15,8 @@
    ajouter une entrée, aucun branchement à modifier ailleurs.
    ============================================================ */
 import React from 'react';
-import { Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+
 import { parseToolResult } from './parseToolResult';
 import { humanizeKey, ErrorCard } from './shared';
 
@@ -167,9 +168,9 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
     <div className="mt-1.5 mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
       {entries.map(([k, v], idx) => (
         <div className="flex gap-[9px] py-[3px] items-baseline" style={{ borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }} key={k}>
-          <Typography sx={{ flex: '0 0 38%', color: 'var(--muted)', fontSize: '11.5px' }}>
+          <p className="cn-text-body1 flex-[0_0_38%] text-[var(--muted)] text-[11.5px]">
             {humanizeKey(k)}
-          </Typography>
+          </p>
           <p className="cn-text-body1 flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
             {String(v)}
           </p>

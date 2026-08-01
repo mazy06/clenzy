@@ -137,18 +137,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           style={isKit ? { borderColor: `${tint}33`, backgroundColor: `${tint}08` } : undefined}
         >
           {isKit && (
-            <Typography
-              sx={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: tint,
-                mb: 0.625,
-              }}
-            >
+            <p className="cn-text-body1 text-[0.65rem] font-bold tracking-[0.08em] uppercase mb-[3.75px]" style={{ color: tint }}>
               {t('shop.kitContents')}
-            </Typography>
+            </p>
           )}
           {displayedFeatures.slice(0, 5).map((feature) => (
             <div className="flex items-start gap-1 py-0.5" key={feature}>
