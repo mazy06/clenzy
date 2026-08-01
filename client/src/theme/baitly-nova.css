@@ -1302,11 +1302,11 @@
 }
 
 .cn-table-header {
-  @apply [&_tr]:border-b;
+  /* Le filet est pose par .cn-table-head, pas ici — sinon deux traits. */
 }
 
 .cn-table-body {
-  @apply [&_tr:last-child]:border-0;
+  @apply [&_tr:last-child>*]:border-b-0;
 }
 
 .cn-table-footer {
@@ -1314,15 +1314,27 @@
 }
 
 .cn-table-row {
-  @apply hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors;
+  /* MuiTableRow : survol --hover, transition 120 ms. Le filet est porte par les
+     cellules (comme chez MUI), pas par la ligne : sinon il doublerait. */
+  @apply data-[state=selected]:bg-muted transition-colors duration-[.12s];
 }
+.cn-table-row:hover { background-color: var(--hover); }
 
 .cn-table-row-aria {
   @apply data-selected:bg-muted;
 }
 
 .cn-table-head {
-  @apply text-foreground h-10 px-2 text-start align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pe-0;
+  /* Report EXACT de MuiTableCell.head (signature/signatureTheme.ts) + du
+     padding de theme.ts, mesure sur trois tableaux de l'app : 6px 12px,
+     10.5px/700, uppercase .05em, encre --faint, filet --line. Sans ce report,
+     migrer un tableau MUI vers ce primitif changerait son apparence. */
+  @apply px-3 py-1.5 text-start align-middle whitespace-nowrap uppercase [&:has([role=checkbox])]:pe-0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: var(--faint);
+  border-bottom: 1px solid var(--line);
 }
 
 .cn-table-head-aria {
@@ -1330,7 +1342,11 @@
 }
 
 .cn-table-cell {
-  @apply p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pe-0;
+  /* MuiTableCell.body : 12.5px, filet --line. Le padding vient de theme.ts
+     (8px 12px) ; les ecrans qui s'en ecartent posent leur propre classe. */
+  @apply px-3 py-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pe-0;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--line);
 }
 
 .cn-table-cell-aria {
