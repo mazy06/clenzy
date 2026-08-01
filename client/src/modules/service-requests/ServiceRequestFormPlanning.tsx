@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
   Box,
@@ -163,36 +164,17 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     {PRIORITIES.map((p) => {
                       const isSelected = field.value === p.value;
                       return (
-                        <Chip
+                        <StatusChip
                           key={p.value}
+                          outlined
+                          selected={isSelected}
+                          pressed={isSelected}
+                          tokens={{ color: p.fg, bg: p.bg }}
                           icon={p.icon}
                           label={t(p.labelKey)}
                           onClick={disabled ? undefined : () => field.onChange(p.value)}
                           disabled={disabled}
-                          size="small"
-                          aria-pressed={isSelected}
-                          sx={{
-                            height: 30,
-                            fontSize: '11.5px',
-                            fontWeight: isSelected ? 600 : 500,
-                            border: '1px solid',
-                            borderColor: isSelected ? p.fg : 'var(--line-2)',
-                            bgcolor: isSelected ? p.bg : 'var(--card)',
-                            color: isSelected ? p.fg : 'var(--body)',
-                            '& .MuiChip-icon': {
-                              fontSize: 14,
-                              ml: 0.5,
-                              color: isSelected ? p.fg : 'var(--muted)',
-                            },
-                            '& .MuiChip-label': { px: 0.75 },
-                            '&:hover': disabled ? {} : {
-                              bgcolor: isSelected ? p.bg : 'var(--hover)',
-                              borderColor: p.fg,
-                            },
-                            cursor: disabled ? 'default' : 'pointer',
-                            opacity: disabled ? 0.45 : 1,
-                            transition: 'background-color .15s, border-color .15s, color .15s',
-                          }}
+                          className={cn('h-[30px] text-[11.5px]', disabled && 'opacity-45')}
                         />
                       );
                     })}
@@ -355,27 +337,16 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                 ]).map((mode) => {
                   const isActive = dateMode === mode.key;
                   return (
-                    <Chip
+                    <StatusChip
                       key={mode.key}
+                      outlined
+                      selected={isActive}
+                      pressed={isActive}
+                      tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                       icon={mode.icon}
                       label={mode.label}
-                      size="small"
                       onClick={mode.onClick}
-                      aria-pressed={isActive}
-                      sx={{
-                        height: 30,
-                        fontSize: '11.5px',
-                        fontWeight: isActive ? 600 : 500,
-                        border: '1px solid',
-                        borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
-                        bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
-                        color: isActive ? 'var(--accent)' : 'var(--body)',
-                        cursor: 'pointer',
-                        transition: 'background-color .15s, border-color .15s, color .15s',
-                        '&:hover': { bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)', borderColor: 'var(--accent)' },
-                        '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: isActive ? 'var(--accent)' : 'var(--muted)' },
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
+                      className="h-[30px] text-[11.5px]"
                     />
                   );
                 })}
@@ -444,11 +415,11 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">
                             Aucun checkout à venir pour cette propriété
                           </p>
-                          <Chip
+                          <StatusChip
+                            tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                             label="Saisir une date manuellement"
-                            size="small"
                             onClick={handleSwitchToCustom}
-                            sx={{ mt: 0.75, height: 22, fontSize: '10.5px', cursor: 'pointer', color: 'var(--accent)', bgcolor: 'var(--accent-soft)', border: 'none', '&:hover': { bgcolor: 'var(--accent-soft)' } }}
+                            className="mt-1 text-[10.5px]"
                           />
                         </Box>
                       )}
