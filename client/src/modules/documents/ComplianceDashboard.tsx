@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import { Box, Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
 import {
   Lock,
   GppGood,
@@ -230,20 +231,20 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       <div className="flex items-center gap-1.5 mb-3">
         {isAdmin ? (
           <>
-            <Chip
+            {/* Le chevron etait monte en `deleteIcon`, avec un `onDelete` qui
+                ouvrait le meme menu que le corps de la puce : deux commandes
+                pour une seule action, dont une annoncee \u00ab supprimer \u00bb. Ici, une
+                puce = un bouton, et le chevron n'est plus qu'un decor. */}
+            <StatusChip
+              tone="accent"
               icon={<Public size={14} strokeWidth={1.75} />}
-              label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-              deleteIcon={<ExpandMore />}
-              onDelete={(e) => setCountryMenuAnchor(e.currentTarget as HTMLElement)}
+              label={
+                <span className="inline-flex items-center gap-1">
+                  {`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
+                  <ExpandMore className="size-3.5 opacity-70" aria-hidden />
+                </span>
+              }
               onClick={(e) => setCountryMenuAnchor(e.currentTarget)}
-              sx={{
-                color: 'var(--accent)',
-                bgcolor: 'var(--accent-soft)',
-                cursor: 'pointer',
-                '& .MuiChip-icon': { color: 'var(--accent)' },
-                '& .MuiChip-deleteIcon': { color: 'var(--accent)' },
-                '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent)' },
-              }}
             />
             <Menu
               anchorEl={countryMenuAnchor}
@@ -434,10 +435,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           transition: 'background-color 0.4s ease',
                           // Pas de side-stripe (interdit absolu) : surlignage -soft seul.
                           ...(isChecking && { backgroundColor: 'var(--accent-soft)' }),
-                          '@keyframes fadeIn': {
-                            from: { opacity: 0, transform: 'translateX(-8px)' },
-                            to: { opacity: 1, transform: 'translateX(0)' },
-                          },
                           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         }}
                       >
@@ -448,12 +445,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]">{tpl.documentType}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <StatusChip
+                            tone={tpl.active ? 'ok' : 'neutral'}
                             label={tpl.active ? t('documents.compliance.active') : t('documents.compliance.inactive')}
-                            size="small"
-                            sx={tpl.active
-                              ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
-                              : { color: 'var(--muted)', bgcolor: 'var(--hover)' }}
                           />
                         </TableCell>
                         <TableCell>
@@ -471,28 +465,21 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                                   : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`
                               }
                             >
-                              {(() => {
-                                const tone = report.compliant
-                                  ? { c: 'var(--ok)', bg: 'var(--ok-soft)' }
-                                  : { c: 'var(--err)', bg: 'var(--err-soft)' };
-                                return (
-                                  <Chip
-                                    icon={
-                                      report.compliant
-                                        ? <GppGood size={12} strokeWidth={1.75} />
-                                        : <GppBad size={12} strokeWidth={1.75} />
-                                    }
-                                    label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
-                                    size="small"
-                                    sx={{
-                                      color: tone.c, bgcolor: tone.bg,
-                                      '& .MuiChip-icon': { color: tone.c },
-                                      animation: 'fadeIn 0.4s ease',
-                                      '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                                    }}
-                                  />
-                                );
-                              })()}
+                              {/* Le `span` porte la ref que Tooltip pose sur son
+                                  enfant : StatusChip est une fonction, il n'en
+                                  transmet pas, et l'infobulle ne s'ancrerait pas. */}
+                              <span className="inline-flex">
+                                <StatusChip
+                                  tone={report.compliant ? 'ok' : 'err'}
+                                  icon={
+                                    report.compliant
+                                      ? <GppGood size={12} strokeWidth={1.75} />
+                                      : <GppBad size={12} strokeWidth={1.75} />
+                                  }
+                                  label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
+                                  className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2 duration-300"
+                                />
+                              </span>
                             </Tooltip>
                           ) : (
                             <span className="cn-text-caption text-muted-foreground">En attente</span>

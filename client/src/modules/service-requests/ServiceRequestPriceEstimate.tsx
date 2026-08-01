@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, Chip, Tooltip } from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Box, Typography, Tooltip } from '@mui/material';
 import {
   AutoAwesome,
   Timer,
@@ -156,12 +158,9 @@ const PRICE_CARD_PRIMARY_SX = {
   bgcolor: 'var(--accent-soft)',
 } as const;
 
-const CHIP_SX = {
-  height: 22,
-  fontSize: '10.5px',
-  fontWeight: 700,
-  '& .MuiChip-label': { px: 1 },
-} as const;
+/** Puce de palier tarifaire : le gabarit statut, avec une graisse plus marquee
+ *  parce qu'elle sert d'etiquette a un montant. */
+const TIER_CHIP_CLASS = 'text-[10.5px] font-bold';
 
 const DURATION_BANNER_SX = {
   display: 'flex',
@@ -320,15 +319,12 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                       Recommandé
                     </Box>
                   )}
-                  <Chip
+                  <StatusChip
+                    tokens={isHighlighted
+                      ? { color: 'var(--accent)', bg: 'var(--card)' }
+                      : { color: 'var(--muted)', bg: 'var(--hover)' }}
                     label={label}
-                    size="small"
-                    sx={{
-                      ...CHIP_SX,
-                      color: isHighlighted ? 'var(--accent)' : 'var(--muted)',
-                      bgcolor: isHighlighted ? 'var(--card)' : 'var(--hover)',
-                      border: isHighlighted ? '1px solid var(--accent)' : 'none',
-                    }}
+                    className={cn(TIER_CHIP_CLASS, isHighlighted && 'border border-solid border-[var(--accent)]')}
                   />
                   <Typography sx={{
                     fontSize: isHighlighted ? '18px' : '16px',
@@ -357,10 +353,10 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
               const isFirst = index === 0;
               return (
                 <Box key={forfait.key} sx={{ ...PRICE_CARD_SX, opacity: 0.4 }}>
-                  <Chip
+                  <StatusChip
+                    tone="neutral"
                     label={forfait.label}
-                    size="small"
-                    sx={{ ...CHIP_SX, color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none' }}
+                    className={TIER_CHIP_CLASS}
                   />
                   <Typography sx={{
                     fontSize: isFirst ? '18px' : '16px',

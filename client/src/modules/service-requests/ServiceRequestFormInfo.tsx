@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
+import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import {
   Box,
   Typography,
   InputBase,
-  Chip,
   FormHelperText,
   IconButton,
 } from '@mui/material';
@@ -343,38 +343,29 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       const catFg = activeCat?.fg || 'var(--accent)';
       const catBg = activeCat?.bg || 'var(--accent-soft)';
       return (
-        <Chip
+        <StatusChip
           key={wp.interventionType}
+          outlined
+          selected={isSelected}
+          pressed={isSelected}
+          tokens={{ color: catFg, bg: catBg }}
           icon={<Build size={14} strokeWidth={1.75} />}
           label={
             <span className="inline-flex items-center gap-0.5">
               <span>{wp.label}</span>
               {wp.basePrice > 0 && (
-                <Box component="span" sx={{ fontSize: '10px', fontWeight: 600, color: isSelected ? catFg : 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                <span
+                  className="text-[10px] font-semibold tabular-nums"
+                  style={{ color: isSelected ? catFg : 'var(--muted)' }}
+                >
                   {wp.basePrice} €
-                </Box>
+                </span>
               )}
             </span>
           }
           onClick={disabled ? undefined : () => handleWorkPrestationClick(wp)}
           disabled={disabled}
-          size="small"
-          aria-pressed={isSelected}
-          sx={{
-            height: 30,
-            fontSize: '11.5px',
-            fontWeight: isSelected ? 600 : 500,
-            border: '1px solid',
-            borderColor: isSelected ? catFg : 'var(--line-2)',
-            bgcolor: isSelected ? catBg : 'var(--card)',
-            color: isSelected ? catFg : 'var(--body)',
-            '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: isSelected ? catFg : 'var(--muted)' },
-            '& .MuiChip-label': { px: 0.75 },
-            '&:hover': disabled ? {} : { bgcolor: isSelected ? catBg : 'var(--hover)', borderColor: catFg },
-            cursor: disabled ? 'default' : 'pointer',
-            opacity: disabled ? 0.45 : 1,
-            transition: 'background-color .15s, border-color .15s, color .15s',
-          }}
+          className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
         />
       );
     };
@@ -459,7 +450,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       label={option.label}
                       onClick={disabled ? undefined : () => handleSubTypeClick(option)}
                       disabled={disabled}
-                      className={cn('h-[30px] text-[11.5px]', disabled && 'opacity-45')}
+                      className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                     />
                   );
                 })}
@@ -474,29 +465,17 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       {customTypes.map((ct) => {
                         const selected = isCustom && customLabel === ct.label;
                         return (
-                          <Chip
+                          <StatusChip
                             key={ct.id}
+                            outlined
+                            selected={selected}
+                            pressed={selected}
+                            tokens={{ color: catFg, bg: catBg }}
                             icon={<MoreHoriz size={14} strokeWidth={1.75} />}
                             label={ct.label}
                             onClick={disabled ? undefined : () => selectCustomType(activeCategory, ct.label)}
                             disabled={disabled}
-                            size="small"
-                            aria-pressed={selected}
-                            sx={{
-                              height: 30,
-                              fontSize: '11.5px',
-                              fontWeight: selected ? 600 : 500,
-                              border: '1px solid',
-                              borderColor: selected ? catFg : 'var(--line-2)',
-                              bgcolor: selected ? catBg : 'var(--card)',
-                              color: selected ? catFg : 'var(--body)',
-                              '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: selected ? catFg : 'var(--muted)' },
-                              '& .MuiChip-label': { px: 0.75 },
-                              '&:hover': disabled ? {} : { bgcolor: selected ? catBg : 'var(--hover)', borderColor: catFg },
-                              cursor: disabled ? 'default' : 'pointer',
-                              opacity: disabled ? 0.45 : 1,
-                              transition: 'background-color .15s, border-color .15s, color .15s',
-                            }}
+                            className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                           />
                         );
                       })}
@@ -539,26 +518,16 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                           </IconButton>
                         </Box>
                       ) : (
-                        <Chip
+                        <StatusChip
+                          outlined
+                          tokens={{ color: catFg, bg: catBg }}
                           icon={<Add size={14} strokeWidth={1.75} />}
                           label="Autre"
                           onClick={disabled ? undefined : openAddCustom}
                           disabled={disabled}
-                          size="small"
-                          sx={{
-                            height: 30,
-                            fontSize: '11.5px',
-                            fontWeight: 500,
-                            border: '1px dashed var(--line-2)',
-                            bgcolor: 'var(--card)',
-                            color: 'var(--muted)',
-                            '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--muted)' },
-                            '& .MuiChip-label': { px: 0.75 },
-                            '&:hover': disabled ? {} : { borderColor: catFg, color: catFg, bgcolor: 'var(--hover)' },
-                            cursor: disabled ? 'default' : 'pointer',
-                            opacity: disabled ? 0.45 : 1,
-                            transition: 'background-color .15s, border-color .15s, color .15s',
-                          }}
+                          // Tiret : cette puce n'est pas un choix parmi d'autres,
+                          // elle en OUVRE un nouveau.
+                          className={cn(SELECT_CHIP_CLASS, 'border-dashed', disabled && 'opacity-45')}
                         />
                       )}
                     </>
@@ -599,49 +568,33 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   : `+${p.extraMins} min`;
 
                 return (
-                  <Chip
+                  <StatusChip
                     key={p.key}
+                    outlined
+                    selected={isActive}
+                    pressed={isActive}
+                    tone="accent"
                     icon={p.icon}
                     label={
-                      <div className="flex items-center gap-0.5">
+                      <span className="inline-flex items-center gap-0.5">
                         <span>{chipLabel}</span>
                         {isIncluded ? (
-                          <span className="text-[9.5px] text-[var(--ok)] font-bold bg-[var(--ok-soft)] px-0.5 py-0 rounded-[4px]">
+                          <span className="rounded-[4px] bg-[var(--ok-soft)] px-0.5 text-[9.5px] font-bold text-[var(--ok)]">
                             Inclus
                           </span>
                         ) : (
-                          <Typography component="span" sx={{ fontSize: '10px', color: isActive ? 'var(--accent)' : 'var(--faint)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                          <span
+                            className="text-[10px] font-medium tabular-nums"
+                            style={{ color: isActive ? 'var(--accent)' : 'var(--faint)' }}
+                          >
                             {extraLabel}
-                          </Typography>
+                          </span>
                         )}
-                      </div>
+                      </span>
                     }
                     onClick={disabled ? undefined : () => handleTogglePrestation(p.key)}
                     disabled={disabled}
-                    size="small"
-                    aria-pressed={isActive}
-                    sx={{
-                      height: 30,
-                      fontSize: '11.5px',
-                      fontWeight: isActive ? 600 : 500,
-                      border: '1px solid',
-                      borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
-                      bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
-                      color: isActive ? 'var(--accent)' : 'var(--body)',
-                      '& .MuiChip-icon': {
-                        fontSize: 14,
-                        ml: 0.5,
-                        color: isActive ? 'var(--accent)' : 'var(--muted)',
-                      },
-                      '& .MuiChip-label': { px: 0.75 },
-                      '&:hover': disabled ? {} : {
-                        bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)',
-                        borderColor: 'var(--accent)',
-                      },
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.45 : 1,
-                      transition: 'background-color .15s, border-color .15s, color .15s',
-                    }}
+                    className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                   />
                 );
               })}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Typography, Card, CardContent, Grid, Chip, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Typography, Card, CardContent, Grid, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -403,11 +404,9 @@ const PermissionConfig: React.FC = () => {
                   <p className="cn-text-body2 text-muted-foreground">
                     • {rolePermissions.permissions.length} permissions actives
                   </p>
-                  <Chip
+                  <StatusChip
+                    tone={rolePermissions.isDefault ? 'ok' : 'warn'}
                     label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
-                    size="small"
-                    color={rolePermissions.isDefault ? 'success' : 'warning'}
-                    variant="outlined"
                   />
                 </>
               )}
@@ -563,12 +562,10 @@ const PermissionConfig: React.FC = () => {
                           <h6 className="cn-text-subtitle2 font-semibold flex-1">
                             {moduleName}
                           </h6>
-                          <Chip
+                          <StatusChip
+                            tone={allActive ? 'ok' : noneActive ? 'neutral' : 'accent'}
                             label={`${activeCount}/${permissions.length}`}
-                            size="small"
-                            color={allActive ? 'success' : noneActive ? 'default' : 'primary'}
-                            variant="outlined"
-                            sx={{ fontSize: '0.72rem', height: 22, mr: 1 }}
+                            className="me-1 text-[0.72rem] tabular-nums"
                           />
                         </AccordionSummary>
                         <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
@@ -589,21 +586,15 @@ const PermissionConfig: React.FC = () => {
                                     borderColor: isActive ? 'success.main' : 'grey.200',
                                   }}
                                 >
-                                  <Chip
+                                  {/* Le survol jouait un `scale(1.05)` : la puce
+                                      poussait ses voisines a chaque passage de
+                                      souris. StatusChip attenue l'opacite, sans
+                                      deplacer la ligne. */}
+                                  <StatusChip
+                                    tone={isActive ? 'ok' : 'neutral'}
                                     label={permission}
-                                    size="small"
-                                    color={isActive ? 'success' : 'default'}
-                                    variant={isActive ? 'filled' : 'outlined'}
+                                    pressed={isActive}
                                     onClick={() => togglePermission(permission)}
-                                    sx={{
-                                      cursor: 'pointer',
-                                      fontWeight: 500,
-                                      transition: 'all 0.2s ease-in-out',
-                                      '&:hover': {
-                                        transform: 'scale(1.05)',
-                                        boxShadow: 1,
-                                      },
-                                    }}
                                   />
                                   <div className="flex items-center gap-0.5 ms-auto">
                                     {isActive ? (

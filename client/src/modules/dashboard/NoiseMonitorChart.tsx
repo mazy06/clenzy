@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Chip, FormControl, Select, MenuItem, Tooltip, alpha, type SxProps, type Theme } from '@mui/material';
+import { Box, Card, CardContent, FormControl, Select, MenuItem, Tooltip, alpha, type SxProps, type Theme } from '@mui/material';
 import {
   VolumeUp,
   Warning,
@@ -69,14 +70,14 @@ const CHART_OVERLAY_PILL_SX: SxProps<Theme> = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getNoiseStatus(level: number): { label: string; color: 'success' | 'warning' | 'error'; icon: React.ReactElement } {
+function getNoiseStatus(level: number): { label: string; tone: StatusTone; icon: React.ReactElement } {
   if (level <= NOISE_THRESHOLDS.normal) {
-    return { label: 'Normal', color: 'success', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
+    return { label: 'Normal', tone: 'ok', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
   }
   if (level <= NOISE_THRESHOLDS.warning) {
-    return { label: 'Élevé', color: 'warning', icon: <Warning size={14} strokeWidth={1.75} /> };
+    return { label: 'Élevé', tone: 'warn', icon: <Warning size={14} strokeWidth={1.75} /> };
   }
-  return { label: 'Critique', color: 'error', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
+  return { label: 'Critique', tone: 'err', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
 }
 
 const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
@@ -113,13 +114,7 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
           <div className="flex items-center gap-0.5 mb-0.5" key={entry.name}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
             <p className="cn-text-body1 text-[0.6875rem] flex-1">{entry.name}</p>
-            <Chip
-              label={`${entry.value} dB`}
-              size="small"
-              color={status.color}
-              variant="outlined"
-              sx={{ height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.5 } }}
-            />
+            <StatusChip size="sm" tone={status.tone} label={`${entry.value} dB`} />
           </div>
         );
       })}
@@ -397,18 +392,12 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                   <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
                     {prop.propertyName}
                   </p>
-                  <Chip
+                  <StatusChip
+                    size="sm"
+                    tone={status.tone}
                     icon={status.icon}
                     label={`${prop.currentLevel} dB`}
-                    size="small"
-                    color={status.color}
-                    variant="outlined"
-                    sx={{
-                      height: 18,
-                      fontSize: '0.5625rem',
-                      '& .MuiChip-icon': { fontSize: 12, ml: 0.25 },
-                      '& .MuiChip-label': { px: 0.5 },
-                    }}
+                    className="text-[0.5625rem] [&>svg]:size-3"
                   />
                 </Box>
               </Tooltip>
@@ -536,20 +525,13 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             }}
           >
             {recentAlerts.map(alert => (
-              <Chip
+              <StatusChip
                 key={alert.id}
+                size="sm"
+                tone={alert.severity === 'critical' ? 'err' : 'warn'}
                 icon={alert.severity === 'critical' ? <ErrorIcon /> : <Warning />}
                 label={`${alert.propertyName}: ${alert.level} dB`}
-                size="small"
-                color={alert.severity === 'critical' ? 'error' : 'warning'}
-                variant="outlined"
-                sx={{
-                  height: 20,
-                  fontSize: '0.5625rem',
-                  flexShrink: 0,
-                  '& .MuiChip-icon': { fontSize: 12 },
-                  '& .MuiChip-label': { px: 0.5 },
-                }}
+                className="shrink-0 text-[0.5625rem] [&>svg]:size-3"
               />
             ))}
           </Box>

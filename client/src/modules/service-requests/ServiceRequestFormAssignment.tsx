@@ -1,4 +1,7 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import { Badge } from '../../components/ui';
 import {
   Box,
@@ -9,8 +12,7 @@ import {
   Select,
   MenuItem,
   FormHelperText,
-  Chip,
-} from '@mui/material';
+  } from '@mui/material';
 import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -164,36 +166,17 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
               {ASSIGNMENT_TYPES.map((at) => {
                 const isSelected = (watchedAssignedToType || '') === at.value;
                 return (
-                  <Chip
+                  <StatusChip
                     key={at.value}
+                    outlined
+                    selected={isSelected}
+                    pressed={isSelected}
+                    tokens={{ color: at.fg, bg: at.bg }}
                     icon={at.icon}
                     label={at.label}
                     onClick={disabled ? undefined : () => handleAssignmentTypeClick(at.value)}
                     disabled={disabled}
-                    size="small"
-                    aria-pressed={isSelected}
-                    sx={{
-                      height: 30,
-                      fontSize: '11.5px',
-                      fontWeight: isSelected ? 600 : 500,
-                      border: '1px solid',
-                      borderColor: isSelected ? at.fg : 'var(--line-2)',
-                      bgcolor: isSelected ? at.bg : 'var(--card)',
-                      color: isSelected ? at.fg : 'var(--body)',
-                      '& .MuiChip-icon': {
-                        fontSize: 14,
-                        ml: 0.5,
-                        color: isSelected ? at.fg : 'var(--muted)',
-                      },
-                      '& .MuiChip-label': { px: 0.75 },
-                      '&:hover': disabled ? {} : {
-                        bgcolor: isSelected ? at.bg : 'var(--hover)',
-                        borderColor: at.fg,
-                      },
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.45 : 1,
-                      transition: 'background-color .15s, border-color .15s, color .15s',
-                    }}
+                    className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                   />
                 );
               })}

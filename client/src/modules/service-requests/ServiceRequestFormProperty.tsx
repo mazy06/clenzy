@@ -1,5 +1,6 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
+import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
 import {
   Box,
   Typography,
@@ -8,7 +9,6 @@ import {
   Select,
   MenuItem,
   FormHelperText,
-  Chip,
   TextField,
 } from '@mui/material';
 import {
@@ -103,17 +103,6 @@ const TAGS_CONTAINER_SX = {
 } as const;
 
 // Chip neutre « champ » (.fr-chip) : fond --field, icône accent (géométrie pilule du thème).
-const TAG_SX = {
-  height: 30,
-  fontSize: '11.5px',
-  fontWeight: 500,
-  color: 'var(--body)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--accent)' },
-  '& .MuiChip-label': { px: 0.75 },
-} as const;
-
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
   ({ control, errors, properties, users, isAdminOrManager, selectedProperty, disabled = false, currentUser }) => {
     const { t } = useTranslation();
@@ -402,13 +391,12 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
         {propertyTags.length > 0 && (
           <Box sx={TAGS_CONTAINER_SX}>
             {propertyTags.map((tag) => (
-              <Chip
+              <StatusChip
                 key={tag.label}
+                tokens={FORM_TAG_TOKENS}
                 icon={tag.icon}
                 label={tag.label}
-                size="small"
-                variant="outlined"
-                sx={TAG_SX}
+                className={FORM_TAG_CLASS}
               />
             ))}
           </Box>
