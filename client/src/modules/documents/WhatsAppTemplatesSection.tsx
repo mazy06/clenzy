@@ -1,4 +1,5 @@
 import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -12,14 +13,14 @@ import WhatsAppTemplateEditorDialog from './WhatsAppTemplateEditorDialog';
 // ─── Tons sémantiques (tokens Signature, alignés sur MessageTemplatesSection) ─
 
 const TONE = {
-  ok:    { color: 'var(--ok)',    bgcolor: 'var(--ok-soft)' },
-  warn:  { color: 'var(--warn)',  bgcolor: 'var(--warn-soft)' },
-  info:  { color: 'var(--info)',  bgcolor: 'var(--info-soft)' },
-  muted: { color: 'var(--muted)', bgcolor: 'var(--hover)' },
+  ok: STATUS_TONES.ok,
+  warn: STATUS_TONES.warn,
+  info: STATUS_TONES.info,
+  muted: STATUS_TONES.neutral,
 } as const;
 
 /** Ton par categorie Meta WhatsApp. */
-const CATEGORY_TONE: Record<string, { color: string; bgcolor: string }> = {
+const CATEGORY_TONE: Record<string, ToneTokens> = {
   UTILITY: TONE.ok,
   MARKETING: TONE.warn,
   AUTHENTICATION: TONE.info,
@@ -189,20 +190,15 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
           <p className="cn-text-body2 font-semibold text-[var(--ink)]">
             {friendlyName}
           </p>
-          <Chip
-            label={group.category}
-            size="small"
-            sx={categoryTone}
-          />
+          <StatusChip tokens={categoryTone} label={group.category} />
         </div>
       </TableCell>
       <TableCell>
-        <Chip
+        <StatusChip
+          tokens={group.isCustomized ? TONE.ok : TONE.muted}
           label={group.isCustomized
             ? t('messaging.templates.originCustomized')
             : t('messaging.templates.originSystem')}
-          size="small"
-          sx={group.isCustomized ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell>
@@ -222,18 +218,14 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         </Typography>
       </TableCell>
       <TableCell>
-        <Chip label={langChipLabel} size="small" sx={TONE.muted} />
+        <StatusChip tokens={TONE.muted} label={langChipLabel} />
       </TableCell>
       <TableCell align="center">
         {/* Templates WhatsApp toujours actifs cote serveur (pas de notion
             d'activation/desactivation pour les templates WhatsApp en BDD).
             La valeur reelle d'activation cote Meta est dans metaApprovalStatus
             (PENDING/APPROVED/REJECTED) — non expose ici en colonne. */}
-        <Chip
-          label={t('messaging.templates.active')}
-          size="small"
-          sx={TONE.ok}
-        />
+        <StatusChip tokens={TONE.ok} label={t('messaging.templates.active')} />
       </TableCell>
       <TableCell align="center">
         <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
