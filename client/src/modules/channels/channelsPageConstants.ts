@@ -1,3 +1,4 @@
+import { STATUS_TONES } from '../../components/StatusChip';
 // Constantes de style partagées par ChannelsPage et ses vues (liste / grille) + sous-sections.
 // Alignées sur le référentiel Signature (DESIGN_BASELINE) : cartes plates hairline r14,
 // hover bordure --line-2 uniquement (pas d'ombre au repos, pas de lift).
@@ -47,6 +48,22 @@ export function channelSoftBg(channelId: string): string {
 }
 
 /** Chip de statut -soft (pattern Signature : texte couleur + fond -soft). */
+/**
+ * Tons de statut d'un canal, pour la primitive StatusChip.
+ *
+ * `muted` s'ecarte du ton neutre partage : le fond est `--field` (surface de
+ * champ) et non `--hover`, pour se detacher de la ligne de tableau.
+ */
+export const STATUS_CHIP_TOKENS = {
+  ok: STATUS_TONES.ok,
+  warn: STATUS_TONES.warn,
+  err: STATUS_TONES.err,
+  muted: { color: 'var(--muted)', bg: 'var(--field)' },
+} as const;
+
+/** Gabarit historique de ces puces : 10,5 px, graisse 700. */
+export const STATUS_CHIP_CLASS = 'text-[10.5px] font-bold';
+
 export const STATUS_CHIP_SX = {
   ok: {
     fontSize: '10.5px',

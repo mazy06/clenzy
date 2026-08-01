@@ -1,4 +1,5 @@
 import React from 'react';
+import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Box, Paper, Typography, Button, Chip } from '@mui/material';
 import {
@@ -12,7 +13,7 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { CARD_SX, STATUS_CHIP_SX, OVERLINE_SX, channelSoftBg } from './channelsPageConstants';
+import { CARD_SX, STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, OVERLINE_SX, channelSoftBg } from './channelsPageConstants';
 
 interface ChannelsListViewProps {
   isConnected: boolean;
@@ -134,16 +135,14 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
 
           {/* Segment B2B / B2C — chips -soft tokenisés */}
           <div>
-            <Chip
+            <StatusChip
               icon={ota.segment === 'B2C'
                 ? <PeopleIcon size={14} strokeWidth={1.75} />
                 : <BusinessIcon size={14} strokeWidth={1.75} />
               }
               label={ota.segment}
-              size="small"
-              sx={ota.segment === 'B2C'
-                ? { ...STATUS_CHIP_SX.muted, backgroundColor: 'var(--info-soft)', color: 'var(--info)', '& .MuiChip-icon': { color: 'var(--info)' } }
-                : STATUS_CHIP_SX.muted}
+              tokens={ota.segment === 'B2C' ? STATUS_TONES.info : STATUS_CHIP_TOKENS.muted}
+              className={STATUS_CHIP_CLASS}
             />
           </div>
 
@@ -155,28 +154,25 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
                 const statusLabel = otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE');
                 const isError = String(statusLabel).toUpperCase() === 'ERROR';
                 return (
-                  <Chip
+                  <StatusChip
                     icon={<CheckCircleIcon size={14} strokeWidth={1.75} />}
                     label={statusLabel}
-                    size="small"
-                    sx={isError ? STATUS_CHIP_SX.err : STATUS_CHIP_SX.ok}
+                    tokens={isError ? STATUS_CHIP_TOKENS.err : STATUS_CHIP_TOKENS.ok} className={STATUS_CHIP_CLASS}
                   />
                 );
               }
               if (ota.available) {
                 return (
-                  <Chip
+                  <StatusChip
                     label={t('channels.ota.disconnected')}
-                    size="small"
-                    sx={STATUS_CHIP_SX.warn}
+                    tokens={STATUS_CHIP_TOKENS.warn} className={STATUS_CHIP_CLASS}
                   />
                 );
               }
               return (
-                <Chip
+                <StatusChip
                   label={t('channels.ota.comingSoon')}
-                  size="small"
-                  sx={STATUS_CHIP_SX.muted}
+                  tokens={STATUS_CHIP_TOKENS.muted} className={STATUS_CHIP_CLASS}
                 />
               );
             })()}

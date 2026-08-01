@@ -1,4 +1,5 @@
 import React from 'react';
+import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Box, Typography, Button, Chip } from '@mui/material';
 import {
@@ -10,7 +11,7 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { OTA_CARD_SX, OTA_CARD_CONTENT_SX, STATUS_CHIP_SX, channelSoftBg } from './channelsPageConstants';
+import { OTA_CARD_SX, OTA_CARD_CONTENT_SX, STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
 
 interface ChannelsGridViewProps {
   isConnected: boolean;
@@ -168,23 +169,20 @@ function OtaChannelCard({
         {connectionLoading && isAvailable ? (
           <Spinner className="size-3.5 text-[var(--muted)]" />
         ) : isAvailable && isConnected ? (
-          <Chip
+          <StatusChip
             label={connectionStatus?.status ?? 'ACTIVE'}
-            size="small"
-            sx={isError ? STATUS_CHIP_SX.err : STATUS_CHIP_SX.ok}
+            tokens={isError ? STATUS_CHIP_TOKENS.err : STATUS_CHIP_TOKENS.ok} className={STATUS_CHIP_CLASS}
             icon={<CheckCircleIcon size={12} strokeWidth={1.75} />}
           />
         ) : isAvailable ? (
-          <Chip
+          <StatusChip
             label={t('channels.ota.disconnected')}
-            size="small"
-            sx={STATUS_CHIP_SX.warn}
+            tokens={STATUS_CHIP_TOKENS.warn} className={STATUS_CHIP_CLASS}
           />
         ) : (
-          <Chip
+          <StatusChip
             label={t('channels.ota.comingSoon')}
-            size="small"
-            sx={STATUS_CHIP_SX.muted}
+            tokens={STATUS_CHIP_TOKENS.muted} className={STATUS_CHIP_CLASS}
           />
         )}
       </Box>
