@@ -2309,7 +2309,22 @@
     "invalidDate": "Date invalide",
     "notFound": "Demande de service non trouvée",
     "team": "Équipe",
-    "approvedDateShort": "Approuvé le"
+    "approvedDateShort": "Approuvé le",
+    "unassigned": "Non assignée",
+    "kpi": {
+      "late": "En retard",
+      "today": "Aujourd'hui",
+      "done7d": "Terminées (7 j)",
+      "sinceDays_one": "depuis {{count}} j",
+      "sinceDays_other": "depuis {{count}} j",
+      "avgDuration": "de durée moyenne estimée"
+    },
+    "family": {
+      "all": "Tous types",
+      "cleaning": "Ménage",
+      "maintenance": "Maintenance",
+      "other": "Autre"
+    }
   },
   "interventions": {
     "due": {

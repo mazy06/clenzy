@@ -18,14 +18,19 @@ import {
   Cancel,
   Description,
   Assignment,
+  Warning as WarningIcon,
+  Schedule as ClockIcon,
+  CheckCircle as CheckIcon,
 } from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import StatTile from '../../components/baitly/StatTile';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
 import { useServiceRequestsList } from './useServiceRequestsList';
-import { statusColors, priorityColors, typeIcons } from './serviceRequestsUtils';
+import { statusColors, priorityColors, typeIcons, familyOf, type ServiceRequestFamily } from './serviceRequestsUtils';
 import {
   DeleteConfirmDialog,
   StatusChangeDialog,
@@ -150,6 +155,60 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     t,
   } = useServiceRequestsList();
 
+  // ─── Filtre par famille (rangee de chips de la projection) ──────────────
+  // Vingt types ne font pas une rangee de chips : la projection raisonne en
+  // familles (menage / maintenance / autre). Le chip se COMPOSE avec le select
+  // de type fin — intersection, rien n'est perdu.
+  const [selectedFamily, setSelectedFamily] = useState<ServiceRequestFamily | ''>('');
+  const visibleRequests = useMemo(
+    () => (selectedFamily ? filteredServiceRequests.filter((r) => familyOf(r.type) === selectedFamily) : filteredServiceRequests),
+    [filteredServiceRequests, selectedFamily],
+  );
+  const familyCounts = useMemo(() => {
+    const compte: Record<ServiceRequestFamily, number> = { cleaning: 0, maintenance: 0, other: 0 };
+    serviceRequests.forEach((r) => { compte[familyOf(r.type)] += 1; });
+    return compte;
+  }, [serviceRequests]);
+
+  // ─── Les trois tuiles de la projection ──────────────────────────────────
+  // Assiette = la liste complete : les tuiles decrivent l'etat du parc, pas
+  // le resultat du filtre courant.
+  const kpis = useMemo(() => {
+    const OUVERTES = (st: string) => !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(st);
+    const maintenant = Date.now();
+    const debutJour = new Date(); debutJour.setHours(0, 0, 0, 0);
+    const finJour = debutJour.getTime() + 86_400_000;
+    const ilYA7j = maintenant - 7 * 86_400_000;
+
+    const enRetard = serviceRequests
+      .filter((r) => OUVERTES(r.status) && r.dueDate && new Date(r.dueDate).getTime() < maintenant)
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    const plusAncienne = enRetard[0];
+    const joursRetard = plusAncienne
+      ? Math.max(1, Math.floor((maintenant - new Date(plusAncienne.dueDate).getTime()) / 86_400_000))
+      : 0;
+
+    const aujourdHui = serviceRequests.filter((r) => {
+      if (['CANCELLED', 'REJECTED'].includes(r.status) || !r.dueDate) return false;
+      const due = new Date(r.dueDate).getTime();
+      return due >= debutJour.getTime() && due < finJour;
+    });
+
+    // Pas de champ « terminee le » dans la liste : l'echeance sert de repere,
+    // une demande soldee l'est autour de sa date prevue.
+    const terminees7j = serviceRequests.filter(
+      (r) => r.status === 'COMPLETED' && r.dueDate && new Date(r.dueDate).getTime() >= ilYA7j,
+    );
+    const dureeMoy = terminees7j.length
+      ? Math.round(terminees7j.reduce((s, r) => s + (r.estimatedDuration || 0), 0) / terminees7j.length)
+      : 0;
+
+    return { enRetard: enRetard.length, plusAncienne, joursRetard, aujourdHui: aujourdHui.length, terminees7j: terminees7j.length, dureeMoy };
+  }, [serviceRequests]);
+
+  const formatDuree = (minutes: number) =>
+    minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}` : `${minutes} min`;
+
   // ─── Ancre du menu contextuel ───────────────────────────────────────────
   // Le declencheur du menu vit dans les vues enfant (grille / tableau / carte),
   // hors de cet arbre : on cale donc un declencheur invisible sur le rectangle
@@ -194,7 +253,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
   const mapMarkers: PropertyMarker[] = useMemo(
     () =>
-      filteredServiceRequests.flatMap((r) =>
+      visibleRequests.flatMap((r) =>
         r.propertyLatitude && r.propertyLongitude
           ? [
               {
@@ -207,13 +266,13 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             ]
           : [],
       ),
-    [filteredServiceRequests],
+    [visibleRequests],
   );
 
   const viewportRequests = useMemo(() => {
-    if (!mapBounds) return filteredServiceRequests.filter((r) => r.propertyLatitude && r.propertyLongitude);
+    if (!mapBounds) return visibleRequests.filter((r) => r.propertyLatitude && r.propertyLongitude);
     const pad = 0.005;
-    return filteredServiceRequests.filter((r) => {
+    return visibleRequests.filter((r) => {
       if (!r.propertyLatitude || !r.propertyLongitude) return false;
       return (
         r.propertyLatitude >= mapBounds.south - pad &&
@@ -222,7 +281,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         r.propertyLongitude <= mapBounds.east + pad
       );
     });
-  }, [filteredServiceRequests, mapBounds]);
+  }, [visibleRequests, mapBounds]);
 
   // Dynamic page size based on available viewport height
   const { containerRef: listContainerRef, pageSize: rowsPerPage } = useDynamicPageSize({
@@ -239,14 +298,14 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   const effectivePageSize = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
 
   const paginatedServiceRequests = useMemo(
-    () => filteredServiceRequests.slice(page * effectivePageSize, (page + 1) * effectivePageSize),
-    [filteredServiceRequests, page, effectivePageSize]
+    () => visibleRequests.slice(page * effectivePageSize, (page + 1) * effectivePageSize),
+    [visibleRequests, page, effectivePageSize]
   );
 
   // Reset page quand les filtres changent
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, selectedType, selectedStatus, selectedPriority, viewMode]);
+  }, [searchTerm, selectedType, selectedStatus, selectedPriority, selectedFamily, viewMode]);
 
   // Deep-link notification : surligne la demande ciblee (?highlight=<srId>).
   // Force la vue liste (les cartes/lignes portent data-highlight-id, pas la carte) et
@@ -255,15 +314,15 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   const highlightApplied = useRef(false);
   useEffect(() => {
     if (!highlightId || loading || highlightApplied.current) return;
-    const idx = filteredServiceRequests.findIndex((r) => String(r.id) === highlightId);
+    const idx = visibleRequests.findIndex((r) => String(r.id) === highlightId);
     if (idx < 0) return;
     highlightApplied.current = true;
     if (viewMode === 'map') setViewMode('list');
     const size = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
     setPage(Math.floor(idx / size));
-  }, [highlightId, loading, filteredServiceRequests, viewMode, rowsPerPage, setViewMode]);
+  }, [highlightId, loading, visibleRequests, viewMode, rowsPerPage, setViewMode]);
 
-  useHighlightTarget(highlightId, !loading && filteredServiceRequests.length > 0);
+  useHighlightTarget(highlightId, !loading && visibleRequests.length > 0);
 
   const exportColumns: ExportColumn[] = useMemo(() => [
     { key: 'id', label: 'ID' },
@@ -281,7 +340,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   const actionButtons = (
     <div className="flex gap-1 items-center">
       <ExportButton
-        data={filteredServiceRequests}
+        data={visibleRequests}
         columns={exportColumns}
         fileName="demandes-service"
         variant="icon"
@@ -334,7 +393,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       }}
       counter={{
         label: t('serviceRequests.request'),
-        count: filteredServiceRequests.length,
+        count: visibleRequests.length,
         singular: "",
         plural: "s"
       }}
@@ -367,8 +426,52 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         </div>
       )}
 
+      {/* ─── Les trois tuiles de la projection ── */}
+      <div className="grid grid-cols-1 gap-3 mb-3 shrink-0 sm:grid-cols-3">
+        <StatTile
+          icon={<WarningIcon />}
+          label={t('serviceRequests.kpi.late', 'En retard')}
+          value={String(kpis.enRetard)}
+          iconClassName="text-destructive"
+          hint={kpis.plusAncienne
+            ? <><b>{kpis.plusAncienne.title.slice(0, 24)}</b> {t('serviceRequests.kpi.sinceDays', { count: kpis.joursRetard, defaultValue: 'depuis {{count}} j' })}</>
+            : undefined}
+          loading={loading}
+        />
+        <StatTile
+          icon={<ClockIcon />}
+          label={t('serviceRequests.kpi.today', "Aujourd'hui")}
+          value={String(kpis.aujourdHui)}
+          loading={loading}
+        />
+        <StatTile
+          icon={<CheckIcon />}
+          label={t('serviceRequests.kpi.done7d', 'Terminées (7 j)')}
+          value={String(kpis.terminees7j)}
+          iconClassName="text-success"
+          hint={kpis.dureeMoy > 0
+            ? <><b>{formatDuree(kpis.dureeMoy)}</b> {t('serviceRequests.kpi.avgDuration', 'de durée moyenne estimée')}</>
+            : undefined}
+          loading={loading}
+        />
+      </div>
+
+      {/* ─── Chips par famille (le select de type fin reste dans la barre) ── */}
+      <FilterChipRow
+        className="mb-3 shrink-0"
+        allLabel={t('serviceRequests.family.all', 'Tous types')}
+        allCount={serviceRequests.length}
+        value={selectedFamily}
+        onChange={(v) => setSelectedFamily(v as ServiceRequestFamily | '')}
+        options={[
+          { value: 'cleaning', label: t('serviceRequests.family.cleaning', 'Ménage'), color: '#2563EB', count: familyCounts.cleaning },
+          { value: 'maintenance', label: t('serviceRequests.family.maintenance', 'Maintenance'), color: '#D4A574', count: familyCounts.maintenance },
+          { value: 'other', label: t('serviceRequests.family.other', 'Autre'), color: '#7BA3C2', count: familyCounts.other },
+        ].filter((o) => o.count > 0)}
+      />
+
       {/* Liste des demandes de service */}
-      {filteredServiceRequests.length === 0 ? (
+      {visibleRequests.length === 0 ? (
         <EmptyState
           icon={<Description />}
           title={t('serviceRequests.noRequestFound')}
@@ -394,7 +497,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       ) : viewMode === 'grid' ? (
         <ServiceRequestsGridView
           serviceRequests={paginatedServiceRequests}
-          totalCount={filteredServiceRequests.length}
+          totalCount={visibleRequests.length}
           page={page}
           onPageChange={setPage}
           onMenuOpen={handleMenuOpen}
@@ -408,7 +511,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       ) : (
         <ServiceRequestsTableView
           serviceRequests={paginatedServiceRequests}
-          totalCount={filteredServiceRequests.length}
+          totalCount={visibleRequests.length}
           page={page}
           rowsPerPage={rowsPerPage}
           onPageChange={setPage}

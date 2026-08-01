@@ -86,6 +86,44 @@ export const priorityColors = Object.fromEntries(
   PRIORITY_OPTIONS.map(option => [option.value, option.color])
 ) as Record<Priority, string>;
 
+/**
+ * Les couleurs des enums sont des NOMS de palette MUI ('warning', 'success'…) ;
+ * la carte Baitly attend une couleur CSS pour son pastel color-mix. Ce pont
+ * rabat les noms sur les jetons semantiques.
+ */
+const MUI_COLOR_TO_CSS: Record<string, string> = {
+  warning: 'var(--warn)',
+  success: 'var(--ok)',
+  error: 'var(--err)',
+  info: 'var(--info)',
+  primary: 'var(--accent)',
+  secondary: 'var(--muted)',
+  default: 'var(--muted)',
+};
+
+export const statusCssColors: Record<string, string> = Object.fromEntries(
+  Object.entries(statusColors).map(([k, v]) => [k, MUI_COLOR_TO_CSS[v] ?? 'var(--muted)']),
+);
+
+export const priorityCssColors: Record<string, string> = Object.fromEntries(
+  Object.entries(priorityColors).map(([k, v]) => [k, MUI_COLOR_TO_CSS[v] ?? 'var(--muted)']),
+);
+
+/**
+ * Famille d'un type de demande — la rangee de chips de la projection raisonne
+ * en trois familles (menage / maintenance / autre), pas en vingt types.
+ */
+export type ServiceRequestFamily = 'cleaning' | 'maintenance' | 'other';
+
+export function familyOf(type: string): ServiceRequestFamily {
+  // Le type circule en minuscules dans la liste (cf. le .toUpperCase() des
+  // handlers du hook) : la comparaison se fait casse rabattue.
+  const T = type.toUpperCase();
+  if (/CLEANING|DISINFECTION/.test(T)) return 'cleaning';
+  if (/REPAIR|MAINTENANCE|GARDENING|PEST_CONTROL|RESTORATION/.test(T)) return 'maintenance';
+  return 'other';
+}
+
 export const typeIcons: Record<string, React.ReactElement> = {
   CLEANING: React.createElement(AutoAwesome),
   EXPRESS_CLEANING: React.createElement(AutoAwesome),

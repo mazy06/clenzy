@@ -2287,7 +2287,22 @@
     "invalidDate": "Invalid date",
     "notFound": "Service request not found",
     "team": "Team",
-    "approvedDateShort": "Approved on"
+    "approvedDateShort": "Approved on",
+    "unassigned": "Unassigned",
+    "kpi": {
+      "late": "Overdue",
+      "today": "Today",
+      "done7d": "Completed (7 d)",
+      "sinceDays_one": "for {{count}} day",
+      "sinceDays_other": "for {{count}} days",
+      "avgDuration": "average estimated duration"
+    },
+    "family": {
+      "all": "All types",
+      "cleaning": "Cleaning",
+      "maintenance": "Maintenance",
+      "other": "Other"
+    }
   },
   "interventions": {
     "due": {

@@ -2286,7 +2286,26 @@
     "invalidDate": "تاريخ غير صالح",
     "notFound": "طلب الخدمة غير موجود",
     "team": "الفريق",
-    "approvedDateShort": "تمت الموافقة في"
+    "approvedDateShort": "تمت الموافقة في",
+    "unassigned": "غير مسندة",
+    "kpi": {
+      "late": "متأخرة",
+      "today": "اليوم",
+      "done7d": "منجزة (7 أيام)",
+      "sinceDays_zero": "اليوم",
+      "sinceDays_one": "منذ يوم",
+      "sinceDays_two": "منذ يومين",
+      "sinceDays_few": "منذ {{count}} أيام",
+      "sinceDays_many": "منذ {{count}} يومًا",
+      "sinceDays_other": "منذ {{count}} يوم",
+      "avgDuration": "متوسط المدة المقدّرة"
+    },
+    "family": {
+      "all": "كل الأنواع",
+      "cleaning": "تنظيف",
+      "maintenance": "صيانة",
+      "other": "أخرى"
+    }
   },
   "interventions": {
     "due": {
