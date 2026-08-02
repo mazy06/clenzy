@@ -45,10 +45,13 @@ import { cn } from '../../../utils/cn';
  *       de votre part ». Tout le reste est neutre — y compris les états
  *       « actif » et « auto », qui sont la norme et n'ont donc pas à être
  *       colorés. On signale l'exception, pas la règle.</li>
- *   <li><b>Aucune boucle au repos.</b> Le mouvement répond à un geste (survol,
- *       focus clavier) ou porte un état (l'agent qui attend). Un écran de
- *       supervision reste ouvert toute la journée : l'animation ambiante y est
- *       une fatigue, pas une qualité.</li>
+ *   <li><b>Le mouvement porte un état, jamais l'ambiance.</b> Deux boucles
+ *       seulement : le halo de l'agent qui attend une validation, et le relais
+ *       de données de l'agent SÉLECTIONNÉ — noyau → agent → cartes HITL, celui
+ *       dont la file est ouverte à droite. Le survol n'anime rien : il isole
+ *       et renseigne (infobulle). Un écran de supervision reste ouvert toute
+ *       la journée : l'animation ambiante y est une fatigue, pas une
+ *       qualité.</li>
  * </ul>
  */
 
@@ -385,11 +388,14 @@ function polar(angleDeg: number, radius: number) {
  * Feuille scopée par préfixe `bo-`, plutôt qu'ajoutée à baitly-ui.css : ce sont
  * des règles de projection, elles n'ont pas à polluer la couche partagée du kit.
  *
- * Budget de mouvement au repos : UNE animation, le halo de l'agent qui attend
- * une validation — la seule qui porte un état. Le flux request/response du mark
- * Baitly (packet aller bleu, retour teal dans le logo) est conservé comme
- * grammaire, mais il ne se déclenche qu'au survol ou au focus clavier d'un
- * agent : le mouvement devient une réponse au geste, pas un bruit de fond.
+ * Budget de mouvement : deux animations d'état. Le halo de l'agent qui attend
+ * une validation, et le relais de données de l'agent SÉLECTIONNÉ : un paquet
+ * fin, teinte primaire, part du noyau, atteint l'agent, puis POURSUIT le long
+ * des attaches vers ses cartes HITL — pas d'aller-retour, la donnée finit là
+ * où la décision se prend. Il démarre quand l'agent a rejoint l'emplacement
+ * de tête (haut à droite, face à la file) et reste actif tant que sa file est
+ * ouverte. Le survol, lui, n'anime rien : il isole l'agent visé et montre
+ * l'infobulle.
  */
 const ORBIT_STYLES = `
 .bo-node, .bo-flow, .bo-tether { transition: opacity .15s cubic-bezier(.25,1,.5,1); }
@@ -403,33 +409,46 @@ const ORBIT_STYLES = `
    au lieu de sauter en travers du diagramme. */
 .bo-ring, .bo-node { transition: transform 720ms cubic-bezier(.25,1,.5,1); }
 
-/* ── Flux request/response : masqué au repos, joué au survol/focus ────── */
+/* ── Flux de données : relais noyau → agent → propositions ────────────── */
+/* Joué pour l'agent SÉLECTIONNÉ, une fois arrivé à l'emplacement de tête
+   (les attaches vers les cartes n'existent qu'après la rotation — c'est ce
+   qui synchronise les deux jambes du relais). Le paquet ne revient pas vers
+   le noyau : il poursuit le long des attaches, vers les cartes HITL — la
+   donnée finit là où la décision se prend. Une seule teinte (primaire) et
+   un trait fin : le flux est un filet de données, pas un néon. Les deux
+   jambes partagent le même cycle : sortie du noyau sur [0 ; 38 %], relais
+   vers les cartes sur [38 ; 92 %], respiration ensuite. */
 .bo-packet {
   display: none;
   fill: none;
   stroke-linecap: round;
-  stroke-dasharray: 14 200;
+  stroke-dasharray: 12 200;
+  opacity: .85;
 }
-.bo-packet-request { animation: bo-flow-out 1.5s linear infinite; }
-.bo-packet-response { animation: bo-flow-back 1.5s linear infinite; }
-@keyframes bo-flow-out { 0% { stroke-dashoffset: 16; } 45%, 100% { stroke-dashoffset: -115; } }
-@keyframes bo-flow-back { 0%, 50% { stroke-dashoffset: -115; } 95%, 100% { stroke-dashoffset: 16; } }
+.bo-flow[data-selected="true"] .bo-packet,
+.bo-tether .bo-packet { display: inline; }
+.bo-packet-out { animation: bo-relay-out 3.2s linear infinite; }
+.bo-packet-hop { animation: bo-relay-hop 3.2s linear infinite; }
+@keyframes bo-relay-out { 0% { stroke-dashoffset: 12; } 38%, 100% { stroke-dashoffset: -112; } }
+@keyframes bo-relay-hop { 0%, 38% { stroke-dashoffset: 12; } 92%, 100% { stroke-dashoffset: -112; } }
 
-/* ── Halo de l'agent qui attend : la seule boucle au repos ───────────── */
+/* ── Halo de l'agent qui attend : l'autre boucle d'état ──────────────── */
 .bo-ripple { opacity: 0; transform-origin: center; animation: bo-ripple 3.6s cubic-bezier(.25,1,.5,1) infinite; }
 @keyframes bo-ripple { 0% { transform: scale(1); opacity: .45; } 100% { transform: scale(1.4); opacity: 0; } }
 
-/* ── Survol : l'agent visé s'isole, son flux se déclenche ────────────── */
+/* ── Survol : l'agent visé s'isole (aperçu), sans déclencher de flux ─── */
 .bo-wrap:has(.bo-hit:is(:hover, :focus-visible)) .bo-node:not(:has(.bo-hit:is(:hover, :focus-visible))) { opacity: .3; }
 ${AGENTS.map(
-  (agent) => `.bo-wrap:has(.bo-hit[data-agent="${agent.name}"]:is(:hover, :focus-visible)) :is(.bo-flow, .bo-tether):not([data-agent="${agent.name}"]) { opacity: .15; }
-.bo-wrap:has(.bo-hit[data-agent="${agent.name}"]:is(:hover, :focus-visible)) .bo-flow[data-agent="${agent.name}"] .bo-packet { display: inline; }`
+  (agent) => `.bo-wrap:has(.bo-hit[data-agent="${agent.name}"]:is(:hover, :focus-visible)) :is(.bo-flow, .bo-tether):not([data-agent="${agent.name}"]) { opacity: .15; }`
 ).join('\n')}
 
 /* ── Mouvement réduit : plus rien ne bouge, rien d'essentiel ne part ─── */
 @media (prefers-reduced-motion: reduce) {
   .bo-ripple { display: none; }
   .bo-view, .bo-packet { animation: none; }
+  /* Sans animation, un paquet figé ne serait qu'un tiret parasite. */
+  .bo-flow[data-selected="true"] .bo-packet,
+  .bo-tether .bo-packet { display: none; }
   /* La sélection reste fonctionnelle : l'agent rejoint sa place sans trajet. */
   .bo-ring, .bo-node { transition: none; }
 }
@@ -472,12 +491,15 @@ function AgentOrbit({
   selected,
   onSelect,
   rotation,
+  flowActive,
   decided,
   registerNode,
 }: {
   selected: string;
   onSelect: (name: string) => void;
   rotation: number;
+  /** Vrai quand l'agent a rejoint l'emplacement de tête : le relais peut jouer. */
+  flowActive: boolean;
   decided: Record<string, string>;
   registerNode: (name: string, el: HTMLElement | null) => void;
 }) {
@@ -512,19 +534,21 @@ function AgentOrbit({
             const to = polar(angle, ORBIT_RADIUS - nodeDiameter(agent.tasksToday, maxTasks) / 2 - 0.6);
             const segment = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
             return (
-              <g key={agent.name} className="bo-flow" data-agent={agent.name}>
+              <g
+                key={agent.name}
+                className="bo-flow"
+                data-agent={agent.name}
+                data-selected={(agent.name === selected && flowActive) || undefined}
+              >
                 <line {...segment} strokeWidth="0.3" className="stroke-border" />
+                {/* Première jambe du relais : un paquet fin, teinte primaire,
+                    à peine plus épais que son rail. Pas de retour — la donnée
+                    poursuit vers les cartes via les attaches. */}
                 <line
                   {...segment}
                   pathLength={100}
-                  strokeWidth="1.1"
-                  className="bo-packet bo-packet-request stroke-info"
-                />
-                <line
-                  {...segment}
-                  pathLength={100}
-                  strokeWidth="1.1"
-                  className="bo-packet bo-packet-response stroke-success"
+                  strokeWidth="0.55"
+                  className="bo-packet bo-packet-out stroke-primary"
                 />
               </g>
             );
@@ -820,16 +844,24 @@ function TetherOverlay({ tethers }: { tethers: Tether[] }) {
     <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
       {tethers.map((tether) => {
         const bend = (tether.x2 - tether.x1) * 0.45;
+        const path = `M${tether.x1} ${tether.y1} C${tether.x1 + bend} ${tether.y1}, ${tether.x2 - bend} ${tether.y2}, ${tether.x2} ${tether.y2}`;
         return (
           <g
             key={tether.name}
             className={cn('bo-tether', tether.urgent ? 'stroke-warning/70' : 'stroke-border')}
             data-agent={tether.name}
           >
+            <path fill="none" strokeWidth="1" d={path} />
+            {/* Deuxième jambe du relais : le paquet arrivé de l'orchestrateur
+                repart le long de l'attache, vers la carte — il ne revient pas
+                au noyau. `pathLength=100` aligne son dash sur le même cycle
+                que la jambe radiale. */}
             <path
               fill="none"
-              strokeWidth="1"
-              d={`M${tether.x1} ${tether.y1} C${tether.x1 + bend} ${tether.y1}, ${tether.x2 - bend} ${tether.y2}, ${tether.x2} ${tether.y2}`}
+              pathLength={100}
+              strokeWidth="1.5"
+              className="bo-packet bo-packet-hop stroke-primary"
+              d={path}
             />
             <circle
               cx={tether.x2}
@@ -1169,12 +1201,14 @@ export function BAgentsConstellationSectionDemo() {
                 selected={selected}
                 onSelect={selectAgent}
                 rotation={rotation}
+                flowActive={!rotating}
                 decided={decided}
                 registerNode={registerNode}
               />
               <p className="m-0 max-w-[52ch] text-xs text-muted-foreground">
-                L'aire d'un nœud est proportionnelle à ses tâches du jour. Cliquez un agent pour
-                amener sa file à droite ; survolez-le pour un aperçu. Les propositions sont triées
+                L'aire d'un nœud est proportionnelle à ses tâches du jour. Cliquez un agent : il
+                rejoint le haut du diagramme et le flux de données circule du noyau vers lui, puis
+                vers ses propositions ; survolez-le pour un aperçu. Les propositions sont triées
                 par échéance.
               </p>
             </div>
