@@ -18,6 +18,7 @@ import HeaderSearchField from '../../components/HeaderSearchField';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
+import { computeDayOccupancy } from './PlanningOccupancyRow';
 import PlanningActionPanel from './PlanningActionPanel';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
@@ -233,6 +234,14 @@ const PlanningPage: React.FC = () => {
       return activeStatuses.has(e.status as ReservationStatus);
     });
   }, [filteredEvents, activeChannels, activeStatuses]);
+
+  // Rangée « Occupation » (projection) : calculée AVANT le filtrage par légende
+  // et sur toutes les propriétés filtrées — masquer un canal change l'affichage
+  // des briques, pas l'occupation réelle du portefeuille.
+  const dayOccupancy = useMemo(
+    () => computeDayOccupancy(timeline.days, filteredEvents, filteredProperties.length),
+    [timeline.days, filteredEvents, filteredProperties.length],
+  );
 
   // Superviseur : à l'ouverture d'un accordéon, on remonte le logement déployé
   // en 1ʳᵉ position ; la pagination (firstItemAlone) l'isole alors sur sa propre
@@ -802,6 +811,7 @@ const PlanningPage: React.FC = () => {
             channelSyncMap={channelSyncMap}
             pendingCountByProperty={canSupervise ? pendingCountByProperty : undefined}
             pageSize={pagination.pageSize}
+            dayOccupancy={dayOccupancy}
             expandedPropertyId={canSupervise ? expandedPropertyId : null}
             onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
             renderExpanded={canSupervise ? renderExpandedPanel : undefined}

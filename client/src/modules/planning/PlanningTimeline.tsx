@@ -6,6 +6,7 @@ import PlanningPropertyColumn from './PlanningPropertyColumn';
 import PlanningRow from './PlanningRow';
 import PlanningTodayLine from './PlanningTodayLine';
 import PlanningBarGhost from './PlanningBarGhost';
+import PlanningOccupancyRow from './PlanningOccupancyRow';
 // Tokens locaux de la grille (week-end clair/sombre) + animations d'urgence :
 // importé ici pour garantir la présence des custom properties --pl-*-we dès
 // le rendu des entêtes/cellules.
@@ -52,6 +53,8 @@ interface PlanningTimelineProps {
   /** Nb de cartes HITL en attente par logement → pastille sur la cellule. */
   pendingCountByProperty?: Map<number, number>;
   pageSize?: number;
+  /** Occupation par jour (alignée sur `days`) — rangée pied de grille, absente = masquée. */
+  dayOccupancy?: number[];
   /** Superviseur d'agents : logement déployé en accordéon (null = aucun). */
   expandedPropertyId?: number | null;
   /** Toggle du chevron d'accordéon (gated par le rôle côté parent). */
@@ -87,6 +90,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   channelSyncMap,
   pendingCountByProperty,
   pageSize,
+  dayOccupancy,
   expandedPropertyId = null,
   onToggleExpanded,
   renderExpanded,
@@ -296,6 +300,19 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 ))}
               </div>
             </div>
+
+            {/* Rangée « Occupation » (projection) — masquée en mode accordéon :
+                l'accordéon est dimensionné pour remplir EXACTEMENT le viewport,
+                une rangée de plus créerait un débordement vertical. */}
+            {dayOccupancy && expandedPropertyId == null && (
+              <PlanningOccupancyRow
+                days={days}
+                dayWidth={dayWidth}
+                totalGridWidth={totalGridWidth}
+                propertyColWidth={propertyColWidth}
+                occupancy={dayOccupancy}
+              />
+            )}
           </div>
         </div>
 
