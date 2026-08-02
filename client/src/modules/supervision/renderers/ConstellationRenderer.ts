@@ -77,6 +77,14 @@ export interface ConstellationRendererProps {
    * carte arrondie (vues standalone / portefeuille).
    */
   flush?: boolean;
+  /**
+   * Annonce l'agent arrivé à l'emplacement de tête, une fois sa rotation
+   * TERMINÉE (`null` pendant la rotation, hors-ligne ou en pause). Le panneau
+   * s'en sert pour dessiner les attaches vers les cartes HITL de cet agent —
+   * mesurées quand les positions sont stables. Optionnel : les renderers sans
+   * emplacement de tête (FramerConstellation) l'ignorent.
+   */
+  onHeadAgentSettled?: (id: AgentId | null) => void;
 }
 
 export type ConstellationRenderer = ComponentType<ConstellationRendererProps>;

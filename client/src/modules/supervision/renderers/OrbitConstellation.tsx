@@ -23,7 +23,7 @@
    transparente — tant que sa variante n'est pas redessinée.
    ============================================================ */
 
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { MARK_PATH, MARK_VIEWBOX, STROKE_WIDTH } from '../../../components/BaitlyMarkLogo';
@@ -149,6 +149,7 @@ function OrbitConstellationWide({
   onReportWindowChange,
   belowHud,
   flush,
+  onHeadAgentSettled,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
 
@@ -182,6 +183,12 @@ function OrbitConstellationWide({
   // Le relais ne joue que lorsque l'agent est arrivé à l'emplacement de tête,
   // en ligne et hors kill-switch.
   const flowActive = online && !paused && !rotating;
+
+  // Annonce au panneau l'agent stabilisé en tête (attaches vers ses cartes
+  // HITL) — null pendant la rotation : les positions seraient périmées.
+  useEffect(() => {
+    onHeadAgentSettled?.(flowActive && selected ? selected : null);
+  }, [flowActive, selected, onHeadAgentSettled]);
 
   const attention = useMemo(
     () => agents.filter((agent) => agent.status === 'esc' || agent.status === 'err'),

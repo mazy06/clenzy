@@ -21,6 +21,7 @@ import { AGENT_META } from '../constants';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
 import { OrbitConstellation } from '../renderers/OrbitConstellation';
+import { SupervisionTethers } from './SupervisionTethers';
 import { ActivityFeed } from './ActivityFeed';
 import { TaskDeckQueue } from './TaskDeckQueue';
 import { ResolutionToasts } from './ResolutionToasts';
@@ -87,6 +88,9 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   );
   const { report } = useSupervisionReport(reportWindow);
   const [selected, setSelected] = useState<AgentId | null>(null);
+  // Agent stabilisé à l'emplacement de tête (OrbitConstellation) → attaches
+  // vers ses cartes HITL de la file flottante.
+  const [headAgent, setHeadAgent] = useState<AgentId | null>(null);
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
 
   // « moment comète » : du nœud agent vers la cellule du planning (data-reservation-id).
@@ -304,7 +308,18 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         compact={compact}
         hitl={hitlContent}
         hitlCount={pendingCount}
+        onHeadAgentSettled={setHeadAgent}
       />
+
+      {/* Attaches agent de tête → cartes HITL (grammaire de la projection).
+          En compact la file vit dans un tiroir : aucun trait à dessiner. */}
+      {!compact && (
+        <SupervisionTethers
+          rootRef={rootRef}
+          headAgent={headAgent}
+          revision={snapshot.pending}
+        />
+      )}
 
       {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
           moteur multi-agent → la constellation réagit + réponse texte ci-dessous.

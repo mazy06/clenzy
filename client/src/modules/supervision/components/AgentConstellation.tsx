@@ -42,6 +42,8 @@ export interface AgentConstellationProps {
   hitlCount?: number;
   /** Rendu pleine-cellule (accordéon Planning) : canvas sans arrondi ni ombre. */
   flush?: boolean;
+  /** Agent stabilisé à l'emplacement de tête (cf. ConstellationRendererProps). */
+  onHeadAgentSettled?: (id: AgentId | null) => void;
 }
 
 interface NormalizedView {
@@ -114,6 +116,7 @@ export function AgentConstellation({
   hitl,
   hitlCount,
   flush,
+  onHeadAgentSettled,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
   const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
@@ -139,6 +142,7 @@ export function AgentConstellation({
       hitl={hitl}
       hitlCount={hitlCount}
       flush={flush}
+      onHeadAgentSettled={onHeadAgentSettled}
     />
   );
 }

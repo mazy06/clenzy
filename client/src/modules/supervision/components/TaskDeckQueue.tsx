@@ -80,6 +80,12 @@ function TaskCard({
   return (
     <div
       data-pending-action={action.id}
+      // Ancrages de l'overlay d'attaches (SupervisionTethers) : l'agent porteur,
+      // l'urgence (< 1 h), et « derrière » (carte empilée d'un deck replié —
+      // pas d'attache, seule la carte du dessus en reçoit une).
+      data-agent-id={action.agentId}
+      data-urgent={(!payment && !reminder && !cd.expired && cd.hours < 1) || undefined}
+      data-behind={behind || undefined}
       className={cn(
         'flex flex-col bg-[var(--card)] border border-solid border-[var(--line)] rounded-[16px] p-[14px] min-h-[128px] overflow-hidden',
         // Contenu masqué pour les cartes derrière (seuls les bords apparaissent).
