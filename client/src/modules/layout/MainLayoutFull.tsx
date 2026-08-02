@@ -18,6 +18,7 @@ import { LoadingStates } from '../../components/LoadingStates';
 import { ScreenChromeProvider } from '../../components/ScreenChrome';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
+import OnboardingDockMount from '../../components/OnboardingDockMount';
 
 // Assistant en lazy : son sous-arbre (react-markdown, dialog plein écran, useAgent)
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
@@ -166,6 +167,11 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       {/* PWA install prompt */}
       <PWAInstallBanner />
+
+      {/* Guide de démarrage persistant (projection Onboarding) : suit
+          l'utilisateur hors du dashboard tant que le parcours n'est ni
+          terminé ni rejeté. Se masque tout seul sinon. */}
+      <OnboardingDockMount />
 
       {/* Assistant : accessible depuis toutes les pages, agrandissable en
           plein ecran. Unique point d'entree de l'assistant (la page dediee

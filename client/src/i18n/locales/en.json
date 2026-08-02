@@ -5994,6 +5994,10 @@
       }
     },
     "skip": "Skip",
+    "dock": {
+      "title": "Getting started guide",
+      "continue": "Continue"
+    },
     "completionMessage": "Complete the initial setup to access the full dashboard"
   },
   "tabHeaders": {

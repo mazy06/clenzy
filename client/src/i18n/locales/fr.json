@@ -5951,6 +5951,10 @@
       }
     },
     "skip": "Passer",
+    "dock": {
+      "title": "Guide de démarrage",
+      "continue": "Continuer"
+    },
     "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet"
   },
   "shop": {
