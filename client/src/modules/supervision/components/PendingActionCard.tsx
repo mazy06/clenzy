@@ -84,7 +84,16 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
   };
 
   return (
-    <div className={cn('w-full bg-[var(--card)] border border-solid border-[var(--line)] rounded-[12px] p-[13px 14px]', expired ? 'opacity-72' : 'opacity-100')} style={{ boxShadow: 'none' }} data-pending-action={action.id} data-expired={expired ? '1' : undefined}>
+    <div
+      className={cn('w-full bg-[var(--card)] border border-solid border-[var(--line)] rounded-[12px] p-[13px 14px]', expired ? 'opacity-72' : 'opacity-100')}
+      style={{ boxShadow: 'none' }}
+      data-pending-action={action.id}
+      data-expired={expired ? '1' : undefined}
+      // Ancrages de l'overlay d'attaches (SupervisionTethers) : agent porteur
+      // et urgence (< 1 h, hors cartes paiement/rappel sans minuteur).
+      data-agent-id={action.agentId}
+      data-urgent={(!isPayment && !isReminder && !expired && cd.hours < 1) || undefined}
+    >
       {/* en-tête : agent + statut + expiration */}
       <div className="flex items-center gap-2 mb-1.5">
         <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: `${meta.color}14`, color: meta.color }}>

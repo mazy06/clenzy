@@ -87,8 +87,14 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
         const toLeft = c.right <= n.left;
         if (!toRight && !toLeft) continue;
         // Point d'ancrage hors du panneau (deck défilé) → pas d'attache.
-        const y2 = c.top + 22 - base.top;
-        if (y2 < 0 || y2 > base.height) continue;
+        const anchorY = c.top + 22;
+        if (anchorY < base.top || anchorY > base.bottom) continue;
+        // Carte dans un conteneur défilant marqué [data-tethers-viewport]
+        // (file portefeuille) : son rect survit au défilement alors qu'elle
+        // est rognée — pas d'attache vers une carte invisible.
+        const clip = card.closest('[data-tethers-viewport]')?.getBoundingClientRect();
+        if (clip && (anchorY < clip.top || anchorY > clip.bottom)) continue;
+        const y2 = anchorY - base.top;
         next.push({
           key: card.getAttribute('data-pending-action') ?? String(next.length),
           urgent: card.hasAttribute('data-urgent'),

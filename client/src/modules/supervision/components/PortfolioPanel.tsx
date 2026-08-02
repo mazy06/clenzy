@@ -9,7 +9,7 @@
    Pas de comète ici (le planning est masqué en pleine largeur).
    ============================================================ */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -24,6 +24,7 @@ import { SupervisionReportStrip } from './SupervisionReportStrip';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { PriceAdjustmentModal } from './PriceAdjustmentModal';
+import { SupervisionTethers } from './SupervisionTethers';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
 import type { AgentId, PendingAction, PortfolioPendingAction, PortfolioSnapshot } from '../types';
 
@@ -43,6 +44,9 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
   const { status, snapshot, actions } = useSupervision(createProvider, deps, { onResolved });
   const [selected, setSelected] = useState<AgentId | null>(null);
+  // Agent stabilisé en tête (OrbitConstellation) → attaches vers ses cartes.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [headAgent, setHeadAgent] = useState<AgentId | null>(null);
 
   const handleValidate = useCallback(
     (id: string) => {
@@ -77,7 +81,9 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
   const portfolio: PortfolioSnapshot = snapshot;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
+      {/* Attaches agent de tête → cartes de la file (grammaire projection). */}
+      <SupervisionTethers rootRef={rootRef} headAgent={headAgent} revision={portfolio.pending} />
       <div className="flex gap-3 items-stretch flex-wrap min-[900px]:flex-nowrap">
         <div className="flex-1 min-w-0">
           <AgentConstellation
@@ -85,6 +91,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
             renderer={OrbitConstellation}
             online={status === 'live'}
             onSelectAgent={setSelected}
+            onHeadAgentSettled={setHeadAgent}
           />
         </div>
 
@@ -121,7 +128,9 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
                 {portfolio.pending.length}
               </span>
             </div>
-            <div className="p-2 max-h-[320px] overflow-y-auto">
+            {/* data-tethers-viewport : une carte défilée hors de ce cadre perd
+                son attache (son rect survit au rognage overflow). */}
+            <div className="p-2 max-h-[320px] overflow-y-auto" data-tethers-viewport>
               <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
             </div>
           </div>
