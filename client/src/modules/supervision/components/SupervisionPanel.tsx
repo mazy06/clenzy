@@ -20,6 +20,7 @@ import { spawnComet } from '../core/spawnComet';
 import { AGENT_META } from '../constants';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
+import { OrbitConstellation } from '../renderers/OrbitConstellation';
 import { ActivityFeed } from './ActivityFeed';
 import { TaskDeckQueue } from './TaskDeckQueue';
 import { ResolutionToasts } from './ResolutionToasts';
@@ -291,6 +292,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           séparée qui recouvrait la carte d'activité. */}
       <AgentConstellation
         snapshot={snapshot}
+        renderer={OrbitConstellation}
         online={status === 'live'}
         flush={flush}
         onSelectAgent={handleSelect}

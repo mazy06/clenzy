@@ -20,6 +20,10 @@ export interface ConstellationAgentView {
   task: string | null; // langage métier (tooltip)
   thinkingProgress?: number; // 0–100, halo « Réfléchit » (status === 'think')
   badge?: number; // portefeuille : nb de logements concernés
+  /** Nb d'actions de la file HITL portées par cet agent — libellé « N en
+   *  attente » sous le nœud (OrbitConstellation). Optionnel : les renderers
+   *  qui ne l'affichent pas l'ignorent. */
+  pendingCount?: number;
 }
 
 export interface ConstellationHud {

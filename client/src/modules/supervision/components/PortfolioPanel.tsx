@@ -17,6 +17,7 @@ import { useSupervision } from '../core/useSupervision';
 import { useResolutionToasts } from '../core/useResolutionToasts';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
+import { OrbitConstellation } from '../renderers/OrbitConstellation';
 import { PendingQueue } from './PendingQueue';
 import { ActivityFeed } from './ActivityFeed';
 import { SupervisionReportStrip } from './SupervisionReportStrip';
@@ -79,7 +80,12 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
     <div className="relative">
       <div className="flex gap-3 items-stretch flex-wrap min-[900px]:flex-nowrap">
         <div className="flex-1 min-w-0">
-          <AgentConstellation snapshot={portfolio} online={status === 'live'} onSelectAgent={setSelected} />
+          <AgentConstellation
+            snapshot={portfolio}
+            renderer={OrbitConstellation}
+            online={status === 'live'}
+            onSelectAgent={setSelected}
+          />
         </div>
 
         <div className="w-full min-[900px]:w-[330px] shrink-0 flex flex-col gap-3">

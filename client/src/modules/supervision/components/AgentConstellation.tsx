@@ -49,7 +49,18 @@ interface NormalizedView {
   hud: ConstellationHud;
 }
 
+/** Nb d'actions HITL par agent — libellé « N en attente » sous les nœuds. */
+function pendingCounts(snapshot: SupervisionSnapshot): Map<AgentId, number> {
+  const counts = new Map<AgentId, number>();
+  for (const action of snapshot.pending) {
+    counts.set(action.agentId, (counts.get(action.agentId) ?? 0) + 1);
+  }
+  return counts;
+}
+
 function normalize(snapshot: SupervisionSnapshot): NormalizedView {
+  const counts = pendingCounts(snapshot);
+
   if (snapshot.scope === 'portfolio') {
     const portfolio: PortfolioSnapshot = snapshot;
     const agents: ConstellationAgentView[] = portfolio.agents.map((a) => ({
@@ -58,6 +69,7 @@ function normalize(snapshot: SupervisionSnapshot): NormalizedView {
       autonomy: a.autonomy,
       task: a.task,
       badge: a.propertyCount, // badge = nb de logements concernés
+      pendingCount: counts.get(a.id) ?? 0,
     }));
     return {
       agents,
@@ -76,6 +88,7 @@ function normalize(snapshot: SupervisionSnapshot): NormalizedView {
     autonomy: a.autonomy,
     task: a.task,
     thinkingProgress: a.thinkingProgress,
+    pendingCount: counts.get(a.id) ?? 0,
   }));
   return {
     agents,
