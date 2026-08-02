@@ -540,6 +540,24 @@ const AssistantWidget: React.FC = () => {
                 J&apos;utilise tes donnees Baitly en temps reel. Pour un historique
                 complet, ouvre la page Assistant.
               </span>
+              {/* Les puces de la projection — memes amorces que le dock. */}
+              <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+                {[
+                  'Analyse tes réservations',
+                  'Quel est mon taux d’occupation ?',
+                  'Prépare les arrivées de la semaine',
+                ].map((phrase) => (
+                  <Button
+                    key={phrase}
+                    size="xs"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => sendMessage(phrase)}
+                  >
+                    {phrase}
+                  </Button>
+                ))}
+              </div>
             </div>
           }
         />

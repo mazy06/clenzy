@@ -205,6 +205,23 @@ const AssistantDockTab: React.FC = () => {
                     <span className="cn-text-caption text-muted-foreground max-w-[280px]">
                       J&apos;utilise tes donnees Baitly en temps reel.
                     </span>
+                    {/* Les puces de la projection : les phrases que le bandeau
+                        fait defiler deviennent cliquables et lancent la
+                        conversation d'un geste. La premiere est l'invite du
+                        bandeau, pas une question — on l'ecarte. */}
+                    <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+                      {DOCK_PHRASES.slice(1).map((phrase) => (
+                        <Button
+                          key={phrase}
+                          size="xs"
+                          variant="outline"
+                          className="rounded-full"
+                          onClick={() => sendMessage(phrase)}
+                        >
+                          {phrase}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 }
               />

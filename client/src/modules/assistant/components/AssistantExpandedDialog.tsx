@@ -207,7 +207,13 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
             </div>
           )}
 
-          <ChatInput status={status} onSend={sendMessage} onAbort={abort} autoFocus />
+          <ChatInput
+            status={status}
+            onSend={sendMessage}
+            onAbort={abort}
+            autoFocus
+            hint="L'assistant agit sur tes données après confirmation."
+          />
         </Card>
       </div>
       </DialogContent>

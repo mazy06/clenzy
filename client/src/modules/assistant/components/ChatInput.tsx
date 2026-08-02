@@ -25,6 +25,11 @@ interface ChatInputProps {
   onAbort?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
+  /**
+   * Ligne de reassurance affichee sous la boite (projection galerie) —
+   * ex. « L'assistant agit sur tes données après confirmation. ».
+   */
+  hint?: string;
 }
 
 const MAX_ATTACHMENTS = 3;
@@ -46,6 +51,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onAbort,
   placeholder = "Demande quelque chose a l'assistant... (Entree pour envoyer)",
   autoFocus = false,
+  hint,
 }) => {
   const { notify } = useNotification();
   const [value, setValue] = useState('');
@@ -236,6 +242,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </Button>
         )}
       </div>
+
+      {/* Ligne de reassurance de la projection : rappelle que les actions
+          passent par la confirmation HITL (ToolConfirmationDialog). */}
+      {hint && (
+        <span className="block text-center text-[11px] leading-[1.4] text-[var(--faint)]">
+          {hint}
+        </span>
+      )}
       </div>
     </div>
   );
