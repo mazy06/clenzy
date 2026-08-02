@@ -26,12 +26,14 @@ import ChannexFullDisconnectDialog from '../settings/components/ChannexFullDisco
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
+import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { useContractedPropertyIds } from '../../hooks/useContractedPropertyIds';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
 import { ITEMS_PER_PAGE, LIST_DEFAULT_ROWS } from './propertiesListConstants';
 import PropertiesMapView from './PropertiesMapView';
 import PropertiesGridView from './PropertiesGridView';
+import PropertiesPortfolioTiles from './PropertiesPortfolioTiles';
 import PropertiesTableView from './PropertiesTableView';
 import PropertyDeleteDialog from './PropertyDeleteDialog';
 import PropertyStatusToggleDialog from './PropertyStatusToggleDialog';
@@ -153,6 +155,16 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     url.searchParams.delete('diagnoseChannex');
     window.history.replaceState({}, '', url.toString());
   }, [properties, diagnoseTarget, openDiagnoseFor]);
+
+  // ─── KPI opérationnels ────────────────────────────────────────────
+  // Une seule requête batchée pour TOUT le portefeuille (ensemble stable :
+  // pas de refetch au fil de la recherche). Les tuiles portefeuille agrègent
+  // sur les logements filtrés ; la grille pioche ses cartes dans la même map.
+  const allPropertyIds = useMemo(
+    () => properties.map((p) => Number(p.id)),
+    [properties],
+  );
+  const kpiMap = usePropertyKpiSummaries(allPropertyIds);
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -389,6 +401,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         </Alert>
       ) : null}
 
+      {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
+      {filteredProperties.length > 0 && (
+        <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} />
+      )}
+
       {/* Liste des propriétés */}
       {filteredProperties.length === 0 ? (
         <EmptyState
@@ -431,6 +448,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           totalCount={filteredProperties.length}
           page={page}
           onPageChange={setPage}
+          kpiMap={kpiMap}
           channexMappings={channexMappings}
           cleaningEstimates={cleaningEstimates}
           onDelete={handleDeleteRequest}
