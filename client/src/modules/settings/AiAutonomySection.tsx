@@ -8,6 +8,9 @@ import {
   Input,
   NativeSelect,
   NativeSelectOption,
+} from '../../components/ui';
+import SettingSentence from '../../components/baitly/SettingSentence';
+import {
   Progress,
   Skeleton,
   Switch,
@@ -193,38 +196,36 @@ export default function AiAutonomySection() {
           />
         </div>
 
-        <div className="flex gap-2 flex-wrap items-center">
-          <Field className="w-[200px]">
-            <FieldLabel htmlFor="ai-autonomy-cap">
-              {t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
-            </FieldLabel>
-            <Input
-              id="ai-autonomy-cap"
-              type="number"
-              min={0}
-              className="tabular-nums"
-              value={capCredits}
-              onChange={(e) => setCapCredits(e.target.value)}
-            />
-          </Field>
-          <Field className="w-[260px]">
-            <FieldLabel htmlFor="ai-autonomy-on-cap">
-              {t('aiAutonomy.onCapLabel', 'Au plafond')}
-            </FieldLabel>
-            <NativeSelect
-              id="ai-autonomy-on-cap"
-              className="w-full"
-              value={onCap}
-              onChange={(e) => setOnCap(e.target.value)}
-            >
-              <NativeSelectOption value="NOTIFY_ONLY">
-                {t('aiAutonomy.onCapNotify', 'Notifier seulement (suggestions sans exécution)')}
-              </NativeSelectOption>
-              <NativeSelectOption value="PAUSE">
-                {t('aiAutonomy.onCapPause', "Mettre l'autonomie en pause")}
-              </NativeSelectOption>
-            </NativeSelect>
-          </Field>
+        {/* Budget en phrase — primitive SettingSentence (projection « Réglages
+            en phrase ») : « Plafonner à N crédits par mois, puis … », au lieu
+            de deux champs empilés qui obligent à reconstruire la règle. */}
+        <SettingSentence>
+          {t('aiAutonomy.capSentenceStart', 'Plafonner à')}
+          <Input
+            id="ai-autonomy-cap"
+            aria-label={t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
+            type="number"
+            min={0}
+            className="w-24 text-center tabular-nums"
+            value={capCredits}
+            onChange={(e) => setCapCredits(e.target.value)}
+          />
+          {t('aiAutonomy.capSentenceMiddle', 'crédits par mois, puis')}
+          <NativeSelect
+            id="ai-autonomy-on-cap"
+            aria-label={t('aiAutonomy.onCapLabel', 'Au plafond')}
+            value={onCap}
+            onChange={(e) => setOnCap(e.target.value)}
+          >
+            <NativeSelectOption value="NOTIFY_ONLY">
+              {t('aiAutonomy.onCapNotify', 'Notifier seulement (suggestions sans exécution)')}
+            </NativeSelectOption>
+            <NativeSelectOption value="PAUSE">
+              {t('aiAutonomy.onCapPause', "Mettre l'autonomie en pause")}
+            </NativeSelectOption>
+          </NativeSelect>
+        </SettingSentence>
+        <div className="mt-2">
           {/* Seule action de la carte budget, elle valide la saisie : c'est l'action
               principale de la zone, d'ou `default` la ou MUI n'avait qu'un outlined. */}
           <Button

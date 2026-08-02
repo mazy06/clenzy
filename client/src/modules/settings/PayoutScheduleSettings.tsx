@@ -6,6 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
 import SettingsSection from './components/SettingsSection';
+import SettingSentence from '../../components/baitly/SettingSentence';
 
 const VALID_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 
@@ -189,24 +190,16 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
           </div>
         </div>
 
-        {/* Grace period */}
+        {/* Délai de rappel — premier usage réel du primitive SettingSentence
+            (projection « Réglages en phrase ») : la règle s'écrit telle
+            qu'elle se lit, au lieu d'une pile libellé / champ. */}
         <div className="p-2 rounded-[8px] border border-[var(--line)]">
-          {/* Le titre du bloc fait office de libelle : le champ MUI n'en portait
-              aucun, on l'associe par aria-labelledby sans toucher a la mise en page. */}
-          <p
-            id="payout-grace-period-label"
-            className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]"
-          >
-            {t('settings.payoutSchedule.gracePeriod')}
-          </p>
-          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-1.5">
-            {t('settings.payoutSchedule.gracePeriodHelper')}
-          </p>
-          <div className="inline-flex items-center gap-1">
+          <SettingSentence label={t('settings.payoutSchedule.gracePeriod')}>
+            {t('settings.payoutSchedule.reminderSentenceStart', "Envoyer un rappel d'approbation")}
             <Input
               id="payout-grace-period"
-              aria-labelledby="payout-grace-period-label"
-              className="w-[80px] text-center tabular-nums font-semibold"
+              aria-label={t('settings.payoutSchedule.gracePeriod')}
+              className="w-16 text-center tabular-nums font-semibold"
               type="number"
               min={0}
               max={30}
@@ -216,10 +209,8 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
                 if (!isNaN(val) && val >= 0 && val <= 30) setGracePeriod(val);
               }}
             />
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
-              {t('common.daysShort', 'jours')}
-            </p>
-          </div>
+            {t('settings.payoutSchedule.reminderSentenceEnd', 'jours après la génération.')}
+          </SettingSentence>
         </div>
       </SettingsSection>
     );
