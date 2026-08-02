@@ -313,7 +313,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       }
     },
     onError: () => {
-      setError(isEditMode ? (t('interventions.errors.updateError') || 'Erreur lors de la mise a jour') : t('interventions.errors.createError'));
+      setError(isEditMode ? (t('interventions.errors.updateError', 'Erreur lors de la mise a jour')) : t('interventions.errors.createError'));
     },
   });
 
@@ -326,9 +326,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           <Alert variant="destructive">
             <TriangleAlert />
             <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
-              {t('common.accessDenied') || 'Acces non autorise'}
+              {t('common.accessDenied', 'Acces non autorise')}
             </h6><p className="cn-text-body1">
-              {t('interventions.errors.noEditPermission') || 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.'}
+              {t('interventions.errors.noEditPermission', 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.')}
             </p></AlertDescription>
           </Alert>
         </div>

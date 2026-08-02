@@ -88,7 +88,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
   } = useTeamsList();
 
   // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
-  useScreenSearch(searchTerm, setSearchTerm, t('teams.searchPlaceholder') || 'Rechercher une équipe…');
+  useScreenSearch(searchTerm, setSearchTerm, t('teams.searchPlaceholder', 'Rechercher une équipe…'));
 
   // Radix ferme le menu de lui-meme apres chaque selection. Sans ce drapeau, la
   // fermeture rappellerait handleMenuClose, qui remet selectedTeam a null — or

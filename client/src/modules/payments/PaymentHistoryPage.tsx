@@ -427,7 +427,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                 } : {}),
               }}
               counter={{
-                label: t('payments.history.payment') || 'paiement',
+                label: t('payments.history.payment', 'paiement'),
                 count: totalElements,
                 singular: '',
                 plural: 's',

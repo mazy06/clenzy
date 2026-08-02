@@ -174,7 +174,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             />
           </Field>
           <Field className="w-[90px] shrink-0">
-            <FieldLabel htmlFor="rate-plan-currency">{t('common.currency') || 'Devise'}</FieldLabel>
+            <FieldLabel htmlFor="rate-plan-currency">{t('common.currency', 'Devise')}</FieldLabel>
             <InputGroup>
               <InputGroupAddon align="inline-start">
                 <span className="cn-text-body2 font-semibold text-muted-foreground">

@@ -262,7 +262,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                           id="contact-recipient"
                           className="w-full"
                           disabled={loading}
-                          placeholder={t('contact.recipientPlaceholder') || 'Sélectionner un utilisateur ou saisir un email'}
+                          placeholder={t('contact.recipientPlaceholder', 'Sélectionner un utilisateur ou saisir un email')}
                           aria-invalid={!!errors.recipientId}
                           onBlur={() => {
                             // Commettre la saisie libre quand le champ perd le focus

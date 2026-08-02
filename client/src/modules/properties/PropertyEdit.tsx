@@ -20,7 +20,7 @@ const PropertyEdit: React.FC = () => {
           title={t('properties.modify')}
           subtitle={t('properties.subtitle')}
           backPath={`/properties/${id}`}
-          backLabel={t('properties.backToDetails') || 'Retour aux détails'}
+          backLabel={t('properties.backToDetails', 'Retour aux détails')}
           showBackButton={true}
           actions={
             <div className="flex gap-1">

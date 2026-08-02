@@ -210,7 +210,7 @@ const ReservationsList: React.FC = () => {
       bare
       searchTerm={searchTerm}
       onSearchChange={(v) => { setSearchTerm(v); setPage(0); }}
-      searchPlaceholder={t('reservations.search') || 'Rechercher une réservation...'}
+      searchPlaceholder={t('reservations.search', 'Rechercher une réservation...')}
       filters={{
         status: {
           value: filters.status ?? '',
@@ -226,7 +226,7 @@ const ReservationsList: React.FC = () => {
         },
       }}
       counter={{
-        label: t('reservations.reservation') || 'réservation',
+        label: t('reservations.reservation', 'réservation'),
         count: totalElements,
         singular: '',
         plural: 's',
