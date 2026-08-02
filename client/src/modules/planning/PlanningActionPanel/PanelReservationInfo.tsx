@@ -28,6 +28,7 @@ import { toDate } from '../utils/dateUtils';
 import { toneTokensSx } from '../../../components/StatusChip';
 import GuestAvatar from '../../../components/GuestAvatar';
 import PanelReservationCompliance from './PanelReservationCompliance';
+import ReservationLifecycle from './ReservationLifecycle';
 
 // ─── Onglet Infos (maquette Signature) ───────────────────────────────────────
 //
@@ -210,6 +211,9 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
           <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`} />
         </div>
       </div>
+
+      {/* ─── Cycle de vie du séjour (stepper de la projection) ─────────── */}
+      <ReservationLifecycle reservation={reservation} />
 
       {/* ─── DATES & HORAIRES ──────────────────────────────────────────── */}
       <EditableDatesSection reservation={reservation} onUpdate={onUpdateReservation} />
