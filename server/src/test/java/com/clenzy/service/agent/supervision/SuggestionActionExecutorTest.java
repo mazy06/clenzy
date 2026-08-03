@@ -89,6 +89,8 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.RatePlanRepository ratePlanRepository;
     @Mock private com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
     @Mock private com.clenzy.service.automation.CreateMaintenanceInterventionExecutor maintenanceInterventionExecutor;
+    @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
+    @Mock private com.clenzy.service.ReservationRefundService reservationRefundService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -117,6 +119,7 @@ class SuggestionActionExecutorTest {
                 provider(organizationRepository), provider(ownerStatementService),
                 minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
                 provider(maintenanceInterventionExecutor),
+                provider(interventionRepository), provider(reservationRefundService),
                 new ObjectMapper(), clock);
     }
 
@@ -655,5 +658,42 @@ class SuggestionActionExecutorTest {
         when(maintenanceInterventionExecutor.createPreventive(PROPERTY_ID, ORG_ID)).thenReturn(true);
         executor.execute(suggestion(SupervisionActionType.PREVENTIVE_MAINTENANCE, "{}"));
         verify(maintenanceInterventionExecutor).createPreventive(PROPERTY_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("retenue caution : montant RE-resolu depuis l'intervention, borne par la caution")
+    void depositWithhold_capturesReResolvedBoundedAmount() {
+        SecurityDeposit heldDeposit = deposit(SecurityDepositStatus.HELD);
+        heldDeposit.setAmount(new BigDecimal("120.00"));
+        when(securityDepositRepository.findByIdAndOrganizationId(DEPOSIT_ID, ORG_ID))
+                .thenReturn(Optional.of(heldDeposit));
+        com.clenzy.model.Intervention damage = new com.clenzy.model.Intervention();
+        damage.setOrganizationId(ORG_ID);
+        damage.setEstimatedCost(new BigDecimal("450.00"));
+        when(interventionRepository.findById(77L)).thenReturn(Optional.of(damage));
+
+        executor.execute(suggestion(SupervisionActionType.DEPOSIT_WITHHOLD,
+                "{\"depositId\":9,\"interventionId\":77}"));
+
+        // 450 € de dégât mais 120 € de caution → capture bornée à 120 €.
+        verify(securityDepositPaymentService).captureHold(
+                eq(ORG_ID), eq(DEPOSIT_ID), eq(new BigDecimal("120.00")), anyString());
+    }
+
+    @Test
+    @DisplayName("geste commercial : pourcentage borne applique au total, motif GESTURE")
+    void goodwillRefund_computesBoundedPercentOfTotal() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservation.getTotalPrice()).thenReturn(new BigDecimal("300.00"));
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        executor.execute(suggestion(SupervisionActionType.GOODWILL_REFUND,
+                "{\"reservationId\":100,\"percent\":15}"));
+
+        // 15 % de 300 € = 45 € = 4500 cents, motif GESTURE.
+        verify(reservationRefundService).initiateRefund(RESERVATION_ID, 4500L,
+                com.clenzy.service.ReservationRefundService.REASON_GESTURE, ORG_ID);
     }
 }

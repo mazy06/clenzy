@@ -109,6 +109,8 @@ public class SuggestionActionExecutor {
     private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
     private final com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
     private final ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor;
+    private final ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider;
+    private final ObjectProvider<com.clenzy.service.ReservationRefundService> reservationRefundService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -148,6 +150,8 @@ public class SuggestionActionExecutor {
                                     com.clenzy.repository.RatePlanRepository ratePlanRepository,
                                     com.clenzy.repository.UpsellOfferRepository upsellOfferRepository,
                                     ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor,
+                                    ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider,
+                                    ObjectProvider<com.clenzy.service.ReservationRefundService> reservationRefundService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -182,6 +186,8 @@ public class SuggestionActionExecutor {
         this.ratePlanRepository = ratePlanRepository;
         this.upsellOfferRepository = upsellOfferRepository;
         this.maintenanceInterventionExecutor = maintenanceInterventionExecutor;
+        this.interventionRepositoryProvider = interventionRepositoryProvider;
+        this.reservationRefundService = reservationRefundService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -206,7 +212,9 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.POLICE_DECLARE.equals(actionType)
                 || SupervisionActionType.MANDATE_SIGN_SEND.equals(actionType)
                 || SupervisionActionType.OWNER_STATEMENT_SEND.equals(actionType)
-                || SupervisionActionType.UPSELL_OFFER.equals(actionType);
+                || SupervisionActionType.UPSELL_OFFER.equals(actionType)
+                || SupervisionActionType.DEPOSIT_WITHHOLD.equals(actionType)
+                || SupervisionActionType.GOODWILL_REFUND.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -241,8 +249,63 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.UPSELL_OFFER -> applyUpsellOffer(suggestion);
             case SupervisionActionType.LOCK_BATTERY_REPLACE -> applyLockBatteryReplace(suggestion);
             case SupervisionActionType.PREVENTIVE_MAINTENANCE -> applyPreventiveMaintenance(suggestion);
+            case SupervisionActionType.DEPOSIT_WITHHOLD -> applyDepositWithhold(suggestion);
+            case SupervisionActionType.GOODWILL_REFUND -> applyGoodwillRefund(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * DEPOSIT_WITHHOLD — capture partielle de la caution : le montant est RE-résolu
+     * MAINTENANT depuis le coût de l'intervention (actualCost sinon estimatedCost),
+     * borné par la caution — jamais le montant affiché par la carte (règle argent
+     * n°1). {@code captureHold} re-vérifie le statut HELD et porte l'idempotency key.
+     */
+    private void applyDepositWithhold(SupervisionSuggestion suggestion) {
+        final long depositId = requiredLongParam(suggestion, "depositId");
+        final long interventionId = requiredLongParam(suggestion, "interventionId");
+        final Long orgId = suggestion.getOrganizationId();
+        final SecurityDeposit deposit = securityDepositRepository
+                .findByIdAndOrganizationId(depositId, orgId)
+                .orElseThrow(() -> new IllegalStateException("Caution introuvable pour cette organisation"));
+        final com.clenzy.model.Intervention damage = interventionRepositoryProvider.getObject()
+                .findById(interventionId)
+                .orElseThrow(() -> new IllegalStateException("Intervention introuvable"));
+        if (damage.getOrganizationId() == null || !damage.getOrganizationId().equals(orgId)) {
+            throw new IllegalStateException("Intervention hors organisation");
+        }
+        final BigDecimal cost = damage.getActualCost() != null
+                ? damage.getActualCost() : damage.getEstimatedCost();
+        if (cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Coût du dégât non positif — retenue impossible");
+        }
+        final BigDecimal amount = cost.min(deposit.getAmount()).setScale(2, RoundingMode.HALF_UP);
+        securityDepositPaymentService.captureHold(orgId, depositId, amount,
+                "Retenue dégât — intervention #" + interventionId);
+        log.info("DEPOSIT_WITHHOLD appliqué org={} deposit={} montant={}", orgId, depositId, amount);
+    }
+
+    /**
+     * GOODWILL_REFUND — geste commercial : pourcentage borné (1..50) appliqué au total
+     * de la réservation, le service de remboursement re-borne côté serveur (motif
+     * GESTURE). Jamais de montant client appliqué aveuglément.
+     */
+    private void applyGoodwillRefund(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        final int percent = boundedIntParam(suggestion, "percent", 15, 1, 50);
+        final BigDecimal total = reservation.getTotalPrice();
+        if (total == null || total.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Total de réservation non positif — geste impossible");
+        }
+        final long amountCents = total.multiply(BigDecimal.valueOf(percent))
+                .movePointRight(2).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
+                .longValueExact();
+        reservationRefundService.getObject().initiateRefund(
+                reservation.getId(), amountCents,
+                com.clenzy.service.ReservationRefundService.REASON_GESTURE,
+                suggestion.getOrganizationId());
+        log.info("GOODWILL_REFUND appliqué org={} reservation={} percent={} cents={}",
+                suggestion.getOrganizationId(), reservation.getId(), percent, amountCents);
     }
 
     /**

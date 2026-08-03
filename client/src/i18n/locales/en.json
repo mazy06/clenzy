@@ -343,7 +343,8 @@
       "declare": "File declaration",
       "signSend": "Send for signature",
       "restrict": "Restrict",
-      "deactivate": "Deactivate"
+      "deactivate": "Deactivate",
+      "withhold": "Withhold"
     }
   },
   "channexGuided": {

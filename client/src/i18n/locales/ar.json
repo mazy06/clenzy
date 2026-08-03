@@ -343,7 +343,8 @@
       "declare": "تقديم التصريح",
       "signSend": "إرسال للتوقيع",
       "restrict": "تقييد",
-      "deactivate": "تعطيل"
+      "deactivate": "تعطيل",
+      "withhold": "اقتطاع"
     }
   },
   "channexGuided": {

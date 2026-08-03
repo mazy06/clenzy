@@ -222,5 +222,23 @@ public final class SupervisionActionType {
      */
     public static final String PREVENTIVE_MAINTENANCE = "PREVENTIVE_MAINTENANCE";
 
+    /**
+     * Retenue partielle de caution après un dégât constaté AU DÉPART (agent Finance,
+     * vague B) : capture Stripe via {@code SecurityDepositPaymentService.captureHold} —
+     * le montant est RE-résolu à l'apply (coût de l'intervention, borné par la caution,
+     * règle audit n°1), jamais celui affiché par la carte. EFFET EXTERNE (Stripe) →
+     * hors transaction. Params : {@code depositId}, {@code interventionId}.
+     */
+    public static final String DEPOSIT_WITHHOLD = "DEPOSIT_WITHHOLD";
+
+    /**
+     * Geste commercial après un incident SUBI PENDANT le séjour (agent Finance,
+     * vague B) : remboursement partiel via {@code ReservationRefundService.initiateRefund}
+     * (motif GESTURE) — montant calculé et borné SERVEUR depuis le total de la
+     * réservation. EFFET EXTERNE (Stripe) → hors transaction.
+     * Params : {@code reservationId}, {@code percent} (1..50, défaut 15).
+     */
+    public static final String GOODWILL_REFUND = "GOODWILL_REFUND";
+
     private SupervisionActionType() {}
 }

@@ -343,7 +343,8 @@
       "declare": "Télédéclarer",
       "signSend": "Envoyer pour signature",
       "restrict": "Restreindre",
-      "deactivate": "Désactiver"
+      "deactivate": "Désactiver",
+      "withhold": "Retenir"
     }
   },
   "channexGuided": {

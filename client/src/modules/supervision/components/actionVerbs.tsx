@@ -62,6 +62,9 @@ const VERBS: Record<string, ActionVerb> = {
   // Opérations maintenance (Phase 3)
   LOCK_BATTERY_REPLACE: { labelKey: 'supervision.verbs.schedule', fallback: 'Planifier', Icon: Schedule },
   PREVENTIVE_MAINTENANCE: { labelKey: 'supervision.verbs.schedule', fallback: 'Planifier', Icon: Schedule },
+  // Finance incidents (Phase 3)
+  DEPOSIT_WITHHOLD: { labelKey: 'supervision.verbs.withhold', fallback: 'Retenir', Icon: Payments },
+  GOODWILL_REFUND: { labelKey: 'supervision.verbs.refund', fallback: 'Rembourser', Icon: Payments },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
