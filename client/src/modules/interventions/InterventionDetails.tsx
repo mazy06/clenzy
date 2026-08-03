@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X } from 'lucide-react';
@@ -23,6 +24,8 @@ import {
   getPriorityTokens,
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
+import InterventionQuotesSection from './InterventionQuotesSection';
+import { interventionsKeys } from './useInterventionsList';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 import WorkOrderDetailLayout, {
   type WorkOrderViewModel,
@@ -37,6 +40,7 @@ export default function InterventionDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { notify } = useNotification();
+  const queryClient = useQueryClient();
 
   const {
     intervention, loading, error, starting, completing,
@@ -249,26 +253,37 @@ export default function InterventionDetailsPage() {
             </BuiButton>
           }
           extraSection={
-            <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
-              <p className={cn(WORKFLOW_TITLE_CLASS, 'cn-text-body1')}>
-                {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
-              </p>
-              <InterventionProgressSteps
-                intervention={intervention}
-                photos={photosProps}
-                rooms={roomsProps}
-                steps={stepsProps}
-                progress={progressProps}
-                handleStartIntervention={handleStartIntervention}
-                handleCompleteIntervention={handleCompleteIntervention}
-                handleReopenIntervention={handleReopenIntervention}
-                starting={starting}
-                completing={completing}
-                canStartIntervention={canStartIntervention}
-                canStartOrUpdateIntervention={canStartOrUpdateIntervention}
-                isBeforeScheduledDate={isBeforeScheduledDate}
+            <>
+              <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
+                <p className={cn(WORKFLOW_TITLE_CLASS, 'cn-text-body1')}>
+                  {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
+                </p>
+                <InterventionProgressSteps
+                  intervention={intervention}
+                  photos={photosProps}
+                  rooms={roomsProps}
+                  steps={stepsProps}
+                  progress={progressProps}
+                  handleStartIntervention={handleStartIntervention}
+                  handleCompleteIntervention={handleCompleteIntervention}
+                  handleReopenIntervention={handleReopenIntervention}
+                  starting={starting}
+                  completing={completing}
+                  canStartIntervention={canStartIntervention}
+                  canStartOrUpdateIntervention={canStartOrUpdateIntervention}
+                  isBeforeScheduledDate={isBeforeScheduledDate}
+                />
+              </div>
+              {/* Devis prestataires (M4) — l'approbation reporte le montant sur le
+                  coût estimé : on invalide la query détail pour rafraîchir les KPI. */}
+              <InterventionQuotesSection
+                interventionId={Number(id)}
+                canEdit={canEditInterventions}
+                onQuoteApproved={() => {
+                  queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id ?? '') });
+                }}
               />
-            </div>
+            </>
           }
         />
       )}

@@ -7,6 +7,7 @@ import { usePropertyInventory } from '../../hooks/usePropertyInventory';
 import InventoryItemsSection from './inventory/InventoryItemsSection';
 import LaundryItemsSection from './inventory/LaundryItemsSection';
 import LaundryQuotesSection from './inventory/LaundryQuotesSection';
+import PropertyStockSection from './inventory/PropertyStockSection';
 
 interface Props {
   propertyId: number;
@@ -15,13 +16,14 @@ interface Props {
 
 // Sous-onglet imbrique dans PropertyDetails > Inventaire : persiste dans l'URL via ?subtab=<key>
 // (param distinct du ?tab= top-level). Cles : items / laundry / quotes.
-const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }];
+const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }, { key: 'stock' }];
 
 // Sous-onglets niveau 2 — pattern pilules .s-subtab (fond --field, actif accent-soft/accent).
 const subtabs = [
   { label: 'Inventaire du logement', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
   { label: 'Linge de maison', icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
   { label: 'Devis / Factures', icon: <Receipt size={15} strokeWidth={1.75} /> },
+  { label: 'Stock consommable', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
 ];
 
 export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
@@ -102,6 +104,10 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
           onGenerate={generateQuote}
           onConfirm={confirmQuote}
         />
+      )}
+
+      {subTab === 3 && (
+        <PropertyStockSection propertyId={propertyId} canEdit={canEdit} />
       )}
     </div>
   );
