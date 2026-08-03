@@ -829,4 +829,29 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("autre opérateur");
     }
+
+    @Test
+    @DisplayName("note de revenus : chiffres RE-calcules a l'envoi puis email factuel au proprietaire")
+    void ownerRevenueNote_recomputesAndEmailsOwner() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setOrganizationId(ORG_ID);
+        property.setName("Studio Anfa");
+        com.clenzy.model.User owner = new com.clenzy.model.User();
+        owner.setEmail("owner@example.com");
+        property.setOwner(owner);
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+        when(reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                PROPERTY_ID, ORG_ID, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01")))
+                .thenReturn(new BigDecimal("820.00"));
+        when(reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                PROPERTY_ID, ORG_ID, LocalDate.parse("2025-06-01"), LocalDate.parse("2025-07-01")))
+                .thenReturn(new BigDecimal("2340.00"));
+
+        executor.execute(suggestion(SupervisionActionType.OWNER_REVENUE_NOTE,
+                "{\"month\":\"2026-06\"}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
+                contains("820.00"));
+    }
 }

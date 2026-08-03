@@ -47,17 +47,26 @@ public class RevenuePlanScanner {
     private final CalendarDayRepository calendarDayRepository;
     private final MinNightsOverrideRepository minNightsOverrideRepository;
     private final RatePlanRepository ratePlanRepository;
+    private final com.clenzy.repository.MarketDataSnapshotRepository marketDataSnapshotRepository;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
+    private final com.clenzy.service.PriceEngine priceEngine;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
     public RevenuePlanScanner(CalendarDayRepository calendarDayRepository,
                               MinNightsOverrideRepository minNightsOverrideRepository,
                               RatePlanRepository ratePlanRepository,
+                              com.clenzy.repository.MarketDataSnapshotRepository marketDataSnapshotRepository,
+                              com.clenzy.repository.PropertyRepository propertyRepository,
+                              com.clenzy.service.PriceEngine priceEngine,
                               SupervisionSuggestionService suggestionService,
                               Clock clock) {
         this.calendarDayRepository = calendarDayRepository;
         this.minNightsOverrideRepository = minNightsOverrideRepository;
         this.ratePlanRepository = ratePlanRepository;
+        this.marketDataSnapshotRepository = marketDataSnapshotRepository;
+        this.propertyRepository = propertyRepository;
+        this.priceEngine = priceEngine;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -82,6 +91,77 @@ public class RevenuePlanScanner {
         } catch (Exception e) {
             log.debug("last-minute scan failed org={} property={}: {}", orgId, propertyId, e.getMessage());
         }
+        try {
+            scanMarketAlign(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("market align scan failed org={} property={}: {}", orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /** Sous-tarification vs marché : on propose une hausse quand on est ≥ 15 % sous l'ADR. */
+    static final java.math.BigDecimal MARKET_UNDERPRICED_RATIO = new java.math.BigDecimal("0.85");
+    /** Cible de la hausse (95 % de l'ADR marché — jamais collé au médian) et plafond. */
+    static final java.math.BigDecimal MARKET_TARGET_RATIO = new java.math.BigDecimal("0.95");
+    static final int MARKET_MAX_RAISE_PERCENT = 10;
+    static final int MARKET_MIN_RAISE_PERCENT = 3;
+
+    /**
+     * MARKET_ALIGN (vague C) — alignement sur le marché local : l'ADR k-anonyme de la
+     * ville (chantier market data, échantillon ≥ 5 annonces garanti à l'ingestion) est
+     * comparé à NOTRE prix moyen résolu sur 30 jours. Sous-tarification ≥ 15 % → carte
+     * {@code PRICE_DROP} direction HAUSSE (handler existant : prix re-résolus et bornés
+     * à l'apply), hausse bornée à {@value #MARKET_MAX_RAISE_PERCENT} %.
+     */
+    private void scanMarketAlign(Long orgId, Long propertyId) {
+        final var property = propertyRepository.findById(propertyId).orElse(null);
+        if (property == null || property.getOrganizationId() == null
+                || !property.getOrganizationId().equals(orgId)
+                || property.getCity() == null || property.getCity().isBlank()) {
+            return;
+        }
+        final String month = java.time.YearMonth.from(LocalDate.now(clock)).toString();
+        final java.math.BigDecimal marketAdr = marketDataSnapshotRepository
+                .findLatestByArea(property.getCity().strip()).stream()
+                .filter(s -> month.equals(s.getStayMonth()) && s.getAdr() != null)
+                .map(com.clenzy.model.MarketDataSnapshot::getAdr)
+                .findFirst().orElse(null);
+        if (marketAdr == null || marketAdr.signum() <= 0) {
+            return; // pas de photo marché pour la ville ce mois-ci
+        }
+        final LocalDate today = LocalDate.now(clock);
+        final var prices = priceEngine.resolvePriceRange(propertyId, today, today.plusDays(30), orgId);
+        if (prices.isEmpty()) {
+            return;
+        }
+        final java.math.BigDecimal ourAvg = prices.values().stream()
+                .filter(p -> p != null && p.signum() > 0)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
+                .divide(java.math.BigDecimal.valueOf(prices.size()), 2, java.math.RoundingMode.HALF_UP);
+        if (ourAvg.signum() <= 0
+                || ourAvg.compareTo(marketAdr.multiply(MARKET_UNDERPRICED_RATIO)) >= 0) {
+            return; // pas (assez) sous le marché
+        }
+        final int percent = Math.min(MARKET_MAX_RAISE_PERCENT,
+                marketAdr.multiply(MARKET_TARGET_RATIO)
+                        .divide(ourAvg, 4, java.math.RoundingMode.HALF_UP)
+                        .subtract(java.math.BigDecimal.ONE)
+                        .movePointRight(2)
+                        .setScale(0, java.math.RoundingMode.DOWN)
+                        .intValue());
+        if (percent < MARKET_MIN_RAISE_PERCENT) {
+            return; // hausse trop faible pour mériter une carte
+        }
+        suggestionService.recordActionable(
+                orgId, propertyId, "rev",
+                "Alignement marché — " + property.getCity().strip(),
+                "ADR du marché local " + marketAdr + " € (échantillon anonymisé ≥ 5 annonces), "
+                        + "votre prix moyen résolu " + ourAvg + " € sur 30 jours. « Appliquer » "
+                        + "hausse de " + percent + " % ces nuits — prix re-résolus et plafonds "
+                        + "respectés au moment de l'application.",
+                SupervisionActionType.PRICE_DROP,
+                "{\"direction\":\"up\",\"segments\":[{\"from\":\"" + today + "\",\"to\":\""
+                        + today.plusDays(30) + "\",\"percent\":" + percent + "}]}",
+                null, "info");
     }
 
     private void scanMinStay(Long orgId, Long propertyId) {

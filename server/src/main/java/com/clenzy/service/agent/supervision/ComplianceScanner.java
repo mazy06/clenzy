@@ -32,19 +32,31 @@ public class ComplianceScanner {
     private static final Logger log = LoggerFactory.getLogger(ComplianceScanner.class);
     private static final String MODULE_CMP = "cmp";
 
+    /** Fenêtre de rappel de la taxe de séjour : les N premiers jours du trimestre. */
+    static final int TAX_REMINDER_WINDOW_DAYS = 21;
+
     private final GuestDeclarationRepository declarationRepository;
     private final ManagementContractRepository contractRepository;
     private final ContractSignatureService contractSignatureService;
+    private final com.clenzy.service.TouristTaxService touristTaxService;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
     private final SupervisionSuggestionService suggestionService;
+    private final java.time.Clock clock;
 
     public ComplianceScanner(GuestDeclarationRepository declarationRepository,
                              ManagementContractRepository contractRepository,
                              ContractSignatureService contractSignatureService,
-                             SupervisionSuggestionService suggestionService) {
+                             com.clenzy.service.TouristTaxService touristTaxService,
+                             com.clenzy.repository.PropertyRepository propertyRepository,
+                             SupervisionSuggestionService suggestionService,
+                             java.time.Clock clock) {
         this.declarationRepository = declarationRepository;
         this.contractRepository = contractRepository;
         this.contractSignatureService = contractSignatureService;
+        this.touristTaxService = touristTaxService;
+        this.propertyRepository = propertyRepository;
         this.suggestionService = suggestionService;
+        this.clock = clock;
     }
 
     /** Évalue les règles pour un logement et émet les cartes HITL correspondantes. */
@@ -64,6 +76,47 @@ public class ComplianceScanner {
             log.debug("compliance mandate scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+        try {
+            scanTouristTaxDue(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("tourist tax scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Taxe de séjour du trimestre écoulé (vague C) — carte INFO org-level (ancrée sur
+     * le plus petit logement), proposée les {@value #TAX_REMINDER_WINDOW_DAYS} premiers
+     * jours du nouveau trimestre. Pas de bouton « Télédéclarer » : aucun canal de
+     * télédéclaration n'est branché — la carte porte le montant calculé et renvoie au
+     * rapport, elle ne prétend rien déposer.
+     */
+    private void scanTouristTaxDue(Long orgId, Long propertyId) {
+        final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        final int dayOfQuarter = today.getDayOfYear()
+                - today.withMonth(((today.getMonthValue() - 1) / 3) * 3 + 1).withDayOfMonth(1).getDayOfYear();
+        if (dayOfQuarter >= TAX_REMINDER_WINDOW_DAYS) {
+            return;
+        }
+        if (!propertyId.equals(propertyRepository.findFirstPropertyIdByOrg(orgId))) {
+            return; // une seule ancre org-level
+        }
+        final java.time.LocalDate quarterStart = today
+                .withMonth(((today.getMonthValue() - 1) / 3) * 3 + 1).withDayOfMonth(1);
+        final java.time.LocalDate prevQuarterStart = quarterStart.minusMonths(3);
+        final var report = touristTaxService.computeForPeriod(
+                orgId, prevQuarterStart, quarterStart.minusDays(1));
+        if (report == null || report.totalTax() == null || report.totalTax().signum() <= 0) {
+            return; // rien de taxable sur le trimestre
+        }
+        final int quarter = ((prevQuarterStart.getMonthValue() - 1) / 3) + 1;
+        suggestionService.record(orgId, propertyId, MODULE_CMP, "tourist_tax_due",
+                "Taxe de séjour T" + quarter + " " + prevQuarterStart.getYear()
+                        + " : " + report.totalTax(),
+                "Trimestre " + prevQuarterStart + " → " + quarterStart.minusDays(1)
+                        + " clôturé : " + report.totalTax() + " de taxe de séjour calculée "
+                        + "(exonérations déduites). Le rapport détaillé est dans "
+                        + "Rapports > Taxe de séjour — la déclaration reste à déposer par vos soins.");
     }
 
     private void scanPoliceDeclarations(Long orgId, Long propertyId) {

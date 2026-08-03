@@ -285,5 +285,14 @@ public final class SupervisionActionType {
      */
     public static final String CONVERSATION_TAKEOVER = "CONVERSATION_TAKEOVER";
 
+    /**
+     * Note de revenus au propriétaire après un recul marqué (agent Propriétaire,
+     * vague C) : email FACTUEL — revenus du mois vs même mois N−1, re-calculés à
+     * l'apply depuis les réservations (règle audit n°1), renvoi au relevé mensuel
+     * pour le détail. Devancer la question du propriétaire plutôt que la subir.
+     * EFFET EXTERNE (email) → hors transaction. Params : {@code month} (YYYY-MM).
+     */
+    public static final String OWNER_REVENUE_NOTE = "OWNER_REVENUE_NOTE";
+
     private SupervisionActionType() {}
 }

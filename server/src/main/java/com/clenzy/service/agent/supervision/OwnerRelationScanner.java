@@ -38,21 +38,28 @@ public class OwnerRelationScanner {
 
     static final int WORKS_THRESHOLD_EUR = 300;
     static final int WORKS_LOOKBACK_DAYS = 14;
+    /** Recul de revenus qui déclenche la note (≥ 30 % vs même mois N−1). */
+    static final java.math.BigDecimal REVENUE_DROP_RATIO = new java.math.BigDecimal("0.70");
+    /** La note ne se propose qu'en début de mois (le mois écoulé vient de se fermer). */
+    static final int REVENUE_NOTE_WINDOW_DAYS = 7;
 
     private final OwnerPayoutRepository ownerPayoutRepository;
     private final InterventionRepository interventionRepository;
     private final PropertyRepository propertyRepository;
+    private final com.clenzy.repository.ReservationRepository reservationRepository;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
     public OwnerRelationScanner(OwnerPayoutRepository ownerPayoutRepository,
                                 InterventionRepository interventionRepository,
                                 PropertyRepository propertyRepository,
+                                com.clenzy.repository.ReservationRepository reservationRepository,
                                 SupervisionSuggestionService suggestionService,
                                 Clock clock) {
         this.ownerPayoutRepository = ownerPayoutRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
+        this.reservationRepository = reservationRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -74,6 +81,48 @@ public class OwnerRelationScanner {
             log.debug("owner works scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+        try {
+            scanRevenueDrop(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("owner revenue scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * OWNER_REVENUE_NOTE (vague C) : le mois écoulé recule de ≥ 30 % vs le même mois
+     * N−1 (approximation par mois d'arrivée) → carte « Envoyer » une note FACTUELLE
+     * au propriétaire — devancer sa question plutôt que la subir. Proposée uniquement
+     * les {@value #REVENUE_NOTE_WINDOW_DAYS} premiers jours du mois ; les montants de
+     * la carte sont indicatifs, l'apply re-calcule tout (règle audit n°1).
+     */
+    private void scanRevenueDrop(Long orgId, Long propertyId) {
+        final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        if (today.getDayOfMonth() > REVENUE_NOTE_WINDOW_DAYS) {
+            return;
+        }
+        final java.time.YearMonth lastMonth = java.time.YearMonth.from(today).minusMonths(1);
+        final java.math.BigDecimal current = reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                propertyId, orgId, lastMonth.atDay(1), lastMonth.plusMonths(1).atDay(1));
+        final java.math.BigDecimal previous = reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                propertyId, orgId, lastMonth.minusYears(1).atDay(1),
+                lastMonth.minusYears(1).plusMonths(1).atDay(1));
+        if (previous == null || previous.signum() <= 0
+                || current.compareTo(previous.multiply(REVENUE_DROP_RATIO)) >= 0) {
+            return; // pas de base de comparaison, ou pas de recul marqué
+        }
+        final long dropPct = java.math.BigDecimal.ONE
+                .subtract(current.divide(previous, 4, RoundingMode.HALF_UP))
+                .movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+        suggestionService.recordActionable(
+                orgId, propertyId, MODULE_OWN,
+                "Note de revenus à envoyer — " + lastMonth + " (−" + dropPct + " %)",
+                "Revenus de " + lastMonth + " : " + current + " € contre " + previous
+                        + " € le même mois l'an dernier. « Envoyer » adresse une note factuelle "
+                        + "au propriétaire (chiffres re-calculés à l'envoi, renvoi au relevé "
+                        + "mensuel pour le détail) — devancer sa question plutôt que la subir.",
+                SupervisionActionType.OWNER_REVENUE_NOTE,
+                "{\"month\":\"" + lastMonth + "\"}", null, "info");
     }
 
     private void scanPendingPayouts(Long orgId, Long propertyId) {

@@ -231,7 +231,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.DEPOSIT_WITHHOLD.equals(actionType)
                 || SupervisionActionType.GOODWILL_REFUND.equals(actionType)
                 || SupervisionActionType.OWNER_WORKS_APPROVAL.equals(actionType)
-                || SupervisionActionType.SITE_TRANSLATION_DRAFT.equals(actionType);
+                || SupervisionActionType.SITE_TRANSLATION_DRAFT.equals(actionType)
+                || SupervisionActionType.OWNER_REVENUE_NOTE.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -273,8 +274,52 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.SITE_TRANSLATION_DRAFT -> applySiteTranslationDraft(suggestion);
             case SupervisionActionType.OVERBOOKING_RESOLVE -> applyOverbookingResolve(suggestion);
             case SupervisionActionType.CONVERSATION_TAKEOVER -> applyConversationTakeover(suggestion);
+            case SupervisionActionType.OWNER_REVENUE_NOTE -> applyOwnerRevenueNote(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * OWNER_REVENUE_NOTE — note FACTUELLE au propriétaire : les chiffres sont
+     * RE-calculés à l'envoi (règle audit n°1), aucune interprétation inventée — le
+     * détail vit dans le relevé mensuel. EFFET EXTERNE (email).
+     */
+    private void applyOwnerRevenueNote(SupervisionSuggestion suggestion) {
+        final java.time.YearMonth month;
+        try {
+            month = java.time.YearMonth.parse(
+                    objectMapper.readTree(suggestion.getActionParams()).get("month").asText());
+        } catch (Exception e) {
+            throw new IllegalStateException("Mois de la note illisible", e);
+        }
+        final Property property = propertyRepository.findById(suggestion.getPropertyId())
+                .orElseThrow(() -> new IllegalStateException("Logement introuvable"));
+        if (!suggestion.getOrganizationId().equals(property.getOrganizationId())) {
+            throw new IllegalStateException("Logement hors organisation");
+        }
+        final com.clenzy.model.User owner = property.getOwner();
+        if (owner == null || owner.getEmail() == null || owner.getEmail().isBlank()) {
+            throw new IllegalStateException("Propriétaire sans email — note impossible");
+        }
+        final Long orgId = suggestion.getOrganizationId();
+        final BigDecimal current = reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                property.getId(), orgId, month.atDay(1), month.plusMonths(1).atDay(1));
+        final BigDecimal previous = reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                property.getId(), orgId, month.minusYears(1).atDay(1),
+                month.minusYears(1).plusMonths(1).atDay(1));
+        final String ownerName = owner.getFullName() != null
+                ? StringUtils.escapeHtml(owner.getFullName()) : "Bonjour";
+        final String body = "<p>" + ownerName + ",</p>"
+                + "<p>Point sur les revenus de votre logement « "
+                + StringUtils.escapeHtml(property.getName()) + " » pour " + month + " :</p>"
+                + "<p><b>" + current + " €</b> de réservations arrivées sur le mois, contre "
+                + previous + " € le même mois l'an dernier.</p>"
+                + "<p>Le détail séjour par séjour figure dans votre relevé mensuel. Nous restons "
+                + "disponibles pour en parler et ajuster la stratégie si vous le souhaitez.</p>";
+        emailService.sendSimpleHtmlEmail(owner.getEmail().trim(),
+                "Point revenus " + month + " — " + property.getName(), body);
+        log.info("OWNER_REVENUE_NOTE envoyée org={} property={} mois={}", orgId,
+                property.getId(), month);
     }
 
     /**

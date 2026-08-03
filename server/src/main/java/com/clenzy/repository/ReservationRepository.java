@@ -350,6 +350,20 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * (cf. ICalEventParser), donc la comparaison litterale est sure.
      */
     /**
+     * Revenu brut d'un logement sur une fenêtre d'ARRIVÉES (somme des totaux de
+     * réservations non annulées, checkIn ∈ [from, to)) — note de revenus propriétaire
+     * de la constellation (agent own). Approximation par mois d'arrivée, assumée.
+     */
+    @Query("SELECT COALESCE(SUM(r.totalPrice), 0) FROM Reservation r "
+        + "WHERE r.property.id = :propertyId AND r.organizationId = :orgId "
+        + "AND r.status <> 'cancelled' AND r.checkIn >= :from AND r.checkIn < :to")
+    java.math.BigDecimal sumRevenueByPropertyAndCheckInBetween(
+            @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
+    /**
      * Paires de réservations qui se CHEVAUCHENT sur un logement (non annulées, séjours
      * pas encore terminés) — scanner overbooking de la constellation (agent sync).
      * {@code r1.id < r2.id} évite les doublons symétriques.

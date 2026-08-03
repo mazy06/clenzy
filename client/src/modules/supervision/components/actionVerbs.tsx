@@ -73,6 +73,7 @@ const VERBS: Record<string, ActionVerb> = {
   // Escalades (vague C)
   OVERBOOKING_RESOLVE: { labelKey: 'supervision.verbs.resolve', fallback: 'Résoudre', Icon: Check },
   CONVERSATION_TAKEOVER: { labelKey: 'supervision.verbs.takeover', fallback: 'Reprendre la main', Icon: Hand },
+  OWNER_REVENUE_NOTE: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
