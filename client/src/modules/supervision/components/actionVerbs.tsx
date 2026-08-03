@@ -74,6 +74,8 @@ const VERBS: Record<string, ActionVerb> = {
   OVERBOOKING_RESOLVE: { labelKey: 'supervision.verbs.resolve', fallback: 'Résoudre', Icon: Check },
   CONVERSATION_TAKEOVER: { labelKey: 'supervision.verbs.takeover', fallback: 'Reprendre la main', Icon: Hand },
   OWNER_REVENUE_NOTE: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
+  // Modèles métier (vague M-A)
+  TAX_MARK_FILED: { labelKey: 'supervision.verbs.markFiled', fallback: 'Marquer déclarée', Icon: Check },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

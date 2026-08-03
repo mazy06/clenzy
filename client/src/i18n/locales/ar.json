@@ -354,7 +354,8 @@
       "approve": "موافقة",
       "translate": "ترجمة",
       "resolve": "حل",
-      "takeover": "الاستلام اليدوي"
+      "takeover": "الاستلام اليدوي",
+      "markFiled": "تسجيل كمُصرَّح"
     }
   },
   "channexGuided": {

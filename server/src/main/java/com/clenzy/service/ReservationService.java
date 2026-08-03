@@ -462,12 +462,16 @@ public class ReservationService {
 
         syncCalendarOnUpdate(existing, oldStatus, oldPropertyId, oldCheckIn, oldCheckOut, orgId, actorId);
         rescheduleLinkedIntervention(existing, oldCheckOut);
+        moveLinkedInterventionProperty(existing, oldPropertyId);
 
         Reservation saved = reservationRepository.save(existing);
 
         boolean datesChanged = !Objects.equals(saved.getCheckIn(), oldCheckIn)
                 || !Objects.equals(saved.getCheckOut(), oldCheckOut);
-        if (datesChanged && "confirmed".equals(saved.getStatus())) {
+        // Relogement : les codes de l'ANCIEN logement ne doivent plus ouvrir quoi que
+        // ce soit pour ce sejour — regeneres au meme titre qu'un changement de dates.
+        boolean propertyChanged = !Objects.equals(saved.getProperty().getId(), oldPropertyId);
+        if ((datesChanged || propertyChanged) && "confirmed".equals(saved.getStatus())) {
             // Non bloquant : une panne serrure ne doit pas bloquer la mise a jour.
             revokeAccessCodes(saved.getId());
             generateAccessCodes(saved, orgId);
@@ -553,6 +557,21 @@ public class ReservationService {
             syncMetrics.incrementDoubleBookingPrevented();
             throw e;
         }
+    }
+
+    /**
+     * Relogement : le menage lie suit la reservation sur le NOUVEAU logement — sans
+     * ca, l'equipe se presentait a l'ancienne adresse (promesse deja affichee par le
+     * front « les interventions liees seront automatiquement deplacees »).
+     */
+    private void moveLinkedInterventionProperty(Reservation reservation, Long oldPropertyId) {
+        Intervention intervention = reservation.getIntervention();
+        if (intervention == null
+                || Objects.equals(reservation.getProperty().getId(), oldPropertyId)) {
+            return;
+        }
+        intervention.setProperty(reservation.getProperty());
+        interventionRepository.save(intervention);
     }
 
     /** Decale l'intervention liee si le checkout a change (meme heure, nouvelle date). */

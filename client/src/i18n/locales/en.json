@@ -354,7 +354,8 @@
       "approve": "Approve",
       "translate": "Translate",
       "resolve": "Resolve",
-      "takeover": "Take over"
+      "takeover": "Take over",
+      "markFiled": "Mark as filed"
     }
   },
   "channexGuided": {

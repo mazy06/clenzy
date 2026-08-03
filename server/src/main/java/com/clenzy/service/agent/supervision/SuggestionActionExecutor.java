@@ -116,6 +116,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider;
     private final ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider;
     private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
+    private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -162,6 +163,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider,
                                     ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider,
                                     ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
+                                    ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -203,6 +205,7 @@ public class SuggestionActionExecutor {
         this.siteRepositoryProvider = siteRepositoryProvider;
         this.sitePageRepositoryProvider = sitePageRepositoryProvider;
         this.conversationRepositoryProvider = conversationRepositoryProvider;
+        this.taxFilingService = taxFilingService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -275,8 +278,19 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.OVERBOOKING_RESOLVE -> applyOverbookingResolve(suggestion);
             case SupervisionActionType.CONVERSATION_TAKEOVER -> applyConversationTakeover(suggestion);
             case SupervisionActionType.OWNER_REVENUE_NOTE -> applyOwnerRevenueNote(suggestion);
+            case SupervisionActionType.TAX_MARK_FILED -> applyTaxMarkFiled(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * TAX_MARK_FILED — trace le dépôt manuel au registre (CAS DUE → FILED, org validée
+     * par la requête). La référence de dépôt se complète ensuite dans Rapports.
+     * Écriture DB pure.
+     */
+    private void applyTaxMarkFiled(SupervisionSuggestion suggestion) {
+        final long filingId = requiredLongParam(suggestion, "filingId");
+        taxFilingService.getObject().markFiled(filingId, suggestion.getOrganizationId(), null);
     }
 
     /**

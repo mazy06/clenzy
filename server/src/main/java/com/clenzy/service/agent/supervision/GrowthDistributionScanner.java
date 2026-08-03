@@ -36,22 +36,37 @@ public class GrowthDistributionScanner {
     private final SiteRepository siteRepository;
     private final SitePageRepository sitePageRepository;
     private final PropertyRepository propertyRepository;
+    private final com.clenzy.service.ListingQualityService listingQualityService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final SupervisionSuggestionService suggestionService;
 
     public GrowthDistributionScanner(SiteRepository siteRepository,
                                      SitePageRepository sitePageRepository,
                                      PropertyRepository propertyRepository,
+                                     com.clenzy.service.ListingQualityService listingQualityService,
+                                     com.fasterxml.jackson.databind.ObjectMapper objectMapper,
                                      SupervisionSuggestionService suggestionService) {
         this.siteRepository = siteRepository;
         this.sitePageRepository = sitePageRepository;
         this.propertyRepository = propertyRepository;
+        this.listingQualityService = listingQualityService;
+        this.objectMapper = objectMapper;
         this.suggestionService = suggestionService;
     }
 
-    /** Évalue la règle (ancrée sur le plus petit logement de l'org). */
+    /** Seuil sous lequel le score qualité d'annonce lève une carte (M3, vague M-A). */
+    static final int QUALITY_CARD_THRESHOLD = 50;
+
+    /** Évalue les règles : score qualité PAR logement, traductions sur l'ancre org. */
     public void scanProperty(Long orgId, Long propertyId) {
         if (orgId == null || propertyId == null) {
             return;
+        }
+        try {
+            scanListingQuality(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("listing quality scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
         }
         try {
             if (!propertyId.equals(propertyRepository.findFirstPropertyIdByOrg(orgId))) {
@@ -64,6 +79,34 @@ public class GrowthDistributionScanner {
             log.debug("growth translation scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+    }
+
+    /**
+     * M3 — score qualité v1 (heuristique, persisté) : score < {@value #QUALITY_CARD_THRESHOLD}
+     * → carte INFO avec les deux axes les plus faibles. La carte ne prescrit pas de
+     * shooting (aucun prestataire modélisé) : elle nomme ce qui pénalise l'annonce.
+     */
+    private void scanListingQuality(Long orgId, Long propertyId) {
+        final com.clenzy.model.ListingQualityScore stored =
+                listingQualityService.computeAndStore(orgId, propertyId);
+        if (stored == null || stored.getScore() >= QUALITY_CARD_THRESHOLD) {
+            return;
+        }
+        String axes = "";
+        try {
+            final var node = objectMapper.readTree(stored.getBreakdown());
+            axes = com.clenzy.service.ListingQualityService.weakestAxes(
+                    node.path("photosPoints").asInt(), node.path("descriptionPoints").asInt(),
+                    node.path("amenitiesPoints").asInt(), node.path("ratingPoints").asInt());
+        } catch (Exception ignored) {
+            // breakdown illisible : la carte reste valable sans le détail des axes
+        }
+        suggestionService.record(orgId, propertyId, MODULE_GRO, "listing_quality_low",
+                "Score d'annonce " + stored.getScore() + "/100",
+                "L'annonce convertit moins bien qu'elle ne le pourrait"
+                        + (axes.isEmpty() ? "" : " — points faibles : " + axes)
+                        + ". Compléter la fiche du logement (photos, description, équipements) "
+                        + "fait remonter le score au prochain passage.");
     }
 
     private void scanSite(Long orgId, Long anchorPropertyId, Site site) {

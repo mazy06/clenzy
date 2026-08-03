@@ -3610,3 +3610,24 @@ databaseChangeLog:
       sqlFile:
         path: changes/0379__supervision_activity_tag.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0380-create-property-licenses"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0380__create_property_licenses.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0381-create-tax-filings"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0381__create_tax_filings.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0382-create-listing-quality-scores"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0382__create_listing_quality_scores.sql
+        relativeToChangelogFile: true

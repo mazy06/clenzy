@@ -39,7 +39,9 @@ public class ComplianceScanner {
     private final ManagementContractRepository contractRepository;
     private final ContractSignatureService contractSignatureService;
     private final com.clenzy.service.TouristTaxService touristTaxService;
+    private final com.clenzy.service.TaxFilingService taxFilingService;
     private final com.clenzy.repository.PropertyRepository propertyRepository;
+    private final com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository;
     private final SupervisionSuggestionService suggestionService;
     private final java.time.Clock clock;
 
@@ -47,14 +49,18 @@ public class ComplianceScanner {
                              ManagementContractRepository contractRepository,
                              ContractSignatureService contractSignatureService,
                              com.clenzy.service.TouristTaxService touristTaxService,
+                             com.clenzy.service.TaxFilingService taxFilingService,
                              com.clenzy.repository.PropertyRepository propertyRepository,
+                             com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository,
                              SupervisionSuggestionService suggestionService,
                              java.time.Clock clock) {
         this.declarationRepository = declarationRepository;
         this.contractRepository = contractRepository;
         this.contractSignatureService = contractSignatureService;
         this.touristTaxService = touristTaxService;
+        this.taxFilingService = taxFilingService;
         this.propertyRepository = propertyRepository;
+        this.propertyLicenseRepository = propertyLicenseRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -81,6 +87,45 @@ public class ComplianceScanner {
         } catch (Exception e) {
             log.debug("tourist tax scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanExpiringLicenses(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("license scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Licences arrivant à échéance (M1, vague M-A) : {@code expires_at − lead ≤ today}
+     * → carte INFO warning (le renouvellement est un acte administratif externe — pas
+     * de bouton tant qu'aucun portail de dépôt n'est branché). L'échéance dans
+     * l'intitulé rend la dédup naturelle : une nouvelle échéance = une nouvelle carte.
+     */
+    private void scanExpiringLicenses(Long orgId, Long propertyId) {
+        final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        for (com.clenzy.model.PropertyLicense license : propertyLicenseRepository
+                .findByPropertyIdAndOrganizationIdOrderByExpiresAtAsc(propertyId, orgId)) {
+            if (license.getExpiresAt() == null
+                    || license.getExpiresAt().minusDays(license.getRenewalLeadDays()).isAfter(today)) {
+                continue;
+            }
+            final boolean expired = license.getExpiresAt().isBefore(today);
+            final String label = switch (license.getLicenseType()) {
+                case SHORT_TERM_RENTAL -> "Licence courte durée";
+                case TOURISM_REGISTRATION -> "Enregistrement touristique";
+                case SAFETY_CERT -> "Certificat de sécurité";
+                case OTHER -> "Autorisation";
+            };
+            suggestionService.record(orgId, propertyId, MODULE_CMP, "license_expiring",
+                    label + (expired ? " EXPIRÉE depuis le " : " expire le ")
+                            + license.getExpiresAt()
+                            + (license.getLicenseNumber() != null
+                                ? " (n° " + license.getLicenseNumber() + ")" : ""),
+                    "Le renouvellement est à déposer auprès de "
+                            + (license.getIssuedBy() != null ? license.getIssuedBy() : "l'autorité émettrice")
+                            + ". Sans licence valide, l'annonce peut être retirée des canaux — "
+                            + "mettre à jour l'échéance dans la fiche du logement une fois renouvelée.");
         }
     }
 
@@ -109,14 +154,27 @@ public class ComplianceScanner {
         if (report == null || report.totalTax() == null || report.totalTax().signum() <= 0) {
             return; // rien de taxable sur le trimestre
         }
+        // Registre (M2) : l'entrée DUE du trimestre est créée (idempotent, unique
+        // org+période) ; la carte ne se lève que tant qu'elle n'est pas déposée.
+        final com.clenzy.model.TaxFiling filing = taxFilingService.ensureDueFiling(
+                orgId, prevQuarterStart, quarterStart.minusDays(1), report.totalTax(), "EUR");
+        if (filing.getStatus() != com.clenzy.model.TaxFiling.Status.DUE) {
+            return; // déjà déposée/payée
+        }
         final int quarter = ((prevQuarterStart.getMonthValue() - 1) / 3) + 1;
-        suggestionService.record(orgId, propertyId, MODULE_CMP, "tourist_tax_due",
+        suggestionService.recordActionable(orgId, propertyId, MODULE_CMP,
                 "Taxe de séjour T" + quarter + " " + prevQuarterStart.getYear()
-                        + " : " + report.totalTax(),
+                        + " : " + filing.getAmount() + " " + filing.getCurrency(),
                 "Trimestre " + prevQuarterStart + " → " + quarterStart.minusDays(1)
-                        + " clôturé : " + report.totalTax() + " de taxe de séjour calculée "
-                        + "(exonérations déduites). Le rapport détaillé est dans "
-                        + "Rapports > Taxe de séjour — la déclaration reste à déposer par vos soins.");
+                        + " clôturé, " + filing.getAmount() + " " + filing.getCurrency()
+                        + " calculés (exonérations déduites, détail dans Rapports > Taxe de "
+                        + "séjour). Après votre dépôt auprès de l'autorité, « Marquer déclarée » "
+                        + "trace le dépôt au registre — rien n'est télédéclaré automatiquement.",
+                SupervisionActionType.TAX_MARK_FILED,
+                "{\"filingId\":" + filing.getId() + "}",
+                filing.getAmount().movePointRight(2)
+                        .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact(),
+                "info");
     }
 
     private void scanPoliceDeclarations(Long orgId, Long propertyId) {

@@ -294,5 +294,13 @@ public final class SupervisionActionType {
      */
     public static final String OWNER_REVENUE_NOTE = "OWNER_REVENUE_NOTE";
 
+    /**
+     * Trace le dépôt MANUEL de la déclaration de taxe de séjour au registre (agent
+     * Conformité, vague M-A) : transition CAS DUE → FILED via
+     * {@code TaxFilingService.markFiled}. Rien n'est télédéclaré — l'opérateur a
+     * déposé lui-même, la carte enregistre le fait. Params : {@code filingId}.
+     */
+    public static final String TAX_MARK_FILED = "TAX_MARK_FILED";
+
     private SupervisionActionType() {}
 }

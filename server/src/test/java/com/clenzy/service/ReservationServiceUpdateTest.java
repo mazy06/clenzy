@@ -158,6 +158,38 @@ class ReservationServiceUpdateTest {
         }
 
         @Test
+        @DisplayName("relogement (changement de propriete) → move vers la cible + menage lie deplace")
+        void whenPropertyChangesOnConfirmed_thenMovesCalendarAndLinkedIntervention() {
+            // Arrange : le mapper applique le changement de propriete (bug 2026-08 :
+            // l'ancienne garde l'ignorait silencieusement — ce cas est CELUI qui manquait).
+            Property target = new Property();
+            target.setId(2L);
+            target.setOrganizationId(orgId);
+            Intervention cleaning = new Intervention();
+            cleaning.setProperty(property);
+            existing.setIntervention(cleaning);
+            when(reservationRepository.findByIdFetchAll(100L)).thenReturn(Optional.of(existing));
+            doAnswer(inv -> {
+                Reservation r = inv.getArgument(1);
+                r.setProperty(target);
+                return null;
+            }).when(reservationMapper).apply(any(ReservationDto.class), any(Reservation.class));
+            when(reservationRepository.save(existing)).thenReturn(existing);
+
+            // Act
+            reservationService.update(100L, dtoWith(null, null, null), "actor-1");
+
+            // Assert : deplacement calendaire origine → cible, et le menage suit.
+            ArgumentCaptor<CalendarEngine.ReservationMove> captor =
+                    ArgumentCaptor.forClass(CalendarEngine.ReservationMove.class);
+            verify(calendarEngine).move(captor.capture());
+            assertThat(captor.getValue().oldPropertyId()).isEqualTo(1L);
+            assertThat(captor.getValue().newPropertyId()).isEqualTo(2L);
+            assertThat(cleaning.getProperty().getId()).isEqualTo(2L);
+            verify(interventionRepository).save(cleaning);
+        }
+
+        @Test
         @DisplayName("conflit de dispo sur la nouvelle plage → exception 409 et aucune sauvegarde")
         void whenMoveConflicts_thenThrowsAndNothingSaved() {
             // Arrange

@@ -97,6 +97,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.booking.repository.SiteRepository siteRepository;
     @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
     @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
+    @Mock private com.clenzy.service.TaxFilingService taxFilingService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -128,7 +129,7 @@ class SuggestionActionExecutorTest {
                 provider(interventionRepository), provider(reservationRefundService),
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
-                provider(conversationRepository),
+                provider(conversationRepository), provider(taxFilingService),
                 new ObjectMapper(), clock);
     }
 
@@ -853,5 +854,12 @@ class SuggestionActionExecutorTest {
 
         verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
                 contains("820.00"));
+    }
+
+    @Test
+    @DisplayName("taxe declaree : delegue au registre (transition CAS DUE -> FILED cote service)")
+    void taxMarkFiled_delegatesToRegistry() {
+        executor.execute(suggestion(SupervisionActionType.TAX_MARK_FILED, "{\"filingId\":3}"));
+        verify(taxFilingService).markFiled(3L, ORG_ID, null);
     }
 }
