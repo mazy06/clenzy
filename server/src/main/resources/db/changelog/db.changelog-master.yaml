@@ -3666,3 +3666,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0387__create_message_intents.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0388-create-privacy-requests"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0388__create_privacy_requests.sql
+        relativeToChangelogFile: true

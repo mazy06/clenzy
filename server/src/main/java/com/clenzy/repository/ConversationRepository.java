@@ -80,6 +80,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     Page<Conversation> findByOrganizationIdAndStatusOrderByLastMessageAtDesc(
         Long organizationId, ConversationStatus status, Pageable pageable);
 
+    /** Fils d'un voyageur — parcours d'effacement RGPD (M9). */
+    List<Conversation> findByOrganizationIdAndGuestId(Long organizationId, Long guestId);
+
     @EntityGraph(attributePaths = {"guest", "property", "reservation"})
     Page<Conversation> findByOrganizationIdOrderByLastMessageAtDesc(
         Long organizationId, Pageable pageable);

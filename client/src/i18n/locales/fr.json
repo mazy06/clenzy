@@ -360,7 +360,8 @@
       "markNoShow": "Marquer no-show",
       "submit": "Soumettre",
       "order": "Commander",
-      "accept": "Accepter"
+      "accept": "Accepter",
+      "erase": "Effacer"
     }
   },
   "channexGuided": {

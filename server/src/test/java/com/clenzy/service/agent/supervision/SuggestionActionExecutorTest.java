@@ -98,6 +98,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
     @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
     @Mock private com.clenzy.service.messaging.ConversationService conversationService;
+    @Mock private com.clenzy.service.PrivacyRequestService privacyRequestServiceMock;
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
     @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
     @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
@@ -134,7 +135,7 @@ class SuggestionActionExecutorTest {
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
                 provider(conversationRepository), provider(conversationService),
-                provider(taxFilingService),
+                provider(privacyRequestServiceMock), provider(taxFilingService),
                 provider(disputeEvidenceService), provider(serviceQuoteService),
                 propertyStockItemRepository,
                 new ObjectMapper(), clock);
@@ -1123,5 +1124,29 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("plus disponibles");
         verifyNoInteractions(conversationService);
+    }
+
+    // ─── M9 — effacement RGPD ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("effacement RGPD : opere par un humain identifie -> delegue au service (verrou CAS)")
+    void gdprErase_delegatesForIdentifiedOperator() {
+        SupervisionSuggestion s = suggestion(SupervisionActionType.GDPR_ERASE,
+                "{\"requestId\":31}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+        executor.execute(s);
+
+        verify(privacyRequestServiceMock).executeErasure(31L, ORG_ID,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+    }
+
+    @Test
+    @DisplayName("effacement RGPD : pas d'operateur humain identifie -> refus, rien d'efface")
+    void gdprErase_refusesWithoutHumanOperator() {
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.GDPR_ERASE, "{\"requestId\":31}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("humain");
+        verifyNoInteractions(privacyRequestServiceMock);
     }
 }

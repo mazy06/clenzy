@@ -117,6 +117,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider;
     private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider;
+    private final ObjectProvider<com.clenzy.service.PrivacyRequestService> privacyRequestService;
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
     private final ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService;
@@ -168,6 +169,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider,
                                     ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider,
+                                    ObjectProvider<com.clenzy.service.PrivacyRequestService> privacyRequestService,
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
@@ -214,6 +216,7 @@ public class SuggestionActionExecutor {
         this.sitePageRepositoryProvider = sitePageRepositoryProvider;
         this.conversationRepositoryProvider = conversationRepositoryProvider;
         this.conversationServiceProvider = conversationServiceProvider;
+        this.privacyRequestService = privacyRequestService;
         this.taxFilingService = taxFilingService;
         this.disputeEvidenceService = disputeEvidenceService;
         this.serviceQuoteService = serviceQuoteService;
@@ -303,6 +306,7 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.LINEN_STOCK_ORDER -> applyStockOrder(suggestion);
             case SupervisionActionType.LATE_CHECKOUT_APPROVAL -> applyLateCheckoutApproval(suggestion);
             case SupervisionActionType.STAY_MODIFICATION -> applyStayModification(suggestion);
+            case SupervisionActionType.GDPR_ERASE -> applyGdprErase(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
     }
@@ -470,6 +474,25 @@ public class SuggestionActionExecutor {
         conversationServiceProvider.getObject().sendAutonomousMessage(conversation, reply.toString());
         log.info("STAY_MODIFICATION chiffrée org={} réservation={} {}→{} total={}",
                 suggestion.getOrganizationId(), reservationId, newCheckIn, newCheckOut, newTotal);
+    }
+
+    /**
+     * GDPR_ERASE — effacement RGPD sélectif (M9), IRRÉVERSIBLE : réservé à un
+     * opérateur humain identifié (jamais automatisable), délégué au service qui
+     * porte le verrou CAS, l'anonymisation et le rapport. Écritures DB pures.
+     */
+    private void applyGdprErase(SupervisionSuggestion suggestion) {
+        final long requestId = requiredLongParam(suggestion, "requestId");
+        final String appliedBy = suggestion.getAppliedBy();
+        if (appliedBy == null
+                || !appliedBy.startsWith(SupervisionSuggestion.APPLIED_BY_USER_PREFIX)) {
+            throw new IllegalStateException(
+                    "Effacement RGPD réservé à un opérateur humain identifié");
+        }
+        privacyRequestService.getObject().executeErasure(
+                requestId, suggestion.getOrganizationId(), appliedBy);
+        log.info("GDPR_ERASE exécuté org={} demande={} par {}",
+                suggestion.getOrganizationId(), requestId, appliedBy);
     }
 
     /** Charge la conversation et RE-valide l'org (règle audit n°3 : findById contourne le filtre). */

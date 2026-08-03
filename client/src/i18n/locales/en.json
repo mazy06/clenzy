@@ -360,7 +360,8 @@
       "markNoShow": "Mark no-show",
       "submit": "Submit",
       "order": "Order",
-      "accept": "Accept"
+      "accept": "Accept",
+      "erase": "Erase"
     }
   },
   "channexGuided": {

@@ -374,5 +374,15 @@ public final class SupervisionActionType {
      */
     public static final String STAY_MODIFICATION = "STAY_MODIFICATION";
 
+    /**
+     * Exécute l'effacement RGPD sélectif d'un voyageur (agent Conformité, M9) :
+     * IRRÉVERSIBLE — identité, coordonnées et contenu des messages purgés ; factures
+     * et fiches police CONSERVÉES (bases légales tracées dans le rapport persisté sur
+     * la demande). Verrou CAS RECEIVED → IN_PROGRESS (jamais exécuté deux fois),
+     * réservé à un opérateur humain identifié. Écritures DB pures.
+     * Params : {@code requestId}.
+     */
+    public static final String GDPR_ERASE = "GDPR_ERASE";
+
     private SupervisionActionType() {}
 }

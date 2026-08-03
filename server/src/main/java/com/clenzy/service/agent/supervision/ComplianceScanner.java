@@ -42,6 +42,7 @@ public class ComplianceScanner {
     private final com.clenzy.service.TaxFilingService taxFilingService;
     private final com.clenzy.repository.PropertyRepository propertyRepository;
     private final com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository;
+    private final com.clenzy.repository.PrivacyRequestRepository privacyRequestRepository;
     private final SupervisionSuggestionService suggestionService;
     private final java.time.Clock clock;
 
@@ -52,6 +53,7 @@ public class ComplianceScanner {
                              com.clenzy.service.TaxFilingService taxFilingService,
                              com.clenzy.repository.PropertyRepository propertyRepository,
                              com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository,
+                             com.clenzy.repository.PrivacyRequestRepository privacyRequestRepository,
                              SupervisionSuggestionService suggestionService,
                              java.time.Clock clock) {
         this.declarationRepository = declarationRepository;
@@ -61,6 +63,7 @@ public class ComplianceScanner {
         this.taxFilingService = taxFilingService;
         this.propertyRepository = propertyRepository;
         this.propertyLicenseRepository = propertyLicenseRepository;
+        this.privacyRequestRepository = privacyRequestRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -93,6 +96,52 @@ public class ComplianceScanner {
         } catch (Exception e) {
             log.debug("license scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanGdprErasureRequests(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("gdpr scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * M9 — demandes d'effacement RGPD en attente : une carte par demande RECEIVED
+     * avec l'échéance légale (J+30). Org-level (une seule ancre). La carte n'existe
+     * que si un voyageur est rattaché — sans fiche liée, l'effacement n'a pas de
+     * cible et la demande se traite depuis Réglages > Confidentialité.
+     */
+    private void scanGdprErasureRequests(Long orgId, Long propertyId) {
+        if (!propertyId.equals(propertyRepository.findFirstPropertyIdByOrg(orgId))) {
+            return; // une seule ancre org-level
+        }
+        final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        for (com.clenzy.model.PrivacyRequest request : privacyRequestRepository
+                .findByOrganizationIdAndTypeAndStatus(orgId,
+                        com.clenzy.model.PrivacyRequest.Type.ERASURE,
+                        com.clenzy.model.PrivacyRequest.Status.RECEIVED)) {
+            if (request.getGuestId() == null) {
+                suggestionService.record(orgId, propertyId, MODULE_CMP, "gdpr_unlinked",
+                        "Demande d'effacement RGPD sans fiche voyageur (demande #" + request.getId() + ")",
+                        "Demande de " + request.getRequesterEmail() + " reçue le "
+                                + request.getRequestedAt() + " (échéance légale " + request.getDueAt()
+                                + "). Lier la fiche voyageur dans Réglages > Confidentialité pour"
+                                + " que l'effacement devienne exécutable.",
+                        null, "warning");
+                continue;
+            }
+            final long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(today, request.getDueAt());
+            suggestionService.recordActionable(orgId, propertyId, MODULE_CMP,
+                    "Effacement RGPD à exécuter (demande #" + request.getId() + ")",
+                    "Demande de " + request.getRequesterEmail() + " reçue le " + request.getRequestedAt()
+                            + " — échéance légale le " + request.getDueAt()
+                            + (daysLeft >= 0 ? " (J-" + daysLeft + ")" : " (DÉPASSÉE)")
+                            + ". « Effacer » est IRRÉVERSIBLE : identité, coordonnées et messages"
+                            + " purgés ; factures et fiches police conservées (obligations légales,"
+                            + " rapport tracé sur la demande).",
+                    SupervisionActionType.GDPR_ERASE,
+                    "{\"requestId\":" + request.getId() + "}",
+                    null, daysLeft <= 7 ? "critical" : "warning");
         }
     }
 

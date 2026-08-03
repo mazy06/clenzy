@@ -72,6 +72,7 @@ interface SettingsTabMeta {
   subtitle: string;
 }
 import AccountSecuritySection from './AccountSecuritySection';
+import PrivacyRequestsSection from './PrivacyRequestsSection';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import MarketingPreferencesCard from './MarketingPreferencesCard';
@@ -801,6 +802,13 @@ export default function Settings() {
           <div className="col-span-12 min-[900px]:col-span-6">
             <AccountSecuritySection />
           </div>
+
+          {/* Confidentialité RGPD (M9) — registre des demandes, réservé aux gestionnaires */}
+          {hasAnyRole(['HOST', 'SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <div className="col-span-12">
+              <PrivacyRequestsSection />
+            </div>
+          )}
 
           {/* Workflow */}
           <div className="col-span-12 min-[900px]:col-span-6">

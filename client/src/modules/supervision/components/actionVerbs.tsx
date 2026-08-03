@@ -13,7 +13,7 @@
    Les types inconnus retombent sur « Appliquer » (comportement historique).
    ============================================================ */
 
-import { Check, CalendarToday, Edit, GppBad, Hand, Payments, Refresh, Schedule, Send, SwapHoriz, VisibilityOff } from '../../../icons';
+import { Check, CalendarToday, DeleteOutline, Edit, GppBad, Hand, Payments, Refresh, Schedule, Send, SwapHoriz, VisibilityOff } from '../../../icons';
 
 export interface ActionVerb {
   labelKey: string;
@@ -84,6 +84,8 @@ const VERBS: Record<string, ActionVerb> = {
   // Intentions de messages (vague M-C) — réponses envoyées dans la conversation.
   LATE_CHECKOUT_APPROVAL: { labelKey: 'supervision.verbs.accept', fallback: 'Accepter', Icon: Check },
   STAY_MODIFICATION: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
+  // RGPD (vague M-C) — le verbe dit l'irréversible.
+  GDPR_ERASE: { labelKey: 'supervision.verbs.erase', fallback: 'Effacer', Icon: DeleteOutline },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
