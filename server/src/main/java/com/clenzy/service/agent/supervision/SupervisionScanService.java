@@ -159,6 +159,7 @@ public class SupervisionScanService {
             reviewModerationScanner.scanProperty(orgId, propertyId);
             guestInstructionsScanner.scanProperty(orgId, propertyId);
             guestEmailMissingScanner.scanProperty(orgId, propertyId);
+            guestMessageFailedScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

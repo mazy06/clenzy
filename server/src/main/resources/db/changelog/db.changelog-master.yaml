@@ -3596,3 +3596,10 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  - changeSet:
+      id: "0378-supervision-suggestion-pricing-to-rev"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0378__supervision_suggestion_pricing_to_rev.sql
+        relativeToChangelogFile: true

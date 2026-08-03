@@ -73,8 +73,12 @@ public class YieldRuleEngine {
     /** Source des overrides écrits par le yield (partagée avec l'existant). */
     static final String YIELD_OVERRIDE_SOURCE = "YIELD_RULE";
     static final ZoneId DEFAULT_PROPERTY_ZONE = ZoneId.of("Europe/Paris");
-    static final String SUGGESTION_MODULE_KEY = "pricing";
-    /** Module « Revenue » de la constellation (feed « En direct »). */
+    /**
+     * Module « Revenue » de la constellation — cartes HITL ET feed. Historiquement
+     * les cartes partaient sous « pricing », hors catalogue des agents : agentId
+     * invalide côté front et carte absente des rollups portefeuille (reprise des
+     * lignes existantes par la migration 0378).
+     */
     static final String REVENUE_MODULE_KEY = "rev";
 
     private final YieldOrgConfigRepository configRepository;
@@ -340,7 +344,7 @@ public class YieldRuleEngine {
                 "{\"from\":\"%s\",\"to\":\"%s\",\"percent\":%s,\"ruleId\":%d}",
                 today, today.plusDays(window), signedPct.toPlainString(), rule.getId());
         return suggestionService.recordActionableWithId(
-                property.getOrganizationId(), property.getId(), SUGGESTION_MODULE_KEY, null,
+                property.getOrganizationId(), property.getId(), REVENUE_MODULE_KEY, null,
                 title, reason + " — montants re-calculés à l'application",
                 SupervisionActionType.YIELD_PRICE_ADJUST, params, impactCents, "info");
     }

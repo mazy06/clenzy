@@ -171,6 +171,7 @@ public class SupervisionCardTrustService {
             case SupervisionActionType.DEPOSIT_RELEASE -> "Libérer la caution après le départ";
             case SupervisionActionType.DEPOSIT_REFUND -> "Rembourser la caution après annulation";
             case SupervisionActionType.PAYMENT_REMINDER -> "Relancer le paiement échoué";
+            case SupervisionActionType.REASSIGN_CLEANING -> "Réaffecter le ménage sans prestataire";
             default -> actionType;
         };
     }
