@@ -107,6 +107,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService;
     private final com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
     private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
+    private final com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -144,6 +145,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService,
                                     com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository,
                                     com.clenzy.repository.RatePlanRepository ratePlanRepository,
+                                    com.clenzy.repository.UpsellOfferRepository upsellOfferRepository,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -176,6 +178,7 @@ public class SuggestionActionExecutor {
         this.ownerStatementService = ownerStatementService;
         this.minNightsOverrideRepository = minNightsOverrideRepository;
         this.ratePlanRepository = ratePlanRepository;
+        this.upsellOfferRepository = upsellOfferRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -199,7 +202,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.CLEANING_PAYOUT.equals(actionType)
                 || SupervisionActionType.POLICE_DECLARE.equals(actionType)
                 || SupervisionActionType.MANDATE_SIGN_SEND.equals(actionType)
-                || SupervisionActionType.OWNER_STATEMENT_SEND.equals(actionType);
+                || SupervisionActionType.OWNER_STATEMENT_SEND.equals(actionType)
+                || SupervisionActionType.UPSELL_OFFER.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -231,8 +235,47 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.OWNER_STATEMENT_SEND -> applyOwnerStatementSend(suggestion);
             case SupervisionActionType.MIN_STAY_RESTRICTION -> applyMinStayRestriction(suggestion);
             case SupervisionActionType.PROMO_DEACTIVATE -> applyPromoDeactivate(suggestion);
+            case SupervisionActionType.UPSELL_OFFER -> applyUpsellOffer(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * UPSELL_OFFER — adresse l'offre au voyageur par email avec le lien du livret :
+     * l'ACHAT reste le flux Stripe du livret (jamais de débit direct ici — règle
+     * argent n°1 : aucun montant de carte n'est débité aveuglément). L'offre est
+     * re-validée à l'apply (org, active, applicable au logement).
+     */
+    private void applyUpsellOffer(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        final long offerId = requiredLongParam(suggestion, "offerId");
+        final com.clenzy.model.UpsellOffer offer = upsellOfferRepository
+                .findByIdAndOrganizationId(offerId, suggestion.getOrganizationId())
+                .orElseThrow(() -> new IllegalStateException("Offre introuvable pour cette organisation"));
+        if (!offer.isActive() || (offer.getPropertyId() != null
+                && !offer.getPropertyId().equals(suggestion.getPropertyId()))) {
+            throw new IllegalStateException("Offre inactive ou inapplicable à ce logement");
+        }
+        final String email = PostStayReviewScanner.resolveGuestEmail(reservation);
+        if (email == null) {
+            throw new IllegalStateException("Aucun email voyageur pour la réservation "
+                    + reservation.getId());
+        }
+        final String link = welcomeGuideService.getObject().linkForReservation(reservation)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Aucun livret publié — l'offre n'a pas de canal d'achat"));
+        final String guest = reservation.getGuestName() != null && !reservation.getGuestName().isBlank()
+                ? StringUtils.escapeHtml(reservation.getGuestName().strip()) : "Bonjour";
+        final String body = "<p>" + guest + ",</p>"
+                + "<p>Pour rendre votre séjour encore plus confortable, nous vous proposons : "
+                + "<b>" + StringUtils.escapeHtml(offer.getTitle()) + "</b> ("
+                + offer.getPrice() + " " + StringUtils.escapeHtml(offer.getCurrency()) + ").</p>"
+                + "<p>Vous pouvez la réserver en un clic depuis votre livret d'accueil :</p>"
+                + "<p><a href=\"" + link + "\">Voir l'offre dans mon livret</a></p>";
+        emailService.sendSimpleHtmlEmail(email,
+                "Une option pour votre séjour : " + offer.getTitle(), body);
+        log.info("UPSELL_OFFER envoyé org={} reservation={} offre={}",
+                suggestion.getOrganizationId(), reservation.getId(), offerId);
     }
 
     /** Source des overrides min-stay posés par la supervision (réversibles, jamais mélangés). */

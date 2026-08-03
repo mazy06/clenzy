@@ -87,6 +87,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.OwnerStatementService ownerStatementService;
     @Mock private com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
     @Mock private com.clenzy.repository.RatePlanRepository ratePlanRepository;
+    @Mock private com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -113,7 +114,7 @@ class SuggestionActionExecutorTest {
                 provider(complianceSubmissionService), managementContractRepository,
                 provider(contractSignatureService), provider(userRepository),
                 provider(organizationRepository), provider(ownerStatementService),
-                minNightsOverrideRepository, ratePlanRepository,
+                minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
                 new ObjectMapper(), clock);
     }
 
@@ -591,5 +592,44 @@ class SuggestionActionExecutorTest {
 
         verify(ratePlanRepository).save(plan);
         assertThat(plan.getIsActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("upsell : offre re-validee puis email avec le lien du livret (jamais de debit direct)")
+    void upsellOffer_sendsOfferEmailWithGuideLink() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        com.clenzy.model.UpsellOffer offer = new com.clenzy.model.UpsellOffer();
+        org.springframework.test.util.ReflectionTestUtils.setField(offer, "title", "Early check-in");
+        org.springframework.test.util.ReflectionTestUtils.setField(offer, "price", new BigDecimal("15"));
+        when(upsellOfferRepository.findByIdAndOrganizationId(8L, ORG_ID))
+                .thenReturn(Optional.of(offer));
+        when(welcomeGuideService.linkForReservation(reservation))
+                .thenReturn(Optional.of("https://app/guide/tok-upsell"));
+
+        executor.execute(suggestion(SupervisionActionType.UPSELL_OFFER,
+                "{\"reservationId\":100,\"offerId\":8}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("https://app/guide/tok-upsell"));
+    }
+
+    @Test
+    @DisplayName("upsell : offre inactive -> echec explicite, rien d'envoye")
+    void upsellOffer_throwsWhenOfferInactive() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        com.clenzy.model.UpsellOffer offer = new com.clenzy.model.UpsellOffer();
+        org.springframework.test.util.ReflectionTestUtils.setField(offer, "active", false);
+        when(upsellOfferRepository.findByIdAndOrganizationId(8L, ORG_ID))
+                .thenReturn(Optional.of(offer));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.UPSELL_OFFER,
+                        "{\"reservationId\":100,\"offerId\":8}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("inactive");
+        verifyNoInteractions(emailService);
     }
 }

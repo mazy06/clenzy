@@ -55,9 +55,10 @@ const VERBS: Record<string, ActionVerb> = {
   POLICE_DECLARE: { labelKey: 'supervision.verbs.declare', fallback: 'Télédéclarer', Icon: Check },
   MANDATE_SIGN_SEND: { labelKey: 'supervision.verbs.signSend', fallback: 'Envoyer pour signature', Icon: Send },
   OWNER_STATEMENT_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
-  // Revenue / Croissance (Phase 3)
+  // Revenue / Croissance / Voyageur (Phase 3)
   MIN_STAY_RESTRICTION: { labelKey: 'supervision.verbs.restrict', fallback: 'Restreindre', Icon: CalendarToday },
   PROMO_DEACTIVATE: { labelKey: 'supervision.verbs.deactivate', fallback: 'Désactiver', Icon: VisibilityOff },
+  UPSELL_OFFER: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

@@ -196,5 +196,15 @@ public final class SupervisionActionType {
      */
     public static final String PROMO_DEACTIVATE = "PROMO_DEACTIVATE";
 
+    /**
+     * Propose un upsell au voyageur (agent Voyageur, vague B) : early check-in la
+     * veille d'une arrivée sans départ le même jour, late checkout la veille d'un
+     * départ sans arrivée le même jour. L'email envoyé porte l'offre (titre + prix) et
+     * le lien du livret — l'ACHAT reste le flux Stripe existant du livret, jamais un
+     * débit direct. EFFET EXTERNE (email) → hors transaction.
+     * Params : {@code reservationId}, {@code offerId}.
+     */
+    public static final String UPSELL_OFFER = "UPSELL_OFFER";
+
     private SupervisionActionType() {}
 }
