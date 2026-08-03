@@ -229,6 +229,16 @@ public class Reservation {
     @Column(name = "hidden_from_planning", nullable = false)
     private Boolean hiddenFromPlanning = false;
 
+    /** No-show marqué par l'opérateur (M7) : nuits restantes libérées, déclaration OTA manuelle. */
+    @Column(name = "no_show", nullable = false)
+    private boolean noShow = false;
+
+    @Column(name = "no_show_marked_at")
+    private java.time.Instant noShowMarkedAt;
+
+    @Column(name = "no_show_marked_by", length = 120)
+    private String noShowMarkedBy;
+
     @Column(name = "service_options_total", precision = 10, scale = 2)
     private BigDecimal serviceOptionsTotal = BigDecimal.ZERO;
 
@@ -455,6 +465,13 @@ public class Reservation {
 
     public Boolean getHiddenFromPlanning() { return hiddenFromPlanning; }
     public void setHiddenFromPlanning(Boolean hiddenFromPlanning) { this.hiddenFromPlanning = hiddenFromPlanning; }
+
+    public boolean isNoShow() { return noShow; }
+    public void setNoShow(boolean noShow) { this.noShow = noShow; }
+    public java.time.Instant getNoShowMarkedAt() { return noShowMarkedAt; }
+    public void setNoShowMarkedAt(java.time.Instant noShowMarkedAt) { this.noShowMarkedAt = noShowMarkedAt; }
+    public String getNoShowMarkedBy() { return noShowMarkedBy; }
+    public void setNoShowMarkedBy(String noShowMarkedBy) { this.noShowMarkedBy = noShowMarkedBy; }
 
     public BigDecimal getServiceOptionsTotal() { return serviceOptionsTotal; }
     public void setServiceOptionsTotal(BigDecimal serviceOptionsTotal) { this.serviceOptionsTotal = serviceOptionsTotal; }

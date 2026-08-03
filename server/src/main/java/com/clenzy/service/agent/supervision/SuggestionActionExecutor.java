@@ -281,8 +281,37 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.OWNER_REVENUE_NOTE -> applyOwnerRevenueNote(suggestion);
             case SupervisionActionType.TAX_MARK_FILED -> applyTaxMarkFiled(suggestion);
             case SupervisionActionType.RELODGE_TRANSFER -> applyRelodgeTransfer(suggestion);
+            case SupervisionActionType.NOSHOW_MARK -> applyNoShowMark(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * NOSHOW_MARK — flag no-show + libération des nuits restantes (le financier n'est
+     * pas touché, la déclaration OTA reste manuelle). Refus si annulé/terminé,
+     * idempotent si déjà marqué. Écriture DB pure.
+     */
+    private void applyNoShowMark(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        if (reservation.isNoShow()) {
+            return; // déjà marqué (autre opérateur) — idempotent
+        }
+        if ("cancelled".equalsIgnoreCase(reservation.getStatus())) {
+            throw new IllegalStateException("Séjour annulé — marquage no-show sans objet");
+        }
+        if (reservation.getCheckOut() == null
+                || !reservation.getCheckOut().isAfter(LocalDate.now(clock))) {
+            throw new IllegalStateException("Séjour terminé — plus rien à libérer");
+        }
+        reservation.setNoShow(true);
+        reservation.setNoShowMarkedAt(clock.instant());
+        reservation.setNoShowMarkedBy(suggestion.getAppliedBy());
+        reservationRepository.save(reservation);
+        // Nuits restantes libérées pour la revente (les nuits passées sont passées).
+        calendarEngine.cancel(reservation.getId(), suggestion.getOrganizationId(),
+                suggestion.getAppliedBy());
+        log.info("NOSHOW_MARK appliqué org={} reservation={}", suggestion.getOrganizationId(),
+                reservation.getId());
     }
 
     /**

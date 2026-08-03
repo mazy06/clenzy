@@ -314,5 +314,15 @@ public final class SupervisionActionType {
      */
     public static final String RELODGE_TRANSFER = "RELODGE_TRANSFER";
 
+    /**
+     * Marque un séjour en NO-SHOW (agent Synchronisation, M7) : flag + libération des
+     * nuits restantes du calendrier ({@code CalendarEngine.cancel} — les nuits passées
+     * sont passées, le financier n'est pas touché). La déclaration côté OTA reste
+     * MANUELLE (aucune API branchée) — le motif de la carte le dit. Refus si le séjour
+     * est annulé ou terminé ; idempotent si déjà marqué. Écriture DB pure.
+     * Params : {@code reservationId}.
+     */
+    public static final String NOSHOW_MARK = "NOSHOW_MARK";
+
     private SupervisionActionType() {}
 }

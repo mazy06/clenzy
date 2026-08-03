@@ -57,6 +57,19 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
                                                    @Param("since") LocalDateTime since,
                                                    @Param("minInbound") long minInbound);
 
+    /**
+     * Signe de vie du voyageur (scanner no-show) : au moins un message ENTRANT sur une
+     * conversation liée à la réservation depuis {@code since}.
+     */
+    @Query("SELECT COUNT(m) > 0 FROM ConversationMessage m "
+        + "WHERE m.conversation.reservation.id = :reservationId "
+        + "AND m.conversation.organizationId = :orgId "
+        + "AND m.direction = com.clenzy.model.MessageDirection.INBOUND "
+        + "AND m.sentAt >= :since")
+    boolean hasInboundMessageSince(@Param("reservationId") Long reservationId,
+                                   @Param("orgId") Long orgId,
+                                   @Param("since") LocalDateTime since);
+
 
     // @EntityGraph : charge guest/property/reservation AVEC la conversation, pour que
     // ConversationDto.from() (appelé hors transaction — OSIV désactivé) n'initialise

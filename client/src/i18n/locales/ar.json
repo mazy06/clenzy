@@ -356,7 +356,8 @@
       "resolve": "حل",
       "takeover": "الاستلام اليدوي",
       "markFiled": "تسجيل كمُصرَّح",
-      "relodge": "نقل الإقامة"
+      "relodge": "نقل الإقامة",
+      "markNoShow": "تسجيل عدم الحضور"
     }
   },
   "channexGuided": {

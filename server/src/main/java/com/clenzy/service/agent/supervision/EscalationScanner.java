@@ -41,6 +41,7 @@ public class EscalationScanner {
 
     private final ReservationRepository reservationRepository;
     private final ConversationRepository conversationRepository;
+    private final com.clenzy.repository.GuestDeclarationRepository guestDeclarationRepository;
     private final com.clenzy.repository.InterventionRepository interventionRepository;
     private final com.clenzy.repository.PropertyRepository propertyRepository;
     private final com.clenzy.repository.CalendarDayRepository calendarDayRepository;
@@ -49,6 +50,7 @@ public class EscalationScanner {
 
     public EscalationScanner(ReservationRepository reservationRepository,
                              ConversationRepository conversationRepository,
+                             com.clenzy.repository.GuestDeclarationRepository guestDeclarationRepository,
                              com.clenzy.repository.InterventionRepository interventionRepository,
                              com.clenzy.repository.PropertyRepository propertyRepository,
                              com.clenzy.repository.CalendarDayRepository calendarDayRepository,
@@ -56,6 +58,7 @@ public class EscalationScanner {
                              Clock clock) {
         this.reservationRepository = reservationRepository;
         this.conversationRepository = conversationRepository;
+        this.guestDeclarationRepository = guestDeclarationRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
         this.calendarDayRepository = calendarDayRepository;
@@ -85,6 +88,52 @@ public class EscalationScanner {
         } catch (Exception e) {
             log.debug("relodge scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanPossibleNoShow(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("no-show scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * No-show possible (M7, agent Synchronisation) : séjour confirmé arrivé depuis
+     * ≥ 1 jour, pas terminé, non marqué — et AUCUN signe de vie : aucune déclaration
+     * voyageur ET aucun message entrant depuis l'arrivée. Les deux signaux sont
+     * nommés dans le motif (c'est un faisceau, pas une preuve) ; la décision reste
+     * humaine et la déclaration OTA manuelle.
+     */
+    private void scanPossibleNoShow(Long orgId, Long propertyId) {
+        final LocalDate today = LocalDate.now(clock);
+        for (Reservation stay : reservationRepository
+                .findCurrentOrNextByPropertyId(propertyId, today, orgId)) {
+            if (!"confirmed".equalsIgnoreCase(stay.getStatus()) || stay.isNoShow()
+                    || stay.getCheckIn() == null || stay.getCheckOut() == null
+                    || stay.getCheckIn().isAfter(today.minusDays(1))
+                    || !stay.getCheckOut().isAfter(today)) {
+                continue;
+            }
+            final boolean hasDeclaration = !guestDeclarationRepository
+                    .findByReservationIdOrderByIdAsc(stay.getId()).isEmpty();
+            if (hasDeclaration) {
+                continue;
+            }
+            final boolean hasInbound = conversationRepository.hasInboundMessageSince(
+                    stay.getId(), orgId, stay.getCheckIn().atStartOfDay());
+            if (hasInbound) {
+                continue;
+            }
+            suggestionService.recordActionableStrict(
+                    orgId, propertyId, "sync", stay.getId(),
+                    "No-show possible (réservation #" + stay.getId() + ")",
+                    "Arrivée prévue le " + stay.getCheckIn() + ", aucun signe de vie depuis : "
+                            + "pas de fiche voyageur déposée, aucun message reçu. « Marquer "
+                            + "no-show » libère les nuits restantes pour la revente — la "
+                            + "déclaration sur le canal d'origine reste à faire par vos soins "
+                            + "(fenêtre de 48 h chez la plupart des OTA).",
+                    SupervisionActionType.NOSHOW_MARK,
+                    "{\"reservationId\":" + stay.getId() + "}", null, "warning");
         }
     }
 

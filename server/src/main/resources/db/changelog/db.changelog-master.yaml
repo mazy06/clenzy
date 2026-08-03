@@ -3631,3 +3631,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0382__create_listing_quality_scores.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0383-reservations-no-show"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0383__reservations_no_show.sql
+        relativeToChangelogFile: true

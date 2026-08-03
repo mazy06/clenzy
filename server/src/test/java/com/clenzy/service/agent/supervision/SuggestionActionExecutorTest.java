@@ -914,4 +914,29 @@ class SuggestionActionExecutorTest {
         verifyNoInteractions(reservationService);
         verifyNoInteractions(emailService);
     }
+
+    @Test
+    @DisplayName("no-show : flag + liberation des nuits restantes ; deja marque = idempotent")
+    void noShowMark_flagsAndReleasesRemainingNights() {
+        Reservation reservation = new Reservation();
+        reservation.setId(RESERVATION_ID);
+        reservation.setOrganizationId(ORG_ID);
+        reservation.setStatus("confirmed");
+        reservation.setCheckOut(LocalDate.parse("2026-07-08")); // clock = 02/07
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.NOSHOW_MARK,
+                "{\"reservationId\":100}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-1");
+        executor.execute(s);
+
+        assertThat(reservation.isNoShow()).isTrue();
+        verify(reservationRepository).save(reservation);
+        verify(calendarEngine).cancel(RESERVATION_ID, ORG_ID,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-1");
+
+        // Deja marque : aucun nouvel effet.
+        executor.execute(s);
+        verify(calendarEngine, org.mockito.Mockito.times(1)).cancel(anyLong(), anyLong(), anyString());
+    }
 }

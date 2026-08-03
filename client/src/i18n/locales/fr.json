@@ -356,7 +356,8 @@
       "resolve": "Résoudre",
       "takeover": "Reprendre la main",
       "markFiled": "Marquer déclarée",
-      "relodge": "Reloger"
+      "relodge": "Reloger",
+      "markNoShow": "Marquer no-show"
     }
   },
   "channexGuided": {

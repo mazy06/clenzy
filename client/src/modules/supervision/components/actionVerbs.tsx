@@ -77,6 +77,7 @@ const VERBS: Record<string, ActionVerb> = {
   // Modèles métier (vague M-A)
   TAX_MARK_FILED: { labelKey: 'supervision.verbs.markFiled', fallback: 'Marquer déclarée', Icon: Check },
   RELODGE_TRANSFER: { labelKey: 'supervision.verbs.relodge', fallback: 'Reloger', Icon: SwapHoriz },
+  NOSHOW_MARK: { labelKey: 'supervision.verbs.markNoShow', fallback: 'Marquer no-show', Icon: VisibilityOff },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
