@@ -61,6 +61,7 @@ public class SupervisionScanService {
     private final FinanceIncidentScanner financeIncidentScanner;
     private final OwnerRelationScanner ownerRelationScanner;
     private final GrowthDistributionScanner growthDistributionScanner;
+    private final EscalationScanner escalationScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -84,6 +85,7 @@ public class SupervisionScanService {
                                   FinanceIncidentScanner financeIncidentScanner,
                                   OwnerRelationScanner ownerRelationScanner,
                                   GrowthDistributionScanner growthDistributionScanner,
+                                  EscalationScanner escalationScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -106,6 +108,7 @@ public class SupervisionScanService {
         this.financeIncidentScanner = financeIncidentScanner;
         this.ownerRelationScanner = ownerRelationScanner;
         this.growthDistributionScanner = growthDistributionScanner;
+        this.escalationScanner = escalationScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -180,6 +183,7 @@ public class SupervisionScanService {
         financeIncidentScanner.scanProperty(orgId, propertyId);
         ownerRelationScanner.scanProperty(orgId, propertyId);
         growthDistributionScanner.scanProperty(orgId, propertyId);
+        escalationScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -205,6 +209,7 @@ public class SupervisionScanService {
         financeIncidentScanner.scanProperty(orgId, propertyId);
         ownerRelationScanner.scanProperty(orgId, propertyId);
         growthDistributionScanner.scanProperty(orgId, propertyId);
+        escalationScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

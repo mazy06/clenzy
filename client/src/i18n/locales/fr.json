@@ -209,7 +209,8 @@
       "SEND_NOISE_WARNING_FAILED": "Échec d'envoi de l'alerte bruit (automatisation)",
       "SEND_REVIEW_REQUEST_FAILED": "Échec d'envoi de la demande d'avis (automatisation)",
       "yield_guardrail": "Ajustement retenu par le garde-fou d'impact",
-      "auto_rule_suggested": "Automatisation suggérée après approbations répétées"
+      "auto_rule_suggested": "Automatisation suggérée après approbations répétées",
+      "payment_dispute": "Litige bancaire reçu"
     },
     "approval": {
       "title": "Validation requise",
@@ -351,7 +352,9 @@
       "deactivate": "Désactiver",
       "withhold": "Retenir",
       "approve": "Approuver",
-      "translate": "Traduire"
+      "translate": "Traduire",
+      "resolve": "Résoudre",
+      "takeover": "Reprendre la main"
     }
   },
   "channexGuided": {

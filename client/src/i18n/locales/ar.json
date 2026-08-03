@@ -209,7 +209,8 @@
       "SEND_NOISE_WARNING_FAILED": "فشل إرسال تنبيه الضوضاء (أتمتة)",
       "SEND_REVIEW_REQUEST_FAILED": "فشل إرسال طلب التقييم (أتمتة)",
       "yield_guardrail": "تم حجب التعديل بواسطة ضابط الأمان",
-      "auto_rule_suggested": "اقتراح أتمتة بعد موافقات متكررة"
+      "auto_rule_suggested": "اقتراح أتمتة بعد موافقات متكررة",
+      "payment_dispute": "نزاع مصرفي مستلم"
     },
     "approval": {
       "title": "مطلوب موافقة",
@@ -351,7 +352,9 @@
       "deactivate": "تعطيل",
       "withhold": "اقتطاع",
       "approve": "موافقة",
-      "translate": "ترجمة"
+      "translate": "ترجمة",
+      "resolve": "حل",
+      "takeover": "الاستلام اليدوي"
     }
   },
   "channexGuided": {

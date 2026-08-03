@@ -416,6 +416,7 @@ export {
   MessageCircle as ChatBubbleOutline,
   Puzzle as Extension,
   UserRoundPlus as GroupAdd,
+  Hand,
   Handshake,
   Building as HomeWork,
   Lightbulb,

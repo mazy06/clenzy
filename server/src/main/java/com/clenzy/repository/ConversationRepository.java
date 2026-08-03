@@ -36,6 +36,27 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     List<Conversation> findAwaitingHostReply(@Param("orgId") Long orgId,
                                              @Param("staleBefore") LocalDateTime staleBefore);
 
+    /**
+     * Conversations CHAUDES non assignées d'un logement (scanner CONVERSATION_TAKEOVER
+     * de la constellation) : ouvertes, sans opérateur assigné, dont le DERNIER message
+     * est entrant et qui ont reçu ≥ {@code minInbound} messages entrants depuis
+     * {@code since} — le voyageur insiste et personne n'a répondu.
+     */
+    @Query("SELECT c FROM Conversation c WHERE c.organizationId = :orgId "
+        + "AND c.property.id = :propertyId "
+        + "AND c.status = com.clenzy.model.ConversationStatus.OPEN "
+        + "AND c.assignedToKeycloakId IS NULL AND c.lastMessageAt >= :since "
+        + "AND (SELECT COUNT(m) FROM ConversationMessage m WHERE m.conversation = c "
+        + "  AND m.direction = com.clenzy.model.MessageDirection.INBOUND "
+        + "  AND m.sentAt >= :since) >= :minInbound "
+        + "AND EXISTS (SELECT 1 FROM ConversationMessage m2 WHERE m2.conversation = c "
+        + "  AND m2.direction = com.clenzy.model.MessageDirection.INBOUND "
+        + "  AND m2.sentAt = c.lastMessageAt)")
+    List<Conversation> findHotUnassignedByProperty(@Param("orgId") Long orgId,
+                                                   @Param("propertyId") Long propertyId,
+                                                   @Param("since") LocalDateTime since,
+                                                   @Param("minInbound") long minInbound);
+
 
     // @EntityGraph : charge guest/property/reservation AVEC la conversation, pour que
     // ConversationDto.from() (appelé hors transaction — OSIV désactivé) n'initialise

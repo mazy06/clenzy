@@ -267,5 +267,23 @@ public final class SupervisionActionType {
      */
     public static final String SITE_TRANSLATION_DRAFT = "SITE_TRANSLATION_DRAFT";
 
+    /**
+     * Résout un chevauchement de réservations (agent Synchronisation, vague C) :
+     * annule la réservation désignée par la carte via {@code ReservationService.cancel}
+     * (calendrier libéré, codes révoqués, session Stripe expirée). REFUSÉ si le séjour
+     * à annuler a déjà commencé, ou si la réservation à GARDER n'est plus active
+     * (situation re-vérifiée à l'apply — la carte peut être périmée).
+     * Params : {@code cancelReservationId}, {@code keepReservationId}.
+     */
+    public static final String OVERBOOKING_RESOLVE = "OVERBOOKING_RESOLVE";
+
+    /**
+     * Reprise en main HUMAINE d'une conversation chaude (agent Communication,
+     * vague C) : assigne la conversation à l'opérateur qui valide la carte
+     * ({@code assignedToKeycloakId} ← identité portée par {@code appliedBy}).
+     * Écriture DB pure. Params : {@code conversationId}.
+     */
+    public static final String CONVERSATION_TAKEOVER = "CONVERSATION_TAKEOVER";
+
     private SupervisionActionType() {}
 }

@@ -96,6 +96,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.booking.service.ContentTranslationService contentTranslationService;
     @Mock private com.clenzy.booking.repository.SiteRepository siteRepository;
     @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
+    @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -127,6 +128,7 @@ class SuggestionActionExecutorTest {
                 provider(interventionRepository), provider(reservationRefundService),
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
+                provider(conversationRepository),
                 new ObjectMapper(), clock);
     }
 
@@ -755,5 +757,76 @@ class SuggestionActionExecutorTest {
                 "{\"siteId\":6,\"targetLocale\":\"ar\"}"));
 
         verify(contentTranslationService).autoTranslatePage(ORG_ID, 6L, 40L, List.of("ar"));
+    }
+
+    @Test
+    @DisplayName("chevauchement : garde re-verifiee, sejour futur annule via le chemin canonique")
+    void overbookingResolve_cancelsFutureReservation() {
+        Reservation keep = mock(Reservation.class);
+        when(keep.getOrganizationId()).thenReturn(ORG_ID);
+        when(keep.getStatus()).thenReturn("confirmed");
+        Reservation cancel = mock(Reservation.class);
+        when(cancel.getOrganizationId()).thenReturn(ORG_ID);
+        when(cancel.getStatus()).thenReturn("confirmed");
+        when(cancel.getCheckIn()).thenReturn(LocalDate.parse("2026-07-10")); // clock = 2026-07-02
+        when(reservationRepository.findById(200L)).thenReturn(Optional.of(keep));
+        when(reservationRepository.findById(201L)).thenReturn(Optional.of(cancel));
+
+        executor.execute(suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
+                "{\"cancelReservationId\":201,\"keepReservationId\":200}"));
+
+        verify(reservationService).cancel(201L);
+    }
+
+    @Test
+    @DisplayName("chevauchement : la reservation a garder annulee entre-temps -> echec explicite")
+    void overbookingResolve_refusesWhenKeepCancelled() {
+        Reservation keep = mock(Reservation.class);
+        when(keep.getOrganizationId()).thenReturn(ORG_ID);
+        when(keep.getStatus()).thenReturn("cancelled");
+        Reservation cancel = mock(Reservation.class);
+        when(cancel.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservationRepository.findById(200L)).thenReturn(Optional.of(keep));
+        when(reservationRepository.findById(201L)).thenReturn(Optional.of(cancel));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
+                        "{\"cancelReservationId\":201,\"keepReservationId\":200}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("GARDER");
+        verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    @DisplayName("reprise en main : assigne la conversation a l'operateur porte par appliedBy")
+    void conversationTakeover_assignsApplyingOperator() {
+        com.clenzy.model.Conversation conversation = new com.clenzy.model.Conversation();
+        org.springframework.test.util.ReflectionTestUtils.setField(conversation, "organizationId", ORG_ID);
+        when(conversationRepository.findById(14L)).thenReturn(Optional.of(conversation));
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.CONVERSATION_TAKEOVER,
+                "{\"conversationId\":14}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-123");
+        executor.execute(s);
+
+        assertThat(conversation.getAssignedToKeycloakId()).isEqualTo("kc-123");
+        verify(conversationRepository).save(conversation);
+    }
+
+    @Test
+    @DisplayName("reprise en main : conversation deja reprise par un autre -> echec, jamais volee")
+    void conversationTakeover_refusesStealingAssignment() {
+        com.clenzy.model.Conversation conversation = new com.clenzy.model.Conversation();
+        org.springframework.test.util.ReflectionTestUtils.setField(conversation, "organizationId", ORG_ID);
+        conversation.setAssignedToKeycloakId("kc-other");
+        when(conversationRepository.findById(14L)).thenReturn(Optional.of(conversation));
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.CONVERSATION_TAKEOVER,
+                "{\"conversationId\":14}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-123");
+
+        assertThatThrownBy(() -> executor.execute(s))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("autre opérateur");
     }
 }

@@ -209,7 +209,8 @@
       "SEND_NOISE_WARNING_FAILED": "Noise alert delivery failed (automation)",
       "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)",
       "yield_guardrail": "Adjustment held back by the impact guardrail",
-      "auto_rule_suggested": "Automation suggested after repeated approvals"
+      "auto_rule_suggested": "Automation suggested after repeated approvals",
+      "payment_dispute": "Bank dispute received"
     },
     "approval": {
       "title": "Approval required",
@@ -351,7 +352,9 @@
       "deactivate": "Deactivate",
       "withhold": "Withhold",
       "approve": "Approve",
-      "translate": "Translate"
+      "translate": "Translate",
+      "resolve": "Resolve",
+      "takeover": "Take over"
     }
   },
   "channexGuided": {

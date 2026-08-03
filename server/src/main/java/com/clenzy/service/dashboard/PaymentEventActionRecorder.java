@@ -39,13 +39,19 @@ public class PaymentEventActionRecorder {
     private final ActionItemWriter writer;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final OwnerPayoutRepository ownerPayoutRepository;
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
 
     public PaymentEventActionRecorder(ActionItemWriter writer,
                                       PaymentTransactionRepository paymentTransactionRepository,
-                                      OwnerPayoutRepository ownerPayoutRepository) {
+                                      OwnerPayoutRepository ownerPayoutRepository,
+                                      com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
+                                      com.clenzy.repository.PropertyRepository propertyRepository) {
         this.writer = writer;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.ownerPayoutRepository = ownerPayoutRepository;
+        this.supervisionSuggestionService = supervisionSuggestionService;
+        this.propertyRepository = propertyRepository;
     }
 
     /** Litige : la somme est déjà retenue, et l'échéance décide de tout. */
@@ -61,6 +67,24 @@ public class PaymentEventActionRecorder {
                 "critical", "Litige bancaire à contester",
                 "Le voyageur a contesté ce paiement auprès de sa banque.",
                 null, amount, currency, deadline, DISPUTE_OPENED));
+        // Constellation métiers (vague C) : le litige apparaît AUSSI sous l'agent
+        // Finance — carte INFO critique (la soumission de preuves à Stripe n'est pas
+        // encore outillée : pas de bouton qui prétendrait le faire). Ancre org-level.
+        try {
+            final Long anchor = propertyRepository.findFirstPropertyIdByOrg(orgId);
+            if (anchor != null) {
+                supervisionSuggestionService.record(orgId, anchor, "fin", "payment_dispute",
+                        "Litige bancaire reçu (" + disputeId + ")",
+                        "Contestation de " + (amount != null ? amount + " " + currency : "montant inconnu")
+                                + (deadline != null ? ", preuves à soumettre avant " + deadline : "")
+                                + ". Assembler le dossier (contrat, journal de check-in, messages) "
+                                + "depuis l'écran Paiements — sans réponse, le litige est perdu.",
+                        null, "critical");
+            }
+        } catch (Exception e) {
+            log.debug("Carte litige constellation non enregistrée (dispute {}): {}",
+                    disputeId, e.getMessage());
+        }
     }
 
     /** Le fournisseur a tranché : l'action n'appelle plus de décision. */

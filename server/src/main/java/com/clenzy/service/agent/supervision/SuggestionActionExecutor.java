@@ -115,6 +115,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.booking.service.ContentTranslationService> contentTranslationService;
     private final ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider;
     private final ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider;
+    private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -160,6 +161,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.booking.service.ContentTranslationService> contentTranslationService,
                                     ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider,
                                     ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider,
+                                    ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -200,6 +202,7 @@ public class SuggestionActionExecutor {
         this.contentTranslationService = contentTranslationService;
         this.siteRepositoryProvider = siteRepositoryProvider;
         this.sitePageRepositoryProvider = sitePageRepositoryProvider;
+        this.conversationRepositoryProvider = conversationRepositoryProvider;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -268,8 +271,73 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.OWNER_PAYOUT -> applyOwnerPayoutApprove(suggestion);
             case SupervisionActionType.OWNER_WORKS_APPROVAL -> applyOwnerWorksApproval(suggestion);
             case SupervisionActionType.SITE_TRANSLATION_DRAFT -> applySiteTranslationDraft(suggestion);
+            case SupervisionActionType.OVERBOOKING_RESOLVE -> applyOverbookingResolve(suggestion);
+            case SupervisionActionType.CONVERSATION_TAKEOVER -> applyConversationTakeover(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * OVERBOOKING_RESOLVE — la situation est RE-vérifiée à l'apply (la carte peut être
+     * périmée) : la réservation à garder doit être encore active, celle à annuler pas
+     * encore commencée ni déjà annulée. L'annulation passe par le chemin canonique
+     * (calendrier libéré, codes révoqués, session Stripe expirée).
+     */
+    private void applyOverbookingResolve(SupervisionSuggestion suggestion) {
+        final long cancelId = requiredLongParam(suggestion, "cancelReservationId");
+        final long keepId = requiredLongParam(suggestion, "keepReservationId");
+        final Long orgId = suggestion.getOrganizationId();
+        final Reservation keep = reservationRepository.findById(keepId)
+                .orElseThrow(() -> new IllegalStateException("Réservation à garder introuvable"));
+        final Reservation cancel = reservationRepository.findById(cancelId)
+                .orElseThrow(() -> new IllegalStateException("Réservation à annuler introuvable"));
+        if (!orgId.equals(keep.getOrganizationId()) || !orgId.equals(cancel.getOrganizationId())) {
+            throw new IllegalStateException("Réservations hors organisation");
+        }
+        if ("cancelled".equalsIgnoreCase(keep.getStatus())) {
+            throw new IllegalStateException("La réservation à GARDER a été annulée entre-temps "
+                    + "— le chevauchement n'existe plus tel quel, carte à rejeter");
+        }
+        if ("cancelled".equalsIgnoreCase(cancel.getStatus())) {
+            return; // déjà résolue (autre opérateur / OTA) — apply idempotent
+        }
+        if (cancel.getCheckIn() != null && !cancel.getCheckIn().isAfter(LocalDate.now(clock))) {
+            throw new IllegalStateException("Le séjour à annuler a déjà commencé — résolution "
+                    + "manuelle requise depuis la fiche réservation");
+        }
+        reservationService.getObject().cancel(cancelId);
+    }
+
+    /**
+     * CONVERSATION_TAKEOVER — assigne la conversation à l'opérateur qui VALIDE la
+     * carte (identité extraite d'{@code appliedBy}, posé avant l'exécution). Une
+     * conversation déjà assignée entre-temps n'est pas volée — échec explicite.
+     */
+    private void applyConversationTakeover(SupervisionSuggestion suggestion) {
+        final long conversationId = requiredLongParam(suggestion, "conversationId");
+        final String appliedBy = suggestion.getAppliedBy();
+        if (appliedBy == null
+                || !appliedBy.startsWith(SupervisionSuggestion.APPLIED_BY_USER_PREFIX)) {
+            throw new IllegalStateException(
+                    "Reprise en main réservée à un opérateur humain identifié");
+        }
+        final String keycloakId = appliedBy
+                .substring(SupervisionSuggestion.APPLIED_BY_USER_PREFIX.length());
+        final com.clenzy.model.Conversation conversation = conversationRepositoryProvider.getObject()
+                .findById(conversationId)
+                .orElseThrow(() -> new IllegalStateException("Conversation introuvable"));
+        if (conversation.getOrganizationId() == null
+                || !conversation.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Conversation introuvable pour cette organisation");
+        }
+        if (conversation.getAssignedToKeycloakId() != null
+                && !conversation.getAssignedToKeycloakId().equals(keycloakId)) {
+            throw new IllegalStateException("Conversation déjà reprise par un autre opérateur");
+        }
+        conversation.setAssignedToKeycloakId(keycloakId);
+        conversationRepositoryProvider.getObject().save(conversation);
+        log.info("CONVERSATION_TAKEOVER : conversation {} assignée à {} (org {})",
+                conversationId, keycloakId, suggestion.getOrganizationId());
     }
 
     /**

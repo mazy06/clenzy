@@ -350,6 +350,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * (cf. ICalEventParser), donc la comparaison litterale est sure.
      */
     /**
+     * Paires de réservations qui se CHEVAUCHENT sur un logement (non annulées, séjours
+     * pas encore terminés) — scanner overbooking de la constellation (agent sync).
+     * {@code r1.id < r2.id} évite les doublons symétriques.
+     */
+    @Query("SELECT r1, r2 FROM Reservation r1, Reservation r2 "
+        + "WHERE r1.property.id = :propertyId AND r2.property.id = :propertyId "
+        + "AND r1.organizationId = :orgId AND r2.organizationId = :orgId "
+        + "AND r1.id < r2.id AND r1.status <> 'cancelled' AND r2.status <> 'cancelled' "
+        + "AND r1.checkIn < r2.checkOut AND r2.checkIn < r1.checkOut "
+        + "AND r1.checkOut > :today AND r2.checkOut > :today")
+    List<Object[]> findOverlappingPairsByProperty(
+            @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId,
+            @Param("today") LocalDate today);
+
+    /**
      * Départs récents d'un logement (fenêtre [from, toExclusive) sur checkOut, non
      * annulés) — scanner post-séjour de la constellation (demande d'avis, agent gst).
      */
