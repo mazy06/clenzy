@@ -11,6 +11,7 @@ import com.clenzy.service.agent.supervision.SupervisionModuleRegistry.Supervisio
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -86,12 +87,47 @@ public class SupervisionConfigService {
                         .orElseGet(() -> new SupervisionModuleSettings(
                                 organizationId, moduleDto.key(), true, SupervisionAutonomy.SUGGEST));
                 row.setEnabled(moduleDto.enabled());
-                row.setAutonomyLevel(SupervisionAutonomy.fromWire(moduleDto.autonomy()));
+                final SupervisionAutonomy requested = SupervisionAutonomy.fromWire(moduleDto.autonomy());
+                // La PLEINE autonomie ne s'obtient PAS par un simple PUT de config :
+                // elle engage la responsabilité de l'organisation (l'agent agit seul
+                // et en silence) et exige une acceptation tracée — sinon la garde ne
+                // vaudrait que dans l'interface, contournable par un appel direct.
+                if (requested == SupervisionAutonomy.FULL
+                        && row.getFullAutonomyAcceptedAt() == null) {
+                    throw new IllegalStateException("La pleine autonomie du module « " + moduleDto.key()
+                            + " » requiert une acceptation explicite (POST /api/ai/supervision/modules/"
+                            + moduleDto.key() + "/full-autonomy-consent)");
+                }
+                row.setAutonomyLevel(requested);
                 row.setThresholds(moduleDto.thresholds()); // seuils configurables (B5), null accepté
                 moduleRepository.save(row);
             }
         }
 
+        return getConfig(organizationId);
+    }
+
+    /**
+     * Enregistre l'acceptation de la pleine autonomie d'un module et l'applique
+     * dans la FOULÉE : l'acceptation et le niveau qu'elle autorise ne doivent
+     * pas pouvoir diverger. Ré-accepter (changement d'opérateur, nouveau texte)
+     * rafraîchit la trace. Le module doit exister au catalogue.
+     */
+    @Transactional
+    public SupervisionConfigDto acceptFullAutonomy(Long organizationId, String moduleKey,
+                                                   String acceptedBy, String noticeVersion) {
+        if (moduleKey == null || !registry.isKnown(moduleKey)) {
+            throw new IllegalArgumentException("Module inconnu : " + moduleKey);
+        }
+        SupervisionModuleSettings row = moduleRepository
+                .findByOrganizationIdAndModuleKey(organizationId, moduleKey)
+                .orElseGet(() -> new SupervisionModuleSettings(
+                        organizationId, moduleKey, true, SupervisionAutonomy.SUGGEST));
+        row.setFullAutonomyAcceptedAt(Instant.now());
+        row.setFullAutonomyAcceptedBy(acceptedBy);
+        row.setFullAutonomyNoticeVersion(noticeVersion);
+        row.setAutonomyLevel(SupervisionAutonomy.FULL);
+        moduleRepository.save(row);
         return getConfig(organizationId);
     }
 

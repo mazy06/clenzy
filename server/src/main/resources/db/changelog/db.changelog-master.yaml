@@ -3694,3 +3694,17 @@ databaseChangeLog:
       sqlFile:
         path: changes/0391__create_stay_modifications.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0392-supervision-full-autonomy-consent"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0392__supervision_full_autonomy_consent.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0393-supervision-suggestion-org-level"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0393__supervision_suggestion_org_level.sql
+        relativeToChangelogFile: true

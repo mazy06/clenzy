@@ -186,7 +186,7 @@ public class GrowthDistributionScanner {
             if (missing == 0) {
                 continue;
             }
-            suggestionService.recordActionable(
+            suggestionService.recordOrgActionable(
                     orgId, anchorPropertyId, MODULE_GRO,
                     "Traduction " + target.toUpperCase(Locale.ROOT) + " à générer — site « "
                             + site.getName() + " »",

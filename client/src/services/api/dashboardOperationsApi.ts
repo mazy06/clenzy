@@ -107,6 +107,7 @@ export const ACTION_KINDS = [
   'AUTOMATION_FAILED',
   'OUTBOX_DEAD_LETTER',
   'INTEGRATION_DISCONNECTED',
+  'AGENT_CARD',
 ] as const;
 
 export type DashboardActionKind = (typeof ACTION_KINDS)[number];

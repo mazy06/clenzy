@@ -18,7 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
-import { WifiOff, Replay, Radar, GridView, Orbit, Tune, ViewList } from '../../../icons';
+import { WifiOff, Replay, Radar, GridView, Orbit, ViewList } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
@@ -377,7 +377,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
            défilent dans leur propre colonne. */
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden p-3 min-[900px]:p-4">
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="min-w-0 flex-1">
+            {/* Titre, badge et compteurs sur UNE ligne (ils ne se replient
+                qu'en cas de manque de place) : deux lignes empilaient de l'air
+                au-dessus de la constellation sans rien dire de plus. */}
+            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
               <h2 className="m-0 flex items-center gap-2 text-sm font-semibold text-foreground">
                 {t('supervision.board.title', "Constellation d'agents")}
                 {pendingCount > 0 && (
@@ -386,7 +389,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   </span>
                 )}
               </h2>
-              <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+              <p className="m-0 text-xs text-muted-foreground">
                 {normalized?.hud.agentsCount} {t('supervision.hud.agents')} · {normalized?.hud.actingCount} {t('supervision.hud.acting')} ·{' '}
                 {status === 'live' ? t('supervision.hud.active') : t('supervision.states.offline')}
               </p>
@@ -426,29 +429,26 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 <ViewList size={15} strokeWidth={1.75} />
               </ToggleGroupItem>
             </ToggleGroup>
-            {/* Lien plein (pas useNavigate : le panneau vit aussi hors Router
-                dans les tests) vers Paramètres > IA, où vivent les règles. */}
-            <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-              <a href="/settings?tab=ai">
-                <Tune size={15} strokeWidth={1.75} />
-                {t('supervision.board.autonomyRules', "Règles d'autonomie")}
-              </a>
-            </Button>
+            {/* PAS de lien vers Paramètres > IA ici : cette page est réservée
+                au pilotage plateforme (budget, clés, comportements premium) et
+                tout le monde n'y a pas accès. Ce qui concerne l'exploitant —
+                l'autonomie de chaque agent — se règle dans la vue Agents. */}
             {headerAction}
           </div>
 
           {boardView === 'orbit' ? (
             /* ── Vue constellation : diagramme + file reliés par les attaches,
-                  activité en pleine largeur dessous. ─────────────────────── */
+                  bilan au pied de la SEULE colonne de gauche (la file garde
+                  toute la hauteur pour ses cartes). ─────────────────────── */
             /* PAS de `relative` sur cette grille : l'overlay des attaches (SVG
                absolute inset-0) doit s'ancrer à la RACINE du panneau — le
                repère dans lequel ses coordonnées sont mesurées. Une grille
                positionnée l'interceptait et décalait tout le dessin. */
             <div className="mt-4 grid flex-1 min-h-0 grid-cols-1 items-stretch gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)]">
-              <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-                {/* max-w borné aussi par la hauteur disponible (52vh ≈ la part
-                    de l'accordéon) : le diagramme carré ne doit pas pousser
-                    légende, bilan et activité hors du cadre fixe. */}
+              {/* Colonne du diagramme : le carré prend toute la hauteur
+                  restante (sans plafond), le bilan se cale sous lui, au ras du
+                  bas de l'accordéon. */}
+              <div className="flex min-h-0 flex-col">
                 <OrbitDiagram
                   agents={normalized?.agents ?? []}
                   selected={boardAgent}
@@ -456,39 +456,38 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   flowEnabled={status === 'live' && !snapshot.paused}
                   onHeadAgentSettled={setHeadAgent}
                   pendingItems={snapshot.pending}
-                  className="max-w-[min(480px,52vh)] shrink-0"
+                  className="min-h-0 flex-1"
                 />
-                  {/* Bilan de valeur — une ligne discrète, fenêtre pilotable. */}
-                  {hudReport && (
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{t('supervision.report.titleBase', 'Bilan')}</span>
-                      <span className="flex gap-0.5" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
-                        {REPORT_WINDOWS.map((option) => {
-                          const active = reportWindow === option.days;
-                          return (
-                            <button
-                              key={option.days}
-                              type="button"
-                              aria-pressed={active}
-                              onClick={() => handleReportWindowChange(option.days)}
-                              className={
-                                active
-                                  ? 'cursor-pointer rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary'
-                                  : 'cursor-pointer rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-muted'
-                              }
-                            >
-                              {t(option.key, option.fallback)}
-                            </button>
-                          );
-                        })}
-                      </span>
-                      <span><b className="font-semibold text-foreground tabular-nums">{hudReport.estimatedTimeSaved}</b> {t('supervision.report.timeSaved', 'Temps gagné').toLowerCase()}</span>
-                      <span><b className="font-semibold text-foreground tabular-nums">{hudReport.autoActions}</b> {t('supervision.report.autoActions', 'Actions auto').toLowerCase()}</span>
-                      <span><b className="font-semibold text-foreground tabular-nums">{Math.round(hudReport.acceptanceRate * 100)} %</b> {t('supervision.report.acceptance', 'Acceptation').toLowerCase()}</span>
-                    </div>
-                  )}
-
-                </div>
+                {/* Bilan de valeur — pied de colonne, fenêtre pilotable. */}
+                {hudReport && (
+                  <div className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{t('supervision.report.titleBase', 'Bilan')}</span>
+                    <span className="flex gap-0.5" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
+                      {REPORT_WINDOWS.map((option) => {
+                        const active = reportWindow === option.days;
+                        return (
+                          <button
+                            key={option.days}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => handleReportWindowChange(option.days)}
+                            className={
+                              active
+                                ? 'cursor-pointer rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary'
+                                : 'cursor-pointer rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-muted'
+                            }
+                          >
+                            {t(option.key, option.fallback)}
+                          </button>
+                        );
+                      })}
+                    </span>
+                    <span><b className="font-semibold text-foreground tabular-nums">{hudReport.estimatedTimeSaved}</b> {t('supervision.report.timeSaved', 'Temps gagné').toLowerCase()}</span>
+                    <span><b className="font-semibold text-foreground tabular-nums">{hudReport.autoActions}</b> {t('supervision.report.autoActions', 'Actions auto').toLowerCase()}</span>
+                    <span><b className="font-semibold text-foreground tabular-nums">{Math.round(hudReport.acceptanceRate * 100)} %</b> {t('supervision.report.acceptance', 'Acceptation').toLowerCase()}</span>
+                  </div>
+                )}
+              </div>
 
                 {/* File — la SEULE colonne qui défile : les cartes HITL
                     montent dans leur cadre, l'en-tête et le diagramme restent
@@ -519,8 +518,17 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
             /* ── Vue cartes : une carte par agent (autonomie) FIXE, puis la
                   file en pleine largeur, défilant dans son cadre. Le feed vit
                   dans sa propre vue (toggle Activité). ─────────────────── */
-            <div className="mt-4 flex flex-1 min-h-0 flex-col gap-6 overflow-hidden">
-              <div className="shrink-0">
+            /* Deux colonnes, même grammaire que la vue constellation : les
+               agents à gauche, ce qui attend une décision à droite — la file
+               est visible d'emblée, sans défiler. Chaque colonne défile pour
+               elle-même (avant, la liste était `shrink-0` dans un parent
+               `overflow-hidden` : passé cinq agents elle débordait sans
+               ascenseur et poussait la file hors du cadre). */
+            <div className="mt-4 grid flex-1 min-h-0 grid-cols-1 items-stretch gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)]">
+              <div
+                data-vertical-scroll
+                className="min-h-0 overflow-y-auto overscroll-contain pe-1"
+              >
                 <ConstellationAgentCards
                   agents={normalized?.agents ?? []}
                   feed={snapshot.feed}
@@ -529,9 +537,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                   onAutonomyChange={(id, level) => void actions.setAgentAutonomy(id, level)}
                 />
               </div>
+
               <div
                 data-vertical-scroll
-                className="flex min-h-0 max-w-3xl flex-1 flex-col gap-3 overflow-y-auto overscroll-contain pe-1"
+                className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pe-1"
               >
                 {propertySnapshot?.pendingAction && (
                   <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />

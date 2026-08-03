@@ -303,6 +303,20 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     link: 'Voir les reversements',
   },
 
+  // Les deux files convergent : ce qui attend dans la constellation attend
+  // aussi ici. La DÉCISION, elle, reste dans la constellation — c'est là que
+  // vivent les écrans qui donnent le contexte (simulation tarifaire, brouillon
+  // de réponse d'avis). Un bouton « Valider » ici l'appliquerait à l'aveugle.
+  AGENT_CARD: {
+    whatKey: 'dashboard.guidance.agentCardWhat',
+    what: 'Un agent propose une action et attend votre décision.',
+    consequenceKey: 'dashboard.actionCard.agentCardConsequence',
+    consequence: 'Sans décision, la proposition expire au bout de sept jours et la situation qui l’a déclenchée reste entière.',
+    route: '/planning',
+    linkKey: 'dashboard.guidance.seeConstellation',
+    link: 'Ouvrir la constellation',
+  },
+
   EINVOICE_FAILED: {
     whatKey: 'dashboard.guidance.einvoiceWhat',
     what: 'L’administration fiscale a refusé la transmission de cette facture.',

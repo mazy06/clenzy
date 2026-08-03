@@ -212,6 +212,30 @@ public class SupervisionSuggestionService {
                 .map(SupervisionSuggestion::getId);
     }
 
+    /**
+     * Carte ACTIONNABLE qui n'appartient à aucun logement (litige bancaire,
+     * demande RGPD, traduction de site, taxe trimestrielle) : elle reste ancrée
+     * sur un logement — la colonne est NOT NULL et la dédup s'appuie dessus —
+     * mais devient visible depuis TOUS les accordéons. Best-effort, comme
+     * {@link #recordActionable}.
+     */
+    @Transactional
+    public void recordOrgActionable(Long organizationId, Long anchorPropertyId, String moduleKey,
+                                    String title, String motif, String actionType,
+                                    String actionParams, Long estimatedImpactCents, String severity) {
+        if (organizationId == null || anchorPropertyId == null || moduleKey == null
+                || title == null || title.isBlank()) {
+            return;
+        }
+        try {
+            createActionable(organizationId, anchorPropertyId, moduleKey, null, title, motif,
+                    actionType, actionParams, estimatedImpactCents, severity, true, true);
+        } catch (Exception e) {
+            log.debug("supervision org-level suggestion record failed (module={}): {}",
+                    moduleKey, e.getMessage());
+        }
+    }
+
     private java.util.Optional<SupervisionSuggestion> createActionable(
             Long organizationId, Long propertyId, String moduleKey, Long reservationId,
             String title, String motif, String actionType, String actionParams,
@@ -224,6 +248,14 @@ public class SupervisionSuggestionService {
             Long organizationId, Long propertyId, String moduleKey, Long reservationId,
             String title, String motif, String actionType, String actionParams,
             Long estimatedImpactCents, String severity, boolean notifyPending) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId, title, motif,
+                actionType, actionParams, estimatedImpactCents, severity, notifyPending, false);
+    }
+
+    private java.util.Optional<SupervisionSuggestion> createActionable(
+            Long organizationId, Long propertyId, String moduleKey, Long reservationId,
+            String title, String motif, String actionType, String actionParams,
+            Long estimatedImpactCents, String severity, boolean notifyPending, boolean orgLevel) {
         if (organizationId == null || propertyId == null || moduleKey == null
                 || title == null || title.isBlank()) {
             throw new IllegalArgumentException(
@@ -252,6 +284,7 @@ public class SupervisionSuggestionService {
         s.setActionParams(actionParams);
         s.setEstimatedImpactCents(estimatedImpactCents);
         s.setSeverity(severity);
+        s.setOrgLevel(orgLevel);
         repository.save(s);
         if (notifyPending) {
             notifyIfActionable(organizationId, safeTitle, motif, severity);
@@ -281,10 +314,15 @@ public class SupervisionSuggestionService {
         }
     }
 
-    /** Suggestions en attente non expirées d'un logement (org du requester). */
+    /**
+     * Suggestions en attente non expirées visibles depuis un logement (org du
+     * requester) : les siennes ET celles qui n'appartiennent à aucun logement
+     * (org-level) — sinon un litige ou une demande RGPD n'existait que dans
+     * l'accordéon du logement d'ancrage.
+     */
     @Transactional(readOnly = true)
     public List<SupervisionSuggestionDto> list(Long organizationId, Long propertyId) {
-        return repository.findByOrganizationIdAndPropertyIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+        return repository.findVisibleForProperty(
                         organizationId, propertyId, SupervisionSuggestion.STATUS_PENDING, Instant.now())
                 .stream()
                 .map(this::toDto)

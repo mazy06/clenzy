@@ -131,7 +131,7 @@ public class ComplianceScanner {
                 continue;
             }
             final long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(today, request.getDueAt());
-            suggestionService.recordActionable(orgId, propertyId, MODULE_CMP,
+            suggestionService.recordOrgActionable(orgId, propertyId, MODULE_CMP,
                     "Effacement RGPD à exécuter (demande #" + request.getId() + ")",
                     "Demande de " + request.getRequesterEmail() + " reçue le " + request.getRequestedAt()
                             + " — échéance légale le " + request.getDueAt()
@@ -211,7 +211,7 @@ public class ComplianceScanner {
             return; // déjà déposée/payée
         }
         final int quarter = ((prevQuarterStart.getMonthValue() - 1) / 3) + 1;
-        suggestionService.recordActionable(orgId, propertyId, MODULE_CMP,
+        suggestionService.recordOrgActionable(orgId, propertyId, MODULE_CMP,
                 "Taxe de séjour T" + quarter + " " + prevQuarterStart.getYear()
                         + " : " + filing.getAmount() + " " + filing.getCurrency(),
                 "Trimestre " + prevQuarterStart + " → " + quarterStart.minusDays(1)

@@ -100,6 +100,43 @@ export function maxPriorityStatus(statuses: readonly AgentStatus[]): AgentStatus
 export const DEFAULT_AUTONOMY: AutonomyLevel = 'notify';
 
 /**
+ * Plafond d'autonomie PAR AGENT — miroir du catalogue serveur
+ * ({@code SupervisionAutomatableTypes}), qui est la borne dure : le gate rend
+ * une carte à valider pour tout type hors catalogue, quel que soit le niveau
+ * réglé ici. L'interface ne doit donc pas proposer un cran que le serveur
+ * refusera d'appliquer — une promesse d'autonomie non tenue est pire que pas
+ * d'autonomie du tout.
+ *
+ * - `full` : actions réversibles et idempotentes (planifier un ménage, le
+ *   réassigner, publier une réponse d'avis rédigée) ;
+ * - `notify` : l'action part seule mais n'est JAMAIS silencieuse — argent
+ *   (caution, relance), tarifs, et messages voyageurs (irréversibles) ;
+ * - `suggest` : agents dont aucune action n'est automatisable — conformité,
+ *   relation propriétaire, séjours, distribution, synchronisation. Elles
+ *   engagent trop (légal, contractuel, public) pour partir sans un humain.
+ */
+export const AUTONOMY_CEILING: Record<AgentId, AutonomyLevel> = {
+  ops: 'full',
+  rep: 'full',
+  com: 'notify',
+  rev: 'notify',
+  fin: 'notify',
+  sync: 'suggest',
+  cmp: 'suggest',
+  gst: 'suggest',
+  own: 'suggest',
+  gro: 'suggest',
+};
+
+/** Crans proposables pour un agent, du plus prudent au plus autonome. */
+export function autonomyChoicesFor(agentId: AgentId): AutonomyLevel[] {
+  const ceiling = AUTONOMY_CEILING[agentId] ?? 'suggest';
+  if (ceiling === 'full') return ['suggest', 'notify', 'full'];
+  if (ceiling === 'notify') return ['suggest', 'notify'];
+  return ['suggest'];
+}
+
+/**
  * Rayon d'orbite normalisé (× R) par niveau d'autonomie.
  * `r = R · RAD[autonomie]` : l'orbite reflète TOUJOURS l'autonomie (le statut
  * `wait` ne déplace plus l'agent — il est signalé par la couleur/HUD/carte).

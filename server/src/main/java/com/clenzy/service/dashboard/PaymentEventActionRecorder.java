@@ -80,7 +80,7 @@ public class PaymentEventActionRecorder {
                     orgId, chargeId, disputeId, amount, currency, deadline);
             final Long anchor = propertyRepository.findFirstPropertyIdByOrg(orgId);
             if (dispute != null && anchor != null) {
-                supervisionSuggestionService.recordActionable(orgId, anchor, "fin",
+                supervisionSuggestionService.recordOrgActionable(orgId, anchor, "fin",
                         "Litige bancaire reçu (" + disputeId + ")",
                         "Contestation de " + (amount != null ? amount + " " + currency : "montant inconnu")
                                 + (deadline != null ? ", preuves à soumettre avant " + deadline : "")

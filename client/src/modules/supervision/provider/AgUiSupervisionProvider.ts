@@ -269,7 +269,17 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       this.fetchUnpaidServiceRequests(),
       fetchAutonomy(),
     ]);
-    const inline = hitlPending[0] ? pendingDtoToAgentAction(hitlPending[0]) : null;
+    // UNE seule interruption est reprenable : le run n'est en pause que sur
+    // celle-là, et `resolvePendingAction` relance CE run avec son interruptId.
+    // On prend la plus RÉCENTE (l'ordre de la liste Redis n'est pas garanti),
+    // et surtout on ne compte QUE celle-là dans « N actions attendent » : les
+    // autres appartiennent à d'autres conversations de l'utilisateur et se
+    // reprennent là où elles ont été demandées — les compter ici gonflait le
+    // badge de cartes qui n'existaient nulle part.
+    const mostRecent = [...hitlPending].sort(
+      (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
+    )[0];
+    const inline = mostRecent ? pendingDtoToAgentAction(mostRecent) : null;
     if (inline) this.currentInterruptId = inline.interruptId;
 
     // File persistante : demandes de service impayées à régler (une carte par SR, en
@@ -339,10 +349,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       }),
     );
 
-    // Agents en attente : HITL (specialist) + suggestions (module).
+    // Agents en attente : l'interruption AFFICHÉE (specialist) + les cartes de
+    // la file. Marquer un agent « en attente » pour une interruption invisible
+    // ici laissait un nœud ambre sans rien à valider derrière.
     const waiting = new Set<AgentId>([
-      ...hitlPending
-        .map((dto) => mapSpecialistToAgent(dto.specialistName))
+      ...(mostRecent ? [mapSpecialistToAgent(mostRecent.specialistName)] : [])
         .filter((id): id is AgentId => id !== null),
       ...pendingQueue.map((p) => p.agentId),
     ]);
@@ -375,7 +386,9 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
 
     this.lastFullRefreshAt = Date.now();
 
-    const awaiting = hitlPending.length + pendingQueue.length;
+    // Le compteur ne promet QUE ce qui est affiché ici : l'interruption inline
+    // (0 ou 1) + les cartes de la file.
+    const awaiting = (inline ? 1 : 0) + pendingQueue.length;
     return {
       ...base,
       online: true,

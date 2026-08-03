@@ -16,6 +16,21 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
             Long organizationId, Long propertyId, String status, Instant now);
 
+    /**
+     * Vue d'un logement : ses cartes ET celles qui n'appartiennent à aucun
+     * logement ({@code org_level}) — litige, RGPD, site, taxe. Sans cette
+     * seconde branche, ces cartes n'étaient visibles que dans l'accordéon du
+     * logement d'ancrage (MIN(property.id)) et invisibles partout ailleurs.
+     */
+    @Query("SELECT s FROM SupervisionSuggestion s WHERE s.organizationId = :orgId "
+            + "AND (s.propertyId = :propertyId OR s.orgLevel = true) "
+            + "AND s.status = :status AND s.expiresAt > :now "
+            + "ORDER BY s.createdAt DESC")
+    List<SupervisionSuggestion> findVisibleForProperty(@Param("orgId") Long organizationId,
+                                                       @Param("propertyId") Long propertyId,
+                                                       @Param("status") String status,
+                                                       @Param("now") Instant now);
+
     /** Suggestions en attente non expirées de TOUTE l'organisation (vue portefeuille). */
     List<SupervisionSuggestion> findByOrganizationIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
             Long organizationId, String status, Instant now);

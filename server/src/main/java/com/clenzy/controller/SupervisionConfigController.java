@@ -7,7 +7,11 @@ import com.clenzy.service.agent.supervision.SupervisionConfigService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +56,29 @@ public class SupervisionConfigController {
     public ResponseEntity<SupervisionConfigDto> updateConfig(@RequestBody SupervisionConfigDto request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(configService.updateConfig(orgId, request));
+    }
+
+    /** Corps de l'acceptation : version du texte d'avertissement affiché. */
+    public record FullAutonomyConsentRequest(String noticeVersion) {}
+
+    /**
+     * POST /api/ai/supervision/modules/{moduleKey}/full-autonomy-consent —
+     * l'organisation accepte que cet agent agisse SEUL et EN SILENCE, et en
+     * assume la responsabilité. On trace l'auteur (sujet du JWT), l'instant et
+     * la version du texte accepté, puis on applique le niveau dans la foulée.
+     * Un PUT de config ne peut pas atteindre FULL sans cette trace.
+     */
+    @PostMapping("/modules/{moduleKey}/full-autonomy-consent")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<SupervisionConfigDto> acceptFullAutonomy(
+            @PathVariable String moduleKey,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody(required = false) FullAutonomyConsentRequest request) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(configService.acceptFullAutonomy(
+                orgId, moduleKey,
+                "user:" + (jwt != null ? jwt.getSubject() : "unknown"),
+                request != null ? request.noticeVersion() : null));
     }
 
     /**

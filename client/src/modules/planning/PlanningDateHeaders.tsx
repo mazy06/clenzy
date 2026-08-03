@@ -25,9 +25,10 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   return (
     <div className="sticky top-0 z-[12] flex bg-[var(--surface-2)]" style={{ borderBottom: '1px solid var(--line)', minHeight: DATE_HEADER_HEIGHT }}>
       {/* Coin « LOGEMENT » (spec .pl-corner) : cellule unique sur toute la
-          hauteur de l'entête — padding 10px 16px, overline 10.5px fw700. */}
+          hauteur de l'entête — overline 10.5px fw700, centrée verticalement
+          (la hauteur vient de la rangée, pas de ce padding). */}
       <div
-        className="sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] px-4 py-2.5"
+        className="sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] px-4 py-1"
         style={{ width: propertyColWidth, minWidth: propertyColWidth }}
       >
         <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
@@ -51,7 +52,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                 <TooltipTrigger asChild>
                 {/* border-e-[1px_solid_var(--line)] laisse par le codemod ne produisait
                     rien : une largeur de bordure n'accepte pas une valeur raccourcie. */}
-                <div className="flex flex-col items-center justify-center gap-px py-2 border-e border-solid border-e-[var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
+                <div className="flex flex-col items-center justify-center gap-px py-1 border-e border-solid border-e-[var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
                     <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}>

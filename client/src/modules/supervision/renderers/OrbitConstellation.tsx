@@ -83,34 +83,17 @@ export function OrbitConstellation({
     [agents],
   );
 
-  // Carte HUD « Orchestrateur » — haut-gauche en large, aplatie dans le tiroir
-  // compact (le tiroir est déjà une surface, pas de carte dans la carte).
-  const hudCard = (flat = false) => (
-    <div className={cn(!flat && 'rounded-xl border border-border bg-card p-3')}>
-      <div className="flex items-center gap-1.5">
-        <span
-          aria-hidden
-          className={cn('size-1.5 shrink-0 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
-        />
-        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
-          {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
-        </span>
-        {headerAction && <span className="shrink-0">{headerAction}</span>}
-      </div>
-      <p className="m-0 mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-        <span><b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b> {t('supervision.hud.agents')}</span>
-        <span><b className="font-semibold text-foreground tabular-nums">{hud.actingCount}</b> {t('supervision.hud.acting')}</span>
-        <span className={cn(hud.awaitingCount > 0 && 'text-warning-ink')}>
-          <b className="font-semibold tabular-nums">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
-        </span>
-      </p>
-
-      {/* Bilan de valeur — fenêtre alignée sur le zoom planning. */}
-      {report && (
-        <div className="mt-2 border-t border-border pt-2">
+  // Bilan de valeur — servi dans le TIROIR compact uniquement : la ligne
+  // d'en-tête porte déjà l'identité, les compteurs et les escalades, il ne
+  // reste que le bilan à déplier. Le tiroir est déjà une surface : pas de
+  // carte dans la carte.
+  const hudDetail = () =>
+    report && (
+      <div>
+        <div>
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-medium text-muted-foreground">
-              {t('supervision.report.titleBase', 'Bilan')}
+              {t('supervision.report.windowLabel', 'Fenêtre')}
             </span>
             {onReportWindowChange ? (
               <span className="flex gap-0.5" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
@@ -154,21 +137,12 @@ export function OrbitConstellation({
             </span>
           </div>
         </div>
-      )}
-
-      {/* Escalades / erreurs : l'exception, nommée. */}
-      {attention.length > 0 && (
-        <p className="m-0 mt-2 flex items-center gap-1.5 border-t border-border pt-2 text-xs text-destructive">
-          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
-          {attention.map((agent) => t(AGENT_META[agent.id].nameKey)).join(', ')} · {t(STATUS[attention[0].status].labelKey)}
-        </p>
-      )}
-    </div>
-  );
+      </div>
+    );
 
   const sheetTitle =
     sheet === 'hud'
-      ? t('supervision.hud.orchestrator')
+      ? t('supervision.report.titleBase', 'Bilan')
       : sheet === 'live'
         ? t('supervision.feed.title')
         : t('supervision.compact.hitl', 'À traiter');
@@ -192,24 +166,94 @@ export function OrbitConstellation({
       role="group"
       aria-label={t('supervision.hud.orchestrator')}
       className={cn(
-        'relative flex-1 min-h-[380px] overflow-hidden bg-card',
+        'relative flex min-h-[380px] flex-1 flex-col overflow-hidden bg-card',
         !flush && 'rounded-2xl border border-border',
         !online && 'saturate-50',
       )}
     >
       <style>{SHEET_STYLES}</style>
 
-      {/* ── HUD haut-gauche (large uniquement, masqué en mode focus) ───── */}
-      {!compact && !focused && (
-        <div className="absolute start-3 top-3 z-10 flex w-[280px] max-w-[46%] flex-col gap-2">
-          {hudCard()}
-          {belowHud}
+      {/* ── En-tête sur UNE ligne (masqué en mode focus) : identité et
+             compteurs à gauche, contrôles alignés à droite — même grammaire
+             que l'en-tête du panneau large. Plus de carte flottante ni de rail
+             posés SUR le canvas : la surface entière revient au diagramme. */}
+      {!focused && (
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 pt-3">
+          <p className="m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <span
+                aria-hidden
+                className={cn('size-1.5 shrink-0 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
+              />
+              {t('supervision.hud.orchestrator')}
+            </span>
+            <span><b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b> {t('supervision.hud.agents')}</span>
+            <span><b className="font-semibold text-foreground tabular-nums">{hud.actingCount}</b> {t('supervision.hud.acting')}</span>
+            <span className={cn(hud.awaitingCount > 0 && 'text-warning-ink')}>
+              <b className="font-semibold tabular-nums">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
+            </span>
+            {/* L'exception, nommée — elle reste sur la ligne, jamais masquée. */}
+            {attention.length > 0 && (
+              <span className="flex items-center gap-1.5 text-destructive">
+                <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
+                {attention.map((agent) => t(AGENT_META[agent.id].nameKey)).join(', ')}
+              </span>
+            )}
+          </p>
+
+          {/* Compact : les pastilles de tiroir vivent DANS la ligne, à droite
+              avec les autres contrôles (elles ne flottent plus sur le canvas). */}
+          {compact && (
+            <span className="flex flex-wrap items-center gap-2">
+              {report && (
+                <button
+                  type="button"
+                  aria-expanded={sheet === 'hud'}
+                  onClick={() => toggleSheet('hud')}
+                  className={pillClass(sheet === 'hud')}
+                >
+                  {t('supervision.report.titleBase', 'Bilan')}
+                </button>
+              )}
+              {belowHud && (
+                <button
+                  type="button"
+                  aria-expanded={sheet === 'live'}
+                  onClick={() => toggleSheet('live')}
+                  className={pillClass(sheet === 'live')}
+                >
+                  {t('supervision.feed.title')}
+                </button>
+              )}
+              {hitl && (hitlCount ?? 0) > 0 && (
+                <button
+                  type="button"
+                  aria-expanded={sheet === 'hitl'}
+                  onClick={() => toggleSheet('hitl')}
+                  className={pillClass(sheet === 'hitl', true)}
+                >
+                  {t('supervision.compact.hitl', 'À traiter')}
+                  <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1 text-[11px] font-bold text-warning-ink tabular-nums">
+                    {hitlCount}
+                  </span>
+                </button>
+              )}
+            </span>
+          )}
+          {headerAction && <span className="shrink-0">{headerAction}</span>}
         </div>
       )}
 
-      {/* ── Diagramme orbital (projection), centré dans le canvas ──────── */}
-      <div className="absolute inset-0 m-auto flex max-h-[92%] w-full max-w-[520px] items-center">
+      {/* Contenu optionnel sous l'en-tête (feed en large) — le compact le sert
+          dans son tiroir « En direct ». */}
+      {!compact && !focused && belowHud && <div className="shrink-0 px-3 pt-2">{belowHud}</div>}
+
+      {/* ── Diagramme orbital (projection) : il occupe TOUTE la surface
+             restante. Il MESURE la boîte qu'on lui donne (`size-full`) —
+             une boîte sans dimension calculerait un carré nul. ─────────── */}
+      <div className="relative min-h-0 flex-1 p-3">
         <OrbitDiagram
+          className="size-full"
           agents={agents}
           selected={selected}
           onSelect={selectAgent}
@@ -220,52 +264,6 @@ export function OrbitConstellation({
           pendingItems={pendingItems}
         />
       </div>
-
-      {/* ── Compact : rail de pastilles — la constellation reste dégagée ── */}
-      {compact && (
-        // z-9 : au-dessus du voile (z-8), on bascule d'un tiroir à l'autre
-        // sans refermer d'abord.
-        <div className="absolute inset-x-3 top-3 z-[9] flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            aria-expanded={sheet === 'hud'}
-            onClick={() => toggleSheet('hud')}
-            className={pillClass(sheet === 'hud')}
-          >
-            <span
-              aria-hidden
-              className={cn('size-1.5 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
-            />
-            {t('supervision.hud.orchestrator')}
-            {attention.length > 0 && (
-              <span aria-hidden className="size-1.5 rounded-full bg-destructive ring-2 ring-destructive/25" />
-            )}
-          </button>
-          {belowHud && (
-            <button
-              type="button"
-              aria-expanded={sheet === 'live'}
-              onClick={() => toggleSheet('live')}
-              className={pillClass(sheet === 'live')}
-            >
-              {t('supervision.feed.title')}
-            </button>
-          )}
-          {hitl && (hitlCount ?? 0) > 0 && (
-            <button
-              type="button"
-              aria-expanded={sheet === 'hitl'}
-              onClick={() => toggleSheet('hitl')}
-              className={pillClass(sheet === 'hitl', true)}
-            >
-              {t('supervision.compact.hitl', 'À traiter')}
-              <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1 text-[11px] font-bold text-warning-ink tabular-nums">
-                {hitlCount}
-              </span>
-            </button>
-          )}
-        </div>
-      )}
 
       {/* ── Compact : tiroir bas (un seul à la fois) + voile de fermeture ── */}
       {compact && sheet && (
@@ -303,7 +301,7 @@ export function OrbitConstellation({
               className="min-h-0 overflow-y-auto px-3.5 pb-3.5 [overscroll-behavior:contain]"
               data-vertical-scroll
             >
-              {sheet === 'hud' ? hudCard(true) : sheet === 'live' ? belowHud : hitl}
+              {sheet === 'hud' ? hudDetail() : sheet === 'live' ? belowHud : hitl}
             </div>
           </div>
         </>
