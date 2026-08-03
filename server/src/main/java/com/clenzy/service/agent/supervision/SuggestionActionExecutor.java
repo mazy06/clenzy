@@ -235,7 +235,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.GOODWILL_REFUND.equals(actionType)
                 || SupervisionActionType.OWNER_WORKS_APPROVAL.equals(actionType)
                 || SupervisionActionType.SITE_TRANSLATION_DRAFT.equals(actionType)
-                || SupervisionActionType.OWNER_REVENUE_NOTE.equals(actionType);
+                || SupervisionActionType.OWNER_REVENUE_NOTE.equals(actionType)
+                || SupervisionActionType.RELODGE_TRANSFER.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -279,8 +280,52 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.CONVERSATION_TAKEOVER -> applyConversationTakeover(suggestion);
             case SupervisionActionType.OWNER_REVENUE_NOTE -> applyOwnerRevenueNote(suggestion);
             case SupervisionActionType.TAX_MARK_FILED -> applyTaxMarkFiled(suggestion);
+            case SupervisionActionType.RELODGE_TRANSFER -> applyRelodgeTransfer(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * RELODGE_TRANSFER — relogement par le chemin canonique : la situation est
+     * RE-vérifiée à l'apply (séjour terminé/annulé → refus ; déjà sur la cible →
+     * idempotent, seule l'information du voyageur est rejouée), le conflit calendrier
+     * de {@code CalendarEngine.move} devient le refus légitime de la carte. L'email
+     * d'information part APRÈS le transfert — un échec d'email remet la carte PENDING
+     * et le re-apply, idempotent, ne fait que retenter l'envoi.
+     */
+    private void applyRelodgeTransfer(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        final long targetPropertyId = requiredLongParam(suggestion, "targetPropertyId");
+        if ("cancelled".equalsIgnoreCase(reservation.getStatus())) {
+            throw new IllegalStateException("Séjour annulé entre-temps — relogement sans objet");
+        }
+        if (reservation.getCheckOut() == null
+                || !reservation.getCheckOut().isAfter(LocalDate.now(clock))) {
+            throw new IllegalStateException("Séjour terminé — relogement sans objet");
+        }
+        final Reservation relodged = reservationService.getObject()
+                .relodge(reservation.getId(), targetPropertyId, suggestion.getAppliedBy());
+        final Property target = relodged.getProperty();
+        final String email = PostStayReviewScanner.resolveGuestEmail(relodged);
+        if (email == null) {
+            log.warn("RELODGE_TRANSFER : relogé sans email voyageur (reservation={}) — "
+                    + "information à faire manuellement", relodged.getId());
+            return;
+        }
+        final String guest = relodged.getGuestName() != null && !relodged.getGuestName().isBlank()
+                ? StringUtils.escapeHtml(relodged.getGuestName().strip()) : "Bonjour";
+        final String body = "<p>" + guest + ",</p>"
+                + "<p>Suite à un incident technique sur votre logement, nous vous relogeons pour "
+                + "la suite de votre séjour dans : <b>" + StringUtils.escapeHtml(target.getName())
+                + "</b>" + (target.getAddress() != null
+                    ? " — " + StringUtils.escapeHtml(target.getAddress()) : "") + ".</p>"
+                + "<p>Vos dates ne changent pas. Vos nouveaux codes d'accès vous parviennent "
+                + "séparément. Nous restons joignables pour toute question — merci de votre "
+                + "compréhension.</p>";
+        emailService.sendSimpleHtmlEmail(email,
+                "Changement de logement pour votre séjour — " + target.getName(), body);
+        log.info("RELODGE_TRANSFER appliqué org={} reservation={} cible={}",
+                suggestion.getOrganizationId(), relodged.getId(), targetPropertyId);
     }
 
     /**

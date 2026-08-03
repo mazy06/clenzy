@@ -862,4 +862,56 @@ class SuggestionActionExecutorTest {
         executor.execute(suggestion(SupervisionActionType.TAX_MARK_FILED, "{\"filingId\":3}"));
         verify(taxFilingService).markFiled(3L, ORG_ID, null);
     }
+
+    @Test
+    @DisplayName("relogement : chemin canonique puis email d'information au voyageur")
+    void relodgeTransfer_relodgesThenInformsGuest() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getStatus()).thenReturn("confirmed");
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservation.getCheckOut()).thenReturn(LocalDate.parse("2026-07-10")); // clock = 02/07
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        Property target = new Property();
+        target.setId(2L);
+        target.setName("Villa Palmeraie");
+        Reservation relodged = mock(Reservation.class);
+        when(relodged.getId()).thenReturn(RESERVATION_ID);
+        when(relodged.getProperty()).thenReturn(target);
+        when(relodged.getGuestName()).thenReturn("Amina Benali");
+        Guest guest = mock(Guest.class);
+        when(guest.getEmail()).thenReturn("amina@example.com");
+        when(relodged.getGuest()).thenReturn(guest);
+        when(reservationService.relodge(eq(RESERVATION_ID), eq(2L), anyString()))
+                .thenReturn(relodged);
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.RELODGE_TRANSFER,
+                "{\"reservationId\":100,\"targetPropertyId\":2}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+        executor.execute(s);
+
+        verify(reservationService).relodge(RESERVATION_ID, 2L,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("Villa Palmeraie"));
+    }
+
+    @Test
+    @DisplayName("relogement : sejour termine -> refus explicite, rien de deplace")
+    void relodgeTransfer_refusesFinishedStay() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getStatus()).thenReturn("confirmed");
+        when(reservation.getCheckOut()).thenReturn(LocalDate.parse("2026-07-01")); // clock = 02/07
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.RELODGE_TRANSFER,
+                        "{\"reservationId\":100,\"targetPropertyId\":2}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("terminé");
+        verifyNoInteractions(reservationService);
+        verifyNoInteractions(emailService);
+    }
 }

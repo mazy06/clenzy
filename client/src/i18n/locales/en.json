@@ -355,7 +355,8 @@
       "translate": "Translate",
       "resolve": "Resolve",
       "takeover": "Take over",
-      "markFiled": "Mark as filed"
+      "markFiled": "Mark as filed",
+      "relodge": "Relodge"
     }
   },
   "channexGuided": {

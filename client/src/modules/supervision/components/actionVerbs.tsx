@@ -13,7 +13,7 @@
    Les types inconnus retombent sur « Appliquer » (comportement historique).
    ============================================================ */
 
-import { Check, CalendarToday, Edit, GppBad, Hand, Payments, Refresh, Schedule, Send, VisibilityOff } from '../../../icons';
+import { Check, CalendarToday, Edit, GppBad, Hand, Payments, Refresh, Schedule, Send, SwapHoriz, VisibilityOff } from '../../../icons';
 
 export interface ActionVerb {
   labelKey: string;
@@ -76,6 +76,7 @@ const VERBS: Record<string, ActionVerb> = {
   OWNER_REVENUE_NOTE: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
   // Modèles métier (vague M-A)
   TAX_MARK_FILED: { labelKey: 'supervision.verbs.markFiled', fallback: 'Marquer déclarée', Icon: Check },
+  RELODGE_TRANSFER: { labelKey: 'supervision.verbs.relodge', fallback: 'Reloger', Icon: SwapHoriz },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

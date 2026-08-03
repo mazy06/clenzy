@@ -36,18 +36,29 @@ public class EscalationScanner {
 
     static final int HOT_WINDOW_MINUTES = 30;
     static final int HOT_MIN_INBOUND = 3;
+    /** Fenêtre de fraîcheur de l'incident bloquant (relogement, M11 v1). */
+    static final int RELODGE_INCIDENT_HOURS = 72;
 
     private final ReservationRepository reservationRepository;
     private final ConversationRepository conversationRepository;
+    private final com.clenzy.repository.InterventionRepository interventionRepository;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
+    private final com.clenzy.repository.CalendarDayRepository calendarDayRepository;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
     public EscalationScanner(ReservationRepository reservationRepository,
                              ConversationRepository conversationRepository,
+                             com.clenzy.repository.InterventionRepository interventionRepository,
+                             com.clenzy.repository.PropertyRepository propertyRepository,
+                             com.clenzy.repository.CalendarDayRepository calendarDayRepository,
                              SupervisionSuggestionService suggestionService,
                              Clock clock) {
         this.reservationRepository = reservationRepository;
         this.conversationRepository = conversationRepository;
+        this.interventionRepository = interventionRepository;
+        this.propertyRepository = propertyRepository;
+        this.calendarDayRepository = calendarDayRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -69,6 +80,71 @@ public class EscalationScanner {
             log.debug("hot conversation scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+        try {
+            scanRelodgeNeeded(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("relodge scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Relogement (M11 v1, agent Voyageur) : incident maintenance BLOQUANT (priorité
+     * haute, ouvert, < {@value #RELODGE_INCIDENT_HOURS} h) × séjour confirmé en cours
+     * ou arrivant demain × logement de repli LIBRE sur la fenêtre restante (capacité
+     * suffisante, même ville si connue). La carte propose — le transfert n'a lieu
+     * qu'au clic « Reloger » de l'opérateur, jamais automatiquement.
+     */
+    private void scanRelodgeNeeded(Long orgId, Long propertyId) {
+        final LocalDateTime now = LocalDateTime.now(clock);
+        final boolean blockingIncident = interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId,
+                        now.minusHours(RELODGE_INCIDENT_HOURS), now).stream()
+                .anyMatch(i -> i.getType() != null && i.getType().contains("MAINTENANCE")
+                        && "HIGH".equalsIgnoreCase(i.getPriority())
+                        && com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
+                                .openStatuses().contains(i.getStatus()));
+        if (!blockingIncident) {
+            return;
+        }
+        final LocalDate today = LocalDate.now(clock);
+        final Reservation stay = reservationRepository
+                .findCurrentOrNextByPropertyId(propertyId, today, orgId).stream()
+                .filter(r -> "confirmed".equalsIgnoreCase(r.getStatus()))
+                .filter(r -> r.getCheckIn() != null && r.getCheckOut() != null
+                        && !r.getCheckIn().isAfter(today.plusDays(1))
+                        && r.getCheckOut().isAfter(today))
+                .findFirst().orElse(null);
+        if (stay == null) {
+            return; // pas de séjour affecté — l'incident suit le circuit maintenance normal
+        }
+        final var origin = stay.getProperty();
+        final LocalDate from = today.isAfter(stay.getCheckIn()) ? today : stay.getCheckIn();
+        final var target = propertyRepository.findByOrganizationId(orgId).stream()
+                .filter(p -> !propertyId.equals(p.getId()))
+                .filter(p -> p.getMaxGuests() == null || stay.getGuestCount() == null
+                        || p.getMaxGuests() >= stay.getGuestCount())
+                .filter(p -> origin == null || origin.getCity() == null
+                        || origin.getCity().equalsIgnoreCase(p.getCity()))
+                .filter(p -> calendarDayRepository
+                        .findUnavailableDatesInRange(p.getId(), from, stay.getCheckOut(), orgId)
+                        .isEmpty())
+                .findFirst().orElse(null);
+        if (target == null) {
+            return; // aucun repli libre — rien d'honnête à proposer
+        }
+        suggestionService.recordActionableStrict(
+                orgId, propertyId, "gst", stay.getId(),
+                "Relogement à valider (réservation #" + stay.getId() + ")",
+                "Incident bloquant sur ce logement pendant le séjour ("
+                        + stay.getCheckIn() + " → " + stay.getCheckOut() + "). « "
+                        + target.getName() + " » est libre sur la fenêtre restante. « Reloger » "
+                        + "déplace le séjour (calendrier, ménage, codes) et informe le voyageur "
+                        + "par email — un conflit apparu entre-temps refuse l'opération.",
+                SupervisionActionType.RELODGE_TRANSFER,
+                "{\"reservationId\":" + stay.getId()
+                        + ",\"targetPropertyId\":" + target.getId() + "}",
+                null, "critical");
     }
 
     private void scanOverlaps(Long orgId, Long propertyId) {

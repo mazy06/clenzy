@@ -302,5 +302,17 @@ public final class SupervisionActionType {
      */
     public static final String TAX_MARK_FILED = "TAX_MARK_FILED";
 
+    /**
+     * Relogement d'un séjour vers un logement de repli (agent Voyageur, M11 v1) :
+     * incident bloquant sur le logement × séjour en cours/imminent × repli libre.
+     * L'apply délègue au chemin canonique {@code ReservationService.relodge}
+     * (calendrier déplacé atomiquement — conflit = refus 409 —, ménage lié déplacé,
+     * codes régénérés) puis INFORME le voyageur par email. Situation re-vérifiée à
+     * l'apply, idempotent si déjà relogé. JAMAIS automatisable (engage le voyageur).
+     * EFFET EXTERNE (email) → hors transaction.
+     * Params : {@code reservationId}, {@code targetPropertyId}.
+     */
+    public static final String RELODGE_TRANSFER = "RELODGE_TRANSFER";
+
     private SupervisionActionType() {}
 }
