@@ -41,17 +41,23 @@ public class PaymentEventActionRecorder {
     private final OwnerPayoutRepository ownerPayoutRepository;
     private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     private final com.clenzy.repository.PropertyRepository propertyRepository;
+    private final com.clenzy.repository.PaymentDisputeRepository paymentDisputeRepository;
+    private final java.time.Clock clock;
 
     public PaymentEventActionRecorder(ActionItemWriter writer,
                                       PaymentTransactionRepository paymentTransactionRepository,
                                       OwnerPayoutRepository ownerPayoutRepository,
                                       com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
-                                      com.clenzy.repository.PropertyRepository propertyRepository) {
+                                      com.clenzy.repository.PropertyRepository propertyRepository,
+                                      com.clenzy.repository.PaymentDisputeRepository paymentDisputeRepository,
+                                      java.time.Clock clock) {
         this.writer = writer;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.ownerPayoutRepository = ownerPayoutRepository;
         this.supervisionSuggestionService = supervisionSuggestionService;
         this.propertyRepository = propertyRepository;
+        this.paymentDisputeRepository = paymentDisputeRepository;
+        this.clock = clock;
     }
 
     /** Litige : la somme est déjà retenue, et l'échéance décide de tout. */
@@ -67,19 +73,25 @@ public class PaymentEventActionRecorder {
                 "critical", "Litige bancaire à contester",
                 "Le voyageur a contesté ce paiement auprès de sa banque.",
                 null, amount, currency, deadline, DISPUTE_OPENED));
-        // Constellation métiers (vague C) : le litige apparaît AUSSI sous l'agent
-        // Finance — carte INFO critique (la soumission de preuves à Stripe n'est pas
-        // encore outillée : pas de bouton qui prétendrait le faire). Ancre org-level.
+        // Dossier de litige (M6) : persisté avec le lien réservation quand la
+        // transaction le porte — c'est lui que « Soumettre » dépose à Stripe.
         try {
+            final com.clenzy.model.PaymentDispute dispute = persistDispute(
+                    orgId, chargeId, disputeId, amount, currency, deadline);
             final Long anchor = propertyRepository.findFirstPropertyIdByOrg(orgId);
-            if (anchor != null) {
-                supervisionSuggestionService.record(orgId, anchor, "fin", "payment_dispute",
+            if (dispute != null && anchor != null) {
+                supervisionSuggestionService.recordActionable(orgId, anchor, "fin",
                         "Litige bancaire reçu (" + disputeId + ")",
                         "Contestation de " + (amount != null ? amount + " " + currency : "montant inconnu")
                                 + (deadline != null ? ", preuves à soumettre avant " + deadline : "")
-                                + ". Assembler le dossier (contrat, journal de check-in, messages) "
-                                + "depuis l'écran Paiements — sans réponse, le litige est perdu.",
-                        null, "critical");
+                                + ". « Soumettre » assemble le dossier depuis vos données (séjour, "
+                                + "fiche voyageur, livret transmis) et le dépose à Stripe — sans "
+                                + "réponse avant l'échéance, le litige est perdu.",
+                        com.clenzy.service.agent.supervision.SupervisionActionType.CHARGEBACK_SUBMIT,
+                        "{\"disputeId\":" + dispute.getId() + "}",
+                        amount != null ? amount.movePointRight(2)
+                                .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact() : null,
+                        "critical");
             }
         } catch (Exception e) {
             log.debug("Carte litige constellation non enregistrée (dispute {}): {}",
@@ -87,11 +99,45 @@ public class PaymentEventActionRecorder {
         }
     }
 
+    /** Persistance idempotente du litige (unique provider_dispute_id). */
+    private com.clenzy.model.PaymentDispute persistDispute(Long orgId, String chargeId,
+                                                           String disputeId, BigDecimal amount,
+                                                           String currency, Instant deadline) {
+        final var existing = paymentDisputeRepository.findByProviderDisputeId(disputeId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        final com.clenzy.model.PaymentDispute dispute = new com.clenzy.model.PaymentDispute();
+        dispute.setOrganizationId(orgId);
+        dispute.setProviderDisputeId(disputeId);
+        dispute.setChargeId(chargeId);
+        dispute.setAmount(amount);
+        dispute.setCurrency(currency);
+        dispute.setDueBy(deadline);
+        // Lien réservation quand la transaction du charge le porte.
+        paymentTransactionRepository.findByProviderTxId(chargeId)
+                .filter(tx -> tx.getSourceType() != null
+                        && tx.getSourceType().toLowerCase(java.util.Locale.ROOT).contains("reservation"))
+                .ifPresent(tx -> dispute.setReservationId(tx.getSourceId()));
+        try {
+            return paymentDisputeRepository.save(dispute);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return paymentDisputeRepository.findByProviderDisputeId(disputeId).orElse(null);
+        }
+    }
+
     /** Le fournisseur a tranché : l'action n'appelle plus de décision. */
+    @org.springframework.transaction.annotation.Transactional
     public void recordDisputeClosed(String chargeId, String disputeId, String outcome) {
         final Long orgId = organizationOfProviderTx(chargeId);
         if (orgId == null) return;
         writer.resolve(orgId, ActionItemKind.PAYMENT_INCIDENT, disputeId, "stripe:" + outcome);
+        // Registre M6 : l'issue est tracée (WON/LOST), quel que soit l'état intermédiaire.
+        paymentDisputeRepository.markClosed(disputeId,
+                "won".equalsIgnoreCase(outcome)
+                        ? com.clenzy.model.PaymentDispute.Status.WON
+                        : com.clenzy.model.PaymentDispute.Status.LOST,
+                outcome, clock.instant());
     }
 
     /**

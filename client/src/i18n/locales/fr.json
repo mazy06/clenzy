@@ -357,7 +357,8 @@
       "takeover": "Reprendre la main",
       "markFiled": "Marquer déclarée",
       "relodge": "Reloger",
-      "markNoShow": "Marquer no-show"
+      "markNoShow": "Marquer no-show",
+      "submit": "Soumettre"
     }
   },
   "channexGuided": {

@@ -324,5 +324,15 @@ public final class SupervisionActionType {
      */
     public static final String NOSHOW_MARK = "NOSHOW_MARK";
 
+    /**
+     * Dépose les preuves d'un litige bancaire à Stripe (agent Finance, M6) :
+     * dossier assemblé depuis NOS données (séjour, fiche voyageur, livret transmis)
+     * via {@code DisputeEvidenceService.submitEvidence} — CAS OPEN → SUBMITTED,
+     * idempotency key stable (un re-apply retente sans doublon). Refus explicite si
+     * déjà soumis/tranché. EFFET EXTERNE (API Stripe) → hors transaction.
+     * Params : {@code disputeId}.
+     */
+    public static final String CHARGEBACK_SUBMIT = "CHARGEBACK_SUBMIT";
+
     private SupervisionActionType() {}
 }

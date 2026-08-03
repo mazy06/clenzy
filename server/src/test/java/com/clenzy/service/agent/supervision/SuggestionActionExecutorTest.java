@@ -98,6 +98,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
     @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
+    @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -130,6 +131,7 @@ class SuggestionActionExecutorTest {
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
                 provider(conversationRepository), provider(taxFilingService),
+                provider(disputeEvidenceService),
                 new ObjectMapper(), clock);
     }
 
@@ -938,5 +940,12 @@ class SuggestionActionExecutorTest {
         // Deja marque : aucun nouvel effet.
         executor.execute(s);
         verify(calendarEngine, org.mockito.Mockito.times(1)).cancel(anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("litige : delegue au dossier de preuves avec l'org de la suggestion")
+    void chargebackSubmit_delegatesToEvidenceService() {
+        executor.execute(suggestion(SupervisionActionType.CHARGEBACK_SUBMIT, "{\"disputeId\":17}"));
+        verify(disputeEvidenceService).submitEvidence(17L, ORG_ID);
     }
 }

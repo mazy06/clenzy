@@ -3638,3 +3638,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0383__reservations_no_show.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0384-create-payment-disputes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0384__create_payment_disputes.sql
+        relativeToChangelogFile: true

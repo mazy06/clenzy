@@ -117,6 +117,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider;
     private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
+    private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -164,6 +165,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider,
                                     ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
+                                    ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -206,6 +208,7 @@ public class SuggestionActionExecutor {
         this.sitePageRepositoryProvider = sitePageRepositoryProvider;
         this.conversationRepositoryProvider = conversationRepositoryProvider;
         this.taxFilingService = taxFilingService;
+        this.disputeEvidenceService = disputeEvidenceService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -236,7 +239,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.OWNER_WORKS_APPROVAL.equals(actionType)
                 || SupervisionActionType.SITE_TRANSLATION_DRAFT.equals(actionType)
                 || SupervisionActionType.OWNER_REVENUE_NOTE.equals(actionType)
-                || SupervisionActionType.RELODGE_TRANSFER.equals(actionType);
+                || SupervisionActionType.RELODGE_TRANSFER.equals(actionType)
+                || SupervisionActionType.CHARGEBACK_SUBMIT.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -282,8 +286,15 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.TAX_MARK_FILED -> applyTaxMarkFiled(suggestion);
             case SupervisionActionType.RELODGE_TRANSFER -> applyRelodgeTransfer(suggestion);
             case SupervisionActionType.NOSHOW_MARK -> applyNoShowMark(suggestion);
+            case SupervisionActionType.CHARGEBACK_SUBMIT -> applyChargebackSubmit(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /** CHARGEBACK_SUBMIT — délègue au dossier de litige (org, statut, Stripe côté service). */
+    private void applyChargebackSubmit(SupervisionSuggestion suggestion) {
+        final long disputeId = requiredLongParam(suggestion, "disputeId");
+        disputeEvidenceService.getObject().submitEvidence(disputeId, suggestion.getOrganizationId());
     }
 
     /**
