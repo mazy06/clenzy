@@ -263,12 +263,20 @@ export function buildPropertySnapshot(
       summary: 'Coordonne 10 agents · tout est sous contrôle',
       globalAutonomy: 'notify',
       paused: false,
+      // Roster COMPLET (Phase 1 : 10 agents) — c'est le socle du provider RÉEL
+      // (AgUiSupervisionProvider part de « calm » puis écrase statut/tâche) : un
+      // agent absent ici n'existait pas dans la constellation réelle.
       agents: [
         { id: 'com', status: 'veille', autonomy: 'notify', task: 'Aucun message en attente', metrics: AGENT_METRICS.com },
         { id: 'rev', status: 'veille', autonomy: 'notify', task: 'Tarifs alignés sur la demande', metrics: AGENT_METRICS.rev },
         { id: 'ops', status: 'act', autonomy: 'full', task: 'Confirme le ménage du 8 juil. avec le prestataire', reservationId: null, metrics: AGENT_METRICS.ops },
         { id: 'fin', status: 'veille', autonomy: 'suggest', task: 'À jour', metrics: AGENT_METRICS.fin },
         { id: 'rep', status: 'veille', autonomy: 'suggest', task: 'Note moyenne 4,8 ★', metrics: AGENT_METRICS.rep },
+        { id: 'sync', status: 'veille', autonomy: 'notify', task: 'Canaux à jour', metrics: AGENT_METRICS.sync },
+        { id: 'cmp', status: 'veille', autonomy: 'suggest', task: 'Aucune échéance réglementaire', metrics: AGENT_METRICS.cmp },
+        { id: 'gst', status: 'veille', autonomy: 'notify', task: 'Séjours suivis', metrics: AGENT_METRICS.gst },
+        { id: 'own', status: 'veille', autonomy: 'suggest', task: 'Relevés à jour', metrics: AGENT_METRICS.own },
+        { id: 'gro', status: 'veille', autonomy: 'notify', task: 'Distribution stable', metrics: AGENT_METRICS.gro },
       ],
       pending: [],
       feed: [
@@ -323,6 +331,11 @@ export function buildPropertySnapshot(
       { id: 'ops', status: 'think', autonomy: 'full', task: 'Planifie le ménage du départ du 12 juil.', thinkingProgress: 62, metrics: AGENT_METRICS.ops },
       { id: 'fin', status: 'veille', autonomy: 'suggest', task: 'À jour · prochaine clôture propriétaire le 31 juil.', metrics: AGENT_METRICS.fin },
       { id: 'rep', status: 'veille', autonomy: 'suggest', task: 'Aucun nouvel avis · note moyenne 4,9 ★', metrics: AGENT_METRICS.rep },
+      { id: 'sync', status: 'veille', autonomy: 'notify', task: 'Canaux à jour · aucun écart de parité', metrics: AGENT_METRICS.sync },
+      { id: 'cmp', status: 'veille', autonomy: 'suggest', task: 'Fiches police à jour', metrics: AGENT_METRICS.cmp },
+      { id: 'gst', status: 'veille', autonomy: 'notify', task: 'Livrets envoyés · séjours suivis', metrics: AGENT_METRICS.gst },
+      { id: 'own', status: 'veille', autonomy: 'suggest', task: 'Relevés propriétaires à jour', metrics: AGENT_METRICS.own },
+      { id: 'gro', status: 'veille', autonomy: 'notify', task: 'Annonces publiées sur 3 canaux', metrics: AGENT_METRICS.gro },
     ],
     pending: [
       {
@@ -412,6 +425,11 @@ export function buildPortfolioSnapshot(): PortfolioSnapshot {
         task: 'Surveille les avis · note moyenne 4,9 ★ sur le portefeuille',
         items: [],
       },
+      { id: 'sync', status: 'veille', autonomy: 'notify', propertyCount: 0, task: 'Canaux à jour · aucun écart de parité', items: [] },
+      { id: 'cmp', status: 'veille', autonomy: 'suggest', propertyCount: 0, task: 'Fiches police et échéances à jour', items: [] },
+      { id: 'gst', status: 'veille', autonomy: 'notify', propertyCount: 0, task: 'Livrets envoyés · séjours suivis', items: [] },
+      { id: 'own', status: 'veille', autonomy: 'suggest', propertyCount: 0, task: 'Relevés propriétaires à jour', items: [] },
+      { id: 'gro', status: 'veille', autonomy: 'notify', propertyCount: 0, task: 'Distribution stable sur le portefeuille', items: [] },
     ],
     pending: [
       {

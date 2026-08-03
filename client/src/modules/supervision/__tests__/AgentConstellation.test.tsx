@@ -13,9 +13,9 @@ beforeAll(() => {
 });
 
 describe('<AgentConstellation> (par logement)', () => {
-  it('rend 5 satellites, le cœur et le canvas', () => {
+  it('rend 10 satellites, le cœur et le canvas', () => {
     const { container } = render(<AgentConstellation snapshot={buildPropertySnapshot('1')} />);
-    expect(container.querySelectorAll('[data-agent]')).toHaveLength(5);
+    expect(container.querySelectorAll('[data-agent]')).toHaveLength(10);
     expect(container.querySelector('[data-core]')).toBeTruthy();
     expect(container.querySelector('[data-supervision-constellation]')).toBeTruthy();
   });

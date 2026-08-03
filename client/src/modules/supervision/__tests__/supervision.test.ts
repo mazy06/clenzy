@@ -30,10 +30,10 @@ describe('isActiveStatus', () => {
 describe('buildPropertySnapshot (showcase)', () => {
   const snap = buildPropertySnapshot('42');
 
-  it('expose 5 agents et le bon scope/propertyId', () => {
+  it('expose 10 agents et le bon scope/propertyId', () => {
     expect(snap.scope).toBe('property');
     expect(snap.propertyId).toBe('42');
-    expect(snap.agents).toHaveLength(5);
+    expect(snap.agents).toHaveLength(10);
   });
 
   it('a exactement un agent en attente, relié à une action de la file', () => {
@@ -56,9 +56,9 @@ describe('buildPropertySnapshot (showcase)', () => {
 describe('buildPortfolioSnapshot', () => {
   const snap = buildPortfolioSnapshot();
 
-  it('agrège 5 agents avec badges (propertyCount)', () => {
+  it('agrège 10 agents avec badges (propertyCount)', () => {
     expect(snap.scope).toBe('portfolio');
-    expect(snap.agents).toHaveLength(5);
+    expect(snap.agents).toHaveLength(10);
     const rev = snap.agents.find((a) => a.id === 'rev');
     expect(rev?.propertyCount).toBe(3);
     expect(rev?.status).toBe('wait');
@@ -80,7 +80,7 @@ describe('MockSupervisionProvider', () => {
   it('charge un snapshot (latence 0 → synchrone)', async () => {
     const provider = new MockSupervisionProvider('1', { latencyMs: 0 });
     const snap = await provider.getSnapshot();
-    expect(snap.agents).toHaveLength(5);
+    expect(snap.agents).toHaveLength(10);
     provider.dispose();
   });
 

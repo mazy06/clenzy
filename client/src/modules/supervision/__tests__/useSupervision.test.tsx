@@ -10,7 +10,7 @@ describe('useSupervision', () => {
     const { result, unmount } = renderHook(() => useSupervision(() => provider, ['1']));
     expect(result.current.status).toBe('loading');
     await waitFor(() => expect(result.current.status).toBe('live'));
-    expect(result.current.snapshot?.agents).toHaveLength(5);
+    expect(result.current.snapshot?.agents).toHaveLength(10);
     unmount();
   });
 
