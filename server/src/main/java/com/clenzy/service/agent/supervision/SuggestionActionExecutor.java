@@ -111,6 +111,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor;
     private final ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.ReservationRefundService> reservationRefundService;
+    private final ObjectProvider<com.clenzy.service.AccountingService> accountingService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -152,6 +153,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor,
                                     ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.ReservationRefundService> reservationRefundService,
+                                    ObjectProvider<com.clenzy.service.AccountingService> accountingService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -188,6 +190,7 @@ public class SuggestionActionExecutor {
         this.maintenanceInterventionExecutor = maintenanceInterventionExecutor;
         this.interventionRepositoryProvider = interventionRepositoryProvider;
         this.reservationRefundService = reservationRefundService;
+        this.accountingService = accountingService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -214,7 +217,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.OWNER_STATEMENT_SEND.equals(actionType)
                 || SupervisionActionType.UPSELL_OFFER.equals(actionType)
                 || SupervisionActionType.DEPOSIT_WITHHOLD.equals(actionType)
-                || SupervisionActionType.GOODWILL_REFUND.equals(actionType);
+                || SupervisionActionType.GOODWILL_REFUND.equals(actionType)
+                || SupervisionActionType.OWNER_WORKS_APPROVAL.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -251,8 +255,57 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.PREVENTIVE_MAINTENANCE -> applyPreventiveMaintenance(suggestion);
             case SupervisionActionType.DEPOSIT_WITHHOLD -> applyDepositWithhold(suggestion);
             case SupervisionActionType.GOODWILL_REFUND -> applyGoodwillRefund(suggestion);
+            case SupervisionActionType.OWNER_PAYOUT -> applyOwnerPayoutApprove(suggestion);
+            case SupervisionActionType.OWNER_WORKS_APPROVAL -> applyOwnerWorksApproval(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * OWNER_PAYOUT — approuve le reversement (PENDING → APPROVED, org validée par
+     * {@code AccountingService}, propriétaire + admins notifiés). Le VIREMENT reste le
+     * flux bancaire existant : approuver n'exécute aucun transfert.
+     */
+    private void applyOwnerPayoutApprove(SupervisionSuggestion suggestion) {
+        final long payoutId = requiredLongParam(suggestion, "payoutId");
+        accountingService.getObject().approvePayout(payoutId, suggestion.getOrganizationId());
+    }
+
+    /**
+     * OWNER_WORKS_APPROVAL — demande d'accord travaux par email au propriétaire du
+     * logement de l'intervention (org re-validée, coût re-lu à l'apply).
+     */
+    private void applyOwnerWorksApproval(SupervisionSuggestion suggestion) {
+        final long interventionId = requiredLongParam(suggestion, "interventionId");
+        final com.clenzy.model.Intervention works = interventionRepositoryProvider.getObject()
+                .findById(interventionId)
+                .orElseThrow(() -> new IllegalStateException("Intervention introuvable"));
+        if (works.getOrganizationId() == null
+                || !works.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Intervention hors organisation");
+        }
+        final Property property = works.getProperty();
+        final com.clenzy.model.User owner = property != null ? property.getOwner() : null;
+        if (owner == null || owner.getEmail() == null || owner.getEmail().isBlank()) {
+            throw new IllegalStateException("Propriétaire sans email — demande d'accord impossible");
+        }
+        final BigDecimal cost = works.getActualCost() != null
+                ? works.getActualCost() : works.getEstimatedCost();
+        final String ownerName = owner.getFullName() != null
+                ? StringUtils.escapeHtml(owner.getFullName()) : "Bonjour";
+        final String body = "<p>" + ownerName + ",</p>"
+                + "<p>Des travaux sont nécessaires sur votre logement « "
+                + StringUtils.escapeHtml(property.getName()) + " » :</p>"
+                + "<p><b>" + StringUtils.escapeHtml(works.getTitle()) + "</b>"
+                + (cost != null ? " — coût estimé " + cost + " €" : "") + "</p>"
+                + (works.getDescription() != null
+                    ? "<p>" + StringUtils.escapeHtml(works.getDescription()) + "</p>" : "")
+                + "<p>Ces travaux étant à votre charge, merci de nous confirmer votre accord "
+                + "en répondant à cet email avant que nous les engagions.</p>";
+        emailService.sendSimpleHtmlEmail(owner.getEmail().trim(),
+                "Accord travaux demandé — " + property.getName(), body);
+        log.info("OWNER_WORKS_APPROVAL envoyé org={} intervention={}",
+                suggestion.getOrganizationId(), interventionId);
     }
 
     /**

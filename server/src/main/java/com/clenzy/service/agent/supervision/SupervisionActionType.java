@@ -240,5 +240,22 @@ public final class SupervisionActionType {
      */
     public static final String GOODWILL_REFUND = "GOODWILL_REFUND";
 
+    /**
+     * Approuve un reversement propriétaire en attente (agent Propriétaire, vague B) :
+     * transition PENDING → APPROVED via {@code AccountingService.approvePayout}
+     * (org validée, propriétaire et admins notifiés). Le VIREMENT reste le flux
+     * bancaire existant (markAsPaid avec référence) — approuver n'exécute aucun
+     * transfert. Écriture DB + notifications. Params : {@code payoutId}.
+     */
+    public static final String OWNER_PAYOUT = "OWNER_PAYOUT";
+
+    /**
+     * Demande l'accord du propriétaire pour des travaux à sa charge (agent
+     * Propriétaire, vague B) : email récapitulatif (intitulé + coût estimé) adressé au
+     * propriétaire du logement. EFFET EXTERNE (email) → hors transaction.
+     * Params : {@code interventionId}.
+     */
+    public static final String OWNER_WORKS_APPROVAL = "OWNER_WORKS_APPROVAL";
+
     private SupervisionActionType() {}
 }

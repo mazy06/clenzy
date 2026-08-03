@@ -344,7 +344,8 @@
       "signSend": "Send for signature",
       "restrict": "Restrict",
       "deactivate": "Deactivate",
-      "withhold": "Withhold"
+      "withhold": "Withhold",
+      "approve": "Approve"
     }
   },
   "channexGuided": {

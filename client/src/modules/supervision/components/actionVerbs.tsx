@@ -65,6 +65,9 @@ const VERBS: Record<string, ActionVerb> = {
   // Finance incidents (Phase 3)
   DEPOSIT_WITHHOLD: { labelKey: 'supervision.verbs.withhold', fallback: 'Retenir', Icon: Payments },
   GOODWILL_REFUND: { labelKey: 'supervision.verbs.refund', fallback: 'Rembourser', Icon: Payments },
+  // Relation propriétaire (Phase 3)
+  OWNER_PAYOUT: { labelKey: 'supervision.verbs.approve', fallback: 'Approuver', Icon: Check },
+  OWNER_WORKS_APPROVAL: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

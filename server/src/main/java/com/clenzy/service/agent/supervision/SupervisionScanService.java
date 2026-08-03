@@ -59,6 +59,7 @@ public class SupervisionScanService {
     private final GuestUpsellScanner guestUpsellScanner;
     private final OpsMaintenanceScanner opsMaintenanceScanner;
     private final FinanceIncidentScanner financeIncidentScanner;
+    private final OwnerRelationScanner ownerRelationScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -80,6 +81,7 @@ public class SupervisionScanService {
                                   GuestUpsellScanner guestUpsellScanner,
                                   OpsMaintenanceScanner opsMaintenanceScanner,
                                   FinanceIncidentScanner financeIncidentScanner,
+                                  OwnerRelationScanner ownerRelationScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -100,6 +102,7 @@ public class SupervisionScanService {
         this.guestUpsellScanner = guestUpsellScanner;
         this.opsMaintenanceScanner = opsMaintenanceScanner;
         this.financeIncidentScanner = financeIncidentScanner;
+        this.ownerRelationScanner = ownerRelationScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -172,6 +175,7 @@ public class SupervisionScanService {
         guestUpsellScanner.scanProperty(orgId, propertyId);
         opsMaintenanceScanner.scanProperty(orgId, propertyId);
         financeIncidentScanner.scanProperty(orgId, propertyId);
+        ownerRelationScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -195,6 +199,7 @@ public class SupervisionScanService {
         guestUpsellScanner.scanProperty(orgId, propertyId);
         opsMaintenanceScanner.scanProperty(orgId, propertyId);
         financeIncidentScanner.scanProperty(orgId, propertyId);
+        ownerRelationScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

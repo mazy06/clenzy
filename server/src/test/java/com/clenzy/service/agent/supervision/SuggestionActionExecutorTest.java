@@ -91,6 +91,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.automation.CreateMaintenanceInterventionExecutor maintenanceInterventionExecutor;
     @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
     @Mock private com.clenzy.service.ReservationRefundService reservationRefundService;
+    @Mock private com.clenzy.service.AccountingService accountingService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -120,6 +121,7 @@ class SuggestionActionExecutorTest {
                 minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
                 provider(maintenanceInterventionExecutor),
                 provider(interventionRepository), provider(reservationRefundService),
+                provider(accountingService),
                 new ObjectMapper(), clock);
     }
 
@@ -695,5 +697,35 @@ class SuggestionActionExecutorTest {
         // 15 % de 300 € = 45 € = 4500 cents, motif GESTURE.
         verify(reservationRefundService).initiateRefund(RESERVATION_ID, 4500L,
                 com.clenzy.service.ReservationRefundService.REASON_GESTURE, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("reversement proprietaire : delegue a approvePayout (jamais de transfert direct)")
+    void ownerPayout_delegatesToApprove() {
+        executor.execute(suggestion(SupervisionActionType.OWNER_PAYOUT, "{\"payoutId\":21}"));
+        verify(accountingService).approvePayout(21L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("accord travaux : email adresse au proprietaire du logement de l'intervention")
+    void ownerWorksApproval_emailsPropertyOwner() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setName("Villa Palmeraie");
+        com.clenzy.model.User owner = new com.clenzy.model.User();
+        owner.setEmail("owner@example.com");
+        property.setOwner(owner);
+        com.clenzy.model.Intervention works = new com.clenzy.model.Intervention();
+        works.setOrganizationId(ORG_ID);
+        works.setProperty(property);
+        works.setTitle("Étanchéité terrasse");
+        works.setEstimatedCost(new BigDecimal("780.00"));
+        when(interventionRepository.findById(55L)).thenReturn(Optional.of(works));
+
+        executor.execute(suggestion(SupervisionActionType.OWNER_WORKS_APPROVAL,
+                "{\"interventionId\":55}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
+                contains("780.00"));
     }
 }

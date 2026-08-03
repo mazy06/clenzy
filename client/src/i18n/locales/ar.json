@@ -344,7 +344,8 @@
       "signSend": "إرسال للتوقيع",
       "restrict": "تقييد",
       "deactivate": "تعطيل",
-      "withhold": "اقتطاع"
+      "withhold": "اقتطاع",
+      "approve": "موافقة"
     }
   },
   "channexGuided": {
