@@ -22,10 +22,12 @@ import com.clenzy.service.SearchCacheInvalidator;
 import com.clenzy.service.SecurityDepositPaymentService;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.util.StringUtils;
+import com.clenzy.integration.channex.service.ChannexSyncService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -86,8 +88,17 @@ public class SuggestionActionExecutor {
     private final BookingBalanceService bookingBalanceService;
     private final EmailService emailService;
     private final ReviewReplyDraftService reviewReplyDraftService;
+    // ObjectProvider : ICalImportService dépend de SupervisionSuggestionService, qui
+    // dépend de cet exécuteur — l'injection paresseuse casse le cycle Spring. Même
+    // traitement pour ChannexSyncService (symétrie + résilience au conditionnel).
+    private final ObjectProvider<com.clenzy.service.ICalImportService> icalImportService;
+    private final ObjectProvider<ChannexSyncService> channexSyncService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+
+    /** Fenêtre de republication de parité par défaut / max (jours). */
+    static final int PARITY_DEFAULT_DAYS = 30;
+    static final int PARITY_MAX_DAYS = 90;
 
     public SuggestionActionExecutor(PriceEngine priceEngine,
                                     RateOverrideRepository rateOverrideRepository,
@@ -103,6 +114,8 @@ public class SuggestionActionExecutor {
                                     BookingBalanceService bookingBalanceService,
                                     EmailService emailService,
                                     ReviewReplyDraftService reviewReplyDraftService,
+                                    ObjectProvider<com.clenzy.service.ICalImportService> icalImportService,
+                                    ObjectProvider<ChannexSyncService> channexSyncService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -119,6 +132,8 @@ public class SuggestionActionExecutor {
         this.bookingBalanceService = bookingBalanceService;
         this.emailService = emailService;
         this.reviewReplyDraftService = reviewReplyDraftService;
+        this.icalImportService = icalImportService;
+        this.channexSyncService = channexSyncService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -132,7 +147,9 @@ public class SuggestionActionExecutor {
         return SupervisionActionType.DEPOSIT_REFUND.equals(actionType)
                 || SupervisionActionType.DEPOSIT_RELEASE.equals(actionType)
                 || SupervisionActionType.PAYMENT_REMINDER.equals(actionType)
-                || SupervisionActionType.REVIEW_DRAFT_REPLY.equals(actionType);
+                || SupervisionActionType.REVIEW_DRAFT_REPLY.equals(actionType)
+                || SupervisionActionType.ICAL_RETRY.equals(actionType)
+                || SupervisionActionType.PARITY_REPUBLISH.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -151,7 +168,63 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.REASSIGN_CLEANING -> applyReassignCleaning(suggestion);
             case SupervisionActionType.PAYMENT_REMINDER -> applyPaymentReminder(suggestion);
             case SupervisionActionType.REVIEW_DRAFT_REPLY -> applyReviewDraftReply(suggestion);
+            case SupervisionActionType.ICAL_RETRY -> applyIcalRetry(suggestion);
+            case SupervisionActionType.PARITY_REPUBLISH -> applyParityRepublish(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
+        }
+    }
+
+    /**
+     * ICAL_RETRY — relance la synchronisation du flux iCal en échec. L'org de la
+     * suggestion est re-validée contre le feed par
+     * {@code ICalImportService.retryFeedForSupervision} ; le fetch HTTP du calendrier
+     * distant est un EFFET EXTERNE (exécuté hors transaction). Idempotent : un flux
+     * redevenu sain se re-synchronise sans effet de bord.
+     */
+    private void applyIcalRetry(SupervisionSuggestion suggestion) {
+        final long feedId = requiredLongParam(suggestion, "feedId");
+        icalImportService.getObject().retryFeedForSupervision(feedId, suggestion.getOrganizationId());
+    }
+
+    /**
+     * PARITY_REPUBLISH — re-pousse l'ARI de la fenêtre de contrôle vers Channex.
+     * Les prix poussés sont RE-résolus par le PriceEngine au moment du push (règle
+     * audit n°1) ; l'appel HTTP Channex est un EFFET EXTERNE (hors transaction).
+     */
+    private void applyParityRepublish(SupervisionSuggestion suggestion) {
+        final int days = boundedIntParam(suggestion, "days", PARITY_DEFAULT_DAYS, 1, PARITY_MAX_DAYS);
+        final LocalDate today = LocalDate.now(clock);
+        final ChannexSyncService.ChannexSyncResult result = channexSyncService.getObject().pushProperty(
+                suggestion.getPropertyId(), suggestion.getOrganizationId(), today, today.plusDays(days));
+        if (result == null || !result.success()) {
+            throw new IllegalStateException("Republication Channex échouée : "
+                    + (result != null ? result.message() : "aucun résultat"));
+        }
+    }
+
+    private long requiredLongParam(SupervisionSuggestion suggestion, String field) {
+        try {
+            final JsonNode node = objectMapper.readTree(suggestion.getActionParams()).get(field);
+            if (node == null || !node.canConvertToLong()) {
+                throw new IllegalStateException("Paramètre « " + field + " » manquant");
+            }
+            return node.asLong();
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Paramètres d'action illisibles", e);
+        }
+    }
+
+    private int boundedIntParam(SupervisionSuggestion suggestion, String field,
+                                int defaultValue, int min, int max) {
+        try {
+            final String raw = suggestion.getActionParams();
+            final JsonNode node = raw == null ? null : objectMapper.readTree(raw).get(field);
+            final int value = node != null && node.canConvertToInt() ? node.asInt() : defaultValue;
+            return Math.max(min, Math.min(max, value));
+        } catch (Exception e) {
+            return defaultValue;
         }
     }
 

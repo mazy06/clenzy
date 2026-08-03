@@ -83,5 +83,23 @@ public final class SupervisionActionType {
      */
     public static final String REASSIGN_CLEANING = "REASSIGN_CLEANING";
 
+    /**
+     * Relance la synchronisation d'un flux iCal en échec (agent Synchronisation, SYNC —
+     * constellation métiers Phase 2). Re-télécharge et ré-importe le flux via
+     * {@code ICalImportService.retryFeedForSupervision} (org re-validée contre le feed).
+     * EFFET EXTERNE (fetch HTTP du calendrier distant) → exécuté hors transaction.
+     * Params : {@code feedId}.
+     */
+    public static final String ICAL_RETRY = "ICAL_RETRY";
+
+    /**
+     * Republie les tarifs vers Channex après un écart de parité détecté (agent
+     * Synchronisation, SYNC). Re-pousse l'ARI de la fenêtre de contrôle via
+     * {@code ChannexSyncService.pushProperty} — les prix poussés sont RE-résolus par le
+     * PriceEngine à l'apply (règle audit n°1). EFFET EXTERNE (HTTP Channex) → exécuté
+     * hors transaction. Params : {@code days} (fenêtre depuis aujourd'hui, défaut 30).
+     */
+    public static final String PARITY_REPUBLISH = "PARITY_REPUBLISH";
+
     private SupervisionActionType() {}
 }

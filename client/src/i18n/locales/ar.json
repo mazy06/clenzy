@@ -335,7 +335,9 @@
       "reassign": "إعادة تعيين",
       "refund": "استرداد",
       "release": "تحرير",
-      "remind": "تذكير"
+      "remind": "تذكير",
+      "retry": "إعادة المحاولة",
+      "republish": "إعادة النشر"
     }
   },
   "channexGuided": {

@@ -71,6 +71,7 @@ public class ICalImportService {
     private final ICalOrphanDetector orphanDetector;
     private final ICalCleaningScheduler cleaningScheduler;
     private final SupervisionActivityService supervisionActivityService;
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     /** Proxy Spring de ce bean : permet a importICalFeed (non transactionnel, fetch HTTP
      *  hors transaction) d'invoquer applyParsedICalFeed AVEC sa propre transaction
      *  (l'auto-invocation directe contournerait le proxy, T-BP-06). */
@@ -92,6 +93,7 @@ public class ICalImportService {
                              ICalOrphanDetector orphanDetector,
                              ICalCleaningScheduler cleaningScheduler,
                              SupervisionActivityService supervisionActivityService,
+                             com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
                              ObjectProvider<ICalImportService> self) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -109,6 +111,7 @@ public class ICalImportService {
         this.orphanDetector = orphanDetector;
         this.cleaningScheduler = cleaningScheduler;
         this.supervisionActivityService = supervisionActivityService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
         this.self = self;
     }
 
@@ -738,12 +741,52 @@ public class ICalImportService {
             String source = feed.getSourceName() != null ? feed.getSourceName() : "iCal";
             String reason = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
             String summary = "Echec synchro calendrier " + source + " — " + reason;
+            // Agent Synchronisation (constellation métiers Phase 2) : le feed porte
+            // l'historique, la carte HITL porte le todo « Relancer » (ICAL_RETRY).
             supervisionActivityService.recordModuleAct(
-                    property.getOrganizationId(), property.getId(), "ops", "ical_sync_failed", summary);
+                    property.getOrganizationId(), property.getId(), "sync", "ical_sync_failed", summary);
+            supervisionSuggestionService.recordActionable(
+                    property.getOrganizationId(), property.getId(), "sync",
+                    "Flux iCal " + source + " en échec",
+                    "La synchronisation a échoué (" + reason + "). « Relancer » re-télécharge le "
+                            + "calendrier et ré-importe les séjours ; en cas de nouvel échec, la "
+                            + "carte est re-proposée au prochain cycle.",
+                    com.clenzy.service.agent.supervision.SupervisionActionType.ICAL_RETRY,
+                    "{\"feedId\":" + feed.getId() + "}", null, "warning");
         } catch (Exception ex) {
             log.debug("Synchro iCal : activite constellation non enregistree (feed {}): {}",
                     feed.getId(), ex.getMessage());
         }
+    }
+
+    /**
+     * Relance la synchronisation d'UN flux pour la carte HITL {@code ICAL_RETRY}
+     * (agent Synchronisation). Même chemin que la boucle {@code syncFeeds} : requête
+     * bâtie depuis le feed, import au nom du PROPRIÉTAIRE du logement (forfait
+     * re-vérifié par {@code importICalFeed}). L'org de la suggestion est re-validée
+     * contre celle du feed — {@code findById} contourne le filtre Hibernate (règle
+     * audit n°3). Fetch HTTP externe : l'appelant (exécuteur supervision) nous
+     * invoque HORS transaction. Un succès met à jour le statut du feed
+     * (SUCCESS/PARTIAL) via le chemin d'import standard.
+     */
+    public void retryFeedForSupervision(Long feedId, Long organizationId) {
+        ICalFeed feed = icalFeedRepository.findById(feedId)
+                .orElseThrow(() -> new IllegalStateException("Flux iCal introuvable"));
+        Property property = feed.getProperty();
+        if (property == null || property.getOrganizationId() == null
+                || !property.getOrganizationId().equals(organizationId)) {
+            throw new IllegalStateException("Flux iCal introuvable pour cette organisation");
+        }
+        User owner = property.getOwner();
+        if (owner == null || owner.getKeycloakId() == null) {
+            throw new IllegalStateException("Flux sans propriétaire résoluble — relance impossible");
+        }
+        ImportRequest request = new ImportRequest();
+        request.setUrl(feed.getUrl());
+        request.setPropertyId(feed.getPropertyId());
+        request.setSourceName(feed.getSourceName());
+        request.setAutoCreateInterventions(feed.isAutoCreateInterventions());
+        self.getObject().importICalFeed(request, owner.getKeycloakId());
     }
 
     // ---- Helpers ----

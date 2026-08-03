@@ -69,10 +69,19 @@ class SuggestionActionExecutorTest {
     @Mock private BookingBalanceService bookingBalanceService;
     @Mock private EmailService emailService;
     @Mock private ReviewReplyDraftService reviewReplyDraftService;
+    @Mock private com.clenzy.service.ICalImportService icalImportService;
+    @Mock private com.clenzy.integration.channex.service.ChannexSyncService channexSyncService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
     private SuggestionActionExecutor executor;
+
+    /** ObjectProvider minimal (les vrais beans sont injectés paresseusement pour casser les cycles). */
+    private static <T> org.springframework.beans.factory.ObjectProvider<T> provider(T bean) {
+        return new org.springframework.beans.factory.ObjectProvider<>() {
+            @Override public T getObject() { return bean; }
+        };
+    }
 
     @BeforeEach
     void setUp() {
@@ -80,7 +89,8 @@ class SuggestionActionExecutorTest {
                 propertyRepository, searchCacheInvalidator, securityDepositRepository,
                 securityDepositPaymentService, calendarEngine, calendarDayRepository,
                 yieldAdjustmentRepository, serviceRequestService, reservationRepository,
-                bookingBalanceService, emailService, reviewReplyDraftService, new ObjectMapper(), clock);
+                bookingBalanceService, emailService, reviewReplyDraftService,
+                provider(icalImportService), provider(channexSyncService), new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {
@@ -296,5 +306,48 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("email de paiement");
         verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("relance iCal : delegue a ICalImportService avec l'org de la suggestion")
+    void icalRetry_delegatesWithSuggestionOrg() {
+        executor.execute(suggestion(SupervisionActionType.ICAL_RETRY, "{\"feedId\":42}"));
+        verify(icalImportService).retryFeedForSupervision(42L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("relance iCal : feedId manquant -> echec explicite (rien de relance)")
+    void icalRetry_throwsWithoutFeedId() {
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.ICAL_RETRY, "{}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("feedId");
+        verifyNoInteractions(icalImportService);
+    }
+
+    @Test
+    @DisplayName("republication parite : pousse l'ARI sur la fenetre bornee via ChannexSyncService")
+    void parityRepublish_pushesBoundedWindow() {
+        when(channexSyncService.pushProperty(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
+                .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
+                        .ChannexSyncResult(true, "ok", 0, 12));
+
+        executor.execute(suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}"));
+
+        LocalDate today = LocalDate.now(clock);
+        verify(channexSyncService).pushProperty(PROPERTY_ID, ORG_ID, today, today.plusDays(30));
+    }
+
+    @Test
+    @DisplayName("republication parite : echec Channex -> l'apply echoue (carte reste PENDING)")
+    void parityRepublish_throwsOnChannexFailure() {
+        when(channexSyncService.pushProperty(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
+                .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
+                        .ChannexSyncResult(false, "mapping disabled", 0, 0));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Republication Channex");
     }
 }

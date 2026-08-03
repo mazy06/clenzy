@@ -108,6 +108,7 @@ class ICalImportServiceExtendedTest {
                 new com.clenzy.service.pricing.CleaningPricingEngine(pricingConfigService, new com.fasterxml.jackson.databind.ObjectMapper(), org.mockito.Mockito.mock(com.clenzy.repository.HousekeeperRateRepository.class)),
                 tenantContext),
             org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionActivityService.class),
+            org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),
             selfProvider);
         // importICalFeed delegue l'upsert transactionnel via le proxy self : en test, le proxy = l'instance.
         when(selfProvider.getObject()).thenAnswer(inv -> service);

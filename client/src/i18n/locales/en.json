@@ -335,7 +335,9 @@
       "reassign": "Reassign",
       "refund": "Refund",
       "release": "Release",
-      "remind": "Remind"
+      "remind": "Remind",
+      "retry": "Retry",
+      "republish": "Republish"
     }
   },
   "channexGuided": {

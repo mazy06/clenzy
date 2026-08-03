@@ -39,6 +39,9 @@ const VERBS: Record<string, ActionVerb> = {
   DEPOSIT_REFUND: { labelKey: 'supervision.verbs.refund', fallback: 'Rembourser', Icon: Payments },
   DEPOSIT_RELEASE: { labelKey: 'supervision.verbs.release', fallback: 'Libérer', Icon: Payments },
   PAYMENT_REMINDER: { labelKey: 'supervision.verbs.remind', fallback: 'Relancer', Icon: Send },
+  // Agent Synchronisation (Phase 2)
+  ICAL_RETRY: { labelKey: 'supervision.verbs.retry', fallback: 'Relancer', Icon: Refresh },
+  PARITY_REPUBLISH: { labelKey: 'supervision.verbs.republish', fallback: 'Republier', Icon: Refresh },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
