@@ -81,7 +81,7 @@ export function parseReviewId(actionParams: string | undefined): number | null {
   }
 }
 
-interface OpenReviewPayload {
+export interface OpenReviewPayload {
   reviewId: number;
   actionId: string;
   guestName?: string;

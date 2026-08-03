@@ -18,12 +18,13 @@ import { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
-import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
+import { Check, ChevronDown, Edit, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
 import { useCountdown, type Countdown } from '../core/useCountdown';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
+import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 function formatRemaining(cd: Countdown, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -39,9 +40,12 @@ export interface PendingActionCardProps {
   onEdit: (id: string) => void;
   /** Ouvre la modale d'ajustement tarifaire (cartes PRICE_DROP multi-segment). */
   onAdjustPrice?: (action: PendingAction | PortfolioPendingAction) => void;
+  /** Carte d'avis : « Répondre » ouvre la modale de réponse (brouillon IA
+   *  insérable OU réponse libre) au lieu de publier le brouillon à l'aveugle. */
+  onOpenReview?: (payload: OpenReviewPayload) => void;
 }
 
-export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }: PendingActionCardProps) {
+export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }: PendingActionCardProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -56,6 +60,11 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
   // au lieu d'appliquer directement, pour laisser l'opérateur éditer les plages/remises.
   const isPriceAdjust = isApply && action.applyActionType === 'PRICE_DROP'
     && Boolean(action.actionParams) && Boolean(onAdjustPrice);
+  // Réponse à un avis : jamais de publication à l'aveugle du brouillon IA —
+  // « Répondre » ouvre la modale du dashboard (brouillon insérable + saisie).
+  const reviewId = isApply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
+    ? parseReviewId(action.actionParams)
+    : null;
   // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
@@ -144,16 +153,34 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
             variant="default"
             size="sm"
             disabled={resolving}
-            onClick={isPriceAdjust ? () => onAdjustPrice!(action) : validate}
+            onClick={
+              reviewId != null
+                ? () => {
+                    const review = parseReviewMotif(action.motif);
+                    onOpenReview!({
+                      reviewId,
+                      actionId: action.id,
+                      guestName: review?.meta.split(' · ')[0],
+                      rating: review?.rating,
+                    });
+                  }
+                : isPriceAdjust
+                  ? () => onAdjustPrice!(action)
+                  : validate
+            }
           >
             {resolving ? (
               <Spinner className="size-[13px]" />
+            ) : reviewId != null ? (
+              <Edit size={15} />
             ) : isPayment ? (
               <CreditCard size={15} />
             ) : (
               <Check size={15} />
             )}
-            {isPriceAdjust ? (
+            {reviewId != null ? (
+              t('dashboard.actionItems.reviewsAction', 'Répondre')
+            ) : isPriceAdjust ? (
               t('supervision.price.adjustCta', 'Ajuster les tarifs')
             ) : isPayment ? (
               <>

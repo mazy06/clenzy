@@ -19,13 +19,15 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
 import {
-  Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
+  Check, ChevronDown, Edit, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
+import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import { useCountdown, type Countdown } from '../core/useCountdown';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
+import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
 type AnyAction = PendingAction | PortfolioPendingAction;
@@ -56,12 +58,15 @@ function remainingLabel(cd: Countdown, t: (k: string, o?: Record<string, unknown
 // ─── Carte individuelle restylée ──────────────────────────────────────────────
 
 function TaskCard({
-  action, onValidate, onEdit, onAdjustPrice, behind,
+  action, onValidate, onEdit, onAdjustPrice, onOpenReview, behind,
 }: {
   action: AnyAction;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  /** Carte d'avis : « Répondre » ouvre la modale de réponse (brouillon IA
+   *  insérable OU réponse libre) au lieu de publier le brouillon à l'aveugle. */
+  onOpenReview?: (payload: OpenReviewPayload) => void;
   behind?: boolean; // carte derrière (deck replié) : contenu masqué
 }) {
   const { t } = useTranslation();
@@ -75,6 +80,11 @@ function TaskCard({
   // Baisse tarifaire multi-segment : « Ajuster » ouvre une modale (édition + prévision + apply).
   const priceAdjust = apply && action.applyActionType === 'PRICE_DROP'
     && Boolean(action.actionParams) && Boolean(onAdjustPrice);
+  // Réponse à un avis : jamais de publication à l'aveugle du brouillon IA —
+  // « Répondre » ouvre la modale du dashboard (brouillon insérable + saisie).
+  const reviewId = apply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
+    ? parseReviewId(action.actionParams)
+    : null;
   const tile = `${meta.color}26`; // teinte ~15 % pour la tuile d'icône
 
   return (
@@ -133,10 +143,26 @@ function TaskCard({
         <Button
           size="sm"
           className="flex-1"
-          onClick={priceAdjust ? () => onAdjustPrice!(action) : () => onValidate(action.id)}
+          onClick={
+            reviewId != null
+              ? () => {
+                  const review = parseReviewMotif(action.motif);
+                  onOpenReview!({
+                    reviewId,
+                    actionId: action.id,
+                    guestName: review?.meta.split(' · ')[0],
+                    rating: review?.rating,
+                  });
+                }
+              : priceAdjust
+                ? () => onAdjustPrice!(action)
+                : () => onValidate(action.id)
+          }
         >
-          {payment ? <CreditCard size={14} /> : guestCard ? <OpenInNew size={14} /> : <Check size={14} />}
-          {priceAdjust ? (
+          {reviewId != null ? <Edit size={14} /> : payment ? <CreditCard size={14} /> : guestCard ? <OpenInNew size={14} /> : <Check size={14} />}
+          {reviewId != null ? (
+            t('dashboard.actionItems.reviewsAction', 'Répondre')
+          ) : priceAdjust ? (
             t('supervision.price.adjustCta', 'Ajuster les tarifs')
           ) : payment ? (
             <>{t('supervision.payment.settle', 'Régler')}{action.amountEur != null && (
@@ -185,7 +211,7 @@ function TaskCard({
 // ─── Une pile (un type) ───────────────────────────────────────────────────────
 
 function TaskStack({
-  type, actions, open, dimmed, sort, onToggleSort, onOpen, onClose, onValidate, onEdit, onAdjustPrice, onBulk,
+  type, actions, open, dimmed, sort, onToggleSort, onOpen, onClose, onValidate, onEdit, onAdjustPrice, onOpenReview, onBulk,
 }: {
   type: AgentId;
   actions: AnyAction[];
@@ -198,6 +224,7 @@ function TaskStack({
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
   onAdjustPrice?: (action: AnyAction) => void;
+  onOpenReview?: (payload: OpenReviewPayload) => void;
   onBulk: () => void;
 }) {
   const { t } = useTranslation();
@@ -205,6 +232,9 @@ function TaskStack({
   const n = actions.length;
   const total = actions.reduce((s, a) => s + (a.amountEur ?? 0), 0);
   const hasPayment = actions.some(isPayment);
+  // Réponses à des avis : chacune mérite une relecture dans la modale —
+  // « Tout traiter » publierait les brouillons IA en lot, à l'aveugle.
+  const hasReview = actions.some((a) => a.applyActionType === 'REVIEW_DRAFT_REPLY');
 
   if (open) {
     return (
@@ -220,7 +250,7 @@ function TaskStack({
           <Button variant="ghost" size="sm" onClick={onToggleSort}>
             {sort === 'due' ? t('supervision.deck.sortDue', 'Échéance') : t('supervision.deck.sortAmount', 'Montant')}
           </Button>
-          {!hasPayment && (
+          {!hasPayment && !hasReview && (
             <Button size="sm" onClick={onBulk}>
               <AgentIcon token={meta.icon} size={13} />
               {t('supervision.deck.bulk', 'Tout traiter')}
@@ -231,7 +261,7 @@ function TaskStack({
         <div className="flex flex-col gap-2">
           {actions.map((a, i) => (
             <div key={a.id} style={{ animation: 'deckCascadeIn .42s var(--ease-out, cubic-bezier(.16,1,.3,1)) both', animationDelay: `${i * 0.05}s` }}>
-              <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
+              <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={onOpenReview} />
             </div>
           ))}
         </div>
@@ -244,7 +274,7 @@ function TaskStack({
   if (n === 1) {
     return (
       <div className={cn(dimmed ? 'opacity-45' : 'opacity-100')} style={{ filter: dimmed ? 'blur(4px)' : 'none', transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s' }}>
-        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={onOpenReview} />
       </div>
     );
   }
@@ -276,7 +306,7 @@ function TaskStack({
       })}
       {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
       <div className="relative z-[5]">
-        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} onOpenReview={onOpenReview} />
       </div>
       {/* Pastille de comptage */}
       {n > 1 && (
@@ -299,6 +329,9 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [openType, setOpenType] = useState<AgentId | null>(null);
   const [sort, setSort] = useState<Record<string, 'due' | 'amount'>>({});
+  // Modale de réponse à un avis (composant du dashboard, réutilisé tel quel).
+  // Montée SEULEMENT ouverte : elle porte des hooks liés au Router.
+  const [openReview, setOpenReview] = useState<OpenReviewPayload | null>(null);
   // Undo optimiste (action groupée) : ids masqués localement + commit différé.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [undo, setUndo] = useState<{ ids: string[]; label: string } | null>(null);
@@ -397,9 +430,22 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
           onValidate={onValidate}
           onEdit={onEdit}
           onAdjustPrice={onAdjustPrice}
+          onOpenReview={setOpenReview}
           onBulk={() => bulk(list.map((a) => a.id), t('supervision.deck.undoBulk', { count: list.length }))}
         />
       ))}
+
+      {openReview && (
+        <ReviewReplyDialog
+          reviewId={openReview.reviewId}
+          preview={{ guestName: openReview.guestName, rating: openReview.rating }}
+          onClose={() => setOpenReview(null)}
+          // Réponse publiée : la carte HITL est remplie, on l'écarte (dismiss
+          // serveur) — surtout PAS onValidate, qui publierait le brouillon IA
+          // une seconde fois par-dessus la réponse choisie.
+          onPublished={() => onEdit(openReview.actionId)}
+        />
+      )}
 
       {/* Toast Undo */}
       {undo && (

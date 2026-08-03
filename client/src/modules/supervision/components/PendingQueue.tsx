@@ -6,10 +6,13 @@
    - 'panel'    : colonne pleine hauteur avec état vide (vue d'ensemble, Phase 6)
    ============================================================ */
 
+import { useState } from 'react';
 import { CheckCircle } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
+import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import { PendingActionCard } from './PendingActionCard';
+import type { OpenReviewPayload } from './ConstellationQueue';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 export interface PendingQueueProps {
@@ -22,6 +25,10 @@ export interface PendingQueueProps {
 
 export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: PendingQueueProps) {
   const { t } = useTranslation();
+
+  // Modale de réponse à un avis (composant du dashboard, réutilisé tel quel).
+  // Montée SEULEMENT ouverte : elle porte des hooks liés au Router.
+  const [openReview, setOpenReview] = useState<OpenReviewPayload | null>(null);
 
   // Disposition flottante : rien à afficher quand la file est vide.
   if (variant === 'floating' && actions.length === 0) return null;
@@ -58,8 +65,27 @@ export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, varia
       )}
     >
       {actions.map((action) => (
-        <PendingActionCard key={action.id} action={action} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
+        <PendingActionCard
+          key={action.id}
+          action={action}
+          onValidate={onValidate}
+          onEdit={onEdit}
+          onAdjustPrice={onAdjustPrice}
+          onOpenReview={setOpenReview}
+        />
       ))}
+
+      {openReview && (
+        <ReviewReplyDialog
+          reviewId={openReview.reviewId}
+          preview={{ guestName: openReview.guestName, rating: openReview.rating }}
+          onClose={() => setOpenReview(null)}
+          // Réponse publiée : la carte HITL est remplie, on l'écarte (dismiss
+          // serveur) — surtout PAS onValidate, qui publierait le brouillon IA
+          // une seconde fois par-dessus la réponse choisie.
+          onPublished={() => onEdit(openReview.actionId)}
+        />
+      )}
     </div>
   );
 }
