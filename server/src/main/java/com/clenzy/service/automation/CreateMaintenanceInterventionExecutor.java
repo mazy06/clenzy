@@ -86,13 +86,93 @@ public class CreateMaintenanceInterventionExecutor implements AutomationActionEx
     }
 
     /** Marqueur d'idempotence batterie (F7a) pose dans specialInstructions. */
-    static String marker(Long deviceId) {
+    public static String marker(Long deviceId) {
         return "[lock-battery:" + deviceId + "]";
     }
 
     /** Marqueur d'idempotence verification bruit (F6b) pose dans specialInstructions. */
     static String noiseMarker(Long propertyId) {
         return "[noise-check:" + propertyId + "]";
+    }
+
+    /** Marqueur d'idempotence du cycle d'entretien préventif (constellation, Phase 3). */
+    public static String preventiveMarker(Long propertyId) {
+        return "[preventive-maintenance:" + propertyId + "]";
+    }
+
+    /** Statuts « épisode ouvert » partagés avec les scanners de la constellation. */
+    public static List<InterventionStatus> openStatuses() {
+        return OPEN_STATUSES;
+    }
+
+    /**
+     * Point d'entrée HITL {@code LOCK_BATTERY_REPLACE} (constellation, Phase 3) : même
+     * effet que le chemin AutomationRule (org re-validée, dédup par marqueur, owner
+     * requis) sans exiger de règle configurée.
+     *
+     * @return {@code true} si l'intervention est créée, {@code false} si un épisode
+     *         batterie est déjà couvert par une intervention ouverte
+     */
+    public boolean createForLockBattery(Long deviceId, Long orgId) {
+        SmartLockDevice device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalStateException("Serrure introuvable : " + deviceId));
+        if (device.getOrganizationId() == null || !device.getOrganizationId().equals(orgId)) {
+            throw new IllegalStateException("Serrure " + deviceId + " hors de l'organisation " + orgId);
+        }
+        if (device.getPropertyId() == null) {
+            throw new IllegalStateException("Serrure " + deviceId + " sans propriété associée");
+        }
+        String marker = marker(device.getId());
+        if (interventionRepository.existsOpenByPropertyAndMarker(
+                device.getPropertyId(), orgId, OPEN_STATUSES, marker)) {
+            return false;
+        }
+        Property property = loadOwnedProperty(device.getPropertyId(), orgId);
+        if (property.getOwner() == null) {
+            throw new IllegalStateException("Propriété " + property.getId()
+                    + " sans owner (requestor obligatoire)");
+        }
+        String deviceLabel = device.getName() != null && !device.getName().isBlank()
+                ? device.getName() : "serrure #" + device.getId();
+        Intervention intervention = newPendingIntervention(orgId, property,
+                "Batterie serrure critique — " + deviceLabel,
+                "Maintenance preventive : la serrure connectee " + deviceLabel
+                        + " (" + property.getName() + ") signale une batterie faible."
+                        + " Remplacer les piles avant la panne pour ne pas bloquer les acces guests."
+                        + (device.getBatteryLevel() != null
+                            ? " Niveau releve : " + device.getBatteryLevel() + "%." : ""),
+                marker + " Intervention validée depuis la constellation (batterie serrure).");
+        interventionRepository.save(intervention);
+        return true;
+    }
+
+    /**
+     * Point d'entrée HITL {@code PREVENTIVE_MAINTENANCE} (constellation, Phase 3) :
+     * tournée d'entretien préventif du logement (aucune révision récente).
+     *
+     * @return {@code true} si créée, {@code false} si une tournée est déjà ouverte
+     */
+    public boolean createPreventive(Long propertyId, Long orgId) {
+        String marker = preventiveMarker(propertyId);
+        if (interventionRepository.existsOpenByPropertyAndMarker(
+                propertyId, orgId, OPEN_STATUSES, marker)) {
+            return false;
+        }
+        Property property = loadOwnedProperty(propertyId, orgId);
+        if (property.getOwner() == null) {
+            throw new IllegalStateException("Propriété " + property.getId()
+                    + " sans owner (requestor obligatoire)");
+        }
+        Intervention intervention = newPendingIntervention(orgId, property,
+                "Entretien préventif — " + property.getName(),
+                "Aucune maintenance terminée depuis plus de 11 mois sur « " + property.getName()
+                        + " ». Tournée d'entretien préventif (climatisation, plomberie, équipements) "
+                        + "à planifier avant qu'une panne ne tombe en plein séjour.",
+                marker + " Intervention validée depuis la constellation (entretien préventif).");
+        intervention.setType("PREVENTIVE_MAINTENANCE");
+        intervention.setPriority("MEDIUM");
+        interventionRepository.save(intervention);
+        return true;
     }
 
     @Override

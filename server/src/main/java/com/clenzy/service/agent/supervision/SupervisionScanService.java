@@ -57,6 +57,7 @@ public class SupervisionScanService {
     private final ComplianceScanner complianceScanner;
     private final RevenuePlanScanner revenuePlanScanner;
     private final GuestUpsellScanner guestUpsellScanner;
+    private final OpsMaintenanceScanner opsMaintenanceScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -76,6 +77,7 @@ public class SupervisionScanService {
                                   ComplianceScanner complianceScanner,
                                   RevenuePlanScanner revenuePlanScanner,
                                   GuestUpsellScanner guestUpsellScanner,
+                                  OpsMaintenanceScanner opsMaintenanceScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -94,6 +96,7 @@ public class SupervisionScanService {
         this.complianceScanner = complianceScanner;
         this.revenuePlanScanner = revenuePlanScanner;
         this.guestUpsellScanner = guestUpsellScanner;
+        this.opsMaintenanceScanner = opsMaintenanceScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -164,6 +167,7 @@ public class SupervisionScanService {
         complianceScanner.scanProperty(orgId, propertyId);
         revenuePlanScanner.scanProperty(orgId, propertyId);
         guestUpsellScanner.scanProperty(orgId, propertyId);
+        opsMaintenanceScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -185,6 +189,7 @@ public class SupervisionScanService {
             complianceScanner.scanProperty(orgId, propertyId);
             revenuePlanScanner.scanProperty(orgId, propertyId);
         guestUpsellScanner.scanProperty(orgId, propertyId);
+        opsMaintenanceScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

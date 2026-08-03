@@ -108,6 +108,7 @@ public class SuggestionActionExecutor {
     private final com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
     private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
     private final com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
+    private final ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -146,6 +147,7 @@ public class SuggestionActionExecutor {
                                     com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository,
                                     com.clenzy.repository.RatePlanRepository ratePlanRepository,
                                     com.clenzy.repository.UpsellOfferRepository upsellOfferRepository,
+                                    ObjectProvider<com.clenzy.service.automation.CreateMaintenanceInterventionExecutor> maintenanceInterventionExecutor,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -179,6 +181,7 @@ public class SuggestionActionExecutor {
         this.minNightsOverrideRepository = minNightsOverrideRepository;
         this.ratePlanRepository = ratePlanRepository;
         this.upsellOfferRepository = upsellOfferRepository;
+        this.maintenanceInterventionExecutor = maintenanceInterventionExecutor;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -236,7 +239,33 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.MIN_STAY_RESTRICTION -> applyMinStayRestriction(suggestion);
             case SupervisionActionType.PROMO_DEACTIVATE -> applyPromoDeactivate(suggestion);
             case SupervisionActionType.UPSELL_OFFER -> applyUpsellOffer(suggestion);
+            case SupervisionActionType.LOCK_BATTERY_REPLACE -> applyLockBatteryReplace(suggestion);
+            case SupervisionActionType.PREVENTIVE_MAINTENANCE -> applyPreventiveMaintenance(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
+        }
+    }
+
+    /**
+     * LOCK_BATTERY_REPLACE — crée l'intervention de remplacement des piles via le
+     * chemin partagé avec l'AutomationRule F7a (org re-validée, marqueur d'épisode).
+     * Épisode déjà couvert → échec explicite (l'opérateur sait qu'une intervention
+     * ouverte existe, la carte se rejette).
+     */
+    private void applyLockBatteryReplace(SupervisionSuggestion suggestion) {
+        final long deviceId = requiredLongParam(suggestion, "deviceId");
+        if (!maintenanceInterventionExecutor.getObject()
+                .createForLockBattery(deviceId, suggestion.getOrganizationId())) {
+            throw new IllegalStateException(
+                    "Une intervention batterie est déjà ouverte pour cette serrure");
+        }
+    }
+
+    /** PREVENTIVE_MAINTENANCE — crée la tournée d'entretien préventif du logement de la carte. */
+    private void applyPreventiveMaintenance(SupervisionSuggestion suggestion) {
+        if (!maintenanceInterventionExecutor.getObject()
+                .createPreventive(suggestion.getPropertyId(), suggestion.getOrganizationId())) {
+            throw new IllegalStateException(
+                    "Une tournée d'entretien préventif est déjà ouverte pour ce logement");
         }
     }
 

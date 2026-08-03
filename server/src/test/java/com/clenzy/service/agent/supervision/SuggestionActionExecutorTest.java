@@ -88,6 +88,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
     @Mock private com.clenzy.repository.RatePlanRepository ratePlanRepository;
     @Mock private com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
+    @Mock private com.clenzy.service.automation.CreateMaintenanceInterventionExecutor maintenanceInterventionExecutor;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -115,6 +116,7 @@ class SuggestionActionExecutorTest {
                 provider(contractSignatureService), provider(userRepository),
                 provider(organizationRepository), provider(ownerStatementService),
                 minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
+                provider(maintenanceInterventionExecutor),
                 new ObjectMapper(), clock);
     }
 
@@ -631,5 +633,27 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("inactive");
         verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("batterie serrure : delegue au chemin F7a partage ; episode couvert -> echec explicite")
+    void lockBatteryReplace_delegatesAndSurfacesCoveredEpisode() {
+        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID)).thenReturn(true);
+        executor.execute(suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}"));
+        verify(maintenanceInterventionExecutor).createForLockBattery(3L, ORG_ID);
+
+        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID)).thenReturn(false);
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("déjà ouverte");
+    }
+
+    @Test
+    @DisplayName("entretien preventif : cree la tournee sur le logement de la carte")
+    void preventiveMaintenance_createsForCardProperty() {
+        when(maintenanceInterventionExecutor.createPreventive(PROPERTY_ID, ORG_ID)).thenReturn(true);
+        executor.execute(suggestion(SupervisionActionType.PREVENTIVE_MAINTENANCE, "{}"));
+        verify(maintenanceInterventionExecutor).createPreventive(PROPERTY_ID, ORG_ID);
     }
 }

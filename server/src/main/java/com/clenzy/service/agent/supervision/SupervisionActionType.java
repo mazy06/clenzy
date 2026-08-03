@@ -206,5 +206,21 @@ public final class SupervisionActionType {
      */
     public static final String UPSELL_OFFER = "UPSELL_OFFER";
 
+    /**
+     * Planifie le remplacement de batterie d'une serrure connectée (agent Opérations,
+     * vague B) : crée l'intervention préventive via le chemin partagé avec
+     * l'AutomationRule F7a (org re-validée, dédup par marqueur d'épisode, owner
+     * requis). Écriture DB pure. Params : {@code deviceId}.
+     */
+    public static final String LOCK_BATTERY_REPLACE = "LOCK_BATTERY_REPLACE";
+
+    /**
+     * Planifie une tournée d'entretien préventif (agent Opérations, vague B) : aucun
+     * entretien terminé depuis 11 mois → intervention PREVENTIVE_MAINTENANCE créée
+     * (dédup par marqueur tant qu'une tournée est ouverte). Écriture DB pure.
+     * Pas de param (le logement est celui de la carte).
+     */
+    public static final String PREVENTIVE_MAINTENANCE = "PREVENTIVE_MAINTENANCE";
+
     private SupervisionActionType() {}
 }

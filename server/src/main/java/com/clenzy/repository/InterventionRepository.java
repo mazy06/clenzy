@@ -561,6 +561,18 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * {@code [lock-battery:<deviceId>]} — pas de nouvelle intervention tant
      * qu'une intervention batterie est ouverte pour ce device).
      */
+    /**
+     * Dernière maintenance TERMINÉE du logement (scanner entretien préventif de la
+     * constellation) — {@code updatedAt} de la complétion la plus récente, null si aucune.
+     */
+    @Query("SELECT MAX(i.updatedAt) FROM Intervention i WHERE i.property.id = :propertyId " +
+           "AND i.organizationId = :orgId AND i.status = com.clenzy.model.InterventionStatus.COMPLETED " +
+           "AND i.type IN :types")
+    java.time.LocalDateTime findLastCompletedByPropertyAndTypes(
+            @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId,
+            @Param("types") java.util.Collection<String> types);
+
     @Query("SELECT COUNT(i) > 0 FROM Intervention i WHERE i.property.id = :propertyId " +
            "AND i.organizationId = :orgId AND i.status IN :openStatuses " +
            "AND i.specialInstructions LIKE CONCAT('%', :marker, '%')")

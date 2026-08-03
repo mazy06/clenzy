@@ -59,6 +59,9 @@ const VERBS: Record<string, ActionVerb> = {
   MIN_STAY_RESTRICTION: { labelKey: 'supervision.verbs.restrict', fallback: 'Restreindre', Icon: CalendarToday },
   PROMO_DEACTIVATE: { labelKey: 'supervision.verbs.deactivate', fallback: 'Désactiver', Icon: VisibilityOff },
   UPSELL_OFFER: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
+  // Opérations maintenance (Phase 3)
+  LOCK_BATTERY_REPLACE: { labelKey: 'supervision.verbs.schedule', fallback: 'Planifier', Icon: Schedule },
+  PREVENTIVE_MAINTENANCE: { labelKey: 'supervision.verbs.schedule', fallback: 'Planifier', Icon: Schedule },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
