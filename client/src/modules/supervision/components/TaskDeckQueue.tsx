@@ -28,12 +28,14 @@ import { useCountdown, type Countdown } from '../core/useCountdown';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
 import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
+import { verbFor } from './actionVerbs';
 import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
 type AnyAction = PendingAction | PortfolioPendingAction;
 
-// Ordre d'affichage des piles (handoff : Finance, Opérations, Communication, Revenue, Avis).
-const TYPE_ORDER: AgentId[] = ['fin', 'ops', 'com', 'rev', 'rep'];
+// Ordre d'affichage des piles (handoff : Finance, Opérations, Communication,
+// Revenue, Avis — puis les agents de la constellation métiers, Phase 1).
+const TYPE_ORDER: AgentId[] = ['fin', 'ops', 'com', 'rev', 'rep', 'sync', 'cmp', 'gst', 'own', 'gro'];
 
 export interface TaskDeckQueueProps {
   actions: AnyAction[];
@@ -85,6 +87,8 @@ function TaskCard({
   const reviewId = apply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
     ? parseReviewId(action.actionParams)
     : null;
+  // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
+  const verb = verbFor(action.applyActionType);
   const tile = `${meta.color}26`; // teinte ~15 % pour la tuile d'icône
 
   return (
@@ -159,7 +163,11 @@ function TaskCard({
                 : () => onValidate(action.id)
           }
         >
-          {reviewId != null ? <Edit size={14} /> : payment ? <CreditCard size={14} /> : guestCard ? <OpenInNew size={14} /> : <Check size={14} />}
+          {reviewId != null ? <Edit size={14} />
+            : payment ? <CreditCard size={14} />
+            : guestCard ? <OpenInNew size={14} />
+            : apply && !priceAdjust ? <verb.Icon size={14} />
+            : <Check size={14} />}
           {reviewId != null ? (
             t('dashboard.actionItems.reviewsAction', 'Répondre')
           ) : priceAdjust ? (
@@ -169,7 +177,7 @@ function TaskCard({
               <span className="ms-auto ps-1"><Money value={action.amountEur} from="EUR" /></span>
             )}</>
           ) : apply ? (
-            <>{t('supervision.apply.action', 'Appliquer')}{action.amountEur != null && (
+            <>{t(verb.labelKey, verb.fallback)}{action.amountEur != null && (
               <span className="ms-auto ps-1">+<Money value={action.amountEur} from="EUR" decimals={0} /></span>
             )}</>
           ) : guestCard ? t('supervision.guestCard.cta', 'Compléter la fiche client')

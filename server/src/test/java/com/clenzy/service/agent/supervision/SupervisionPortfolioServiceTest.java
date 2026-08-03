@@ -103,7 +103,7 @@ class SupervisionPortfolioServiceTest {
     }
 
     @Test
-    void emptyOrg_returnsFiveIdleAgents() {
+    void emptyOrg_returnsTenIdleAgents() {
         when(propertyRepository.findByOrganizationId(ORG)).thenReturn(List.of());
         when(suggestionRepository.findByOrganizationIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
                 eq(ORG), eq("PENDING"), any())).thenReturn(List.of());
@@ -114,7 +114,7 @@ class SupervisionPortfolioServiceTest {
 
         assertThat(snap.propertyCount()).isZero();
         assertThat(snap.pending()).isEmpty();
-        assertThat(snap.agents()).hasSize(5);
+        assertThat(snap.agents()).hasSize(10);
         assertThat(snap.agents()).allMatch(a -> a.status().equals("veille"));
     }
 

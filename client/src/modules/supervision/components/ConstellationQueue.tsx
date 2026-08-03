@@ -19,6 +19,7 @@ import { Button, Spinner } from '../../../components/ui';
 import { Check, CreditCard, Edit, Schedule, Star, VisibilityOff } from '../../../icons';
 import { Money } from '../../../components/Money';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
+import { verbFor } from './actionVerbs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';
@@ -125,6 +126,8 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
   const reviewId = action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
     ? parseReviewId(action.actionParams)
     : null;
+  // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
+  const verb = verbFor(action.applyActionType);
 
   // i18n des cartes de paiement : libellé et raisonnement construits au rendu.
   const rawTitle = action.title?.trim() || t('supervision.payment.fallbackTitle', 'Demande de service');
@@ -235,6 +238,8 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
               <Edit size={15} />
             ) : isPayment ? (
               <CreditCard size={15} />
+            ) : isApply && !isPriceAdjust ? (
+              <verb.Icon size={15} />
             ) : (
               <Check size={15} />
             )}
@@ -251,7 +256,7 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
               </>
             ) : isApply ? (
               <>
-                {t('supervision.apply.action', 'Appliquer')}
+                {t(verb.labelKey, verb.fallback)}
                 {action.amountEur != null && (
                   <span className="ms-0.5">+<Money value={action.amountEur} from="EUR" decimals={0} /></span>
                 )}

@@ -6,7 +6,10 @@
    (pas d'import direct lucide-react, cf. icons/README).
    ============================================================ */
 
-import { Chat, TrendingUp, BroomFill, Payments, Star } from '../../../icons';
+import {
+  Chat, TrendingUp, BroomFill, Payments, Star,
+  EventRepeat, GppGood, ConciergeBell, Handshake, Campaign,
+} from '../../../icons';
 import type { AgentIconToken } from '../constants';
 
 interface AgentIconProps {
@@ -27,6 +30,16 @@ export function AgentIcon({ token, size = 24, strokeWidth = 2 }: AgentIconProps)
       return <Payments size={size} strokeWidth={strokeWidth} />;
     case 'star':
       return <Star size={size} strokeWidth={strokeWidth} />;
+    case 'calendar-sync':
+      return <EventRepeat size={size} strokeWidth={strokeWidth} />;
+    case 'shield':
+      return <GppGood size={size} strokeWidth={strokeWidth} />;
+    case 'concierge':
+      return <ConciergeBell size={size} strokeWidth={strokeWidth} />;
+    case 'handshake':
+      return <Handshake size={size} strokeWidth={strokeWidth} />;
+    case 'megaphone':
+      return <Campaign size={size} strokeWidth={strokeWidth} />;
     default:
       return null;
   }

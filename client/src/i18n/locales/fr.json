@@ -53,6 +53,26 @@
       "rep": {
         "name": "Avis & Réputation",
         "role": "Avis & note"
+      },
+      "sync": {
+        "name": "Synchronisation",
+        "role": "Canaux et calendriers"
+      },
+      "cmp": {
+        "name": "Conformité",
+        "role": "Conformité et sécurité"
+      },
+      "gst": {
+        "name": "Voyageur",
+        "role": "Expérience voyageur"
+      },
+      "own": {
+        "name": "Propriétaire",
+        "role": "Relation propriétaire"
+      },
+      "gro": {
+        "name": "Croissance",
+        "role": "Distribution et croissance"
       }
     },
     "status": {
@@ -308,6 +328,14 @@
     },
     "compact": {
       "hitl": "À traiter"
+    },
+    "verbs": {
+      "block": "Bloquer",
+      "schedule": "Planifier",
+      "reassign": "Réaffecter",
+      "refund": "Rembourser",
+      "release": "Libérer",
+      "remind": "Relancer"
     }
   },
   "channexGuided": {

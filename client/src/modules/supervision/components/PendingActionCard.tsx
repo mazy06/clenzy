@@ -25,6 +25,7 @@ import { useCountdown, type Countdown } from '../core/useCountdown';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
 import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
+import { verbFor } from './actionVerbs';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 function formatRemaining(cd: Countdown, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -65,6 +66,8 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
   const reviewId = isApply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
     ? parseReviewId(action.actionParams)
     : null;
+  // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
+  const verb = verbFor(action.applyActionType);
   // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
@@ -175,6 +178,8 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
               <Edit size={15} />
             ) : isPayment ? (
               <CreditCard size={15} />
+            ) : isApply && !isPriceAdjust ? (
+              <verb.Icon size={15} />
             ) : (
               <Check size={15} />
             )}
@@ -193,7 +198,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
               </>
             ) : isApply ? (
               <>
-                {t('supervision.apply.action', 'Appliquer')}
+                {t(verb.labelKey, verb.fallback)}
                 {action.amountEur != null && (
                   <span className="ms-0.5">
                     +<Money value={action.amountEur} from="EUR" decimals={0} />

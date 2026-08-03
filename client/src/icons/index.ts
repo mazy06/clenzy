@@ -468,6 +468,7 @@ export {
   CalendarRange as CalendarViewWeek,
   Code,
   ArrowLeftRight as CompareArrows,
+  ConciergeBell,
   Contact as Contacts,
   Building2 as CorporateFare,
   Code as Css,

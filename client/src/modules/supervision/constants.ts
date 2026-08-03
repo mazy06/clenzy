@@ -13,7 +13,9 @@ import type { AgentId, AgentStatus, AutonomyLevel } from './types';
 // `color` = couleur de domaine (handoff §2). Les dégradés sont une affaire de rendu.
 // `icon`  = jeton sémantique → mappé sur lucide-react dans le renderer.
 
-export type AgentIconToken = 'chat' | 'trend-up' | 'broom' | 'bank' | 'star';
+export type AgentIconToken =
+  | 'chat' | 'trend-up' | 'broom' | 'bank' | 'star'
+  | 'calendar-sync' | 'shield' | 'concierge' | 'handshake' | 'megaphone';
 
 export interface AgentMeta {
   id: AgentId;
@@ -29,10 +31,16 @@ export const AGENT_META: Record<AgentId, AgentMeta> = {
   ops: { id: 'ops', color: '#1F9E8D', icon: 'broom', nameKey: 'supervision.agents.ops.name', roleKey: 'supervision.agents.ops.role' },
   fin: { id: 'fin', color: '#C77D2E', icon: 'bank', nameKey: 'supervision.agents.fin.name', roleKey: 'supervision.agents.fin.role' },
   rep: { id: 'rep', color: '#D6457E', icon: 'star', nameKey: 'supervision.agents.rep.name', roleKey: 'supervision.agents.rep.role' },
+  // Constellation métiers (Phase 1) — teintes distinctes des cinq historiques.
+  sync: { id: 'sync', color: '#3AA0C9', icon: 'calendar-sync', nameKey: 'supervision.agents.sync.name', roleKey: 'supervision.agents.sync.role' },
+  cmp: { id: 'cmp', color: '#5E7A99', icon: 'shield', nameKey: 'supervision.agents.cmp.name', roleKey: 'supervision.agents.cmp.role' },
+  gst: { id: 'gst', color: '#E0685C', icon: 'concierge', nameKey: 'supervision.agents.gst.name', roleKey: 'supervision.agents.gst.role' },
+  own: { id: 'own', color: '#A2845E', icon: 'handshake', nameKey: 'supervision.agents.own.name', roleKey: 'supervision.agents.own.role' },
+  gro: { id: 'gro', color: '#5BAE4E', icon: 'megaphone', nameKey: 'supervision.agents.gro.name', roleKey: 'supervision.agents.gro.role' },
 };
 
 /** Ordre canonique des satellites (réparti par layoutConstellation). */
-export const AGENT_IDS: AgentId[] = ['com', 'rev', 'ops', 'fin', 'rep'];
+export const AGENT_IDS: AgentId[] = ['com', 'rev', 'ops', 'fin', 'rep', 'sync', 'cmp', 'gst', 'own', 'gro'];
 
 // ─── Statuts (couleur + libellé) ─────────────────────────────────────────────
 

@@ -53,6 +53,26 @@
       "rep": {
         "name": "Reviews & Reputation",
         "role": "Reviews & rating"
+      },
+      "sync": {
+        "name": "Sync",
+        "role": "Channels and calendars"
+      },
+      "cmp": {
+        "name": "Compliance",
+        "role": "Compliance and security"
+      },
+      "gst": {
+        "name": "Guest",
+        "role": "Guest experience"
+      },
+      "own": {
+        "name": "Owner",
+        "role": "Owner relations"
+      },
+      "gro": {
+        "name": "Growth",
+        "role": "Distribution and growth"
       }
     },
     "status": {
@@ -308,6 +328,14 @@
     },
     "compact": {
       "hitl": "To review"
+    },
+    "verbs": {
+      "block": "Block",
+      "schedule": "Schedule",
+      "reassign": "Reassign",
+      "refund": "Refund",
+      "release": "Release",
+      "remind": "Remind"
     }
   },
   "channexGuided": {

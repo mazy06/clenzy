@@ -36,7 +36,8 @@ public class SupervisionPortfolioService {
     private static final int FEED_KEEP = 40;
     private static final String STATUS_PENDING = SupervisionSuggestion.STATUS_PENDING;
     /** Ordre stable des agents de la constellation. */
-    private static final List<String> AGENTS = List.of("com", "rev", "ops", "fin", "rep");
+    private static final List<String> AGENTS =
+            List.of("com", "rev", "ops", "fin", "rep", "sync", "cmp", "gst", "own", "gro");
     private static final String DEFAULT_AUTONOMY = "suggest";
 
     private static final Logger log = LoggerFactory.getLogger(SupervisionPortfolioService.class);

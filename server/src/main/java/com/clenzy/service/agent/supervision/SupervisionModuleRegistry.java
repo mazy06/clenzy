@@ -35,7 +35,15 @@ public class SupervisionModuleRegistry {
             new SupervisionModule("rev", "supervision.agents.rev.name", SupervisionAutonomy.SUGGEST, true),
             new SupervisionModule("ops", "supervision.agents.ops.name", SupervisionAutonomy.SUGGEST, true),
             new SupervisionModule("fin", "supervision.agents.fin.name", SupervisionAutonomy.SUGGEST, true),
-            new SupervisionModule("rep", "supervision.agents.rep.name", SupervisionAutonomy.SUGGEST, true)
+            new SupervisionModule("rep", "supervision.agents.rep.name", SupervisionAutonomy.SUGGEST, true),
+            // Constellation métiers (PLAN-CONSTELLATION-METIERS.md, Phase 1) : cinq
+            // agents élargis. Leurs producteurs arrivent en Phases 2-4 ; les déclarer
+            // dès maintenant rend leurs cartes/feed routables et leur autonomie réglable.
+            new SupervisionModule("sync", "supervision.agents.sync.name", SupervisionAutonomy.SUGGEST, true),
+            new SupervisionModule("cmp", "supervision.agents.cmp.name", SupervisionAutonomy.SUGGEST, true),
+            new SupervisionModule("gst", "supervision.agents.gst.name", SupervisionAutonomy.SUGGEST, true),
+            new SupervisionModule("own", "supervision.agents.own.name", SupervisionAutonomy.SUGGEST, true),
+            new SupervisionModule("gro", "supervision.agents.gro.name", SupervisionAutonomy.SUGGEST, true)
     );
 
     /**
