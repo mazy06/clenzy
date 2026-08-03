@@ -39,19 +39,22 @@ public class GrowthDistributionScanner {
     private final com.clenzy.service.ListingQualityService listingQualityService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final SupervisionSuggestionService suggestionService;
+    private final com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository channexMappingRepository;
 
     public GrowthDistributionScanner(SiteRepository siteRepository,
                                      SitePageRepository sitePageRepository,
                                      PropertyRepository propertyRepository,
                                      com.clenzy.service.ListingQualityService listingQualityService,
                                      com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-                                     SupervisionSuggestionService suggestionService) {
+                                     SupervisionSuggestionService suggestionService,
+                                     com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository channexMappingRepository) {
         this.siteRepository = siteRepository;
         this.sitePageRepository = sitePageRepository;
         this.propertyRepository = propertyRepository;
         this.listingQualityService = listingQualityService;
         this.objectMapper = objectMapper;
         this.suggestionService = suggestionService;
+        this.channexMappingRepository = channexMappingRepository;
     }
 
     /** Seuil sous lequel le score qualité d'annonce lève une carte (M3, vague M-A). */
@@ -69,6 +72,12 @@ public class GrowthDistributionScanner {
                     orgId, propertyId, e.getMessage());
         }
         try {
+            scanChannelPublish(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("channel publish scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
             if (!propertyId.equals(propertyRepository.findFirstPropertyIdByOrg(orgId))) {
                 return; // une seule ancre org-level — pas une carte par logement scanné
             }
@@ -79,6 +88,45 @@ public class GrowthDistributionScanner {
             log.debug("growth translation scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+    }
+
+    /**
+     * M-D — publication canal : logement CONNECTÉ à Channex (mapping présent) mais
+     * jamais poussé (PENDING) ou en erreur → carte actionnable « Publier » (go-live
+     * canonique resync + contenu à l'apply). Sans mapping : carte INFO — la connexion
+     * passe par l'OAuth d'Intégrations, un bouton qui prétendrait la faire mentirait.
+     */
+    private void scanChannelPublish(Long orgId, Long propertyId) {
+        final var mapping = channexMappingRepository
+                .findByClenzyPropertyId(propertyId, orgId).orElse(null);
+        final com.clenzy.model.Property property = propertyRepository.findById(propertyId).orElse(null);
+        final String propertyName = property != null && property.getName() != null
+                ? property.getName() : "logement #" + propertyId;
+        if (mapping == null) {
+            suggestionService.record(orgId, propertyId, MODULE_GRO, "channel_not_distributed",
+                    "Logement non distribué sur les canaux (" + propertyName + ")",
+                    "Aucune connexion Channex : ce logement ne reçoit que les réservations "
+                            + "directes. La connexion (choix du canal + autorisation) se fait "
+                            + "depuis Intégrations > Channex.");
+            return;
+        }
+        final var status = mapping.getSyncStatus();
+        if (status == com.clenzy.integration.channex.model.ChannexSyncStatus.ACTIVE
+                || status == com.clenzy.integration.channex.model.ChannexSyncStatus.DISABLED) {
+            return; // publié, ou coupé volontairement — rien à proposer
+        }
+        final String motif = status == com.clenzy.integration.channex.model.ChannexSyncStatus.ERROR
+                ? "La synchronisation Channex est en erreur"
+                        + (mapping.getLastSyncError() != null
+                            ? " (" + mapping.getLastSyncError() + ")" : "")
+                        + ". « Publier » relance le go-live complet : tarifs et disponibilités "
+                        + "(~500 jours) puis photos et description."
+                : "Le logement est connecté à Channex mais n'a jamais été publié. "
+                        + "« Publier » pousse tarifs et disponibilités (~500 jours) puis "
+                        + "photos et description vers les canaux actifs.";
+        suggestionService.recordActionable(orgId, propertyId, MODULE_GRO,
+                "Annonce prête à publier — " + propertyName,
+                motif, SupervisionActionType.CHANNEL_PUBLISH, "{}", null, "info");
     }
 
     /**

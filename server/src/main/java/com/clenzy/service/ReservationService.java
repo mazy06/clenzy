@@ -603,6 +603,55 @@ public class ReservationService {
     }
 
     /**
+     * Replanification CANONIQUE d'un sejour (avenant STAY_MODIFICATION v2) : change
+     * les DATES sans toucher au logement — le symetrique de {@link #relodge}. Le
+     * calendrier est deplace atomiquement ({@code CalendarEngine.move}, conflit →
+     * {@code CalendarConflictException}), le menage lie est decale sur le nouveau
+     * checkout, les codes d'acces regeneres. {@code newTotalPrice} est le total
+     * RE-calcule par l'appelant cote serveur (PriceEngine) — jamais un montant
+     * client (regle argent n°1) ; null = total inchange. Idempotent si les dates
+     * sont deja les bonnes.
+     */
+    @Transactional
+    public Reservation reschedule(Long reservationId, LocalDate newCheckIn, LocalDate newCheckOut,
+                                  java.math.BigDecimal newTotalPrice, String actorId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        Reservation existing = reservationRepository.findByIdFetchAll(reservationId)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + reservationId));
+        if (!orgId.equals(existing.getOrganizationId())) {
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
+        }
+        if (newCheckIn == null || newCheckOut == null || !newCheckOut.isAfter(newCheckIn)) {
+            throw new IllegalArgumentException("Dates de replanification incoherentes");
+        }
+        if (Objects.equals(existing.getCheckIn(), newCheckIn)
+                && Objects.equals(existing.getCheckOut(), newCheckOut)) {
+            return existing; // deja replanifiee (autre operateur) — idempotent
+        }
+        String status = existing.getStatus();
+        Long propertyId = existing.getProperty().getId();
+        LocalDate oldCheckIn = existing.getCheckIn();
+        LocalDate oldCheckOut = existing.getCheckOut();
+        existing.setCheckIn(newCheckIn);
+        existing.setCheckOut(newCheckOut);
+        if (newTotalPrice != null) {
+            existing.setTotalPrice(newTotalPrice);
+        }
+
+        syncCalendarOnUpdate(existing, status, propertyId, oldCheckIn, oldCheckOut, orgId, actorId);
+        rescheduleLinkedIntervention(existing, oldCheckOut);
+        Reservation saved = reservationRepository.save(existing);
+
+        if ("confirmed".equals(saved.getStatus())) {
+            // Non bloquant : une panne serrure ne doit pas bloquer l'avenant.
+            revokeAccessCodes(saved.getId());
+            generateAccessCodes(saved, orgId);
+        }
+        notifyReservationUpdated(saved);
+        return saved;
+    }
+
+    /**
      * Relogement : le menage lie suit la reservation sur le NOUVEAU logement — sans
      * ca, l'equipe se presentait a l'ancienne adresse (promesse deja affichee par le
      * front « les interventions liees seront automatiquement deplacees »).

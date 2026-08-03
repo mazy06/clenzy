@@ -366,11 +366,15 @@ public final class SupervisionActionType {
     public static final String LATE_CHECKOUT_APPROVAL = "LATE_CHECKOUT_APPROVAL";
 
     /**
-     * Répond CHIFFRÉ à une demande de modification de séjour (agent Voyageur, M8 v1) :
-     * dates extraites de l'intent, disponibilité et différentiel tarifaire RE-calculés
-     * à l'apply (dates prises entre-temps → refus explicite). v1 = accord de principe
-     * envoyé dans la conversation, la modification effective reste manuelle (v2 M-D :
-     * avenant automatisé calendrier + paiement). EFFET EXTERNE (message sortant).
+     * PROPOSE un avenant de séjour chiffré (agent Voyageur, M8 + v2 M-D) : dates
+     * extraites de l'intent, chiffrage PriceEngine, {@code StayModification} PROPOSED
+     * + email avec lien de confirmation (72 h) + réponse chiffrée dans la conversation.
+     * L'avenant ne s'applique qu'à l'ACCORD EXPLICITE du voyageur (page publique) :
+     * dispo et tarif RE-vérifiés sous CAS — jamais appliqué plus cher que le chiffrage
+     * accepté — puis chemin canonique {@code ReservationService.reschedule} (calendrier
+     * atomique, ménage décalé, codes régénérés, total serveur appliqué). Trop-perçu
+     * remboursé automatiquement (best-effort), complément suivi via le feed.
+     * EFFET EXTERNE (messages) → hors transaction.
      * Params : {@code conversationId}, {@code reservationId}, {@code newCheckIn},
      * {@code newCheckOut}.
      */
@@ -385,6 +389,19 @@ public final class SupervisionActionType {
      * Params : {@code requestId}.
      */
     public static final String GDPR_ERASE = "GDPR_ERASE";
+
+    /**
+     * Publie un logement connecté sur ses canaux Channex (agent Croissance, M-D) :
+     * mapping présent mais jamais poussé (PENDING) ou en erreur → « Publier » exécute
+     * le go-live canonique {@code ChannexConnectService.resync(propertyId, orgId, 0)}
+     * (full sync ARI ~500 j en 2 appels) puis le push de contenu (photos/description,
+     * additif, best-effort). État du mapping RE-vérifié à l'apply ; échec de sync →
+     * refus explicite, la carte reste. Sans mapping du tout, la carte est INFO :
+     * la connexion (OAuth iframe) se fait depuis Intégrations, pas en un clic.
+     * EFFET EXTERNE (API Channex) → hors transaction.
+     * Params : aucun (propertyId porté par la carte).
+     */
+    public static final String CHANNEL_PUBLISH = "CHANNEL_PUBLISH";
 
     private SupervisionActionType() {}
 }

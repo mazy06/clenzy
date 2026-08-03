@@ -33,6 +33,7 @@ const AcceptInvitationPage = lazy(() => import('./invitations/AcceptInvitationPa
 const PublicKeyVerification = lazy(() => import('../pages/PublicKeyVerification'));
 const PublicGuide = lazy(() => import('./welcome-guide/PublicGuide'));
 const PublicStayTransfer = lazy(() => import('./stay-transfer/PublicStayTransfer'));
+const PublicStayModification = lazy(() => import('./stay-transfer/PublicStayModification'));
 const PublicOwnerConstellation = lazy(() => import('./owner-portal/PublicOwnerConstellation'));
 const ContractSignPage = lazy(() => import('./contracts/public/ContractSignPage'));
 const PublicBookingPage = lazy(() => import('./booking-engine/public/PublicBookingPage'));
@@ -92,7 +93,7 @@ function HardRedirectToLogin(): null {
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/forgot-password', '/support', '/accept-invitation', '/supervision-demo'];
 
 // Routes publiques avec paramètres (prefix match)
-const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/', '/transfer/'];
+const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/', '/transfer/', '/stay-change/'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -364,6 +365,9 @@ const App: React.FC = () => {
 
           {/* Proposition de relogement (M11 v2) — accord explicite du voyageur */}
           <Route path="/transfer/:token" element={<PublicStayTransfer />} />
+
+          {/* Avenant de séjour (STAY_MODIFICATION v2) — accord explicite du voyageur */}
+          <Route path="/stay-change/:token" element={<PublicStayModification />} />
 
           {/* Constellation Propriétaire — lecture seule white-label (campagne X9) */}
           <Route path="/owner-view/:token" element={<PublicOwnerConstellation />} />

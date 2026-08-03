@@ -119,6 +119,10 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider;
     private final ObjectProvider<com.clenzy.service.PrivacyRequestService> privacyRequestService;
     private final ObjectProvider<com.clenzy.service.StayTransferService> stayTransferService;
+    private final ObjectProvider<com.clenzy.service.StayModificationService> stayModificationService;
+    private final ObjectProvider<com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository> channexMappingRepository;
+    private final ObjectProvider<com.clenzy.integration.channex.service.ChannexConnectService> channexConnectService;
+    private final ObjectProvider<com.clenzy.integration.channex.service.ChannexContentPushService> channexContentPushService;
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
     private final ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService;
@@ -172,6 +176,10 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider,
                                     ObjectProvider<com.clenzy.service.PrivacyRequestService> privacyRequestService,
                                     ObjectProvider<com.clenzy.service.StayTransferService> stayTransferService,
+                                    ObjectProvider<com.clenzy.service.StayModificationService> stayModificationService,
+                                    ObjectProvider<com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository> channexMappingRepository,
+                                    ObjectProvider<com.clenzy.integration.channex.service.ChannexConnectService> channexConnectService,
+                                    ObjectProvider<com.clenzy.integration.channex.service.ChannexContentPushService> channexContentPushService,
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
@@ -220,6 +228,10 @@ public class SuggestionActionExecutor {
         this.conversationServiceProvider = conversationServiceProvider;
         this.privacyRequestService = privacyRequestService;
         this.stayTransferService = stayTransferService;
+        this.stayModificationService = stayModificationService;
+        this.channexMappingRepository = channexMappingRepository;
+        this.channexConnectService = channexConnectService;
+        this.channexContentPushService = channexContentPushService;
         this.taxFilingService = taxFilingService;
         this.disputeEvidenceService = disputeEvidenceService;
         this.serviceQuoteService = serviceQuoteService;
@@ -258,7 +270,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.CHARGEBACK_SUBMIT.equals(actionType)
                 || SupervisionActionType.LINEN_STOCK_ORDER.equals(actionType)
                 || SupervisionActionType.LATE_CHECKOUT_APPROVAL.equals(actionType)
-                || SupervisionActionType.STAY_MODIFICATION.equals(actionType);
+                || SupervisionActionType.STAY_MODIFICATION.equals(actionType)
+                || SupervisionActionType.CHANNEL_PUBLISH.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -310,6 +323,7 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.LATE_CHECKOUT_APPROVAL -> applyLateCheckoutApproval(suggestion);
             case SupervisionActionType.STAY_MODIFICATION -> applyStayModification(suggestion);
             case SupervisionActionType.GDPR_ERASE -> applyGdprErase(suggestion);
+            case SupervisionActionType.CHANNEL_PUBLISH -> applyChannelPublish(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
     }
@@ -424,59 +438,41 @@ public class SuggestionActionExecutor {
     }
 
     /**
-     * STAY_MODIFICATION (v1) — répond CHIFFRÉ à la demande de modification :
-     * disponibilité et différentiel RE-calculés à l'apply (règle argent n°1 — le
-     * chiffrage du scan n'est qu'indicatif) ; dates prises entre-temps → refus
-     * explicite. v1 = accord de principe dans la conversation, la modification
-     * effective reste manuelle. EFFET EXTERNE (message sortant) → hors transaction.
+     * STAY_MODIFICATION (v2) — PROPOSE l'avenant au voyageur : chiffrage PriceEngine,
+     * re-vérifications et email avec lien de confirmation portés par
+     * {@code StayModificationService.propose} ; la réponse chiffrée part AUSSI dans
+     * la conversation (le voyageur a demandé là). L'avenant ne s'applique qu'à son
+     * accord sur la page publique (dispo + tarif RE-vérifiés, jamais appliqué plus
+     * cher que le chiffrage accepté). EFFET EXTERNE (messages) → hors transaction.
      */
     private void applyStayModification(SupervisionSuggestion suggestion) {
         final long conversationId = requiredLongParam(suggestion, "conversationId");
         final long reservationId = requiredLongParam(suggestion, "reservationId");
         final java.time.LocalDate newCheckIn = requiredDateParam(suggestion, "newCheckIn");
         final java.time.LocalDate newCheckOut = requiredDateParam(suggestion, "newCheckOut");
-        if (!newCheckOut.isAfter(newCheckIn)) {
-            throw new IllegalStateException("Dates demandées incohérentes");
-        }
         final com.clenzy.model.Conversation conversation =
                 requireOrgConversation(suggestion, conversationId);
-        final Reservation reservation = requireOrgReservation(suggestion, reservationId);
-        final Long propertyId = reservation.getProperty() != null
-                ? reservation.getProperty().getId() : null;
-        if (propertyId == null) {
-            throw new IllegalStateException("Réservation sans logement");
-        }
-        // Re-vérification dispo : seules les nuits du séjour à déplacer peuvent occuper la plage.
-        final boolean free = calendarDayRepository.findByPropertyAndDateRange(
-                        propertyId, newCheckIn, newCheckOut.minusDays(1),
-                        suggestion.getOrganizationId())
-                .stream().allMatch(day -> day.getReservation() != null
-                        && day.getReservation().getId().equals(reservation.getId()));
-        if (!free) {
-            throw new IllegalStateException("Les dates " + newCheckIn + " → " + newCheckOut
-                    + " ne sont plus disponibles — proposer une alternative dans la conversation");
-        }
-        final java.math.BigDecimal newTotal = priceEngine
-                .resolvePriceRange(propertyId, newCheckIn, newCheckOut.minusDays(1),
-                        suggestion.getOrganizationId())
-                .values().stream()
-                .filter(java.util.Objects::nonNull)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-        final java.math.BigDecimal delta = reservation.getTotalPrice() != null
-                ? newTotal.subtract(reservation.getTotalPrice()) : null;
+        requireOrgReservation(suggestion, reservationId);
+        final com.clenzy.model.StayModification modification =
+                stayModificationService.getObject().propose(suggestion.getOrganizationId(),
+                        reservationId, newCheckIn, newCheckOut, suggestion.getAppliedBy());
         final StringBuilder reply = new StringBuilder()
                 .append("Votre demande de modification de séjour (")
                 .append(newCheckIn).append(" → ").append(newCheckOut)
                 .append(") est possible : les dates sont disponibles. ")
-                .append("Le nouveau total du séjour serait de ").append(newTotal).append(" €");
+                .append("Le nouveau total du séjour serait de ")
+                .append(modification.getNewTotal()).append(" €");
+        final java.math.BigDecimal delta = modification.getPriceDelta();
         if (delta != null && delta.signum() != 0) {
             reply.append(" (soit ").append(delta.signum() > 0 ? "+" : "")
                  .append(delta).append(" € par rapport à votre réservation actuelle)");
         }
-        reply.append(". Confirmez-nous et nous appliquons la modification.");
+        reply.append(". Un email avec le lien de confirmation vient de vous être envoyé — ")
+             .append("rien ne sera modifié sans votre accord.");
         conversationServiceProvider.getObject().sendAutonomousMessage(conversation, reply.toString());
-        log.info("STAY_MODIFICATION chiffrée org={} réservation={} {}→{} total={}",
-                suggestion.getOrganizationId(), reservationId, newCheckIn, newCheckOut, newTotal);
+        log.info("STAY_MODIFICATION proposée org={} réservation={} {}→{} (avenant {})",
+                suggestion.getOrganizationId(), reservationId, newCheckIn, newCheckOut,
+                modification.getId());
     }
 
     /**
@@ -496,6 +492,47 @@ public class SuggestionActionExecutor {
                 requestId, suggestion.getOrganizationId(), appliedBy);
         log.info("GDPR_ERASE exécuté org={} demande={} par {}",
                 suggestion.getOrganizationId(), requestId, appliedBy);
+    }
+
+    /**
+     * CHANNEL_PUBLISH — go-live d'un logement connecté à Channex : état du mapping
+     * RE-vérifié à l'apply (déjà ACTIF ou coupé volontairement → refus « sans objet »),
+     * puis resync canonique (ARI ~500 j, 2 appels) et push de contenu (photos/
+     * description, additif) en best-effort — un souci de photos ne doit pas faire
+     * échouer un go-live tarifaire réussi. EFFET EXTERNE (API Channex).
+     */
+    private void applyChannelPublish(SupervisionSuggestion suggestion) {
+        final var mapping = channexMappingRepository.getObject()
+                .findByClenzyPropertyId(suggestion.getPropertyId(), suggestion.getOrganizationId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Logement non connecté à Channex — passer par Intégrations"));
+        final var status = mapping.getSyncStatus();
+        if (status == com.clenzy.integration.channex.model.ChannexSyncStatus.ACTIVE) {
+            log.info("CHANNEL_PUBLISH : mapping déjà actif (property={}) — idempotent",
+                    suggestion.getPropertyId());
+            return;
+        }
+        if (status == com.clenzy.integration.channex.model.ChannexSyncStatus.DISABLED) {
+            throw new IllegalStateException("Synchronisation coupée volontairement — "
+                    + "la réactiver depuis Intégrations avant de publier");
+        }
+        final ChannexSyncService.ChannexSyncResult result = channexConnectService.getObject()
+                .resync(suggestion.getPropertyId(), suggestion.getOrganizationId(), 0);
+        if (result == null || !result.success()) {
+            throw new IllegalStateException("Publication Channex échouée : "
+                    + (result != null ? result.message() : "aucun résultat"));
+        }
+        try {
+            channexContentPushService.getObject()
+                    .pushContent(suggestion.getPropertyId(), suggestion.getOrganizationId());
+        } catch (Exception e) {
+            log.warn("CHANNEL_PUBLISH : contenu non poussé (property={}) : {} — "
+                    + "l'ARI est publié, relancer le contenu depuis Intégrations",
+                    suggestion.getPropertyId(), e.getMessage());
+        }
+        log.info("CHANNEL_PUBLISH exécuté org={} property={} ({} dispo, {} tarifs)",
+                suggestion.getOrganizationId(), suggestion.getPropertyId(),
+                result.availabilityUpdates(), result.rateUpdates());
     }
 
     /** Charge la conversation et RE-valide l'org (règle audit n°3 : findById contourne le filtre). */

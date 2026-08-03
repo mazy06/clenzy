@@ -361,7 +361,8 @@
       "submit": "تقديم",
       "order": "طلب",
       "accept": "قبول",
-      "erase": "محو"
+      "erase": "محو",
+      "publish": "نشر"
     }
   },
   "channexGuided": {

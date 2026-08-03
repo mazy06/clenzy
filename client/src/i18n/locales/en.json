@@ -361,7 +361,8 @@
       "submit": "Submit",
       "order": "Order",
       "accept": "Accept",
-      "erase": "Erase"
+      "erase": "Erase",
+      "publish": "Publish"
     }
   },
   "channexGuided": {

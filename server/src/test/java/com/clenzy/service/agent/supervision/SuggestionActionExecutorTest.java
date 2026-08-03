@@ -100,6 +100,10 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.messaging.ConversationService conversationService;
     @Mock private com.clenzy.service.PrivacyRequestService privacyRequestServiceMock;
     @Mock private com.clenzy.service.StayTransferService stayTransferServiceMock;
+    @Mock private com.clenzy.service.StayModificationService stayModificationServiceMock;
+    @Mock private com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository channexMappingRepositoryMock;
+    @Mock private com.clenzy.integration.channex.service.ChannexConnectService channexConnectServiceMock;
+    @Mock private com.clenzy.integration.channex.service.ChannexContentPushService channexContentPushServiceMock;
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
     @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
     @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
@@ -137,6 +141,8 @@ class SuggestionActionExecutorTest {
                 provider(siteRepository), provider(sitePageRepository),
                 provider(conversationRepository), provider(conversationService),
                 provider(privacyRequestServiceMock), provider(stayTransferServiceMock),
+                provider(stayModificationServiceMock), provider(channexMappingRepositoryMock),
+                provider(channexConnectServiceMock), provider(channexContentPushServiceMock),
                 provider(taxFilingService),
                 provider(disputeEvidenceService), provider(serviceQuoteService),
                 propertyStockItemRepository,
@@ -1069,20 +1075,16 @@ class SuggestionActionExecutorTest {
     }
 
     @Test
-    @DisplayName("modification sejour : dispo + total RE-calcules -> reponse chiffree avec differentiel")
-    void stayModification_recomputesThenSendsQuotedReply() {
+    @DisplayName("modification sejour v2 : PROPOSE l'avenant puis reponse chiffree avec lien annonce")
+    void stayModification_proposesThenSendsQuotedReply() {
         com.clenzy.model.Conversation conversation = orgConversation(14L);
-        Reservation reservation = stayReservation(LocalDate.parse("2026-07-05"));
-        reservation.setTotalPrice(new java.math.BigDecimal("300"));
-        when(calendarDayRepository.findByPropertyAndDateRange(
-                PROPERTY_ID, LocalDate.parse("2026-07-06"), LocalDate.parse("2026-07-08"), ORG_ID))
-                .thenReturn(List.of());
-        when(priceEngine.resolvePriceRange(PROPERTY_ID, LocalDate.parse("2026-07-06"),
-                LocalDate.parse("2026-07-08"), ORG_ID))
-                .thenReturn(java.util.Map.of(
-                        LocalDate.parse("2026-07-06"), new java.math.BigDecimal("120"),
-                        LocalDate.parse("2026-07-07"), new java.math.BigDecimal("120"),
-                        LocalDate.parse("2026-07-08"), new java.math.BigDecimal("120")));
+        stayReservation(LocalDate.parse("2026-07-05"));
+        com.clenzy.model.StayModification modification = new com.clenzy.model.StayModification();
+        modification.setNewTotal(new java.math.BigDecimal("360"));
+        modification.setPriceDelta(new java.math.BigDecimal("60"));
+        when(stayModificationServiceMock.propose(eq(ORG_ID), eq(RESERVATION_ID),
+                eq(LocalDate.parse("2026-07-06")), eq(LocalDate.parse("2026-07-09")), any()))
+                .thenReturn(modification);
 
         executor.execute(suggestion(SupervisionActionType.STAY_MODIFICATION,
                 "{\"conversationId\":14,\"reservationId\":100,"
@@ -1090,28 +1092,59 @@ class SuggestionActionExecutorTest {
 
         verify(conversationService).sendAutonomousMessage(eq(conversation), contains("360"));
         verify(conversationService).sendAutonomousMessage(eq(conversation), contains("+60"));
+        verify(conversationService).sendAutonomousMessage(eq(conversation),
+                contains("rien ne sera modifié sans votre accord"));
     }
 
     @Test
-    @DisplayName("modification sejour : dates prises entre-temps -> refus, aucun message")
-    void stayModification_refusesWhenDatesTaken() {
+    @DisplayName("modification sejour v2 : proposition refusee par le service -> aucun message")
+    void stayModification_refusesWhenProposalRejected() {
         orgConversation(14L);
         stayReservation(LocalDate.parse("2026-07-05"));
-        com.clenzy.model.CalendarDay busy = new com.clenzy.model.CalendarDay();
-        Reservation other = new Reservation();
-        other.setId(999L);
-        busy.setReservation(other);
-        when(calendarDayRepository.findByPropertyAndDateRange(
-                PROPERTY_ID, LocalDate.parse("2026-07-06"), LocalDate.parse("2026-07-08"), ORG_ID))
-                .thenReturn(List.of(busy));
+        when(stayModificationServiceMock.propose(any(), any(), any(), any(), any()))
+                .thenThrow(new IllegalStateException("Les dates ne sont pas disponibles"));
 
         assertThatThrownBy(() -> executor.execute(
                 suggestion(SupervisionActionType.STAY_MODIFICATION,
                         "{\"conversationId\":14,\"reservationId\":100,"
                                 + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}")))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("plus disponibles");
+                .hasMessageContaining("disponibles");
         verifyNoInteractions(conversationService);
+    }
+
+    // ─── M-D — publication canal ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("publication canal : mapping PENDING -> resync go-live puis contenu pousse")
+    void channelPublish_resyncsThenPushesContent() {
+        com.clenzy.integration.channex.model.ChannexPropertyMapping mapping =
+                new com.clenzy.integration.channex.model.ChannexPropertyMapping();
+        mapping.setSyncStatus(com.clenzy.integration.channex.model.ChannexSyncStatus.PENDING);
+        when(channexMappingRepositoryMock.findByClenzyPropertyId(PROPERTY_ID, ORG_ID))
+                .thenReturn(Optional.of(mapping));
+        when(channexConnectServiceMock.resync(PROPERTY_ID, ORG_ID, 0))
+                .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
+                        .ChannexSyncResult(true, "ok", 500, 500));
+
+        executor.execute(suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}"));
+
+        verify(channexConnectServiceMock).resync(PROPERTY_ID, ORG_ID, 0);
+        verify(channexContentPushServiceMock).pushContent(PROPERTY_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("publication canal : aucun mapping -> refus, rien d'appele")
+    void channelPublish_refusesWithoutMapping() {
+        when(channexMappingRepositoryMock.findByClenzyPropertyId(PROPERTY_ID, ORG_ID))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Intégrations");
+        verifyNoInteractions(channexConnectServiceMock);
+        verifyNoInteractions(channexContentPushServiceMock);
     }
 
     // ─── M9 — effacement RGPD ────────────────────────────────────────────────

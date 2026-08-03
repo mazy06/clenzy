@@ -3687,3 +3687,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0390__create_stay_transfers.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0391-create-stay-modifications"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0391__create_stay_modifications.sql
+        relativeToChangelogFile: true

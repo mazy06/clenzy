@@ -87,6 +87,8 @@ const VERBS: Record<string, ActionVerb> = {
   STAY_MODIFICATION: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
   // RGPD (vague M-C) — le verbe dit l'irréversible.
   GDPR_ERASE: { labelKey: 'supervision.verbs.erase', fallback: 'Effacer', Icon: DeleteOutline },
+  // Distribution (vague M-D) — go-live Channex d'un logement connecté.
+  CHANNEL_PUBLISH: { labelKey: 'supervision.verbs.publish', fallback: 'Publier', Icon: Check },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

@@ -361,7 +361,8 @@
       "submit": "Soumettre",
       "order": "Commander",
       "accept": "Accepter",
-      "erase": "Effacer"
+      "erase": "Effacer",
+      "publish": "Publier"
     }
   },
   "channexGuided": {
