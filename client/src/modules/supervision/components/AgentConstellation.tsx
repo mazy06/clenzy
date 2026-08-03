@@ -46,7 +46,7 @@ export interface AgentConstellationProps {
   onHeadAgentSettled?: (id: AgentId | null) => void;
 }
 
-interface NormalizedView {
+export interface NormalizedView {
   agents: ConstellationAgentView[];
   hud: ConstellationHud;
 }
@@ -60,7 +60,8 @@ function pendingCounts(snapshot: SupervisionSnapshot): Map<AgentId, number> {
   return counts;
 }
 
-function normalize(snapshot: SupervisionSnapshot): NormalizedView {
+/** Vue normalisée d'un snapshot — partagée avec la mise à plat de SupervisionPanel. */
+export function normalizeSnapshot(snapshot: SupervisionSnapshot): NormalizedView {
   const counts = pendingCounts(snapshot);
 
   if (snapshot.scope === 'portfolio') {
@@ -119,7 +120,7 @@ export function AgentConstellation({
   onHeadAgentSettled,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
-  const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
+  const { agents, hud } = useMemo(() => normalizeSnapshot(snapshot), [snapshot]);
   // Handler stable : une lambda inline casserait le memo du renderer
   // (FramerConstellation) à chaque render.
   const handleToggleFocus = useCallback(() => setFocused((f) => !f), []);
@@ -143,6 +144,7 @@ export function AgentConstellation({
       hitlCount={hitlCount}
       flush={flush}
       onHeadAgentSettled={onHeadAgentSettled}
+      pendingItems={snapshot.pending}
     />
   );
 }

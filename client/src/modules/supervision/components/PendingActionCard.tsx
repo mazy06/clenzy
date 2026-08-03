@@ -90,9 +90,10 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
       data-pending-action={action.id}
       data-expired={expired ? '1' : undefined}
       // Ancrages de l'overlay d'attaches (SupervisionTethers) : agent porteur
-      // et urgence (< 1 h, hors cartes paiement/rappel sans minuteur).
+      // et signal ambre — même règle que la pastille de la carte : échéance
+      // sous l'heure OU carte paiement/rappel (« À régler », « Rappel »).
       data-agent-id={action.agentId}
-      data-urgent={(!isPayment && !isReminder && !expired && cd.hours < 1) || undefined}
+      data-urgent={(isPayment || isReminder || (!expired && cd.hours < 1)) || undefined}
     >
       {/* en-tête : agent + statut + expiration */}
       <div className="flex items-center gap-2 mb-1.5">

@@ -60,6 +60,82 @@ const ZOOM_ITEM_CLS =
   + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--ink)] '
   + 'data-[state=on]:shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)]';
 
+// ─── Navigation de dates + zoom (réutilisable) ───────────────────────────────
+
+interface PlanningDateNavProps {
+  currentDate: Date;
+  zoom: ZoomLevel;
+  onGoPrev: () => void;
+  onGoToday: () => void;
+  onGoNext: () => void;
+  onZoomChange: (zoom: ZoomLevel) => void;
+}
+
+/**
+ * Groupe ‹ Mois › · Aujourd'hui · Semaine/Quinzaine/Mois. Rendu par la toolbar
+ * en temps normal, et REMONTÉ dans le PageHeader quand la constellation
+ * d'agents est déployée — la toolbar disparaît alors pour rendre sa hauteur à
+ * l'accordéon.
+ */
+export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
+  currentDate,
+  zoom,
+  onGoPrev,
+  onGoToday,
+  onGoNext,
+  onZoomChange,
+}) => (
+  <>
+    {/* Navigation */}
+    <div className="flex items-center gap-0.5">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onGoPrev}
+        aria-label="Période précédente"
+        className={NAV_BTN_CLS}
+      >
+        <ChevronLeft size={15} strokeWidth={1.75} />
+      </Button>
+
+      {/* Month title : info principale (display, encre) */}
+      <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
+        {formatMonthYear(currentDate)}
+      </h6>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onGoNext}
+        aria-label="Période suivante"
+        className={NAV_BTN_CLS}
+      >
+        <ChevronRight size={15} strokeWidth={1.75} />
+      </Button>
+    </div>
+
+    <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]" onClick={onGoToday}><TodayOutlined size={13} strokeWidth={1.75} />Aujourd'hui</Badge>
+
+    {/* Zoom selector — segmented control Signature (.s-seg) */}
+    <ToggleGroup
+      type="single"
+      value={zoom}
+      // Radix laisse deselectionner : on ignore la valeur vide (comportement
+      // `exclusive` MUI, ou un clic sur l'onglet actif ne change rien).
+      onValueChange={(value) => value && onZoomChange(value as ZoomLevel)}
+      size="sm"
+      spacing={0}
+      className="gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]"
+    >
+      {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
+        <ToggleGroupItem key={level} value={level} className={ZOOM_ITEM_CLS}>
+          {ZOOM_LABELS[level]}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  </>
+);
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
@@ -90,53 +166,14 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             sidebar, le contenu étant un flex-sibling de la sidebar). */}
         <div className="flex-1 min-w-[8px]" aria-hidden />
 
-        {/* Navigation */}
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onGoPrev}
-            aria-label="Période précédente"
-            className={NAV_BTN_CLS}
-          >
-            <ChevronLeft size={15} strokeWidth={1.75} />
-          </Button>
-
-          {/* Month title : info principale (display, encre) */}
-          <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
-            {formatMonthYear(currentDate)}
-          </h6>
-
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onGoNext}
-            aria-label="Période suivante"
-            className={NAV_BTN_CLS}
-          >
-            <ChevronRight size={15} strokeWidth={1.75} />
-          </Button>
-        </div>
-
-        <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]" onClick={onGoToday}><TodayOutlined size={13} strokeWidth={1.75} />Aujourd'hui</Badge>
-
-        {/* Zoom selector — segmented control Signature (.s-seg) */}
-        <ToggleGroup
-          type="single"
-          value={zoom}
-          // Radix laisse deselectionner : on ignore la valeur vide (comportement
-          // `exclusive` MUI, ou un clic sur l'onglet actif ne change rien).
-          onValueChange={(value) => value && onZoomChange(value as ZoomLevel)}
-          size="sm"
-          spacing={0}
-          className="gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]"
-        >
-          {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
-            <ToggleGroupItem key={level} value={level} className={ZOOM_ITEM_CLS}>
-              {ZOOM_LABELS[level]}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <PlanningDateNav
+          currentDate={currentDate}
+          zoom={zoom}
+          onGoPrev={onGoPrev}
+          onGoToday={onGoToday}
+          onGoNext={onGoNext}
+          onZoomChange={onZoomChange}
+        />
 
         <div className="flex-1 min-w-[8px]" />
 

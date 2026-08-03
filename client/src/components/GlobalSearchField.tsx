@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SearchIcon, XIcon } from 'lucide-react';
 import {
@@ -60,16 +60,18 @@ export default function GlobalSearchField({ className }: { className?: string })
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, isAdmin, isManager } = useAuth();
-  const { search, setSearchValue } = useScreenChrome();
+  const { search, setSearchValue, submitSearch } = useScreenChrome();
 
   const [navQuery, setNavQuery] = useState('');
   const [open, setOpen] = useState(false);
   /**
-   * Sous 1024px, le champ cede la place a une icone : il occupait une largeur
-   * dont les onglets ont davantage besoin, et la recherche n'est pas le geste
-   * courant de ces ecrans. Deploye au clic, replie quand on le quitte vide.
+   * Le champ est REPLIÉ en loupe par défaut, à toutes les largeurs : il
+   * occupait une place permanente pour un geste occasionnel. Déployé au clic
+   * (focus immédiat), replié quand on le quitte vide — jamais quand un filtre
+   * est encore actif, sinon on l'effacerait de vue.
    */
   const [expanded, setExpanded] = useState(false);
+  const fieldWrapRef = useRef<HTMLDivElement | null>(null);
 
   const screens = useMemo<ScreenTarget[]>(() => {
     const access: HubAccess = {
@@ -111,7 +113,14 @@ export default function GlobalSearchField({ className }: { className?: string })
     if (path !== pathname) navigate(path);
   };
 
-  /** Icone de repli — visible seulement sous lg, et seulement champ ferme. */
+  /** Déplie le champ ET y pose le focus — sinon le repli au blur ne peut
+   *  jamais s'engager et la loupe demanderait deux clics. */
+  const expandField = () => {
+    setExpanded(true);
+    requestAnimationFrame(() => fieldWrapRef.current?.querySelector('input')?.focus());
+  };
+
+  /** Icone de repli — champ fermé. */
   const collapsedTrigger = (
     <Button
       type="button"
@@ -119,25 +128,26 @@ export default function GlobalSearchField({ className }: { className?: string })
       size="icon"
       /* Pas de taille forcee : `size="icon"` porte le gabarit du kit (32 px,
          rayon 10). Un `size-9` maison desalignait ce bouton de ses voisins. */
-      className="shrink-0 lg:hidden"
+      className="shrink-0"
       aria-label={t('common.search', 'Rechercher…')}
       aria-expanded={false}
-      onClick={() => setExpanded(true)}
+      onClick={expandField}
     >
       <SearchIcon />
     </Button>
   );
 
   /**
-   * Enveloppe le champ : masque sous lg tant qu'il n'est pas deploye, toujours
-   * visible au-dessus. Le repli se fait a la sortie du champ, et seulement s'il
-   * est vide — sinon on effacerait de vue un filtre encore actif.
+   * Enveloppe le champ : masqué tant qu'il n'est pas déployé. Le repli se fait
+   * à la sortie du champ, et seulement s'il est vide — sinon on effacerait de
+   * vue un filtre encore actif.
    */
   const withCollapse = (field: React.ReactNode, isEmpty: boolean) => (
     <>
       {!expanded && collapsedTrigger}
       <div
-        className={cn('items-center', expanded ? 'flex' : 'hidden lg:flex')}
+        ref={fieldWrapRef}
+        className={cn('items-center', expanded ? 'flex' : 'hidden')}
         onBlur={(event) => {
           if (isEmpty && !event.currentTarget.contains(event.relatedTarget as Node)) {
             setExpanded(false);
@@ -166,6 +176,12 @@ export default function GlobalSearchField({ className }: { className?: string })
           placeholder={search.placeholder ?? t('common.search', 'Rechercher…')}
           aria-label={search.placeholder ?? t('common.search', 'Rechercher…')}
           onChange={(event) => setSearchValue(event.target.value)}
+          // Entrée : soumet à l'écran branché s'il porte un onSubmit (ex.
+          // Planning + constellation ouverte → demande aux agents). Sans
+          // onSubmit, ne fait rien — le filtre agit déjà à la frappe.
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') submitSearch();
+          }}
         />
         {value !== '' && (
           <InputGroupAddon align="inline-end">

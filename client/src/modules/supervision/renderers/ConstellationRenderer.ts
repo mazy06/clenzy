@@ -11,7 +11,7 @@
    ============================================================ */
 
 import type { ComponentType, ReactNode } from 'react';
-import type { AgentId, AgentStatus, AutonomyLevel } from '../types';
+import type { AgentId, AgentStatus, AutonomyLevel, PendingAction } from '../types';
 
 export interface ConstellationAgentView {
   id: AgentId;
@@ -85,6 +85,12 @@ export interface ConstellationRendererProps {
    * emplacement de tête (FramerConstellation) l'ignorent.
    */
   onHeadAgentSettled?: (id: AgentId | null) => void;
+  /**
+   * File HITL brute — alimente l'infobulle RICHE des nœuds (aperçu borné des
+   * actions en attente de l'agent + échéances, cf. OrbitDiagram). Optionnel :
+   * sans elle, l'infobulle retombe sur la tâche en cours / le rôle.
+   */
+  pendingItems?: readonly PendingAction[];
 }
 
 export type ConstellationRenderer = ComponentType<ConstellationRendererProps>;

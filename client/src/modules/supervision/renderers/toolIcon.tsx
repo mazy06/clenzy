@@ -105,3 +105,24 @@ export function toolIconFor(toolName: string | undefined | null, size = 14): Rea
   const render = TOOL_ICON[toolName];
   return render ? render(size) : null;
 }
+
+/**
+ * Événements de nature INCIDENT (échec, anomalie, écart) — le feed les
+ * étiquette en ambre, comme la projection. Même source que les icônes : un
+ * nouvel outil d'échec s'ajoute ici ET dans TOOL_ICON.
+ */
+const INCIDENT_TOOLS = new Set([
+  'ical_sync_failed',
+  'rate_parity_issue',
+  'payment_failed',
+  'sensor_anomaly',
+  'SEND_MESSAGE_FAILED',
+  'SEND_GUIDE_FAILED',
+  'SEND_CHECKIN_LINK_FAILED',
+  'SEND_NOISE_WARNING_FAILED',
+  'SEND_REVIEW_REQUEST_FAILED',
+]);
+
+export function isIncidentTool(toolName: string | undefined | null): boolean {
+  return toolName != null && INCIDENT_TOOLS.has(toolName);
+}

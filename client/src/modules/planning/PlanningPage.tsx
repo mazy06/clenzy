@@ -3,6 +3,11 @@ import {
   Alert,
   AlertDescription,
   Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Spinner,
   Tooltip,
   TooltipContent,
@@ -11,11 +16,11 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
-import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
+import { CalendarMonth, Add, CloudDownload, Fullscreen, FilterList, MoreVert } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
-import PlanningToolbar from './PlanningToolbar';
+import PlanningToolbar, { PlanningDateNav } from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
 import { computeDayOccupancy } from './PlanningOccupancyRow';
@@ -57,6 +62,7 @@ import {
   useCanSuperviseAgents,
   useSupervisionConfig,
   useSupervisionPendingCounts,
+  SUPERVISION_ASK_EVENT,
   type SupervisionScope,
 } from '../supervision';
 
@@ -247,6 +253,21 @@ const PlanningPage: React.FC = () => {
   // en 1ʳᵉ position ; la pagination (firstItemAlone) l'isole alors sur sa propre
   // page (panneau plein écran) et fait glisser les autres logements en pages 2+.
   const supervisorExpanded = canSupervise && expandedPropertyId != null;
+
+  // Menu « ⋯ » du header : les actions du planning regroupées sous une seule
+  // icône. Le popover de filtres s'ancre sur ce même bouton (anchorEl).
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const moreAnchorRef = useRef<HTMLSpanElement | null>(null);
+
+  // Constellation ouverte : le champ UNIQUE du header devient l'entrée
+  // opérateur → agents (Entrée = envoi). Le filtre de logements n'a pas de
+  // sens ici — la grille est masquée par l'accordéon.
+  const [agentAsk, setAgentAsk] = useState('');
+  const sendAgentAsk = useCallback((text: string) => {
+    if (!text.trim()) return;
+    window.dispatchEvent(new CustomEvent(SUPERVISION_ASK_EVENT, { detail: { text } }));
+    setAgentAsk('');
+  }, []);
 
   // La rangée de chips légende (canaux/statuts/interventions) migre dans la
   // modale de filtres quand la toolbar ne peut pas l'afficher : viewport
@@ -644,93 +665,115 @@ const PlanningPage: React.FC = () => {
                 {canSupervise && (
                   <ScopeSwitch value={supervisionScope} onChange={setSupervisionScope} />
                 )}
-                {!isOverview && (
-                  <HeaderSearchField
-                    value={filters.searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder="Rechercher..."
+                {/* Constellation déployée : la navigation de dates + zoom
+                    REMONTE ici — la toolbar disparaît et rend sa hauteur à
+                    l'accordéon. */}
+                {!isOverview && supervisorExpanded && (
+                  <PlanningDateNav
+                    currentDate={visibleMonthDate}
+                    zoom={nav.zoom}
+                    onGoPrev={nav.goPrev}
+                    onGoToday={handleGoToday}
+                    onGoNext={nav.goNext}
+                    onZoomChange={nav.setZoom}
                   />
+                )}
+                {!isOverview && (
+                  supervisorExpanded ? (
+                    <HeaderSearchField
+                      value={agentAsk}
+                      onChange={setAgentAsk}
+                      placeholder="Demandez quelque chose aux agents…"
+                      onSubmit={sendAgentAsk}
+                    />
+                  ) : (
+                    <HeaderSearchField
+                      value={filters.searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder="Rechercher..."
+                    />
+                  )
                 )}
               </>
             }
             actions={
               isOverview ? undefined : (
-              <>
-                <PlanningFilterButton
-                  filters={filters}
-                  density={nav.density}
-                  hasActiveFilters={hasActiveFilters}
-                  onDensityChange={nav.setDensity}
-                  onShowInterventionsChange={setShowInterventions}
-                  onShowPricesChange={setShowPrices}
-                  onClearFilters={handleClearFilters}
-                  urgencyAnimation={urgencyAnimation}
-                  onUrgencyAnimationChange={setUrgencyAnimation}
-                  showLegendChips={legendInModal}
-                  activeChannels={activeChannels}
-                  onToggleChannel={toggleChannel}
-                  presentChannels={presentChannels}
-                  activeStatuses={activeStatuses}
-                  onToggleStatus={toggleStatus}
-                />
-                {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa
-                    ref d'ancrage, qu'un composant fonction React 18 ne recoit pas. */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
-                        onClick={nav.toggleFullscreen}
-                      >
-                        {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>{nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Importer des réservations ou connecter vos canaux"
-                        onClick={() => setImportChooserOpen(true)}
-                      >
-                        <CloudDownload size={18} strokeWidth={1.85} />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Importer des réservations (iCal) ou connecter vos canaux (Channel Manager)</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Nouvelle réservation"
-                        onClick={handleCreateReservation}
+                <>
+                  {/* Les actions du planning tiennent sous UNE icône : filtres,
+                      plein écran, import, création. Le span porte l'ancre du
+                      popover de filtres (rendu à part, contrôlé). */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <span ref={moreAnchorRef} className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Actions du planning"
+                          className="relative"
+                        >
+                          <MoreVert size={18} strokeWidth={1.85} />
+                          {/* Des filtres sont actifs : le point le dit même menu fermé. */}
+                          {hasActiveFilters && (
+                            <span className="absolute top-1 end-1 size-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+                          )}
+                        </Button>
+                      </span>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setFilterMenuOpen(true)}>
+                        <FilterList size={15} strokeWidth={1.75} />
+                        Filtres & affichage
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={nav.toggleFullscreen}>
+                        <Fullscreen size={15} strokeWidth={1.75} />
+                        Plein écran
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setImportChooserOpen(true)}>
+                        <CloudDownload size={15} strokeWidth={1.75} />
+                        Importer / connecter des canaux
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
                         disabled={properties.length === 0}
-                        className="text-[var(--accent)]"
+                        onSelect={handleCreateReservation}
                       >
-                        <Add size={18} strokeWidth={1.85} />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Nouvelle réservation</TooltipContent>
-                </Tooltip>
-              </>
+                        <Add size={15} strokeWidth={1.75} />
+                        Nouvelle réservation
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <PlanningFilterButton
+                    filters={filters}
+                    density={nav.density}
+                    hasActiveFilters={hasActiveFilters}
+                    onDensityChange={nav.setDensity}
+                    onShowInterventionsChange={setShowInterventions}
+                    onShowPricesChange={setShowPrices}
+                    onClearFilters={handleClearFilters}
+                    urgencyAnimation={urgencyAnimation}
+                    onUrgencyAnimationChange={setUrgencyAnimation}
+                    showLegendChips={legendInModal}
+                    activeChannels={activeChannels}
+                    onToggleChannel={toggleChannel}
+                    presentChannels={presentChannels}
+                    activeStatuses={activeStatuses}
+                    onToggleStatus={toggleStatus}
+                    open={filterMenuOpen}
+                    onOpenChange={setFilterMenuOpen}
+                    anchorEl={moreAnchorRef.current}
+                  />
+                </>
               )
             }
           />
         </div>
       )}
 
-      {/* Toolbar — navigation/zoom/légendes du planning : masqué en Vue d'ensemble */}
-      {!isOverview && (
+      {/* Toolbar — navigation/zoom/légendes du planning : masquée en Vue
+          d'ensemble, et quand la constellation est déployée (la navigation vit
+          alors dans le PageHeader) — SAUF en plein écran, où le header n'existe
+          pas : la toolbar reste la seule porteuse de la navigation. */}
+      {!isOverview && (!supervisorExpanded || nav.isFullscreen) && (
         <div className="shrink-0 mb-1.5">
           <PlanningToolbar
             currentDate={visibleMonthDate}

@@ -12,8 +12,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
-import { toolIconFor } from '../renderers/toolIcon';
-import type { FeedEntry, PortfolioFeedEntry } from '../types';
+import { toolIconFor, isIncidentTool } from '../renderers/toolIcon';
+import type { FeedEntry, PendingAction, PortfolioFeedEntry, PortfolioPendingAction } from '../types';
 import { FeedMessageModal } from './FeedMessageModal';
 import { FeedInvoiceModal } from './FeedInvoiceModal';
 
@@ -26,7 +26,22 @@ function hhmm(iso: string): string {
 // pas à chaque re-render du panneau (events SSE agents, toasts, report).
 export const ActivityFeed = memo(ActivityFeedInner);
 
-function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
+/**
+ * Fenêtre de rapprochement entrée ↔ action en attente : le contrat FeedEntry
+ * ne porte pas le lien vers l'action, mais l'entrée qui ANNONCE une
+ * proposition naît au même instant qu'elle — même agent, même minute.
+ */
+const VALIDATION_MATCH_MS = 60_000;
+
+function ActivityFeedInner({
+  entries,
+  pending,
+}: {
+  entries: (FeedEntry | PortfolioFeedEntry)[];
+  /** File HITL courante — étiquette ambre « validation requise » sur les
+   *  entrées qui annoncent une action ENCORE en attente (cf. rapprochement). */
+  pending?: readonly (PendingAction | PortfolioPendingAction)[];
+}) {
   const { t } = useTranslation();
   // Détail métier replié par défaut : on ne montre que le libellé, la description
   // (motif d'échec, montant…) s'ouvre au clic sur le chevron.
@@ -81,7 +96,21 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
         // ouvre la modale (le chevron ferait doublon).
         const detail = clickable ? null : detailFor(entry);
         const isOpen = expanded.has(entry.id);
+        // L'entrée annonce une action encore en attente de validation → l'ambre
+        // le dit, comme sur la carte et son attache.
+        const entryAt = new Date(entry.at).getTime();
+        const awaitsValidation = (pending ?? []).some(
+          (action) =>
+            action.agentId === entry.agentId
+            && Math.abs(new Date(action.createdAt).getTime() - entryAt) < VALIDATION_MATCH_MS,
+        );
+        // Nature incident (échec, anomalie, écart) : étiquetée en ambre — on
+        // n'étiquette que l'EXCEPTION, l'exécution ordinaire reste muette.
+        const incident = !isOrchestrator && isIncidentTool(entry.toolName);
         return (
+          // Ligne au dessin de la projection : icône discrète (la NATURE de
+          // l'action, monochrome — plus de tuile colorée), libellé, ligne
+          // « Agent X », horodatage à droite. Filets 1 px entre les lignes.
           <div
             key={entry.id}
             {...(clickable
@@ -101,23 +130,30 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                 }
               : {})}
             className={cn(
-              'flex gap-[7.5px] py-1.5 px-[3px] border-b border-solid border-b-[var(--line,_#eef0f4)] last-of-type:border-b-0',
-              clickable &&
-                'cursor-pointer rounded-[6px] transition-[background] duration-150 ease-[ease] hover:bg-[var(--hover,_rgba(107,138,154,0.08))] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[-2px]',
+              'flex items-start gap-3 border-t border-solid border-border px-2 py-2.5 first-of-type:border-t-0 transition-colors duration-100 hover:bg-muted/60',
+              clickable && 'cursor-pointer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
             )}
           >
-            <div className="w-[26px] h-[26px] rounded-[8px] text-[#fff] flex items-center justify-center shrink-0" style={{ background: isOrchestrator ? 'var(--accent)' : meta.color }}>
+            <span className="mt-px shrink-0 text-muted-foreground [&>svg]:size-3.5">
               {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
-            </div>
+            </span>
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] text-[var(--muted,_#6b7196)] tabular-nums">
-                {hhmm(entry.at)}
-                {propertyName ? ` · ${propertyName}` : ''}
-              </div>
-              <div className="flex items-center gap-0.5 justify-between">
-                <div className="text-[12.5px] text-[var(--ink,_#1b2240)] leading-[1.4] min-w-0">
-                  {labelFor(entry)}
-                </div>
+              <p className="m-0 max-w-[75ch] text-xs text-foreground">{labelFor(entry)}</p>
+              <p className="m-0 mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                {isOrchestrator
+                  ? t('supervision.hud.orchestrator')
+                  : t('supervision.feed.agentLine', { name: t(meta.nameKey), defaultValue: 'Agent {{name}}' })}
+                {propertyName && <span className="min-w-0 truncate">· {propertyName}</span>}
+                {awaitsValidation && (
+                  <span className="font-medium text-warning-ink">
+                    {t('supervision.feed.validationRequired', 'validation requise')}
+                  </span>
+                )}
+                {incident && (
+                  <span className="font-medium text-warning-ink">
+                    {t('supervision.feed.incident', 'incident')}
+                  </span>
+                )}
                 {detail && (
                   <Button
                     variant="ghost"
@@ -126,7 +162,7 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                     aria-label={t('common.details', { defaultValue: 'Détails' })}
                     aria-expanded={isOpen}
                     className={cn(
-                      'size-5 text-[var(--muted,_#6b7196)]',
+                      'size-4 text-muted-foreground',
                       '[&_svg]:transition-transform [&_svg]:duration-200 [&_svg]:ease-[ease] motion-reduce:[&_svg]:transition-none',
                       isOpen && '[&_svg]:rotate-180',
                     )}
@@ -134,13 +170,14 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                     <ChevronDown size={14} />
                   </Button>
                 )}
-              </div>
+              </p>
               {detail && isOpen && (
-                <div className="text-[11.5px] text-[var(--muted,_#6b7196)] leading-[1.35] mt-[1.5px] break-words">
+                <p className="m-0 mt-1 max-w-[75ch] text-xs leading-relaxed text-muted-foreground break-words">
                   {detail}
-                </div>
+                </p>
               )}
             </div>
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{hhmm(entry.at)}</span>
           </div>
         );
       })}

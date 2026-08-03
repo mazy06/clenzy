@@ -15,9 +15,11 @@ interface HeaderSearchFieldProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Entrée dans le champ du header (cf. useScreenSearch). */
+  onSubmit?: (value: string) => void;
 }
 
-export default function HeaderSearchField({ value, onChange, placeholder }: HeaderSearchFieldProps) {
-  useScreenSearch(value, onChange, placeholder);
+export default function HeaderSearchField({ value, onChange, placeholder, onSubmit }: HeaderSearchFieldProps) {
+  useScreenSearch(value, onChange, placeholder, onSubmit);
   return null;
 }

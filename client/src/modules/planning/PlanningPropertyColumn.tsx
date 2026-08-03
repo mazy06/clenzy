@@ -234,13 +234,19 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             )}
           </div>
           {/* Spacer d'alignement : compense la hauteur de l'accordéon côté grille.
-              Fond = base SOMBRE de la constellation (et non var(--bg)) : le panneau
-              constellation (position:sticky, tiré à gauche par ml) met une frame à
-              se caler ; sans ça, la zone colonne de gauche flashait en clair une
-              fraction de seconde (« droite avant gauche »). Ici elle est déjà
-              sombre = raccord invisible avec la constellation. */}
+              Fond = celui du tableau constellation À PLAT (fond de page) : le
+              panneau (position:sticky, tiré à gauche par ml) met une frame à se
+              caler, et ce spacer doit se fondre avec lui — l'ancienne base
+              sombre du canvas deep-space laissait une bande nuit sous la
+              colonne depuis le passage au registre produit. */}
           {expandedPropertyId === property.id && (
-            <div className="bg-[#0c0e2a]" style={{ height: accordionHeight, borderBottom: '1px solid var(--line)' }} />
+            // width +1px : le spacer RECOUVRE la bordure droite du conteneur
+            // de colonne sur sa hauteur — le tableau constellation est une
+            // surface continue, le filet « 2 colonnes » ne doit pas le couper.
+            <div
+              className="bg-[var(--bg)]"
+              style={{ height: accordionHeight, borderBottom: '1px solid var(--line)', width: 'calc(100% + 1px)' }}
+            />
           )}
           </React.Fragment>
         );

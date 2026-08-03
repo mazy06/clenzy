@@ -141,7 +141,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
             </p>
             <div className="px-1.5 pb-1.5 max-h-[220px] overflow-y-auto">
               {portfolio.feed.length > 0 ? (
-                <ActivityFeed entries={portfolio.feed} />
+                <ActivityFeed entries={portfolio.feed} pending={portfolio.pending} />
               ) : (
                 <div className="px-2 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
                   {t(

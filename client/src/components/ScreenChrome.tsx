@@ -33,6 +33,9 @@ interface SearchRegistration {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Entrée dans le champ du header : l'écran reçoit la valeur soumise
+   *  (ex. Planning avec la constellation ouverte → demande aux agents). */
+  onSubmit?: (value: string) => void;
 }
 
 /** Ce que le header a besoin de connaître de la recherche d'écran active. */
@@ -47,6 +50,8 @@ interface ScreenChromeValue {
   search: ScreenSearchSnapshot | null;
   /** Répercute la saisie du header vers l'écran branché. */
   setSearchValue: (value: string) => void;
+  /** Entrée dans le champ du header → `onSubmit` de l'écran branché (s'il en a un). */
+  submitSearch: () => void;
   mountSearch: (id: string, registration: SearchRegistration) => void;
   unmountSearch: (id: string) => void;
   /**
@@ -67,6 +72,7 @@ const noop = () => {};
 const FALLBACK: ScreenChromeValue = {
   search: null,
   setSearchValue: noop,
+  submitSearch: noop,
   mountSearch: noop,
   unmountSearch: noop,
   tabsSlot: null,
@@ -137,6 +143,12 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
     registration?.onChange(value);
   }, []);
 
+  const submitSearch = useCallback(() => {
+    const id = searchOrderRef.current[searchOrderRef.current.length - 1];
+    const registration = id ? searchesRef.current.get(id) : undefined;
+    registration?.onSubmit?.(registration.value);
+  }, []);
+
   // Fil d'Ariane interne. Les effets des composants ENFANTS s'exécutent avant
   // ceux de leurs parents : l'ordre de montage est donc du plus interne au plus
   // externe, on le renverse pour lire le chemin de gauche à droite.
@@ -164,11 +176,11 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
 
   const value = useMemo<ScreenChromeValue>(
     () => ({
-      search, setSearchValue, mountSearch, unmountSearch,
+      search, setSearchValue, submitSearch, mountSearch, unmountSearch,
       tabsSlot, setTabsSlot,
       trail, mountTrail, unmountTrail,
     }),
-    [search, setSearchValue, mountSearch, unmountSearch, tabsSlot, trail, mountTrail, unmountTrail],
+    [search, setSearchValue, submitSearch, mountSearch, unmountSearch, tabsSlot, trail, mountTrail, unmountTrail],
   );
 
   return <ScreenChromeContext.Provider value={value}>{children}</ScreenChromeContext.Provider>;
@@ -184,18 +196,28 @@ export function useScreenSearch(
   value: string,
   onChange: (value: string) => void,
   placeholder?: string,
+  onSubmit?: (value: string) => void,
 ): void {
   const { mountSearch, unmountSearch } = useScreenChrome();
   const id = useId();
 
-  // `onChange` est lu au moment de la saisie, jamais comparé : une lambda
-  // recréée à chaque rendu ne doit pas relancer d'effet.
+  // `onChange`/`onSubmit` sont lus au moment du geste, jamais comparés : une
+  // lambda recréée à chaque rendu ne doit pas relancer d'effet.
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onSubmitRef = useRef(onSubmit);
+  onSubmitRef.current = onSubmit;
 
   useEffect(() => {
-    mountSearch(id, { value, placeholder, onChange: (next) => onChangeRef.current(next) });
-  }, [id, value, placeholder, mountSearch]);
+    mountSearch(id, {
+      value,
+      placeholder,
+      onChange: (next) => onChangeRef.current(next),
+      onSubmit: onSubmit ? (submitted) => onSubmitRef.current?.(submitted) : undefined,
+    });
+    // `!!onSubmit` (présence) plutôt que l'identité : cf. refs ci-dessus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, value, placeholder, mountSearch, Boolean(onSubmit)]);
 
   useEffect(() => () => unmountSearch(id), [id, unmountSearch]);
 }

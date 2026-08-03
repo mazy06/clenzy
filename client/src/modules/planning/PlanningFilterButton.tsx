@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Button,
   Popover,
+  PopoverAnchor,
   PopoverTrigger,
   PopoverContent,
   Separator,
@@ -48,6 +49,13 @@ interface PlanningFilterButtonProps {
   presentChannels?: ReadonlySet<PlanningChannelKey>;
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
+  // ── Contrôle externe (menu « ⋯ » regroupé du header) ──────────────────────
+  // Quand `anchorEl` est fourni, le composant ne rend PAS son entonnoir : le
+  // popover s'ancre sur cet élément (le bouton du menu) et l'ouverture est
+  // pilotée par `open`/`onOpenChange`. Absents = trigger interne historique.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  anchorEl?: HTMLElement | null;
 }
 
 // Variantes d'animation d'urgence des briques (galerie Signature 09b).
@@ -128,10 +136,17 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   presentChannels,
   activeStatuses,
   onToggleStatus,
+  open,
+  onOpenChange,
+  anchorEl,
 }) => {
   // Le popover du kit s'ancre sur son trigger : un booleen suffit, l'element
-  // anchor n'a plus a etre porte par l'etat.
-  const [filterOpen, setFilterOpen] = useState(false);
+  // anchor n'a plus a etre porte par l'etat. En mode contrôlé (menu regroupé),
+  // l'état vit chez le parent.
+  const [internalOpen, setInternalOpen] = useState(false);
+  const filterOpen = open ?? internalOpen;
+  const setFilterOpen = (next: boolean) =>
+    onOpenChange ? onOpenChange(next) : setInternalOpen(next);
 
   // Badge de l'entonnoir : nombre de filtres actifs (toutes catégories).
   // Un canal/statut désélectionné = un filtre actif, où qu'il soit affiché.
@@ -155,33 +170,39 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
   return (
     <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            {/* Le kit ne transmet pas de ref (React 18) : le span porte celle
-                que Radix pose pour l'ancrage et le declencheur d'infobulle. */}
-            <span className="inline-flex">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Filtres"
-                className={cn(
-                  'relative',
-                  (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
-                )}
-              >
-                <FilterListIcon size={18} strokeWidth={1.85} />
-                {activeFilterCount > 0 && (
-                  <span className="absolute top-1 end-1 inline-flex items-center justify-center min-w-3 h-3 px-[3px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[0.5rem] font-semibold leading-none tabular-nums">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </Button>
-            </span>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Filtres</TooltipContent>
-      </Tooltip>
+      {anchorEl ? (
+        // Mode contrôlé : le popover s'ancre sur le bouton du menu regroupé,
+        // aucun trigger propre.
+        <PopoverAnchor virtualRef={{ current: anchorEl }} />
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              {/* Le kit ne transmet pas de ref (React 18) : le span porte celle
+                  que Radix pose pour l'ancrage et le declencheur d'infobulle. */}
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Filtres"
+                  className={cn(
+                    'relative',
+                    (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
+                  )}
+                >
+                  <FilterListIcon size={18} strokeWidth={1.85} />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute top-1 end-1 inline-flex items-center justify-center min-w-3 h-3 px-[3px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[0.5rem] font-semibold leading-none tabular-nums">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </span>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Filtres</TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Filter popover */}
       <PopoverContent

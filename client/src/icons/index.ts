@@ -123,6 +123,8 @@ export {
   Filter as FilterList,
   LayoutGrid as GridView,
   List as ViewList,
+  Orbit,
+  MousePointerClick,
 } from 'lucide-react';
 
 // ─── Utilisateurs / auth ────────────────────────────────────────────────────

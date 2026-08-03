@@ -9,8 +9,16 @@
    ============================================================ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
-import { WifiOff, Replay, Radar } from '../../../icons';
+import {
+  Button,
+  Spinner,
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { WifiOff, Replay, Radar, GridView, Orbit, Tune, ViewList } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
@@ -19,14 +27,16 @@ import { useResolutionToasts } from '../core/useResolutionToasts';
 import { spawnComet } from '../core/spawnComet';
 import { AGENT_META } from '../constants';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
-import { AgentConstellation } from './AgentConstellation';
-import { OrbitConstellation } from '../renderers/OrbitConstellation';
+import { AgentConstellation, normalizeSnapshot } from './AgentConstellation';
+import { OrbitConstellation, REPORT_WINDOWS } from '../renderers/OrbitConstellation';
+import { OrbitDiagram, busiestAgent } from '../renderers/OrbitDiagram';
+import { ConstellationQueue } from './ConstellationQueue';
+import { ConstellationAgentCards } from './ConstellationAgentCards';
 import { SupervisionTethers } from './SupervisionTethers';
 import { ActivityFeed } from './ActivityFeed';
 import { TaskDeckQueue } from './TaskDeckQueue';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
-import { SupervisionChatBar } from './SupervisionChatBar';
 import { SupervisionPendingAction } from './SupervisionPendingAction';
 import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
@@ -54,6 +64,15 @@ export interface SupervisionPanelProps {
  *  (rail de pastilles + tiroir bas) pour dégager la constellation. Largeur du
  *  panneau, pas de la fenêtre : l'accordéon Planning peut être étroit sur desktop. */
 const COMPACT_MAX_WIDTH = 840;
+
+/**
+ * Demande opérateur → orchestrateur, émise par le CHAMP UNIQUE du header
+ * (Planning branche « Demandez quelque chose aux agents… » dessus quand la
+ * constellation est ouverte — la barre de chat dédiée a disparu, c'était un
+ * doublon). detail: { text }. Les réponses arrivent dans le feed (entrées
+ * orchestrateur).
+ */
+export const SUPERVISION_ASK_EVENT = 'supervision:ask';
 
 export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction, flush }: SupervisionPanelProps) {
   const { t } = useTranslation();
@@ -88,9 +107,14 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   );
   const { report } = useSupervisionReport(reportWindow);
   const [selected, setSelected] = useState<AgentId | null>(null);
-  // Agent stabilisé à l'emplacement de tête (OrbitConstellation) → attaches
-  // vers ses cartes HITL de la file flottante.
+  // Agent stabilisé à l'emplacement de tête (diagramme) → attaches vers ses
+  // cartes HITL de la file en colonne.
   const [headAgent, setHeadAgent] = useState<AgentId | null>(null);
+  // Sélection du tableau à plat (vue large) : l'agent dont la file est ouverte.
+  const [boardAgent, setBoardAgent] = useState<AgentId | null>(null);
+  // Vue du tableau : constellation (diagramme + attaches), cartes par agent,
+  // ou activité — le feed vit UNIQUEMENT ici, centralisé.
+  const [boardView, setBoardView] = useState<'cards' | 'orbit' | 'feed'>('orbit');
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
 
   // « moment comète » : du nœud agent vers la cellule du planning (data-reservation-id).
@@ -109,7 +133,18 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     onResolved,
   });
 
-  const handleSend = useCallback((message: string) => void actions.kickoff(message), [actions]);
+  // Demande opérateur → run du moteur multi-agent, reçue du CHAMP UNIQUE du
+  // header (SUPERVISION_ASK_EVENT) — la barre de chat dédiée était un doublon.
+  // Les réponses de l'orchestrateur arrivent dans le feed.
+  useEffect(() => {
+    if (!canKickoff) return;
+    const handler = (event: Event) => {
+      const text = (event as CustomEvent<{ text?: string }>).detail?.text;
+      if (text && text.trim()) void actions.kickoff(text);
+    };
+    window.addEventListener(SUPERVISION_ASK_EVENT, handler);
+    return () => window.removeEventListener(SUPERVISION_ASK_EVENT, handler);
+  }, [canKickoff, actions]);
 
   // Scan manuel (Phase 3-B.2) : revue proactive → recharge le snapshot (feed/suggestions réels).
   const [scanning, setScanning] = useState(false);
@@ -171,6 +206,30 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   // return : les useMemo ci-dessous en dépendent (Rules of Hooks).
   const propertySnapshot = snapshot && snapshot.scope === 'property' ? snapshot : null;
 
+  // Vue normalisée (agents + compteurs) pour le tableau à plat — même
+  // dérivation que la constellation (compteur d'attente par agent inclus).
+  const normalized = useMemo(() => (snapshot ? normalizeSnapshot(snapshot) : null), [snapshot]);
+
+  // Le tableau s'ouvre sur l'agent le plus chargé et SUIT les mises à jour du
+  // flux (le premier snapshot arrive souvent avant la file — se figer dessus
+  // ouvrait la file d'un agent à zéro). Dès que l'opérateur clique, sa
+  // sélection devient souveraine.
+  const boardAgentPicked = useRef(false);
+  useEffect(() => {
+    if (boardAgentPicked.current || !normalized || normalized.agents.length === 0) return;
+    const busiest = busiestAgent(normalized.agents);
+    if (busiest) setBoardAgent((prev) => (prev === busiest ? prev : busiest));
+  }, [normalized]);
+
+  const selectBoardAgent = useCallback(
+    (id: AgentId) => {
+      boardAgentPicked.current = true;
+      setBoardAgent(id);
+      onSelectAgent?.(id);
+    },
+    [onSelectAgent],
+  );
+
   // Props STABILISÉES (audit perf) : ces objets/éléments étaient recréés inline à
   // chaque render du panneau et cassaient le memo de tout le sous-arbre
   // constellation (FramerConstellation, ActivityFeed).
@@ -217,6 +276,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   );
 
   const feed = propertySnapshot?.feed;
+  const feedPending = propertySnapshot?.pending;
   const belowHud = useMemo(
     () =>
       feed ? (
@@ -230,7 +290,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               contain : le scroll ne chaîne pas non plus à la page au bord. */}
           <div data-vertical-scroll className="px-1.5 pb-1.5 overflow-y-auto min-h-0 overscroll-contain">
             {feed.length > 0 ? (
-              <ActivityFeed entries={feed} />
+              <ActivityFeed entries={feed} pending={feedPending} />
             ) : (
               <div className="px-1.5 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
                 {t(
@@ -242,7 +302,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           </div>
         </div>
       ) : undefined,
-    [feed, t],
+    [feed, feedPending, t],
   );
 
   // File HITL du mode compact : même contenu que les piles flottantes haut-droite,
@@ -291,78 +351,223 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
 
   return (
     <div className="relative h-full min-h-[380px] flex flex-col" ref={attachRoot}>
-      {/* Scan manuel (mode live) : posé EN ICÔNE dans le HUD (haut-gauche), à
-          droite du titre « Orchestrateur · actif » — plus de pastille texte
-          séparée qui recouvrait la carte d'activité. */}
-      <AgentConstellation
-        snapshot={snapshot}
-        renderer={OrbitConstellation}
-        online={status === 'live'}
-        flush={flush}
-        onSelectAgent={handleSelect}
-        report={hudReport}
-        reportWindow={reportWindow}
-        onReportWindowChange={handleReportWindowChange}
-        headerAction={headerAction}
-        belowHud={belowHud}
-        compact={compact}
-        hitl={hitlContent}
-        hitlCount={pendingCount}
-        onHeadAgentSettled={setHeadAgent}
-      />
-
-      {/* Attaches agent de tête → cartes HITL (grammaire de la projection).
-          En compact la file vit dans un tiroir : aucun trait à dessiner. */}
-      {!compact && (
-        <SupervisionTethers
-          rootRef={rootRef}
-          headAgent={headAgent}
-          revision={snapshot.pending}
+      {compact ? (
+        /* Étroit : constellation en canvas + rail de pastilles + tiroirs —
+           le renderer porte toute la présentation. */
+        <AgentConstellation
+          snapshot={snapshot}
+          renderer={OrbitConstellation}
+          online={status === 'live'}
+          flush={flush}
+          onSelectAgent={handleSelect}
+          report={hudReport}
+          reportWindow={reportWindow}
+          onReportWindowChange={handleReportWindowChange}
+          headerAction={headerAction}
+          belowHud={belowHud}
+          compact
+          hitl={hitlContent}
+          hitlCount={pendingCount}
         />
-      )}
+      ) : (
+        /* Large : la mise en page À PLAT de la projection — en-tête léger,
+           diagramme posé sur le fond de page + file en colonne à droite,
+           attaches entre les deux. AUCUN défilement global : l'en-tête et le
+           diagramme restent fixes, seules la file (cartes HITL) et l'activité
+           défilent dans leur propre colonne. */
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden p-3 min-[900px]:p-4">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="min-w-0 flex-1">
+              <h2 className="m-0 flex items-center gap-2 text-sm font-semibold text-foreground">
+                {t('supervision.board.title', "Constellation d'agents")}
+                {pendingCount > 0 && (
+                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-bold text-warning-ink tabular-nums">
+                    {pendingCount} {t('supervision.board.toValidate', 'à valider')}
+                  </span>
+                )}
+              </h2>
+              <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+                {normalized?.hud.agentsCount} {t('supervision.hud.agents')} · {normalized?.hud.actingCount} {t('supervision.hud.acting')} ·{' '}
+                {status === 'live' ? t('supervision.hud.active') : t('supervision.states.offline')}
+              </p>
+            </div>
+            {/* Segmenté cartes/constellation sur rail teinté (projection) +
+                règles d'autonomie (Paramètres > IA) + scanner. */}
+            <ToggleGroup
+              type="single"
+              size="sm"
+              spacing={0}
+              value={boardView}
+              onValueChange={(next) => next && setBoardView(next as 'cards' | 'orbit' | 'feed')}
+              className="rounded-md bg-muted p-0.5"
+            >
+              <ToggleGroupItem
+                value="cards"
+                aria-label={t('supervision.board.cardsView', 'Vue cartes')}
+                title={t('supervision.board.cardsView', 'Vue cartes')}
+                className="data-[state=on]:bg-card"
+              >
+                <GridView size={15} strokeWidth={1.75} />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="orbit"
+                aria-label={t('supervision.board.orbitView', 'Vue constellation')}
+                title={t('supervision.board.orbitView', 'Vue constellation')}
+                className="data-[state=on]:bg-card"
+              >
+                <Orbit size={15} strokeWidth={1.75} />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="feed"
+                aria-label={t('supervision.board.activity', 'Activité')}
+                title={t('supervision.board.activity', 'Activité')}
+                className="data-[state=on]:bg-card"
+              >
+                <ViewList size={15} strokeWidth={1.75} />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            {/* Lien plein (pas useNavigate : le panneau vit aussi hors Router
+                dans les tests) vers Paramètres > IA, où vivent les règles. */}
+            <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+              <a href="/settings?tab=ai">
+                <Tune size={15} strokeWidth={1.75} />
+                {t('supervision.board.autonomyRules', "Règles d'autonomie")}
+              </a>
+            </Button>
+            {headerAction}
+          </div>
 
-      {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
-          moteur multi-agent → la constellation réagit + réponse texte ci-dessous.
-          Masquée en mock (le provider mock n'expose pas kickoff). */}
-      {canKickoff && propertySnapshot && (
-        // Barre FLOTTANTE centrée sur le canvas (registre deep-space natif) :
-        // hors du flux vertical → la constellation garde toute la hauteur du
-        // panneau (sinon la barre lui volait ~56px et l'écrasait). Largeur
-        // bornée (plus de pleine largeur) ; posée dans le creux bas-centre
-        // (aucun agent à 90° : ils sont à ±64°/±136°).
-        <div className="absolute bottom-[14px] start-[50%] w-[min(440px,_calc(100%_-_32px))] z-[7]" style={{ transform: 'translateX(-50%)' }}>
-          <SupervisionChatBar
-            conversation={propertySnapshot.conversation ?? []}
-            busy={Boolean(propertySnapshot.conversationBusy)}
-            onSend={handleSend}
-          />
-        </div>
-      )}
+          {boardView === 'orbit' ? (
+            /* ── Vue constellation : diagramme + file reliés par les attaches,
+                  activité en pleine largeur dessous. ─────────────────────── */
+            /* PAS de `relative` sur cette grille : l'overlay des attaches (SVG
+               absolute inset-0) doit s'ancrer à la RACINE du panneau — le
+               repère dans lequel ses coordonnées sont mesurées. Une grille
+               positionnée l'interceptait et décalait tout le dessin. */
+            <div className="mt-4 grid flex-1 min-h-0 grid-cols-1 items-stretch gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)]">
+              <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
+                {/* max-w borné aussi par la hauteur disponible (52vh ≈ la part
+                    de l'accordéon) : le diagramme carré ne doit pas pousser
+                    légende, bilan et activité hors du cadre fixe. */}
+                <OrbitDiagram
+                  agents={normalized?.agents ?? []}
+                  selected={boardAgent}
+                  onSelect={selectBoardAgent}
+                  flowEnabled={status === 'live' && !snapshot.paused}
+                  onHeadAgentSettled={setHeadAgent}
+                  pendingItems={snapshot.pending}
+                  className="max-w-[min(480px,52vh)] shrink-0"
+                />
+                  {/* Bilan de valeur — une ligne discrète, fenêtre pilotable. */}
+                  {hudReport && (
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">{t('supervision.report.titleBase', 'Bilan')}</span>
+                      <span className="flex gap-0.5" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
+                        {REPORT_WINDOWS.map((option) => {
+                          const active = reportWindow === option.days;
+                          return (
+                            <button
+                              key={option.days}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => handleReportWindowChange(option.days)}
+                              className={
+                                active
+                                  ? 'cursor-pointer rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary'
+                                  : 'cursor-pointer rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-muted'
+                              }
+                            >
+                              {t(option.key, option.fallback)}
+                            </button>
+                          );
+                        })}
+                      </span>
+                      <span><b className="font-semibold text-foreground tabular-nums">{hudReport.estimatedTimeSaved}</b> {t('supervision.report.timeSaved', 'Temps gagné').toLowerCase()}</span>
+                      <span><b className="font-semibold text-foreground tabular-nums">{hudReport.autoActions}</b> {t('supervision.report.autoActions', 'Actions auto').toLowerCase()}</span>
+                      <span><b className="font-semibold text-foreground tabular-nums">{Math.round(hudReport.acceptanceRate * 100)} %</b> {t('supervision.report.acceptance', 'Acceptation').toLowerCase()}</span>
+                    </div>
+                  )}
 
-      {/* Zone flottante haut-droite (par logement) : carte d'approbation inline
-          (interrupt) au-dessus de la file persistante « Attend ta validation ».
-          En compact, ce contenu vit dans le tiroir « À traiter » (hitlContent). */}
-      {!compact && propertySnapshot && (propertySnapshot.pendingAction || propertySnapshot.pending.length > 0) && (
-        <div className="absolute top-[16px] end-[16px] z-[7] max-w-[calc(100%_-_32px)] flex flex-col gap-[7.5px]">
-          {propertySnapshot.pendingAction && (
-            <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
+                </div>
+
+                {/* File — la SEULE colonne qui défile : les cartes HITL
+                    montent dans leur cadre, l'en-tête et le diagramme restent
+                    fixes. data-tethers-viewport : une carte défilée hors du
+                    cadre perd son attache. */}
+                <div
+                  data-vertical-scroll
+                  data-tethers-viewport
+                  className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pe-1"
+                >
+                  {/* Approbation inline (interrupt) au-dessus de la file. */}
+                  {propertySnapshot?.pendingAction && (
+                    <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
+                  )}
+                  <ConstellationQueue
+                    agent={boardAgent}
+                    actions={snapshot.pending}
+                    onValidate={handleValidate}
+                    onEdit={handleEdit}
+                    onAdjustPrice={handleAdjustPrice}
+                  />
+                </div>
+
+                {/* Attaches agent de tête → cartes de la file. */}
+                <SupervisionTethers rootRef={rootRef} headAgent={headAgent} revision={snapshot.pending} />
+            </div>
+          ) : boardView === 'cards' ? (
+            /* ── Vue cartes : une carte par agent (autonomie) FIXE, puis la
+                  file en pleine largeur, défilant dans son cadre. Le feed vit
+                  dans sa propre vue (toggle Activité). ─────────────────── */
+            <div className="mt-4 flex flex-1 min-h-0 flex-col gap-6 overflow-hidden">
+              <div className="shrink-0">
+                <ConstellationAgentCards
+                  agents={normalized?.agents ?? []}
+                  feed={snapshot.feed}
+                  selected={boardAgent}
+                  onSelect={selectBoardAgent}
+                  onAutonomyChange={(id, level) => void actions.setAgentAutonomy(id, level)}
+                />
+              </div>
+              <div
+                data-vertical-scroll
+                className="flex min-h-0 max-w-3xl flex-1 flex-col gap-3 overflow-y-auto overscroll-contain pe-1"
+              >
+                {propertySnapshot?.pendingAction && (
+                  <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
+                )}
+                <ConstellationQueue
+                  agent={boardAgent}
+                  actions={snapshot.pending}
+                  onValidate={handleValidate}
+                  onEdit={handleEdit}
+                  onAdjustPrice={handleAdjustPrice}
+                />
+              </div>
+            </div>
+          ) : (
+            /* ── Vue activité : LE feed, centralisé — il n'apparaît plus dans
+                  les autres vues. Liste au dessin projection en PLEINE
+                  largeur, défilant dans son cadre. ─────────────────────── */
+            <section className="mt-4 flex w-full flex-1 min-h-0 flex-col gap-2">
+              <h2 className="m-0 text-xs font-medium tracking-[0.08em] text-muted-foreground uppercase">
+                {t('supervision.board.activity', 'Activité')}
+              </h2>
+              {snapshot.feed.length > 0 ? (
+                <div data-vertical-scroll className="min-h-0 overflow-y-auto overscroll-contain">
+                  <ActivityFeed entries={snapshot.feed} pending={snapshot.pending} />
+                </div>
+              ) : (
+                <p className="m-0 px-1 py-2 text-xs text-muted-foreground">
+                  {t(
+                    'supervision.feed.emptyOnboarding',
+                    'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
+                  )}
+                </p>
+              )}
+            </section>
           )}
-          {propertySnapshot.pending.length > 0 && (
-            <TaskDeckQueue
-              actions={propertySnapshot.pending}
-              onValidate={handleValidate}
-              onEdit={handleEdit}
-              onAdjustPrice={handleAdjustPrice}
-              variant="floating"
-            />
-          )}
-        </div>
-      )}
 
-      {/* file HITL flottante (vue portefeuille / autres scopes) */}
-      {!compact && !propertySnapshot && snapshot.pending.length > 0 && (
-        <div className="absolute top-[16px] end-[16px] z-[7] max-w-[calc(100%_-_32px)] flex flex-col">
-          <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="floating" />
         </div>
       )}
 

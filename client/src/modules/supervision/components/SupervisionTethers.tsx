@@ -14,11 +14,9 @@
    urgence, carte « derrière » d'un deck replié = pas d'attache).
    ============================================================ */
 
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { FLOW_CYCLE_MS, flowClockDelay } from '../renderers/OrbitDiagram';
 import type { AgentId } from '../types';
-
-/** Durée du cycle du relais — alignée sur OrbitConstellation (jambe radiale). */
-const FLOW_CYCLE_MS = 3200;
 
 /** Re-mesure différée après une mutation du deck (dépliage animé ~250 ms). */
 const SETTLE_MS = 350;
@@ -32,11 +30,15 @@ interface TetherLine {
   y2: number;
 }
 
+/* Le flux de données est TOUJOURS encre (noir en thème clair, encre claire en
+   sombre) : l'ambre ne colore que les RAILS urgents (carte qui expire sous
+   l'heure), jamais la donnée. Le paquet arrivé du noyau se dispatche en
+   SIMULTANÉ vers toutes les cartes (fenêtre [38 ; 92 %] du cycle commun). */
 const TETHER_STYLES = `
 .sv-tether-packet {
   fill: none;
   stroke-linecap: round;
-  opacity: .85;
+  opacity: .9;
   stroke-dasharray: 12 200;
   animation: sv-relay-hop ${FLOW_CYCLE_MS}ms linear infinite;
 }
@@ -45,6 +47,28 @@ const TETHER_STYLES = `
   .sv-tether-packet { display: none; }
 }
 `;
+
+/**
+ * Paquet d'une attache, calé sur l'horloge GLOBALE du relais à son montage
+ * (retard négatif = phase courante) : quel que soit l'instant où l'attache
+ * apparaît, son paquet part dans la fenêtre [38 ; 92 %] du MÊME cycle que la
+ * jambe radiale. Le retard est figé (ref) : le recalculer à chaque rendu
+ * ferait sauter la phase à chaque mesure.
+ */
+function HopPacket({ d }: { d: string }) {
+  const delayRef = useRef<string | null>(null);
+  if (delayRef.current === null) delayRef.current = flowClockDelay();
+  return (
+    <path
+      fill="none"
+      pathLength={100}
+      strokeWidth="1.5"
+      className="sv-tether-packet stroke-foreground"
+      style={{ animationDelay: delayRef.current }}
+      d={d}
+    />
+  );
+}
 
 export interface SupervisionTethersProps {
   /** Racine RELATIVE du panneau — englobe le renderer ET la file flottante. */
@@ -109,8 +133,18 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
 
     measure();
 
+    // Observer la racine ne suffit pas : le diagramme peut se redimensionner
+    // (borne en vh), une carte s'étendre (« Pourquoi ? ») ou le cadre de la
+    // file changer — autant de déplacements SANS changement de taille racine,
+    // qui laissaient des attaches mesurées sur des positions périmées.
     const observer = new ResizeObserver(measure);
     observer.observe(root);
+    const constellation = root.querySelector('[data-supervision-constellation]');
+    if (constellation) observer.observe(constellation);
+    for (const viewport of root.querySelectorAll('[data-tethers-viewport]')) observer.observe(viewport);
+    for (const card of root.querySelectorAll(`[data-pending-action][data-agent-id="${headAgent}"]`)) {
+      observer.observe(card);
+    }
 
     // Le deck se déplie/replie (data-behind, montages) sans changer la taille du
     // panneau : on observe les mutations, avec une re-mesure différée pour
@@ -163,13 +197,7 @@ export function SupervisionTethers({ rootRef, headAgent, revision }: Supervision
             {/* Le paquet ne revient pas au noyau : la donnée finit là où la
                 décision se prend. `pathLength=100` cale son dash sur le même
                 cycle que la jambe radiale du renderer. */}
-            <path
-              fill="none"
-              pathLength={100}
-              strokeWidth="1.5"
-              className="sv-tether-packet stroke-primary"
-              d={path}
-            />
+            <HopPacket d={path} />
             <circle
               cx={tether.x2}
               cy={tether.y2}
