@@ -3645,3 +3645,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0384__create_payment_disputes.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0385-create-service-quotes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0385__create_service_quotes.sql
+        relativeToChangelogFile: true

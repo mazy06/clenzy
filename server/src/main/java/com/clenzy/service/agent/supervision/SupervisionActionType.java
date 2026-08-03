@@ -334,5 +334,14 @@ public final class SupervisionActionType {
      */
     public static final String CHARGEBACK_SUBMIT = "CHARGEBACK_SUBMIT";
 
+    /**
+     * Approuve le devis recommandé d'une intervention (agent Opérations, M4) :
+     * CAS RECEIVED → APPROVED via {@code ServiceQuoteService.approve} (unique partiel
+     * DB, concurrents écartés, montant reporté sur l'intervention). La carte compare
+     * les devis dans son motif ; « Ajuster » = fiche intervention. Écriture DB pure.
+     * Params : {@code quoteId}.
+     */
+    public static final String QUOTE_APPROVAL = "QUOTE_APPROVAL";
+
     private SupervisionActionType() {}
 }

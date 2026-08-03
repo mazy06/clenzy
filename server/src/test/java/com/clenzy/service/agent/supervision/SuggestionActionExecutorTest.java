@@ -99,6 +99,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
     @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
+    @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -131,7 +132,7 @@ class SuggestionActionExecutorTest {
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
                 provider(conversationRepository), provider(taxFilingService),
-                provider(disputeEvidenceService),
+                provider(disputeEvidenceService), provider(serviceQuoteService),
                 new ObjectMapper(), clock);
     }
 
@@ -947,5 +948,15 @@ class SuggestionActionExecutorTest {
     void chargebackSubmit_delegatesToEvidenceService() {
         executor.execute(suggestion(SupervisionActionType.CHARGEBACK_SUBMIT, "{\"disputeId\":17}"));
         verify(disputeEvidenceService).submitEvidence(17L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("devis : delegue a l'approbation CAS avec l'auteur de l'apply")
+    void quoteApproval_delegatesWithAppliedBy() {
+        SupervisionSuggestion s = suggestion(SupervisionActionType.QUOTE_APPROVAL, "{\"quoteId\":23}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
+        executor.execute(s);
+        verify(serviceQuoteService).approve(23L, ORG_ID,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
     }
 }

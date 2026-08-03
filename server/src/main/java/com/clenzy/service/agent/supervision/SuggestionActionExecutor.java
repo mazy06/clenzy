@@ -118,6 +118,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
+    private final ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -166,6 +167,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
+                                    ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -209,6 +211,7 @@ public class SuggestionActionExecutor {
         this.conversationRepositoryProvider = conversationRepositoryProvider;
         this.taxFilingService = taxFilingService;
         this.disputeEvidenceService = disputeEvidenceService;
+        this.serviceQuoteService = serviceQuoteService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -287,8 +290,16 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.RELODGE_TRANSFER -> applyRelodgeTransfer(suggestion);
             case SupervisionActionType.NOSHOW_MARK -> applyNoShowMark(suggestion);
             case SupervisionActionType.CHARGEBACK_SUBMIT -> applyChargebackSubmit(suggestion);
+            case SupervisionActionType.QUOTE_APPROVAL -> applyQuoteApproval(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /** QUOTE_APPROVAL — délègue à l'approbation CAS (org, statut, report du coût côté service). */
+    private void applyQuoteApproval(SupervisionSuggestion suggestion) {
+        final long quoteId = requiredLongParam(suggestion, "quoteId");
+        serviceQuoteService.getObject().approve(quoteId, suggestion.getOrganizationId(),
+                suggestion.getAppliedBy());
     }
 
     /** CHARGEBACK_SUBMIT — délègue au dossier de litige (org, statut, Stripe côté service). */

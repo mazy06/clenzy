@@ -43,17 +43,20 @@ public class OpsMaintenanceScanner {
     private final SmartLockDeviceRepository smartLockDeviceRepository;
     private final InterventionRepository interventionRepository;
     private final PropertyRepository propertyRepository;
+    private final com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
     public OpsMaintenanceScanner(SmartLockDeviceRepository smartLockDeviceRepository,
                                  InterventionRepository interventionRepository,
                                  PropertyRepository propertyRepository,
+                                 com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository,
                                  SupervisionSuggestionService suggestionService,
                                  Clock clock) {
         this.smartLockDeviceRepository = smartLockDeviceRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
+        this.serviceQuoteRepository = serviceQuoteRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -74,6 +77,55 @@ public class OpsMaintenanceScanner {
         } catch (Exception e) {
             log.debug("preventive scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanQuotesAwaitingApproval(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("quote scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Devis en attente (M4) : intervention encore OUVERTE avec ≥ 1 devis RECEIVED →
+     * carte comparative. Recommandation : le MOINS CHER — l'opérateur voit tous les
+     * devis (montant, dispo) dans le motif et peut passer par la fiche pour choisir
+     * autrement. Dédup par intitulé (id d'intervention).
+     */
+    private void scanQuotesAwaitingApproval(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        for (com.clenzy.model.Intervention intervention : interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
+            if (!com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
+                    .openStatuses().contains(intervention.getStatus())) {
+                continue;
+            }
+            final var quotes = serviceQuoteRepository
+                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(
+                            intervention.getId(), orgId).stream()
+                    .filter(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.RECEIVED)
+                    .toList();
+            if (quotes.isEmpty()) {
+                continue;
+            }
+            final var recommended = quotes.get(0); // tri par montant croissant
+            final String comparison = quotes.stream()
+                    .map(q -> q.getProviderName() + " — " + q.getAmount() + " " + q.getCurrency()
+                            + (q.getEarliestStartDate() != null
+                                ? " (dispo " + q.getEarliestStartDate() + ")" : ""))
+                    .reduce((a, b) -> a + " · " + b).orElse("");
+            suggestionService.recordActionable(
+                    orgId, propertyId, MODULE_OPS,
+                    "Devis à approuver (intervention #" + intervention.getId() + ")",
+                    "« " + intervention.getTitle() + " » : " + quotes.size() + " devis reçu(s) — "
+                            + comparison + ". « Approuver » retient le moins cher ("
+                            + recommended.getProviderName() + "), écarte les autres et reporte le "
+                            + "montant sur l'intervention ; pour un autre choix, passer par la fiche.",
+                    SupervisionActionType.QUOTE_APPROVAL,
+                    "{\"quoteId\":" + recommended.getId() + "}",
+                    recommended.getAmount().movePointRight(2)
+                            .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact(),
+                    "info");
         }
     }
 
