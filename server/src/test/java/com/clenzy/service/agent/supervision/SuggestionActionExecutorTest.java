@@ -34,6 +34,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,6 +93,9 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
     @Mock private com.clenzy.service.ReservationRefundService reservationRefundService;
     @Mock private com.clenzy.service.AccountingService accountingService;
+    @Mock private com.clenzy.booking.service.ContentTranslationService contentTranslationService;
+    @Mock private com.clenzy.booking.repository.SiteRepository siteRepository;
+    @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -121,7 +125,8 @@ class SuggestionActionExecutorTest {
                 minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
                 provider(maintenanceInterventionExecutor),
                 provider(interventionRepository), provider(reservationRefundService),
-                provider(accountingService),
+                provider(accountingService), provider(contentTranslationService),
+                provider(siteRepository), provider(sitePageRepository),
                 new ObjectMapper(), clock);
     }
 
@@ -727,5 +732,28 @@ class SuggestionActionExecutorTest {
 
         verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
                 contains("780.00"));
+    }
+
+    @Test
+    @DisplayName("traduction site : brouillons generes pour les pages publiees de la langue source")
+    void siteTranslationDraft_translatesPublishedSourcePages() {
+        com.clenzy.booking.model.Site site = new com.clenzy.booking.model.Site();
+        org.springframework.test.util.ReflectionTestUtils.setField(site, "organizationId", ORG_ID);
+        org.springframework.test.util.ReflectionTestUtils.setField(site, "defaultLocale", "fr");
+        when(siteRepository.findById(6L)).thenReturn(Optional.of(site));
+        com.clenzy.booking.model.SitePage page = new com.clenzy.booking.model.SitePage();
+        org.springframework.test.util.ReflectionTestUtils.setField(page, "id", 40L);
+        org.springframework.test.util.ReflectionTestUtils.setField(page, "locale", "fr");
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                page, "status", com.clenzy.booking.model.SiteStatus.PUBLISHED);
+        when(sitePageRepository.findBySiteIdOrderBySortOrderAsc(6L)).thenReturn(List.of(page));
+        when(contentTranslationService.autoTranslatePage(ORG_ID, 6L, 40L, List.of("ar")))
+                .thenReturn(com.clenzy.booking.dto.AutoTranslateResultDto.forPages(
+                        List.of(mock(com.clenzy.booking.dto.SitePageDto.class)), List.of()));
+
+        executor.execute(suggestion(SupervisionActionType.SITE_TRANSLATION_DRAFT,
+                "{\"siteId\":6,\"targetLocale\":\"ar\"}"));
+
+        verify(contentTranslationService).autoTranslatePage(ORG_ID, 6L, 40L, List.of("ar"));
     }
 }

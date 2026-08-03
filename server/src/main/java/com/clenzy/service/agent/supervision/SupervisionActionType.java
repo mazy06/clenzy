@@ -257,5 +257,15 @@ public final class SupervisionActionType {
      */
     public static final String OWNER_WORKS_APPROVAL = "OWNER_WORKS_APPROVAL";
 
+    /**
+     * Génère les BROUILLONS de traduction d'un site vitrine vers une langue activée
+     * mais non couverte (agent Croissance, vague A tardive). Réutilise
+     * {@code ContentTranslationService.autoTranslatePage} : variantes créées en DRAFT,
+     * JAMAIS publiées automatiquement — la relecture et la publication restent dans le
+     * Studio (même philosophie que REVIEW_DRAFT_REPLY). EFFET EXTERNE (LLM) → hors
+     * transaction. Params : {@code siteId}, {@code targetLocale}.
+     */
+    public static final String SITE_TRANSLATION_DRAFT = "SITE_TRANSLATION_DRAFT";
+
     private SupervisionActionType() {}
 }

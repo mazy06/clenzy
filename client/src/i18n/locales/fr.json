@@ -345,7 +345,8 @@
       "restrict": "Restreindre",
       "deactivate": "Désactiver",
       "withhold": "Retenir",
-      "approve": "Approuver"
+      "approve": "Approuver",
+      "translate": "Traduire"
     }
   },
   "channexGuided": {

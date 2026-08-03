@@ -112,6 +112,9 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.ReservationRefundService> reservationRefundService;
     private final ObjectProvider<com.clenzy.service.AccountingService> accountingService;
+    private final ObjectProvider<com.clenzy.booking.service.ContentTranslationService> contentTranslationService;
+    private final ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider;
+    private final ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -154,6 +157,9 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.repository.InterventionRepository> interventionRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.ReservationRefundService> reservationRefundService,
                                     ObjectProvider<com.clenzy.service.AccountingService> accountingService,
+                                    ObjectProvider<com.clenzy.booking.service.ContentTranslationService> contentTranslationService,
+                                    ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider,
+                                    ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -191,6 +197,9 @@ public class SuggestionActionExecutor {
         this.interventionRepositoryProvider = interventionRepositoryProvider;
         this.reservationRefundService = reservationRefundService;
         this.accountingService = accountingService;
+        this.contentTranslationService = contentTranslationService;
+        this.siteRepositoryProvider = siteRepositoryProvider;
+        this.sitePageRepositoryProvider = sitePageRepositoryProvider;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -218,7 +227,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.UPSELL_OFFER.equals(actionType)
                 || SupervisionActionType.DEPOSIT_WITHHOLD.equals(actionType)
                 || SupervisionActionType.GOODWILL_REFUND.equals(actionType)
-                || SupervisionActionType.OWNER_WORKS_APPROVAL.equals(actionType);
+                || SupervisionActionType.OWNER_WORKS_APPROVAL.equals(actionType)
+                || SupervisionActionType.SITE_TRANSLATION_DRAFT.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -257,8 +267,56 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.GOODWILL_REFUND -> applyGoodwillRefund(suggestion);
             case SupervisionActionType.OWNER_PAYOUT -> applyOwnerPayoutApprove(suggestion);
             case SupervisionActionType.OWNER_WORKS_APPROVAL -> applyOwnerWorksApproval(suggestion);
+            case SupervisionActionType.SITE_TRANSLATION_DRAFT -> applySiteTranslationDraft(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * SITE_TRANSLATION_DRAFT — génère les brouillons de traduction des pages PUBLIÉES
+     * de la langue source vers la cible. {@code autoTranslatePage} re-valide l'ownership
+     * org à chaque page, saute les variantes déjà existantes, et persiste en DRAFT —
+     * rien n'est publié (la relecture reste dans le Studio). EFFET EXTERNE (LLM).
+     */
+    private void applySiteTranslationDraft(SupervisionSuggestion suggestion) {
+        final long siteId = requiredLongParam(suggestion, "siteId");
+        final String target;
+        try {
+            final JsonNode node = objectMapper.readTree(suggestion.getActionParams()).get("targetLocale");
+            target = node != null ? node.asText("").strip().toLowerCase(java.util.Locale.ROOT) : "";
+        } catch (Exception e) {
+            throw new IllegalStateException("Paramètres de traduction illisibles", e);
+        }
+        if (!target.matches("[a-z]{2}(-[a-z]{2})?")) {
+            throw new IllegalStateException("Langue cible invalide");
+        }
+        final com.clenzy.booking.model.Site site = siteRepositoryProvider.getObject()
+                .findById(siteId)
+                .orElseThrow(() -> new IllegalStateException("Site introuvable"));
+        if (site.getOrganizationId() == null
+                || !site.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Site introuvable pour cette organisation");
+        }
+        final String defaultLocale = site.getDefaultLocale() != null ? site.getDefaultLocale() : "fr";
+        final java.util.List<com.clenzy.booking.model.SitePage> pages = sitePageRepositoryProvider
+                .getObject().findBySiteIdOrderBySortOrderAsc(siteId);
+        int created = 0;
+        for (com.clenzy.booking.model.SitePage page : pages) {
+            if (page.getStatus() != com.clenzy.booking.model.SiteStatus.PUBLISHED
+                    || (page.getLocale() != null && !defaultLocale.equals(page.getLocale()))) {
+                continue; // seules les pages publiées de la langue source servent de base
+            }
+            created += contentTranslationService.getObject()
+                    .autoTranslatePage(suggestion.getOrganizationId(), siteId, page.getId(),
+                            java.util.List.of(target))
+                    .createdPages().size();
+        }
+        if (created == 0) {
+            throw new IllegalStateException(
+                    "Toutes les pages sont déjà traduites en " + target + " — rien à générer");
+        }
+        log.info("SITE_TRANSLATION_DRAFT : {} brouillon(s) {} générés (site {}, org {})",
+                created, target, siteId, suggestion.getOrganizationId());
     }
 
     /**

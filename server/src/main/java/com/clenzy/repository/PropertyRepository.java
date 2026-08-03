@@ -131,6 +131,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      */
     @Query("SELECT MIN(p.id) FROM Property p WHERE p.owner.id = :ownerId AND p.organizationId = :orgId")
     Long findFirstPropertyIdByOwnerAndOrg(@Param("ownerId") Long ownerId, @Param("orgId") Long orgId);
+
+    /** Logement d'ancrage des cartes de supervision ORG-level (sites, distribution). */
+    @Query("SELECT MIN(p.id) FROM Property p WHERE p.organizationId = :orgId")
+    Long findFirstPropertyIdByOrg(@Param("orgId") Long orgId);
     
     /**
      * Requête pour les IDs seulement (pour les vérifications d'existence)

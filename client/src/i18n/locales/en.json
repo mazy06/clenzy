@@ -345,7 +345,8 @@
       "restrict": "Restrict",
       "deactivate": "Deactivate",
       "withhold": "Withhold",
-      "approve": "Approve"
+      "approve": "Approve",
+      "translate": "Translate"
     }
   },
   "channexGuided": {
