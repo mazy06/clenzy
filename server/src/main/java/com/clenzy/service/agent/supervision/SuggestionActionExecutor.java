@@ -105,6 +105,8 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.repository.UserRepository> userRepositoryProvider;
     private final ObjectProvider<com.clenzy.repository.OrganizationRepository> organizationRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService;
+    private final com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
+    private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -140,6 +142,8 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.repository.UserRepository> userRepositoryProvider,
                                     ObjectProvider<com.clenzy.repository.OrganizationRepository> organizationRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService,
+                                    com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository,
+                                    com.clenzy.repository.RatePlanRepository ratePlanRepository,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -170,6 +174,8 @@ public class SuggestionActionExecutor {
         this.userRepositoryProvider = userRepositoryProvider;
         this.organizationRepositoryProvider = organizationRepositoryProvider;
         this.ownerStatementService = ownerStatementService;
+        this.minNightsOverrideRepository = minNightsOverrideRepository;
+        this.ratePlanRepository = ratePlanRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -223,8 +229,89 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.POLICE_DECLARE -> applyPoliceDeclare(suggestion);
             case SupervisionActionType.MANDATE_SIGN_SEND -> applyMandateSignSend(suggestion);
             case SupervisionActionType.OWNER_STATEMENT_SEND -> applyOwnerStatementSend(suggestion);
+            case SupervisionActionType.MIN_STAY_RESTRICTION -> applyMinStayRestriction(suggestion);
+            case SupervisionActionType.PROMO_DEACTIVATE -> applyPromoDeactivate(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /** Source des overrides min-stay posés par la supervision (réversibles, jamais mélangés). */
+    static final String MIN_STAY_SOURCE = "SUPERVISION_MIN_STAY";
+    static final int MIN_STAY_MAX_WINDOW_DAYS = 92;
+
+    /**
+     * MIN_STAY_RESTRICTION — pose des overrides de séjour minimum sur la fenêtre
+     * (week-ends seulement par défaut). Un override existant d'une AUTRE source n'est
+     * jamais écrasé (MANUAL prime, ORPHAN_GAP est plus spécifique) ; les nôtres sont
+     * mis à jour. Écriture DB pure (dans la transaction d'apply).
+     */
+    private void applyMinStayRestriction(SupervisionSuggestion suggestion) {
+        final LocalDate from;
+        final LocalDate to;
+        final int minNights;
+        final boolean weekendsOnly;
+        try {
+            final JsonNode params = objectMapper.readTree(suggestion.getActionParams());
+            from = LocalDate.parse(params.get("from").asText());
+            to = LocalDate.parse(params.get("to").asText());
+            minNights = Math.max(2, Math.min(7, params.path("minNights").asInt(2)));
+            weekendsOnly = params.path("weekendsOnly").asBoolean(true);
+        } catch (Exception e) {
+            throw new IllegalStateException("Paramètres de restriction illisibles", e);
+        }
+        if (!to.isAfter(from) || from.plusDays(MIN_STAY_MAX_WINDOW_DAYS).isBefore(to)) {
+            throw new IllegalStateException("Fenêtre de restriction invalide (1.."
+                    + MIN_STAY_MAX_WINDOW_DAYS + " jours)");
+        }
+        final Property property = propertyRepository.findById(suggestion.getPropertyId())
+                .orElseThrow(() -> new IllegalStateException("Logement introuvable"));
+        if (!suggestion.getOrganizationId().equals(property.getOrganizationId())) {
+            throw new IllegalStateException("Logement hors organisation");
+        }
+        final Long orgId = suggestion.getOrganizationId();
+        int written = 0;
+        for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+            if (weekendsOnly && date.getDayOfWeek() != java.time.DayOfWeek.FRIDAY
+                    && date.getDayOfWeek() != java.time.DayOfWeek.SATURDAY) {
+                continue;
+            }
+            final var existing = minNightsOverrideRepository
+                    .findByPropertyIdAndDate(property.getId(), date, orgId).orElse(null);
+            if (existing != null && !MIN_STAY_SOURCE.equals(existing.getSource())) {
+                continue; // une autre source (MANUAL, ORPHAN_GAP…) a priorité — jamais écrasée
+            }
+            final com.clenzy.model.MinNightsOverride override = existing != null
+                    ? existing
+                    : new com.clenzy.model.MinNightsOverride(
+                            property, date, minNights, MIN_STAY_SOURCE, orgId);
+            override.setMinNights(minNights);
+            minNightsOverrideRepository.save(override);
+            written++;
+        }
+        if (written == 0) {
+            throw new IllegalStateException(
+                    "Aucune nuit restreignable (overrides existants d'autres sources ?)");
+        }
+        log.info("MIN_STAY_RESTRICTION appliqué org={} property={} nuits={} min={}",
+                orgId, property.getId(), written, minNights);
+    }
+
+    /**
+     * PROMO_DEACTIVATE — désactive le rate plan cannibale ({@code isActive = false}).
+     * Org re-validée sur le plan ; réversible depuis l'écran Tarification.
+     */
+    private void applyPromoDeactivate(SupervisionSuggestion suggestion) {
+        final long ratePlanId = requiredLongParam(suggestion, "ratePlanId");
+        final com.clenzy.model.RatePlan plan = ratePlanRepository.findById(ratePlanId)
+                .orElseThrow(() -> new IllegalStateException("Rate plan introuvable"));
+        if (plan.getOrganizationId() == null
+                || !plan.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Rate plan introuvable pour cette organisation");
+        }
+        plan.setIsActive(false);
+        ratePlanRepository.save(plan);
+        log.info("PROMO_DEACTIVATE appliqué org={} plan={} ({})",
+                suggestion.getOrganizationId(), ratePlanId, plan.getName());
     }
 
     /**

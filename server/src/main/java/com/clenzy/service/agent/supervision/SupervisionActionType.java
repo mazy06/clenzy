@@ -179,5 +179,22 @@ public final class SupervisionActionType {
      */
     public static final String OWNER_STATEMENT_SEND = "OWNER_STATEMENT_SEND";
 
+    /**
+     * Restriction de séjour minimum (agent Revenue, vague B) : écrit des
+     * {@code min_nights_overrides} source {@code SUPERVISION_MIN_STAY} sur la fenêtre —
+     * week-ends seulement si {@code weekendsOnly}. Les overrides d'AUTRES sources
+     * (MANUAL, ORPHAN_GAP…) ne sont JAMAIS touchés. Réversible (suppression manuelle).
+     * Params : {@code from}, {@code to} (ISO, exclusif, fenêtre ≤ 92 j),
+     * {@code minNights} (2..7), {@code weekendsOnly} (bool, défaut true).
+     */
+    public static final String MIN_STAY_RESTRICTION = "MIN_STAY_RESTRICTION";
+
+    /**
+     * Désactive un rate plan promotionnel qui en cannibalise un autre (agent Revenue,
+     * vague B) : {@code isActive = false}, réversible depuis l'écran Tarification.
+     * Params : {@code ratePlanId}.
+     */
+    public static final String PROMO_DEACTIVATE = "PROMO_DEACTIVATE";
+
     private SupervisionActionType() {}
 }

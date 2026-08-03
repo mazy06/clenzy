@@ -341,7 +341,9 @@
       "send": "Envoyer",
       "pay": "Verser",
       "declare": "Télédéclarer",
-      "signSend": "Envoyer pour signature"
+      "signSend": "Envoyer pour signature",
+      "restrict": "Restreindre",
+      "deactivate": "Désactiver"
     }
   },
   "channexGuided": {

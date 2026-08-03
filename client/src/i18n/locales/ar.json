@@ -341,7 +341,9 @@
       "send": "إرسال",
       "pay": "دفع",
       "declare": "تقديم التصريح",
-      "signSend": "إرسال للتوقيع"
+      "signSend": "إرسال للتوقيع",
+      "restrict": "تقييد",
+      "deactivate": "تعطيل"
     }
   },
   "channexGuided": {

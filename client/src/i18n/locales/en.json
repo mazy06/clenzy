@@ -341,7 +341,9 @@
       "send": "Send",
       "pay": "Pay out",
       "declare": "File declaration",
-      "signSend": "Send for signature"
+      "signSend": "Send for signature",
+      "restrict": "Restrict",
+      "deactivate": "Deactivate"
     }
   },
   "channexGuided": {

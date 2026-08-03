@@ -1,0 +1,176 @@
+package com.clenzy.service.agent.supervision;
+
+import com.clenzy.model.RatePlan;
+import com.clenzy.model.RatePlanType;
+import com.clenzy.repository.CalendarDayRepository;
+import com.clenzy.repository.MinNightsOverrideRepository;
+import com.clenzy.repository.RatePlanRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Règles de scan DÉTERMINISTES pricing (vague B de la constellation métiers) :
+ * <ul>
+ *   <li><b>Séjour minimum week-end</b> (agent Revenue) : fenêtre à forte occupation
+ *       sans aucun override min-stay → carte {@code MIN_STAY_RESTRICTION} (min 2 nuits
+ *       les vendredis/samedis — les nuits isolées partent en séjours d'une nuit à fort
+ *       coût de ménage) ;</li>
+ *   <li><b>Promotions qui se cannibalisent</b> (agent Revenue) : early bird ET
+ *       last-minute actifs sur des fenêtres qui se recouvrent → carte
+ *       {@code PROMO_DEACTIVATE} ciblant l'early bird (prioritaire dans le PriceEngine,
+ *       c'est lui qui écrase l'autre) ;</li>
+ *   <li><b>Promo last-minute</b> (agent Croissance) : semaine à venir quasi vide sans
+ *       plan LAST_MINUTE actif → carte {@code PRICE_DROP} bornée (−15 % sur 7 jours,
+ *       prix re-résolus et floor respecté à l'apply par le handler existant).</li>
+ * </ul>
+ *
+ * <p>Zéro coût token. Dédup par intitulé stable. Best-effort par règle.</p>
+ */
+@Service
+public class RevenuePlanScanner {
+
+    private static final Logger log = LoggerFactory.getLogger(RevenuePlanScanner.class);
+
+    /** Fenêtre d'analyse du min-stay et seuil d'occupation qui déclenche la carte. */
+    static final int MIN_STAY_WINDOW_DAYS = 30;
+    static final double MIN_STAY_OCCUPANCY_THRESHOLD = 0.6;
+    /** Fenêtre de la promo last-minute et occupation maximale qui la déclenche. */
+    static final int LAST_MINUTE_WINDOW_DAYS = 7;
+    static final int LAST_MINUTE_MAX_BOOKED = 2;
+    static final int LAST_MINUTE_PERCENT = 15;
+
+    private final CalendarDayRepository calendarDayRepository;
+    private final MinNightsOverrideRepository minNightsOverrideRepository;
+    private final RatePlanRepository ratePlanRepository;
+    private final SupervisionSuggestionService suggestionService;
+    private final Clock clock;
+
+    public RevenuePlanScanner(CalendarDayRepository calendarDayRepository,
+                              MinNightsOverrideRepository minNightsOverrideRepository,
+                              RatePlanRepository ratePlanRepository,
+                              SupervisionSuggestionService suggestionService,
+                              Clock clock) {
+        this.calendarDayRepository = calendarDayRepository;
+        this.minNightsOverrideRepository = minNightsOverrideRepository;
+        this.ratePlanRepository = ratePlanRepository;
+        this.suggestionService = suggestionService;
+        this.clock = clock;
+    }
+
+    /** Évalue les trois règles pour un logement. */
+    public void scanProperty(Long orgId, Long propertyId) {
+        if (orgId == null || propertyId == null) {
+            return;
+        }
+        try {
+            scanMinStay(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("min-stay scan failed org={} property={}: {}", orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanCannibalPromos(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("promo scan failed org={} property={}: {}", orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanLastMinutePromo(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("last-minute scan failed org={} property={}: {}", orgId, propertyId, e.getMessage());
+        }
+    }
+
+    private void scanMinStay(Long orgId, Long propertyId) {
+        final LocalDate today = LocalDate.now(clock);
+        final LocalDate to = today.plusDays(MIN_STAY_WINDOW_DAYS);
+        final int booked = calendarDayRepository
+                .findBookedDatesInRange(propertyId, today, to, orgId).size();
+        if ((double) booked / MIN_STAY_WINDOW_DAYS < MIN_STAY_OCCUPANCY_THRESHOLD) {
+            return; // demande insuffisante : restreindre ferait perdre des séjours courts
+        }
+        if (!minNightsOverrideRepository
+                .findByPropertyIdAndDateRange(propertyId, today, to, orgId).isEmpty()) {
+            return; // des overrides existent déjà (manuels ou moteurs) — on ne se superpose pas
+        }
+        suggestionService.recordActionable(
+                orgId, propertyId, "rev",
+                "Séjour minimum 2 nuits sur les week-ends à venir",
+                "Occupation à " + Math.round(100.0 * booked / MIN_STAY_WINDOW_DAYS) + " % sur "
+                        + MIN_STAY_WINDOW_DAYS + " jours : les nuits isolées du week-end partent en "
+                        + "séjours d'une nuit à fort coût de ménage. « Restreindre » pose un séjour "
+                        + "minimum de 2 nuits les vendredis et samedis de la fenêtre (réversible).",
+                SupervisionActionType.MIN_STAY_RESTRICTION,
+                "{\"from\":\"" + today + "\",\"to\":\"" + to
+                        + "\",\"minNights\":2,\"weekendsOnly\":true}",
+                null, "info");
+    }
+
+    private void scanCannibalPromos(Long orgId, Long propertyId) {
+        final List<RatePlan> plans = ratePlanRepository.findActiveByPropertyId(propertyId, orgId);
+        final List<RatePlan> earlyBirds = plans.stream()
+                .filter(p -> p.getType() == RatePlanType.EARLY_BIRD).toList();
+        final List<RatePlan> lastMinutes = plans.stream()
+                .filter(p -> p.getType() == RatePlanType.LAST_MINUTE).toList();
+        for (RatePlan earlyBird : earlyBirds) {
+            for (RatePlan lastMinute : lastMinutes) {
+                if (!datesOverlap(earlyBird, lastMinute)) {
+                    continue;
+                }
+                suggestionService.recordActionable(
+                        orgId, propertyId, "rev",
+                        "Promotions qui se cannibalisent (« " + earlyBird.getName() + " »)",
+                        "« " + earlyBird.getName() + " » (early bird) et « " + lastMinute.getName()
+                                + " » (last-minute) couvrent les mêmes dates : l'early bird, "
+                                + "prioritaire, écrase l'autre et cumule les remises sur la période. "
+                                + "« Désactiver » coupe l'early bird (réversible dans Tarification).",
+                        SupervisionActionType.PROMO_DEACTIVATE,
+                        "{\"ratePlanId\":" + earlyBird.getId() + "}", null, "info");
+                return; // une carte à la fois par logement — dédup par intitulé de toute façon
+            }
+        }
+    }
+
+    private void scanLastMinutePromo(Long orgId, Long propertyId) {
+        final LocalDate today = LocalDate.now(clock);
+        final LocalDate to = today.plusDays(LAST_MINUTE_WINDOW_DAYS);
+        final int booked = calendarDayRepository
+                .findBookedDatesInRange(propertyId, today, to, orgId).size();
+        if (booked > LAST_MINUTE_MAX_BOOKED) {
+            return; // la semaine se vend — pas besoin de brader
+        }
+        final boolean hasLastMinutePlan = ratePlanRepository
+                .findActiveByPropertyId(propertyId, orgId).stream()
+                .anyMatch(p -> p.getType() == RatePlanType.LAST_MINUTE);
+        if (hasLastMinutePlan) {
+            return; // un plan last-minute couvre déjà ce créneau
+        }
+        // Réutilise le handler PRICE_DROP existant (prix re-résolus + floor à l'apply) —
+        // seule la PROVENANCE change : c'est la carte distribution de l'agent Croissance.
+        suggestionService.recordActionable(
+                orgId, propertyId, "gro",
+                "Promo last-minute −" + LAST_MINUTE_PERCENT + " % sur la semaine creuse",
+                (LAST_MINUTE_WINDOW_DAYS - booked) + " nuit(s) libres sur les " + LAST_MINUTE_WINDOW_DAYS
+                        + " prochains jours et aucun plan last-minute actif. « Appliquer » baisse de "
+                        + LAST_MINUTE_PERCENT + " % ces nuits seulement — prix re-résolus et plancher "
+                        + "respecté au moment de l'application.",
+                SupervisionActionType.PRICE_DROP,
+                "{\"direction\":\"down\",\"segments\":[{\"from\":\"" + today + "\",\"to\":\"" + to
+                        + "\",\"percent\":" + LAST_MINUTE_PERCENT + "}]}",
+                null, "info");
+    }
+
+    /** Recouvrement de fenêtres de dates ; borne absente = fenêtre ouverte de ce côté. */
+    private static boolean datesOverlap(RatePlan a, RatePlan b) {
+        final LocalDate aStart = a.getStartDate();
+        final LocalDate aEnd = a.getEndDate();
+        final LocalDate bStart = b.getStartDate();
+        final LocalDate bEnd = b.getEndDate();
+        final boolean aBeforeB = aEnd != null && bStart != null && aEnd.isBefore(bStart);
+        final boolean bBeforeA = bEnd != null && aStart != null && bEnd.isBefore(aStart);
+        return !aBeforeB && !bBeforeA;
+    }
+}

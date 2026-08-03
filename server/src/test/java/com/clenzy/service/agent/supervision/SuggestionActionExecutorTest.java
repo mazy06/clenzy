@@ -1,6 +1,7 @@
 package com.clenzy.service.agent.supervision;
 
 import com.clenzy.model.Guest;
+import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
@@ -84,6 +85,8 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.UserRepository userRepository;
     @Mock private com.clenzy.repository.OrganizationRepository organizationRepository;
     @Mock private com.clenzy.service.OwnerStatementService ownerStatementService;
+    @Mock private com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
+    @Mock private com.clenzy.repository.RatePlanRepository ratePlanRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -110,6 +113,7 @@ class SuggestionActionExecutorTest {
                 provider(complianceSubmissionService), managementContractRepository,
                 provider(contractSignatureService), provider(userRepository),
                 provider(organizationRepository), provider(ownerStatementService),
+                minNightsOverrideRepository, ratePlanRepository,
                 new ObjectMapper(), clock);
     }
 
@@ -551,5 +555,41 @@ class SuggestionActionExecutorTest {
 
         verify(ownerStatementService).sendStatement(9L, ORG_ID,
                 LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Votre conciergerie");
+    }
+
+    @Test
+    @DisplayName("min-stay : ecrit les vendredis/samedis de la fenetre, jamais par-dessus une autre source")
+    void minStayRestriction_writesWeekendsOnly_respectsForeignSources() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setOrganizationId(ORG_ID);
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+        // ven 2026-07-03 : override MANUAL existant → jamais écrasé.
+        com.clenzy.model.MinNightsOverride manual = new com.clenzy.model.MinNightsOverride(
+                property, LocalDate.parse("2026-07-03"), 3, "MANUAL", ORG_ID);
+        when(minNightsOverrideRepository.findByPropertyIdAndDate(
+                eq(PROPERTY_ID), any(), eq(ORG_ID))).thenReturn(Optional.empty());
+        when(minNightsOverrideRepository.findByPropertyIdAndDate(
+                PROPERTY_ID, LocalDate.parse("2026-07-03"), ORG_ID)).thenReturn(Optional.of(manual));
+
+        executor.execute(suggestion(SupervisionActionType.MIN_STAY_RESTRICTION,
+                "{\"from\":\"2026-07-03\",\"to\":\"2026-07-10\",\"minNights\":2,\"weekendsOnly\":true}"));
+
+        // Fenêtre 03→10 : ven 03 (MANUAL, sauté), sam 04, ven 10 exclu → 1 seule écriture (04).
+        verify(minNightsOverrideRepository, org.mockito.Mockito.times(1))
+                .save(any(com.clenzy.model.MinNightsOverride.class));
+    }
+
+    @Test
+    @DisplayName("desactivation promo : org validee puis isActive=false")
+    void promoDeactivate_validatesOrgAndDisables() {
+        com.clenzy.model.RatePlan plan = new com.clenzy.model.RatePlan();
+        org.springframework.test.util.ReflectionTestUtils.setField(plan, "organizationId", ORG_ID);
+        when(ratePlanRepository.findById(4L)).thenReturn(Optional.of(plan));
+
+        executor.execute(suggestion(SupervisionActionType.PROMO_DEACTIVATE, "{\"ratePlanId\":4}"));
+
+        verify(ratePlanRepository).save(plan);
+        assertThat(plan.getIsActive()).isFalse();
     }
 }
