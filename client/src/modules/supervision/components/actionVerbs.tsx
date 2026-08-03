@@ -76,7 +76,8 @@ const VERBS: Record<string, ActionVerb> = {
   OWNER_REVENUE_NOTE: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
   // Modèles métier (vague M-A)
   TAX_MARK_FILED: { labelKey: 'supervision.verbs.markFiled', fallback: 'Marquer déclarée', Icon: Check },
-  RELODGE_TRANSFER: { labelKey: 'supervision.verbs.relodge', fallback: 'Reloger', Icon: SwapHoriz },
+  // v2 M11 : l'apply PROPOSE (email + lien de confirmation), le voyageur décide.
+  RELODGE_TRANSFER: { labelKey: 'supervision.verbs.propose', fallback: 'Proposer', Icon: SwapHoriz },
   NOSHOW_MARK: { labelKey: 'supervision.verbs.markNoShow', fallback: 'Marquer no-show', Icon: VisibilityOff },
   CHARGEBACK_SUBMIT: { labelKey: 'supervision.verbs.submit', fallback: 'Soumettre', Icon: Send },
   QUOTE_APPROVAL: { labelKey: 'supervision.verbs.approve', fallback: 'Approuver', Icon: Check },

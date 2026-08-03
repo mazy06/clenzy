@@ -3680,3 +3680,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0389__messaging_quiet_hours.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0390-create-stay-transfers"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0390__create_stay_transfers.sql
+        relativeToChangelogFile: true

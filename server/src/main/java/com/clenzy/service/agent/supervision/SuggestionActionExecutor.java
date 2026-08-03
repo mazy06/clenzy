@@ -118,6 +118,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
     private final ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider;
     private final ObjectProvider<com.clenzy.service.PrivacyRequestService> privacyRequestService;
+    private final ObjectProvider<com.clenzy.service.StayTransferService> stayTransferService;
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
     private final ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService;
@@ -170,6 +171,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
                                     ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider,
                                     ObjectProvider<com.clenzy.service.PrivacyRequestService> privacyRequestService,
+                                    ObjectProvider<com.clenzy.service.StayTransferService> stayTransferService,
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
@@ -217,6 +219,7 @@ public class SuggestionActionExecutor {
         this.conversationRepositoryProvider = conversationRepositoryProvider;
         this.conversationServiceProvider = conversationServiceProvider;
         this.privacyRequestService = privacyRequestService;
+        this.stayTransferService = stayTransferService;
         this.taxFilingService = taxFilingService;
         this.disputeEvidenceService = disputeEvidenceService;
         this.serviceQuoteService = serviceQuoteService;
@@ -583,36 +586,17 @@ public class SuggestionActionExecutor {
     private void applyRelodgeTransfer(SupervisionSuggestion suggestion) {
         final Reservation reservation = loadOrgReservation(suggestion);
         final long targetPropertyId = requiredLongParam(suggestion, "targetPropertyId");
-        if ("cancelled".equalsIgnoreCase(reservation.getStatus())) {
-            throw new IllegalStateException("Séjour annulé entre-temps — relogement sans objet");
-        }
-        if (reservation.getCheckOut() == null
-                || !reservation.getCheckOut().isAfter(LocalDate.now(clock))) {
-            throw new IllegalStateException("Séjour terminé — relogement sans objet");
-        }
-        final Reservation relodged = reservationService.getObject()
-                .relodge(reservation.getId(), targetPropertyId, suggestion.getAppliedBy());
-        final Property target = relodged.getProperty();
-        final String email = PostStayReviewScanner.resolveGuestEmail(relodged);
-        if (email == null) {
-            log.warn("RELODGE_TRANSFER : relogé sans email voyageur (reservation={}) — "
-                    + "information à faire manuellement", relodged.getId());
-            return;
-        }
-        final String guest = relodged.getGuestName() != null && !relodged.getGuestName().isBlank()
-                ? StringUtils.escapeHtml(relodged.getGuestName().strip()) : "Bonjour";
-        final String body = "<p>" + guest + ",</p>"
-                + "<p>Suite à un incident technique sur votre logement, nous vous relogeons pour "
-                + "la suite de votre séjour dans : <b>" + StringUtils.escapeHtml(target.getName())
-                + "</b>" + (target.getAddress() != null
-                    ? " — " + StringUtils.escapeHtml(target.getAddress()) : "") + ".</p>"
-                + "<p>Vos dates ne changent pas. Vos nouveaux codes d'accès vous parviennent "
-                + "séparément. Nous restons joignables pour toute question — merci de votre "
-                + "compréhension.</p>";
-        emailService.sendSimpleHtmlEmail(email,
-                "Changement de logement pour votre séjour — " + target.getName(), body);
-        log.info("RELODGE_TRANSFER appliqué org={} reservation={} cible={}",
-                suggestion.getOrganizationId(), relodged.getId(), targetPropertyId);
+        // v2 (M11) : plus de déménagement d'office — « Proposer » crée la proposition
+        // et envoie l'offre avec lien de confirmation ; le transfert ne s'exécutera
+        // qu'à l'accord explicite du voyageur (chemin public StayTransferService).
+        // Toutes les re-vérifications (séjour actif, org, cible libre, email présent,
+        // pas de proposition déjà active) vivent dans propose().
+        final com.clenzy.model.StayTransfer transfer = stayTransferService.getObject().propose(
+                suggestion.getOrganizationId(), reservation.getId(), targetPropertyId,
+                suggestion.getMotif(), suggestion.getAppliedBy());
+        log.info("RELODGE_TRANSFER proposé org={} reservation={} cible={} (transfert {})",
+                suggestion.getOrganizationId(), reservation.getId(), targetPropertyId,
+                transfer.getId());
     }
 
     /**

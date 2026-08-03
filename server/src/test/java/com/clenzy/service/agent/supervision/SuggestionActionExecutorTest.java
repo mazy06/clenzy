@@ -99,6 +99,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
     @Mock private com.clenzy.service.messaging.ConversationService conversationService;
     @Mock private com.clenzy.service.PrivacyRequestService privacyRequestServiceMock;
+    @Mock private com.clenzy.service.StayTransferService stayTransferServiceMock;
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
     @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
     @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
@@ -135,7 +136,8 @@ class SuggestionActionExecutorTest {
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
                 provider(conversationRepository), provider(conversationService),
-                provider(privacyRequestServiceMock), provider(taxFilingService),
+                provider(privacyRequestServiceMock), provider(stayTransferServiceMock),
+                provider(taxFilingService),
                 provider(disputeEvidenceService), provider(serviceQuoteService),
                 propertyStockItemRepository,
                 new ObjectMapper(), clock);
@@ -872,55 +874,41 @@ class SuggestionActionExecutorTest {
     }
 
     @Test
-    @DisplayName("relogement : chemin canonique puis email d'information au voyageur")
-    void relodgeTransfer_relodgesThenInformsGuest() {
+    @DisplayName("relogement v2 : l'apply PROPOSE (rien de deplace sans accord voyageur)")
+    void relodgeTransfer_proposesInsteadOfMoving() {
+        // v2 (M11) : l'apply ne deplace plus rien — il PROPOSE (StayTransferService
+        // porte les re-verifications, l'email et le lien de confirmation voyageur).
         Reservation reservation = mock(Reservation.class);
         when(reservation.getOrganizationId()).thenReturn(ORG_ID);
-        when(reservation.getStatus()).thenReturn("confirmed");
         when(reservation.getId()).thenReturn(RESERVATION_ID);
-        when(reservation.getCheckOut()).thenReturn(LocalDate.parse("2026-07-10")); // clock = 02/07
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
-
-        Property target = new Property();
-        target.setId(2L);
-        target.setName("Villa Palmeraie");
-        Reservation relodged = mock(Reservation.class);
-        when(relodged.getId()).thenReturn(RESERVATION_ID);
-        when(relodged.getProperty()).thenReturn(target);
-        when(relodged.getGuestName()).thenReturn("Amina Benali");
-        Guest guest = mock(Guest.class);
-        when(guest.getEmail()).thenReturn("amina@example.com");
-        when(relodged.getGuest()).thenReturn(guest);
-        when(reservationService.relodge(eq(RESERVATION_ID), eq(2L), anyString()))
-                .thenReturn(relodged);
+        when(stayTransferServiceMock.propose(any(), any(), any(), any(), any()))
+                .thenReturn(new com.clenzy.model.StayTransfer());
 
         SupervisionSuggestion s = suggestion(SupervisionActionType.RELODGE_TRANSFER,
                 "{\"reservationId\":100,\"targetPropertyId\":2}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
         executor.execute(s);
 
-        verify(reservationService).relodge(RESERVATION_ID, 2L,
+        verify(stayTransferServiceMock).propose(ORG_ID, RESERVATION_ID, 2L, "motif",
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
-        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
-                contains("Villa Palmeraie"));
+        verifyNoInteractions(reservationService);
+        verifyNoInteractions(emailService);
     }
 
     @Test
-    @DisplayName("relogement : sejour termine -> refus explicite, rien de deplace")
-    void relodgeTransfer_refusesFinishedStay() {
+    @DisplayName("relogement : reservation hors organisation -> refus, aucune proposition")
+    void relodgeTransfer_refusesCrossOrgReservation() {
         Reservation reservation = mock(Reservation.class);
-        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
-        when(reservation.getStatus()).thenReturn("confirmed");
-        when(reservation.getCheckOut()).thenReturn(LocalDate.parse("2026-07-01")); // clock = 02/07
+        when(reservation.getOrganizationId()).thenReturn(999L);
         when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() -> executor.execute(
                 suggestion(SupervisionActionType.RELODGE_TRANSFER,
                         "{\"reservationId\":100,\"targetPropertyId\":2}")))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("terminé");
-        verifyNoInteractions(reservationService);
-        verifyNoInteractions(emailService);
+                .hasMessageContaining("hors organisation");
+        verifyNoInteractions(stayTransferServiceMock);
     }
 
     @Test
