@@ -97,6 +97,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.booking.repository.SiteRepository siteRepository;
     @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
     @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
+    @Mock private com.clenzy.service.messaging.ConversationService conversationService;
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
     @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
     @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
@@ -132,7 +133,8 @@ class SuggestionActionExecutorTest {
                 provider(interventionRepository), provider(reservationRefundService),
                 provider(accountingService), provider(contentTranslationService),
                 provider(siteRepository), provider(sitePageRepository),
-                provider(conversationRepository), provider(taxFilingService),
+                provider(conversationRepository), provider(conversationService),
+                provider(taxFilingService),
                 provider(disputeEvidenceService), provider(serviceQuoteService),
                 propertyStockItemRepository,
                 new ObjectMapper(), clock);
@@ -1000,5 +1002,126 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("seuil");
         verifyNoInteractions(emailService);
+    }
+
+    // ─── M8 — late check-out & modification de séjour ────────────────────────
+
+    private com.clenzy.model.Conversation orgConversation(long id) {
+        com.clenzy.model.Conversation conversation = new com.clenzy.model.Conversation();
+        org.springframework.test.util.ReflectionTestUtils.setField(conversation, "organizationId", ORG_ID);
+        when(conversationRepository.findById(id)).thenReturn(Optional.of(conversation));
+        return conversation;
+    }
+
+    private Reservation stayReservation(LocalDate checkOut) {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        Reservation reservation = new Reservation();
+        reservation.setId(RESERVATION_ID);
+        reservation.setOrganizationId(ORG_ID);
+        reservation.setProperty(property);
+        reservation.setCheckOut(checkOut);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        return reservation;
+    }
+
+    @Test
+    @DisplayName("late check-out : jour du depart RE-verifie libre -> reponse envoyee + note tracee")
+    void lateCheckout_rechecksCalendarThenRepliesAndNotes() {
+        com.clenzy.model.Conversation conversation = orgConversation(14L);
+        Reservation reservation = stayReservation(LocalDate.parse("2026-07-05")); // clock = 02/07
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                PROPERTY_ID, LocalDate.parse("2026-07-05"), LocalDate.parse("2026-07-05"), ORG_ID))
+                .thenReturn(List.of());
+
+        executor.execute(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+                "{\"conversationId\":14,\"reservationId\":100,\"requestedTime\":\"14:00\"}"));
+
+        verify(conversationService).sendAutonomousMessage(eq(conversation), contains("14:00"));
+        assertThat(reservation.getNotes())
+                .contains(SuggestionActionExecutor.LATE_CHECKOUT_NOTE_MARKER)
+                .contains("14:00");
+        verify(reservationRepository).save(reservation);
+    }
+
+    @Test
+    @DisplayName("late check-out : arrivee apparue le jour du depart -> refus, aucun message")
+    void lateCheckout_refusesWhenArrivalAppeared() {
+        orgConversation(14L);
+        stayReservation(LocalDate.parse("2026-07-05"));
+        com.clenzy.model.CalendarDay busy = new com.clenzy.model.CalendarDay();
+        Reservation other = new Reservation();
+        other.setId(999L);
+        busy.setReservation(other);
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                PROPERTY_ID, LocalDate.parse("2026-07-05"), LocalDate.parse("2026-07-05"), ORG_ID))
+                .thenReturn(List.of(busy));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+                        "{\"conversationId\":14,\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("arrivée ou un blocage");
+        verifyNoInteractions(conversationService);
+    }
+
+    @Test
+    @DisplayName("late check-out : deja accorde (note presente) -> idempotent, pas de second message")
+    void lateCheckout_alreadyGrantedIsIdempotent() {
+        orgConversation(14L);
+        Reservation reservation = stayReservation(LocalDate.parse("2026-07-05"));
+        reservation.setNotes(SuggestionActionExecutor.LATE_CHECKOUT_NOTE_MARKER + " le 2026-07-01.");
+
+        executor.execute(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+                "{\"conversationId\":14,\"reservationId\":100}"));
+
+        verifyNoInteractions(conversationService);
+        verify(reservationRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    @DisplayName("modification sejour : dispo + total RE-calcules -> reponse chiffree avec differentiel")
+    void stayModification_recomputesThenSendsQuotedReply() {
+        com.clenzy.model.Conversation conversation = orgConversation(14L);
+        Reservation reservation = stayReservation(LocalDate.parse("2026-07-05"));
+        reservation.setTotalPrice(new java.math.BigDecimal("300"));
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                PROPERTY_ID, LocalDate.parse("2026-07-06"), LocalDate.parse("2026-07-08"), ORG_ID))
+                .thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(PROPERTY_ID, LocalDate.parse("2026-07-06"),
+                LocalDate.parse("2026-07-08"), ORG_ID))
+                .thenReturn(java.util.Map.of(
+                        LocalDate.parse("2026-07-06"), new java.math.BigDecimal("120"),
+                        LocalDate.parse("2026-07-07"), new java.math.BigDecimal("120"),
+                        LocalDate.parse("2026-07-08"), new java.math.BigDecimal("120")));
+
+        executor.execute(suggestion(SupervisionActionType.STAY_MODIFICATION,
+                "{\"conversationId\":14,\"reservationId\":100,"
+                        + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}"));
+
+        verify(conversationService).sendAutonomousMessage(eq(conversation), contains("360"));
+        verify(conversationService).sendAutonomousMessage(eq(conversation), contains("+60"));
+    }
+
+    @Test
+    @DisplayName("modification sejour : dates prises entre-temps -> refus, aucun message")
+    void stayModification_refusesWhenDatesTaken() {
+        orgConversation(14L);
+        stayReservation(LocalDate.parse("2026-07-05"));
+        com.clenzy.model.CalendarDay busy = new com.clenzy.model.CalendarDay();
+        Reservation other = new Reservation();
+        other.setId(999L);
+        busy.setReservation(other);
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                PROPERTY_ID, LocalDate.parse("2026-07-06"), LocalDate.parse("2026-07-08"), ORG_ID))
+                .thenReturn(List.of(busy));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.STAY_MODIFICATION,
+                        "{\"conversationId\":14,\"reservationId\":100,"
+                                + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("plus disponibles");
+        verifyNoInteractions(conversationService);
     }
 }

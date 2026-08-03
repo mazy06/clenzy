@@ -359,7 +359,8 @@
       "relodge": "Reloger",
       "markNoShow": "Marquer no-show",
       "submit": "Soumettre",
-      "order": "Commander"
+      "order": "Commander",
+      "accept": "Accepter"
     }
   },
   "channexGuided": {

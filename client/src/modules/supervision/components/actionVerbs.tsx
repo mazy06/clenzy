@@ -81,6 +81,9 @@ const VERBS: Record<string, ActionVerb> = {
   CHARGEBACK_SUBMIT: { labelKey: 'supervision.verbs.submit', fallback: 'Soumettre', Icon: Send },
   QUOTE_APPROVAL: { labelKey: 'supervision.verbs.approve', fallback: 'Approuver', Icon: Check },
   LINEN_STOCK_ORDER: { labelKey: 'supervision.verbs.order', fallback: 'Commander', Icon: Send },
+  // Intentions de messages (vague M-C) — réponses envoyées dans la conversation.
+  LATE_CHECKOUT_APPROVAL: { labelKey: 'supervision.verbs.accept', fallback: 'Accepter', Icon: Check },
+  STAY_MODIFICATION: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

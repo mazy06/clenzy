@@ -116,6 +116,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider;
     private final ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider;
     private final ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider;
+    private final ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider;
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
     private final ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService;
@@ -166,6 +167,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.booking.repository.SiteRepository> siteRepositoryProvider,
                                     ObjectProvider<com.clenzy.booking.repository.SitePageRepository> sitePageRepositoryProvider,
                                     ObjectProvider<com.clenzy.repository.ConversationRepository> conversationRepositoryProvider,
+                                    ObjectProvider<com.clenzy.service.messaging.ConversationService> conversationServiceProvider,
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
@@ -211,6 +213,7 @@ public class SuggestionActionExecutor {
         this.siteRepositoryProvider = siteRepositoryProvider;
         this.sitePageRepositoryProvider = sitePageRepositoryProvider;
         this.conversationRepositoryProvider = conversationRepositoryProvider;
+        this.conversationServiceProvider = conversationServiceProvider;
         this.taxFilingService = taxFilingService;
         this.disputeEvidenceService = disputeEvidenceService;
         this.serviceQuoteService = serviceQuoteService;
@@ -247,7 +250,9 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.OWNER_REVENUE_NOTE.equals(actionType)
                 || SupervisionActionType.RELODGE_TRANSFER.equals(actionType)
                 || SupervisionActionType.CHARGEBACK_SUBMIT.equals(actionType)
-                || SupervisionActionType.LINEN_STOCK_ORDER.equals(actionType);
+                || SupervisionActionType.LINEN_STOCK_ORDER.equals(actionType)
+                || SupervisionActionType.LATE_CHECKOUT_APPROVAL.equals(actionType)
+                || SupervisionActionType.STAY_MODIFICATION.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -296,6 +301,8 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.CHARGEBACK_SUBMIT -> applyChargebackSubmit(suggestion);
             case SupervisionActionType.QUOTE_APPROVAL -> applyQuoteApproval(suggestion);
             case SupervisionActionType.LINEN_STOCK_ORDER -> applyStockOrder(suggestion);
+            case SupervisionActionType.LATE_CHECKOUT_APPROVAL -> applyLateCheckoutApproval(suggestion);
+            case SupervisionActionType.STAY_MODIFICATION -> applyStayModification(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
     }
@@ -349,6 +356,169 @@ public class SuggestionActionExecutor {
     private void applyChargebackSubmit(SupervisionSuggestion suggestion) {
         final long disputeId = requiredLongParam(suggestion, "disputeId");
         disputeEvidenceService.getObject().submitEvidence(disputeId, suggestion.getOrganizationId());
+    }
+
+    /** Marqueur d'idempotence du late check-out dans les notes de la réservation. */
+    static final String LATE_CHECKOUT_NOTE_MARKER = "Late check-out accordé";
+
+    /**
+     * LATE_CHECKOUT_APPROVAL — accorde le départ tardif détecté par intent (M8) :
+     * la liberté du jour du départ est RE-vérifiée à l'apply (arrivée ou blocage
+     * apparu entre-temps → refus explicite), la réponse part dans la conversation
+     * (canal du fil) et l'accord est tracé dans les notes de la réservation —
+     * marqueur qui rend un re-apply idempotent (pas de second message).
+     * EFFET EXTERNE (message sortant) → hors transaction.
+     */
+    private void applyLateCheckoutApproval(SupervisionSuggestion suggestion) {
+        final long conversationId = requiredLongParam(suggestion, "conversationId");
+        final long reservationId = requiredLongParam(suggestion, "reservationId");
+        final com.clenzy.model.Conversation conversation =
+                requireOrgConversation(suggestion, conversationId);
+        final Reservation reservation = requireOrgReservation(suggestion, reservationId);
+        if (reservation.getCheckOut() == null
+                || reservation.getCheckOut().isBefore(java.time.LocalDate.now(clock))) {
+            throw new IllegalStateException("Séjour déjà terminé — late check-out sans objet");
+        }
+        if (reservation.getNotes() != null
+                && reservation.getNotes().contains(LATE_CHECKOUT_NOTE_MARKER)) {
+            log.info("LATE_CHECKOUT_APPROVAL déjà accordé (réservation {}) — idempotent", reservationId);
+            return;
+        }
+        // Re-vérification calendrier (règle audit : l'état du scan n'engage pas l'apply).
+        final Long propertyId = reservation.getProperty() != null
+                ? reservation.getProperty().getId() : null;
+        if (propertyId == null) {
+            throw new IllegalStateException("Réservation sans logement");
+        }
+        final boolean dayFree = calendarDayRepository.findByPropertyAndDateRange(
+                        propertyId, reservation.getCheckOut(), reservation.getCheckOut(),
+                        suggestion.getOrganizationId())
+                .stream().allMatch(day -> day.getReservation() != null
+                        && day.getReservation().getId().equals(reservation.getId()));
+        if (!dayFree) {
+            throw new IllegalStateException("Une arrivée ou un blocage est apparu le "
+                    + reservation.getCheckOut() + " — late check-out à arbitrer manuellement");
+        }
+        final String requestedTime = optionalStringParam(suggestion, "requestedTime");
+        final String reply = "Bonne nouvelle : votre demande de départ tardif est acceptée."
+                + (requestedTime != null
+                    ? " Vous pouvez quitter le logement à " + requestedTime + " le "
+                    : " Vous pouvez quitter le logement en fin de matinée le ")
+                + reservation.getCheckOut() + ". Bon séjour !";
+        conversationServiceProvider.getObject().sendAutonomousMessage(conversation, reply);
+        final String note = LATE_CHECKOUT_NOTE_MARKER
+                + (requestedTime != null ? " (" + requestedTime + ")" : "")
+                + " le " + java.time.LocalDate.now(clock) + " via la constellation.";
+        reservation.setNotes(reservation.getNotes() == null || reservation.getNotes().isBlank()
+                ? note : reservation.getNotes() + "\n" + note);
+        reservationRepository.save(reservation);
+        log.info("LATE_CHECKOUT_APPROVAL accordé org={} réservation={} conversation={}",
+                suggestion.getOrganizationId(), reservationId, conversationId);
+    }
+
+    /**
+     * STAY_MODIFICATION (v1) — répond CHIFFRÉ à la demande de modification :
+     * disponibilité et différentiel RE-calculés à l'apply (règle argent n°1 — le
+     * chiffrage du scan n'est qu'indicatif) ; dates prises entre-temps → refus
+     * explicite. v1 = accord de principe dans la conversation, la modification
+     * effective reste manuelle. EFFET EXTERNE (message sortant) → hors transaction.
+     */
+    private void applyStayModification(SupervisionSuggestion suggestion) {
+        final long conversationId = requiredLongParam(suggestion, "conversationId");
+        final long reservationId = requiredLongParam(suggestion, "reservationId");
+        final java.time.LocalDate newCheckIn = requiredDateParam(suggestion, "newCheckIn");
+        final java.time.LocalDate newCheckOut = requiredDateParam(suggestion, "newCheckOut");
+        if (!newCheckOut.isAfter(newCheckIn)) {
+            throw new IllegalStateException("Dates demandées incohérentes");
+        }
+        final com.clenzy.model.Conversation conversation =
+                requireOrgConversation(suggestion, conversationId);
+        final Reservation reservation = requireOrgReservation(suggestion, reservationId);
+        final Long propertyId = reservation.getProperty() != null
+                ? reservation.getProperty().getId() : null;
+        if (propertyId == null) {
+            throw new IllegalStateException("Réservation sans logement");
+        }
+        // Re-vérification dispo : seules les nuits du séjour à déplacer peuvent occuper la plage.
+        final boolean free = calendarDayRepository.findByPropertyAndDateRange(
+                        propertyId, newCheckIn, newCheckOut.minusDays(1),
+                        suggestion.getOrganizationId())
+                .stream().allMatch(day -> day.getReservation() != null
+                        && day.getReservation().getId().equals(reservation.getId()));
+        if (!free) {
+            throw new IllegalStateException("Les dates " + newCheckIn + " → " + newCheckOut
+                    + " ne sont plus disponibles — proposer une alternative dans la conversation");
+        }
+        final java.math.BigDecimal newTotal = priceEngine
+                .resolvePriceRange(propertyId, newCheckIn, newCheckOut.minusDays(1),
+                        suggestion.getOrganizationId())
+                .values().stream()
+                .filter(java.util.Objects::nonNull)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        final java.math.BigDecimal delta = reservation.getTotalPrice() != null
+                ? newTotal.subtract(reservation.getTotalPrice()) : null;
+        final StringBuilder reply = new StringBuilder()
+                .append("Votre demande de modification de séjour (")
+                .append(newCheckIn).append(" → ").append(newCheckOut)
+                .append(") est possible : les dates sont disponibles. ")
+                .append("Le nouveau total du séjour serait de ").append(newTotal).append(" €");
+        if (delta != null && delta.signum() != 0) {
+            reply.append(" (soit ").append(delta.signum() > 0 ? "+" : "")
+                 .append(delta).append(" € par rapport à votre réservation actuelle)");
+        }
+        reply.append(". Confirmez-nous et nous appliquons la modification.");
+        conversationServiceProvider.getObject().sendAutonomousMessage(conversation, reply.toString());
+        log.info("STAY_MODIFICATION chiffrée org={} réservation={} {}→{} total={}",
+                suggestion.getOrganizationId(), reservationId, newCheckIn, newCheckOut, newTotal);
+    }
+
+    /** Charge la conversation et RE-valide l'org (règle audit n°3 : findById contourne le filtre). */
+    private com.clenzy.model.Conversation requireOrgConversation(SupervisionSuggestion suggestion,
+                                                                 long conversationId) {
+        final com.clenzy.model.Conversation conversation = conversationRepositoryProvider.getObject()
+                .findById(conversationId)
+                .orElseThrow(() -> new IllegalStateException("Conversation introuvable"));
+        if (conversation.getOrganizationId() == null
+                || !conversation.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Conversation introuvable pour cette organisation");
+        }
+        return conversation;
+    }
+
+    /** Charge la réservation et RE-valide l'org (règle audit n°3). */
+    private Reservation requireOrgReservation(SupervisionSuggestion suggestion, long reservationId) {
+        final Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalStateException("Réservation introuvable"));
+        if (reservation.getOrganizationId() == null
+                || !reservation.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Réservation introuvable pour cette organisation");
+        }
+        return reservation;
+    }
+
+    private String optionalStringParam(SupervisionSuggestion suggestion, String field) {
+        try {
+            final JsonNode node = objectMapper.readTree(suggestion.getActionParams()).get(field);
+            if (node == null || node.isNull()) {
+                return null;
+            }
+            final String value = node.asText().strip();
+            return value.isEmpty() ? null : value;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private java.time.LocalDate requiredDateParam(SupervisionSuggestion suggestion, String field) {
+        final String value = optionalStringParam(suggestion, field);
+        if (value == null) {
+            throw new IllegalStateException("Paramètre « " + field + " » manquant");
+        }
+        try {
+            return java.time.LocalDate.parse(value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Paramètre « " + field + " » invalide");
+        }
     }
 
     /**

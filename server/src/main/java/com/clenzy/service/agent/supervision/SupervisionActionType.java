@@ -352,5 +352,27 @@ public final class SupervisionActionType {
      */
     public static final String LINEN_STOCK_ORDER = "LINEN_STOCK_ORDER";
 
+    /**
+     * Accorde un late check-out demandé par le voyageur (agent Communication, M8) :
+     * détecté par intent LLM ({@code MessageIntent}), la carte n'existe que si le
+     * calendrier le permet (aucune arrivée ni blocage le jour du départ) — condition
+     * RE-vérifiée à l'apply (refus explicite sinon). L'apply envoie la réponse dans
+     * la conversation (canal du fil) et trace l'accord dans les notes de la
+     * réservation. EFFET EXTERNE (message sortant) → hors transaction.
+     * Params : {@code conversationId}, {@code reservationId}, {@code requestedTime?}.
+     */
+    public static final String LATE_CHECKOUT_APPROVAL = "LATE_CHECKOUT_APPROVAL";
+
+    /**
+     * Répond CHIFFRÉ à une demande de modification de séjour (agent Voyageur, M8 v1) :
+     * dates extraites de l'intent, disponibilité et différentiel tarifaire RE-calculés
+     * à l'apply (dates prises entre-temps → refus explicite). v1 = accord de principe
+     * envoyé dans la conversation, la modification effective reste manuelle (v2 M-D :
+     * avenant automatisé calendrier + paiement). EFFET EXTERNE (message sortant).
+     * Params : {@code conversationId}, {@code reservationId}, {@code newCheckIn},
+     * {@code newCheckOut}.
+     */
+    public static final String STAY_MODIFICATION = "STAY_MODIFICATION";
+
     private SupervisionActionType() {}
 }

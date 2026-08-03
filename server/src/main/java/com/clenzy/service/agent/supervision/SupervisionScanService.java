@@ -62,6 +62,7 @@ public class SupervisionScanService {
     private final OwnerRelationScanner ownerRelationScanner;
     private final GrowthDistributionScanner growthDistributionScanner;
     private final EscalationScanner escalationScanner;
+    private final MessageIntentScanner messageIntentScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -86,6 +87,7 @@ public class SupervisionScanService {
                                   OwnerRelationScanner ownerRelationScanner,
                                   GrowthDistributionScanner growthDistributionScanner,
                                   EscalationScanner escalationScanner,
+                                  MessageIntentScanner messageIntentScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -109,6 +111,7 @@ public class SupervisionScanService {
         this.ownerRelationScanner = ownerRelationScanner;
         this.growthDistributionScanner = growthDistributionScanner;
         this.escalationScanner = escalationScanner;
+        this.messageIntentScanner = messageIntentScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -184,6 +187,7 @@ public class SupervisionScanService {
         ownerRelationScanner.scanProperty(orgId, propertyId);
         growthDistributionScanner.scanProperty(orgId, propertyId);
         escalationScanner.scanProperty(orgId, propertyId);
+        messageIntentScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -210,6 +214,7 @@ public class SupervisionScanService {
         ownerRelationScanner.scanProperty(orgId, propertyId);
         growthDistributionScanner.scanProperty(orgId, propertyId);
         escalationScanner.scanProperty(orgId, propertyId);
+        messageIntentScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();
