@@ -343,5 +343,14 @@ public final class SupervisionActionType {
      */
     public static final String QUOTE_APPROVAL = "QUOTE_APPROVAL";
 
+    /**
+     * Commande de réassort d'un consommable sous le seuil (agent Opérations, M5) :
+     * bon de commande envoyé par email au fournisseur configuré (quantité de réappro,
+     * adresse du logement). Quantités RE-lues à l'apply ; article repassé au-dessus du
+     * seuil entre-temps → refus explicite. EFFET EXTERNE (email) → hors transaction.
+     * Params : {@code stockItemId}.
+     */
+    public static final String LINEN_STOCK_ORDER = "LINEN_STOCK_ORDER";
+
     private SupervisionActionType() {}
 }

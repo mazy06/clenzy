@@ -3652,3 +3652,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0385__create_service_quotes.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0386-create-property-stock-items"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0386__create_property_stock_items.sql
+        relativeToChangelogFile: true

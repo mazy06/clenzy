@@ -44,6 +44,7 @@ public class OpsMaintenanceScanner {
     private final InterventionRepository interventionRepository;
     private final PropertyRepository propertyRepository;
     private final com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository;
+    private final com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
     private final SupervisionSuggestionService suggestionService;
     private final Clock clock;
 
@@ -51,12 +52,14 @@ public class OpsMaintenanceScanner {
                                  InterventionRepository interventionRepository,
                                  PropertyRepository propertyRepository,
                                  com.clenzy.repository.ServiceQuoteRepository serviceQuoteRepository,
+                                 com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository,
                                  SupervisionSuggestionService suggestionService,
                                  Clock clock) {
         this.smartLockDeviceRepository = smartLockDeviceRepository;
         this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
         this.serviceQuoteRepository = serviceQuoteRepository;
+        this.propertyStockItemRepository = propertyStockItemRepository;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -83,6 +86,46 @@ public class OpsMaintenanceScanner {
         } catch (Exception e) {
             log.debug("quote scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanLowStock(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("stock scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Stock sous le seuil (M5) : avec un fournisseur configuré → carte ACTIONNABLE
+     * « Commander » (bon de commande par email) ; sans fournisseur → carte info
+     * « stock bas » (rien d'honnête à commander). Seuil 0 = article non suivi.
+     */
+    private void scanLowStock(Long orgId, Long propertyId) {
+        for (com.clenzy.model.PropertyStockItem item : propertyStockItemRepository
+                .findByPropertyIdAndOrganizationIdOrderByNameAsc(propertyId, orgId)) {
+            if (item.getReorderThreshold() <= 0 || item.getQuantity() > item.getReorderThreshold()) {
+                continue;
+            }
+            final boolean orderable = item.getSupplierEmail() != null
+                    && !item.getSupplierEmail().isBlank() && item.getReorderQuantity() > 0;
+            if (orderable) {
+                suggestionService.recordActionable(
+                        orgId, propertyId, MODULE_OPS,
+                        "Stock bas : " + item.getName() + " (" + item.getQuantity() + " restant)",
+                        "Seuil de " + item.getReorderThreshold() + " atteint. « Commander » envoie "
+                                + "le bon de commande (" + item.getReorderQuantity()
+                                + (item.getUnit() != null ? " " + item.getUnit() : "") + ") à "
+                                + item.getSupplierName() + " — le réassort se confirme ensuite "
+                                + "dans la fiche du logement.",
+                        SupervisionActionType.LINEN_STOCK_ORDER,
+                        "{\"stockItemId\":" + item.getId() + "}", null, "warning");
+            } else {
+                suggestionService.record(orgId, propertyId, MODULE_OPS, "stock_low",
+                        "Stock bas : " + item.getName() + " (" + item.getQuantity() + " restant)",
+                        "Seuil de " + item.getReorderThreshold() + " atteint et aucun fournisseur "
+                                + "configuré — renseigner le fournisseur dans la fiche du logement "
+                                + "pour que la commande devienne un clic.");
+            }
         }
     }
 

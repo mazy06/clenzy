@@ -119,6 +119,7 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService;
     private final ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService;
     private final ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService;
+    private final com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -168,6 +169,7 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.TaxFilingService> taxFilingService,
                                     ObjectProvider<com.clenzy.service.DisputeEvidenceService> disputeEvidenceService,
                                     ObjectProvider<com.clenzy.service.ServiceQuoteService> serviceQuoteService,
+                                    com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -212,6 +214,7 @@ public class SuggestionActionExecutor {
         this.taxFilingService = taxFilingService;
         this.disputeEvidenceService = disputeEvidenceService;
         this.serviceQuoteService = serviceQuoteService;
+        this.propertyStockItemRepository = propertyStockItemRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -243,7 +246,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.SITE_TRANSLATION_DRAFT.equals(actionType)
                 || SupervisionActionType.OWNER_REVENUE_NOTE.equals(actionType)
                 || SupervisionActionType.RELODGE_TRANSFER.equals(actionType)
-                || SupervisionActionType.CHARGEBACK_SUBMIT.equals(actionType);
+                || SupervisionActionType.CHARGEBACK_SUBMIT.equals(actionType)
+                || SupervisionActionType.LINEN_STOCK_ORDER.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -291,8 +295,47 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.NOSHOW_MARK -> applyNoShowMark(suggestion);
             case SupervisionActionType.CHARGEBACK_SUBMIT -> applyChargebackSubmit(suggestion);
             case SupervisionActionType.QUOTE_APPROVAL -> applyQuoteApproval(suggestion);
+            case SupervisionActionType.LINEN_STOCK_ORDER -> applyStockOrder(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * LINEN_STOCK_ORDER — bon de commande au fournisseur : quantités et fournisseur
+     * RE-lus à l'apply (règle audit n°1) ; article repassé au-dessus du seuil ou
+     * fournisseur retiré entre-temps → refus explicite. Le réassort se confirme
+     * ensuite dans la fiche (le stock n'est PAS incrémenté à la commande).
+     */
+    private void applyStockOrder(SupervisionSuggestion suggestion) {
+        final long stockItemId = requiredLongParam(suggestion, "stockItemId");
+        final com.clenzy.model.PropertyStockItem item = propertyStockItemRepository
+                .findByIdAndOrganizationId(stockItemId, suggestion.getOrganizationId())
+                .orElseThrow(() -> new IllegalStateException("Article introuvable pour cette organisation"));
+        if (item.getQuantity() > item.getReorderThreshold()) {
+            throw new IllegalStateException("Stock repassé au-dessus du seuil ("
+                    + item.getQuantity() + ") — commande sans objet, carte à rejeter");
+        }
+        if (item.getSupplierEmail() == null || item.getSupplierEmail().isBlank()
+                || item.getReorderQuantity() <= 0) {
+            throw new IllegalStateException("Fournisseur ou quantité de réappro manquants "
+                    + "— compléter la fiche du logement");
+        }
+        final Property property = propertyRepository.findById(item.getPropertyId())
+                .orElseThrow(() -> new IllegalStateException("Logement introuvable"));
+        final String body = "<p>Bonjour" + (item.getSupplierName() != null
+                    ? " " + StringUtils.escapeHtml(item.getSupplierName()) : "") + ",</p>"
+                + "<p>Merci de nous livrer :</p>"
+                + "<p><b>" + item.getReorderQuantity()
+                + (item.getUnit() != null ? " " + StringUtils.escapeHtml(item.getUnit()) : "")
+                + " — " + StringUtils.escapeHtml(item.getName()) + "</b></p>"
+                + "<p>Adresse de livraison : " + StringUtils.escapeHtml(property.getName())
+                + (property.getAddress() != null
+                    ? ", " + StringUtils.escapeHtml(property.getAddress()) : "") + ".</p>"
+                + "<p>Merci de confirmer la disponibilité et le délai par retour d'email.</p>";
+        emailService.sendSimpleHtmlEmail(item.getSupplierEmail().trim(),
+                "Bon de commande — " + item.getName() + " (" + property.getName() + ")", body);
+        log.info("LINEN_STOCK_ORDER envoyé org={} item={} fournisseur={}",
+                suggestion.getOrganizationId(), stockItemId, item.getSupplierName());
     }
 
     /** QUOTE_APPROVAL — délègue à l'approbation CAS (org, statut, report du coût côté service). */

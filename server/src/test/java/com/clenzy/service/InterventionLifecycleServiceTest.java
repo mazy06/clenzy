@@ -49,7 +49,8 @@ class InterventionLifecycleServiceTest {
         service = new InterventionLifecycleService(
                 interventionRepository, interventionMapper, accessPolicy,
                 notificationService, outboxPublisher, objectMapper, tenantContext,
-                housekeeperPayoutService);
+                housekeeperPayoutService,
+                org.mockito.Mockito.mock(com.clenzy.service.PropertyStockService.class));
 
         owner = new User();
         owner.setId(10L);

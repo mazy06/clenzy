@@ -100,6 +100,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.TaxFilingService taxFilingService;
     @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
     @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
+    @Mock private com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -133,6 +134,7 @@ class SuggestionActionExecutorTest {
                 provider(siteRepository), provider(sitePageRepository),
                 provider(conversationRepository), provider(taxFilingService),
                 provider(disputeEvidenceService), provider(serviceQuoteService),
+                propertyStockItemRepository,
                 new ObjectMapper(), clock);
     }
 
@@ -958,5 +960,45 @@ class SuggestionActionExecutorTest {
         executor.execute(s);
         verify(serviceQuoteService).approve(23L, ORG_ID,
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
+    }
+
+    @Test
+    @DisplayName("commande stock : quantites re-lues, bon de commande envoye au fournisseur")
+    void stockOrder_sendsPurchaseOrderToSupplier() {
+        com.clenzy.model.PropertyStockItem item = new com.clenzy.model.PropertyStockItem();
+        item.setPropertyId(PROPERTY_ID);
+        item.setName("Parure de lit");
+        item.setQuantity(2);
+        item.setReorderThreshold(4);
+        item.setReorderQuantity(12);
+        item.setSupplierName("Linge Pro");
+        item.setSupplierEmail("supplier@example.com");
+        when(propertyStockItemRepository.findByIdAndOrganizationId(6L, ORG_ID))
+                .thenReturn(Optional.of(item));
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setName("Riad Yasmine");
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+
+        executor.execute(suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("supplier@example.com"), anyString(),
+                contains("Parure de lit"));
+    }
+
+    @Test
+    @DisplayName("commande stock : repasse au-dessus du seuil -> refus explicite, rien d'envoye")
+    void stockOrder_refusesWhenBackAboveThreshold() {
+        com.clenzy.model.PropertyStockItem item = new com.clenzy.model.PropertyStockItem();
+        item.setQuantity(9);
+        item.setReorderThreshold(4);
+        when(propertyStockItemRepository.findByIdAndOrganizationId(6L, ORG_ID))
+                .thenReturn(Optional.of(item));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("seuil");
+        verifyNoInteractions(emailService);
     }
 }

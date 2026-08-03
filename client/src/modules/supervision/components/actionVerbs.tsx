@@ -80,6 +80,7 @@ const VERBS: Record<string, ActionVerb> = {
   NOSHOW_MARK: { labelKey: 'supervision.verbs.markNoShow', fallback: 'Marquer no-show', Icon: VisibilityOff },
   CHARGEBACK_SUBMIT: { labelKey: 'supervision.verbs.submit', fallback: 'Soumettre', Icon: Send },
   QUOTE_APPROVAL: { labelKey: 'supervision.verbs.approve', fallback: 'Approuver', Icon: Check },
+  LINEN_STOCK_ORDER: { labelKey: 'supervision.verbs.order', fallback: 'Commander', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */
