@@ -18,6 +18,10 @@ public interface HousekeeperPayoutRecordRepository extends JpaRepository<Houseke
 
     List<HousekeeperPayoutRecord> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId);
 
+    /** Records à débloquer/relancer (scanner CLEANING_PAYOUT de la constellation). */
+    List<HousekeeperPayoutRecord> findByOrganizationIdAndStatusInOrderByCreatedAtDesc(
+            Long organizationId, java.util.Collection<HousekeeperPayoutRecord.Status> statuses);
+
     /**
      * Transition de statut par UPDATE CONDITIONNEL (CAS — check-then-act interdit,
      * audit règle 8) : ne s'applique que si le record est encore dans {@code from}.

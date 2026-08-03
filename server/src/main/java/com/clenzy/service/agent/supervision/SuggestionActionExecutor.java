@@ -97,6 +97,8 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.NoiseAlertNotificationService> noiseAlertNotificationService;
     private final ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler;
     private final ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService;
+    private final ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService;
+    private final ObjectProvider<com.clenzy.service.ReservationService> reservationService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -124,6 +126,8 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.NoiseAlertNotificationService> noiseAlertNotificationService,
                                     ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler,
                                     ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService,
+                                    ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService,
+                                    ObjectProvider<com.clenzy.service.ReservationService> reservationService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -146,6 +150,8 @@ public class SuggestionActionExecutor {
         this.noiseAlertNotificationService = noiseAlertNotificationService;
         this.cartRecoveryScheduler = cartRecoveryScheduler;
         this.welcomeGuideService = welcomeGuideService;
+        this.housekeeperPayoutService = housekeeperPayoutService;
+        this.reservationService = reservationService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -165,7 +171,8 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.NOISE_WARNING_SEND.equals(actionType)
                 || SupervisionActionType.CART_RECOVERY_SEND.equals(actionType)
                 || SupervisionActionType.GUIDE_SEND.equals(actionType)
-                || SupervisionActionType.REVIEW_REQUEST_SEND.equals(actionType);
+                || SupervisionActionType.REVIEW_REQUEST_SEND.equals(actionType)
+                || SupervisionActionType.CLEANING_PAYOUT.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -190,8 +197,37 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.CART_RECOVERY_SEND -> applyCartRecoverySend(suggestion);
             case SupervisionActionType.GUIDE_SEND -> applyGuideSend(suggestion);
             case SupervisionActionType.REVIEW_REQUEST_SEND -> applyReviewRequestSend(suggestion);
+            case SupervisionActionType.CLEANING_PAYOUT -> applyCleaningPayout(suggestion);
+            case SupervisionActionType.FRAUD_BLOCK -> applyFraudBlock(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * CLEANING_PAYOUT — délègue à {@code HousekeeperPayoutService.retryPayout} : org
+     * validée là-bas, re-gate complet (preuve, onboarding, montants re-résolus — règle
+     * audit n°1), verrou anti-double-versement. Un re-gate non satisfait lève une
+     * IllegalStateException explicite → la carte reste PENDING. EFFET EXTERNE (Stripe).
+     */
+    private void applyCleaningPayout(SupervisionSuggestion suggestion) {
+        final long recordId = requiredLongParam(suggestion, "recordId");
+        housekeeperPayoutService.getObject().retryPayout(recordId, suggestion.getOrganizationId());
+    }
+
+    /**
+     * FRAUD_BLOCK — annule la réservation signalée à risque TANT qu'elle est
+     * {@code pending} : une réservation payée/confirmée exige le flux de remboursement
+     * de la fiche réservation, jamais un blocage aveugle (règle argent n°1).
+     * {@code ReservationService.cancel} libère le calendrier, révoque les codes d'accès
+     * et expire la session Stripe ouverte (org re-validée par le tenant courant).
+     */
+    private void applyFraudBlock(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        if (!"pending".equalsIgnoreCase(reservation.getStatus())) {
+            throw new IllegalStateException("Réservation déjà " + reservation.getStatus()
+                    + " — blocage direct refusé, passer par la fiche réservation (remboursement)");
+        }
+        reservationService.getObject().cancel(reservation.getId());
     }
 
     /**

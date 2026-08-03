@@ -86,6 +86,7 @@ class PublicBookingServiceTest {
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class),
                 org.mockito.Mockito.mock(com.clenzy.service.UpsellService.class),
                 fraudScoringService,
+                org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),
                 new BookingMockDataProvider(),
                 orchestrationService,
                 transactionManager);

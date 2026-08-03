@@ -76,6 +76,8 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.NoiseAlertNotificationService noiseAlertNotificationService;
     @Mock private com.clenzy.scheduler.AbandonedBookingRecoveryScheduler cartRecoveryScheduler;
     @Mock private com.clenzy.service.WelcomeGuideService welcomeGuideService;
+    @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
+    @Mock private com.clenzy.service.ReservationService reservationService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -98,6 +100,7 @@ class SuggestionActionExecutorTest {
                 provider(icalImportService), provider(channexSyncService),
                 noiseAlertRepository, provider(noiseAlertNotificationService),
                 provider(cartRecoveryScheduler), provider(welcomeGuideService),
+                provider(housekeeperPayoutService), provider(reservationService),
                 new ObjectMapper(), clock);
     }
 
@@ -462,5 +465,41 @@ class SuggestionActionExecutorTest {
 
         verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
                 contains("https://app/guide/tok-review"));
+    }
+
+    @Test
+    @DisplayName("versement menage : delegue a retryPayout (re-gate complet cote service)")
+    void cleaningPayout_delegatesToRetryPayout() {
+        executor.execute(suggestion(SupervisionActionType.CLEANING_PAYOUT, "{\"recordId\":12}"));
+        verify(housekeeperPayoutService).retryPayout(12L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("blocage fraude : reservation pending -> annulation via ReservationService")
+    void fraudBlock_cancelsPendingReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getStatus()).thenReturn("pending");
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        executor.execute(suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}"));
+
+        verify(reservationService).cancel(RESERVATION_ID);
+    }
+
+    @Test
+    @DisplayName("blocage fraude : reservation deja confirmee -> refus explicite, pas d'annulation")
+    void fraudBlock_refusesConfirmedReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getStatus()).thenReturn("confirmed");
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("fiche réservation");
+        verifyNoInteractions(reservationService);
     }
 }

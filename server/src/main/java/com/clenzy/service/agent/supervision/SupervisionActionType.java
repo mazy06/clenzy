@@ -136,5 +136,23 @@ public final class SupervisionActionType {
      */
     public static final String REVIEW_REQUEST_SEND = "REVIEW_REQUEST_SEND";
 
+    /**
+     * Débloque/relance le versement ménage d'une mission (agent Opérations). Réutilise
+     * {@code HousekeeperPayoutService.retryPayout} : re-gate COMPLET à l'apply (preuve
+     * photo, onboarding Connect, montants re-résolus depuis l'intervention — règle
+     * audit n°1), verrou anti-double-versement par contrainte unique. EFFET EXTERNE
+     * (transfert Stripe) → hors transaction. Params : {@code recordId}.
+     */
+    public static final String CLEANING_PAYOUT = "CLEANING_PAYOUT";
+
+    /**
+     * Bloque une réservation signalée à risque par le scoring de fraude (agent
+     * Finance) : annulation via {@code ReservationService.cancel} (calendrier libéré,
+     * codes d'accès révoqués, session Stripe ouverte expirée). REFUSÉ si la
+     * réservation n'est plus au statut {@code pending} (déjà payée/confirmée → flux
+     * de remboursement manuel). Params : {@code reservationId}.
+     */
+    public static final String FRAUD_BLOCK = "FRAUD_BLOCK";
+
     private SupervisionActionType() {}
 }

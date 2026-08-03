@@ -338,7 +338,8 @@
       "remind": "Relancer",
       "retry": "Relancer",
       "republish": "Republier",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "pay": "Verser"
     }
   },
   "channexGuided": {
