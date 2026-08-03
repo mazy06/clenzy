@@ -57,6 +57,7 @@ import {  Edit,
   OpenInNew,
   PhotoLibrary,
   Inventory2,
+  GppGood,
   Send,
 } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -73,6 +74,7 @@ import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import PropertyPhotosTab from './PropertyPhotosTab';
 import PropertyInventoryTab from './PropertyInventoryTab';
+import PropertyComplianceTab from './PropertyComplianceTab';
 import PropertyInterventionsTab from './PropertyInterventionsTab';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
@@ -446,6 +448,7 @@ const PropertyDetails: React.FC = () => {
             { key: 'check-in', label: t('channels.checkIn.title'), icon: <FlightLand /> },
             { key: 'photos', label: t('properties.tabs.photos'), icon: <PhotoLibrary /> },
             { key: 'inventory', label: 'Inventaire', icon: <Inventory2 /> },
+            { key: 'compliance', label: t('properties.tabs.compliance', 'Conformité'), icon: <GppGood /> },
           ]}
           value={tabValue}
           onChange={setTabValue}
@@ -941,6 +944,13 @@ const PropertyDetails: React.FC = () => {
       {tabValue === 5 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-5" aria-labelledby="property-tab-5">
           <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
+        </div>
+      )}
+
+      {/* ─── Tab 6: Conformité (licences & autorisations, vague M-A) ─────── */}
+      {tabValue === 6 && (
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-6" aria-labelledby="property-tab-6">
+          <PropertyComplianceTab propertyId={Number(id)} canEdit={canEdit} />
         </div>
       )}
 

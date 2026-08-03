@@ -18,6 +18,7 @@ import {
   type TouristTaxReport,
 } from '../../services/api/touristTaxApi';
 import TouristTaxBaremeDialog from './TouristTaxBaremeDialog';
+import { taxFilingsApi, type TaxFiling } from '../../services/api/taxFilingsApi';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -293,6 +294,9 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         </Card>
       )}
 
+      {/* ─── Registre des déclarations (vague M-A) ─────────────────────── */}
+      <TaxFilingsRegistry canEdit={canEdit} />
+
       {/* ─── Section rapport / export ─────────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="inline-flex text-primary">
@@ -420,5 +424,136 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         onSave={(request) => saveMutation.mutate(request)}
       />
     </div>
+  );
+}
+
+/**
+ * Registre des déclarations trimestrielles (vague M-A des modèles métier) : les
+ * entrées DUE sont créées par le scan trimestriel de la constellation — ici on
+ * trace le dépôt (FILED) puis le paiement (PAID), avec référence facultative.
+ * Registre vide = rien à afficher (aucun trimestre clôturé taxable).
+ */
+function TaxFilingsRegistry({ canEdit }: { canEdit: boolean }) {
+  const { t } = useTranslation();
+  const [filings, setFilings] = useState<TaxFiling[] | null>(null);
+  const [pendingRef, setPendingRef] = useState<{ id: number; action: 'filed' | 'paid'; reference: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const reload = React.useCallback(() => {
+    taxFilingsApi.list().then(setFilings).catch(() => setFilings([]));
+  }, []);
+  React.useEffect(() => { reload(); }, [reload]);
+
+  if (!filings || filings.length === 0) {
+    return null;
+  }
+
+  const confirm = async () => {
+    if (!pendingRef) return;
+    setBusy(true);
+    try {
+      if (pendingRef.action === 'filed') {
+        await taxFilingsApi.markFiled(pendingRef.id, pendingRef.reference || undefined);
+      } else {
+        await taxFilingsApi.markPaid(pendingRef.id, pendingRef.reference || undefined);
+      }
+      setPendingRef(null);
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const statusBadge = (status: TaxFiling['status']) => {
+    if (status === 'DUE') {
+      return <Badge variant="warning">{t('touristTax.filings.due', 'À déclarer')}</Badge>;
+    }
+    if (status === 'FILED') {
+      return <Badge variant="secondary">{t('touristTax.filings.filed', 'Déclarée')}</Badge>;
+    }
+    return <Badge variant="secondary">{t('touristTax.filings.paid', 'Payée')}</Badge>;
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-1.5 mb-0.5 mt-5">
+        <span className="inline-flex text-primary">
+          <Gavel size={20} strokeWidth={1.75} />
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold">
+          {t('touristTax.filings.title', 'Registre des déclarations')}
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
+        {t('touristTax.filings.subtitle',
+          'Un trimestre clôturé = une entrée. Après ton dépôt auprès de l’autorité, marque la déclaration (référence facultative) — la carte de l’agent Conformité se résout.')}
+      </p>
+      <Card className="p-0 mb-5">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('touristTax.filings.period', 'Période')}</TableHead>
+              <TableHead>{t('touristTax.filings.amount', 'Montant')}</TableHead>
+              <TableHead>{t('touristTax.filings.status', 'Statut')}</TableHead>
+              <TableHead>{t('touristTax.filings.reference', 'Référence')}</TableHead>
+              {canEdit && <TableHead aria-label="actions" />}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filings.map((filing) => (
+              <React.Fragment key={filing.id}>
+                <TableRow>
+                  <TableCell className="tabular-nums">
+                    {filing.periodStart} → {filing.periodEnd}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {filing.amount} {filing.currency}
+                  </TableCell>
+                  <TableCell>{statusBadge(filing.status)}</TableCell>
+                  <TableCell className="tabular-nums">{filing.paymentReference ?? '—'}</TableCell>
+                  {canEdit && (
+                    <TableCell className="text-right">
+                      {filing.status === 'DUE' && (
+                        <BuiButton size="sm" variant="outline"
+                          onClick={() => setPendingRef({ id: filing.id, action: 'filed', reference: '' })}>
+                          {t('touristTax.filings.markFiled', 'Marquer déclarée')}
+                        </BuiButton>
+                      )}
+                      {filing.status === 'FILED' && (
+                        <BuiButton size="sm" variant="outline"
+                          onClick={() => setPendingRef({ id: filing.id, action: 'paid', reference: '' })}>
+                          {t('touristTax.filings.markPaid', 'Marquer payée')}
+                        </BuiButton>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+                {pendingRef?.id === filing.id && (
+                  <TableRow>
+                    <TableCell colSpan={canEdit ? 5 : 4}>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          className="max-w-[280px]"
+                          placeholder={t('touristTax.filings.referenceHint', 'Référence de dépôt/paiement (facultatif)')}
+                          value={pendingRef.reference}
+                          onChange={(e) => setPendingRef({ ...pendingRef, reference: e.target.value })}
+                        />
+                        <BuiButton size="sm" disabled={busy} onClick={confirm}>
+                          {busy ? <Spinner className="size-4" /> : t('common.confirm', 'Confirmer')}
+                        </BuiButton>
+                        <BuiButton size="sm" variant="ghost" disabled={busy}
+                          onClick={() => setPendingRef(null)}>
+                          {t('common.cancel', 'Annuler')}
+                        </BuiButton>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </>
   );
 }
