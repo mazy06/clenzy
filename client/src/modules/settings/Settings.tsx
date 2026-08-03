@@ -43,6 +43,7 @@ import {
   CalendarMonth,
   LocalOffer,
   Bolt,
+  NightsStay,
 } from '../../icons';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -365,12 +366,27 @@ export default function Settings() {
 
   // Auto-push pricing global toggle
   const [autoPushPricingEnabled, setAutoPushPricingEnabled] = useState(false);
+  // Heures calmes messagerie (M10) — "HH:mm" heure locale du logement, vide = désactivé.
+  const [quietHours, setQuietHours] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
   useEffect(() => {
     guestMessagingApi.getConfig()
-      .then((cfg) => setAutoPushPricingEnabled(cfg.autoPushPricingEnabled))
+      .then((cfg) => {
+        setAutoPushPricingEnabled(cfg.autoPushPricingEnabled);
+        setQuietHours({ start: cfg.quietHoursStart ?? '', end: cfg.quietHoursEnd ?? '' });
+      })
       .catch(() => {});
   }, []);
+
+  const handleQuietHoursChange = async (next: { start: string; end: string }) => {
+    setQuietHours(next);
+    try {
+      // Chaîne vide = désactivation explicite côté serveur (null = inchangé).
+      await guestMessagingApi.updateConfig({ quietHoursStart: next.start, quietHoursEnd: next.end });
+    } catch {
+      /* meilleure chance au prochain changement */
+    }
+  };
 
   const handleToggleAutoPushPricing = async (enabled: boolean) => {
     setAutoPushPricingEnabled(enabled);
@@ -973,6 +989,43 @@ export default function Settings() {
               <UiButton variant="outline" onClick={() => navigate('/automation-rules')}>
                 {t('messaging.automation.movedCta', 'Ouvrir les automatisations')}
               </UiButton>
+            </ItemActions>
+          </Item>
+
+          {/* Heures calmes (M10) : les envois automatiques non urgents attendent la
+              fin de fenêtre (heure locale du logement) ; codes d'accès et alertes
+              partent toujours. Vider les deux champs désactive. */}
+          <Item variant="muted">
+            <ItemMedia variant="icon">
+              <NightsStay size={16} strokeWidth={1.75} />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
+                {t('messaging.quietHours.title', 'Heures calmes')}
+              </ItemTitle>
+              <ItemDescription>
+                {t('messaging.quietHours.body',
+                  'Les messages automatiques non urgents (bienvenue, guides, demandes d’avis) sont mis en file et partent à la fin de la fenêtre, en heure locale du logement. Les codes d’accès et alertes partent toujours immédiatement.')}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="time"
+                  value={quietHours.start}
+                  onChange={(e) => handleQuietHoursChange({ ...quietHours, start: e.target.value })}
+                  aria-label={t('messaging.quietHours.start', 'Début des heures calmes')}
+                  className="w-[100px] tabular-nums"
+                />
+                <span className="text-[12px] text-[var(--muted)]">→</span>
+                <Input
+                  type="time"
+                  value={quietHours.end}
+                  onChange={(e) => handleQuietHoursChange({ ...quietHours, end: e.target.value })}
+                  aria-label={t('messaging.quietHours.end', 'Fin des heures calmes')}
+                  className="w-[100px] tabular-nums"
+                />
+              </div>
             </ItemActions>
           </Item>
         </div>

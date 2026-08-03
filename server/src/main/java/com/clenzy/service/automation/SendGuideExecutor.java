@@ -4,6 +4,7 @@ import com.clenzy.model.AutomationAction;
 import com.clenzy.model.Reservation;
 import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.service.messaging.GuestMessagingService;
+import com.clenzy.service.messaging.QuietHoursService;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -18,8 +19,9 @@ public class SendGuideExecutor extends AbstractGuestMessageExecutor {
     private final WelcomeGuideService welcomeGuideService;
 
     public SendGuideExecutor(GuestMessagingService messagingService,
+                             QuietHoursService quietHoursService,
                              WelcomeGuideService welcomeGuideService) {
-        super(messagingService);
+        super(messagingService, quietHoursService);
         this.welcomeGuideService = welcomeGuideService;
     }
 

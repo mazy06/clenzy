@@ -9,7 +9,9 @@ public record MessagingAutomationConfigDto(
     int hoursBeforeCheckOut,
     Long checkInTemplateId,
     Long checkOutTemplateId,
-    boolean autoPushPricingEnabled
+    boolean autoPushPricingEnabled,
+    String quietHoursStart,
+    String quietHoursEnd
 ) {
     public static MessagingAutomationConfigDto fromEntity(MessagingAutomationConfig e) {
         return new MessagingAutomationConfigDto(
@@ -19,7 +21,9 @@ public record MessagingAutomationConfigDto(
             e.getHoursBeforeCheckOut(),
             e.getCheckInTemplateId(),
             e.getCheckOutTemplateId(),
-            e.isAutoPushPricingEnabled()
+            e.isAutoPushPricingEnabled(),
+            e.getQuietHoursStart(),
+            e.getQuietHoursEnd()
         );
     }
 }

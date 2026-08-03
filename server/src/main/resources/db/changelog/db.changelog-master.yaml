@@ -3673,3 +3673,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0388__create_privacy_requests.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0389-messaging-quiet-hours"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0389__messaging_quiet_hours.sql
+        relativeToChangelogFile: true

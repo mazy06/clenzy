@@ -7,6 +7,7 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestReviewRepository;
 import com.clenzy.service.WelcomeGuideService;
 import com.clenzy.service.messaging.GuestMessagingService;
+import com.clenzy.service.messaging.QuietHoursService;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -23,9 +24,10 @@ public class SendReviewRequestExecutor extends AbstractGuestMessageExecutor {
     private final GuestReviewRepository guestReviewRepository;
 
     public SendReviewRequestExecutor(GuestMessagingService messagingService,
+                                     QuietHoursService quietHoursService,
                                      WelcomeGuideService welcomeGuideService,
                                      GuestReviewRepository guestReviewRepository) {
-        super(messagingService);
+        super(messagingService, quietHoursService);
         this.welcomeGuideService = welcomeGuideService;
         this.guestReviewRepository = guestReviewRepository;
     }

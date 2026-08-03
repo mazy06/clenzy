@@ -60,6 +60,14 @@ public class GuestMessagingQueryService {
         config.setCheckInTemplateId(dto.checkInTemplateId());
         config.setCheckOutTemplateId(dto.checkOutTemplateId());
         config.setAutoPushPricingEnabled(dto.autoPushPricingEnabled());
+        // Heures calmes (M10) : null = champ non fourni (le front fait des updates
+        // partiels) → inchangé ; chaîne vide = désactivation explicite → null en base.
+        if (dto.quietHoursStart() != null) {
+            config.setQuietHoursStart(dto.quietHoursStart().isBlank() ? null : dto.quietHoursStart());
+        }
+        if (dto.quietHoursEnd() != null) {
+            config.setQuietHoursEnd(dto.quietHoursEnd().isBlank() ? null : dto.quietHoursEnd());
+        }
 
         return configRepository.save(config);
     }
