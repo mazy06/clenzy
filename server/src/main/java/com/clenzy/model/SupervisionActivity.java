@@ -25,6 +25,17 @@ public class SupervisionActivity {
     public static final String KIND_ACT = "ACT";
     public static final String KIND_SUGGEST = "SUGGEST";
 
+    /**
+     * Natures d'étiquette du feed (constellation métiers Phase 5) — la grammaire de la
+     * projection : seules « validation requise » et « incident » (dérivées côté front)
+     * sortent du gris ; ces natures-ci restent muettes en couleur mais NOMMENT ce qui
+     * s'est passé. {@code DEFERRED} est réservé (plomberie prête, aucun mécanisme
+     * d'envoi différé côté serveur à ce jour).
+     */
+    public static final String TAG_GUARDRAIL = "GUARDRAIL";
+    public static final String TAG_LEARNED = "LEARNED";
+    public static final String TAG_DEFERRED = "DEFERRED";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -69,6 +80,10 @@ public class SupervisionActivity {
     @Column(name = "invoice_id")
     private Long invoiceId;
 
+    /** Nature d'étiquette (TAG_GUARDRAIL/TAG_LEARNED/TAG_DEFERRED), null = exécution ordinaire. */
+    @Column(name = "tag", length = 20)
+    private String tag;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
@@ -111,6 +126,9 @@ public class SupervisionActivity {
 
     public Long getMessageLogId() { return messageLogId; }
     public void setMessageLogId(Long messageLogId) { this.messageLogId = messageLogId; }
+
+    public String getTag() { return tag; }
+    public void setTag(String tag) { this.tag = tag; }
 
     public Long getInvoiceId() { return invoiceId; }
     public void setInvoiceId(Long invoiceId) { this.invoiceId = invoiceId; }

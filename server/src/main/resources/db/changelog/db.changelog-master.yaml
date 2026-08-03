@@ -3603,3 +3603,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0378__supervision_suggestion_pricing_to_rev.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0379-supervision-activity-tag"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0379__supervision_activity_tag.sql
+        relativeToChangelogFile: true

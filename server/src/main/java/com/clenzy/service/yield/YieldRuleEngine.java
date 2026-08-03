@@ -300,6 +300,17 @@ public class YieldRuleEngine {
                 return; // proposition identique déjà en attente : pas de doublon journal
             }
             pending.forEach(line -> line.setSuggestionId(suggestionId.get()));
+            if (config.getMode() == YieldMode.AUTO && overThreshold) {
+                // Feed « garde-fou » (constellation Phase 5) : le mode AUTO n'a PAS
+                // appliqué — l'ampleur dépasse le seuil d'impact, la décision bascule
+                // en carte HITL. L'exception est nommée, pas colorée (grammaire projection).
+                activityService.recordModuleActTagged(orgId, property.getId(), REVENUE_MODULE_KEY,
+                        "yield_guardrail",
+                        String.format("Ajustement de %s %% retenu par le garde-fou d'impact "
+                                        + "(seuil %s %%) — proposé en carte au lieu d'être appliqué",
+                                signedPct.abs().toPlainString(), autoHitlImpactPct.toPlainString()),
+                        null, null, com.clenzy.model.SupervisionActivity.TAG_GUARDRAIL);
+            }
         }
 
         journalRepository.saveAll(pending);

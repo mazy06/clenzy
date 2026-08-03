@@ -20,6 +20,8 @@ public record SupervisionFeedEntryDto(
         String text,
         String toolName,
         Long messageLogId,
-        Long invoiceId
+        Long invoiceId,
+        /** Nature d'étiquette (GUARDRAIL/LEARNED/DEFERRED), null = ordinaire (Phase 5). */
+        String tag
 ) {
 }

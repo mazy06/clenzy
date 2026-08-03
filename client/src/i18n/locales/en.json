@@ -207,7 +207,9 @@
       "SEND_GUIDE_FAILED": "Welcome guide delivery failed (automation)",
       "SEND_CHECKIN_LINK_FAILED": "Check-in link delivery failed (automation)",
       "SEND_NOISE_WARNING_FAILED": "Noise alert delivery failed (automation)",
-      "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)"
+      "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)",
+      "yield_guardrail": "Adjustment held back by the impact guardrail",
+      "auto_rule_suggested": "Automation suggested after repeated approvals"
     },
     "approval": {
       "title": "Approval required",
@@ -237,7 +239,10 @@
       "empty": "No recent agent actions",
       "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent.",
       "openMessage": "View the message sent",
-      "openInvoice": "View the invoice"
+      "openInvoice": "View the invoice",
+      "guardrail": "guardrail",
+      "learned": "learned rule",
+      "deferred": "deferred"
     },
     "messageModal": {
       "title": "Message sent",

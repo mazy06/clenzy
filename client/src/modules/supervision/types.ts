@@ -155,6 +155,13 @@ export interface FeedEntry {
    * couleur d'accent) au lieu de `AGENT_META[agentId]`.
    */
   orchestrator?: boolean;
+  /**
+   * Nature d'étiquette persistée serveur (constellation Phase 5) : GUARDRAIL (un
+   * plafond/enveloppe a retenu une action), LEARNED (règle d'automatisation
+   * suggérée), DEFERRED (réservé). Étiquettes MUETTES en couleur — seules
+   * « validation requise » et « incident » (dérivées) restent ambre.
+   */
+  tag?: 'GUARDRAIL' | 'LEARNED' | 'DEFERRED';
 }
 
 // ─── Métriques du jour (en-tête) ─────────────────────────────────────────────

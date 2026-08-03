@@ -162,6 +162,20 @@ public class SupervisionActivityService {
     @Transactional
     public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
                                 String toolName, String summary, Long messageLogId, Long invoiceId) {
+        recordModuleActTagged(organizationId, propertyId, moduleKey, toolName, summary,
+                messageLogId, invoiceId, null);
+    }
+
+    /**
+     * Variante ÉTIQUETÉE (constellation métiers Phase 5) : porte une nature de feed
+     * ({@link SupervisionActivity#TAG_GUARDRAIL} — un plafond/enveloppe a retenu une
+     * action, {@link SupervisionActivity#TAG_LEARNED} — règle d'automatisation
+     * suggérée). {@code tag} null = exécution ordinaire, sans étiquette.
+     */
+    @Transactional
+    public void recordModuleActTagged(Long organizationId, Long propertyId, String moduleKey,
+                                      String toolName, String summary, Long messageLogId,
+                                      Long invoiceId, String tag) {
         if (organizationId == null || propertyId == null || moduleKey == null) {
             return;
         }
@@ -171,10 +185,11 @@ public class SupervisionActivityService {
                     SupervisionActivity.KIND_ACT, toolName, summary);
             activity.setMessageLogId(messageLogId);
             activity.setInvoiceId(invoiceId);
+            activity.setTag(tag);
             SupervisionActivity saved = activityRepository.save(activity);
             // Temps réel (T6) : pousse l'entrée aux opérateurs connectés (best-effort).
             realtimePublisher.publishFeedAdded(propertyId, saved.getId(), moduleKey, toolName,
-                    summary, saved.getCreatedAt(), messageLogId, invoiceId);
+                    summary, saved.getCreatedAt(), messageLogId, invoiceId, tag);
         } catch (Exception e) {
             log.debug("supervision activity record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());
@@ -259,7 +274,8 @@ public class SupervisionActivityService {
                 text,
                 a.getToolName(),
                 a.getMessageLogId(),
-                a.getInvoiceId());
+                a.getInvoiceId(),
+                a.getTag());
     }
 
     /** snake_case → libellé court lisible ; repli sur le module si vide. */

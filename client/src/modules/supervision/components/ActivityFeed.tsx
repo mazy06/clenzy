@@ -154,6 +154,23 @@ function ActivityFeedInner({
                     {t('supervision.feed.incident', 'incident')}
                   </span>
                 )}
+                {/* Natures persistées (Phase 5) — nommées mais MUETTES en couleur :
+                    seule l'exception qui appelle une décision reste ambre. */}
+                {entry.tag === 'GUARDRAIL' && (
+                  <span className="text-muted-foreground/80">
+                    {t('supervision.feed.guardrail', 'garde-fou')}
+                  </span>
+                )}
+                {entry.tag === 'LEARNED' && (
+                  <span className="text-muted-foreground/80">
+                    {t('supervision.feed.learned', 'règle apprise')}
+                  </span>
+                )}
+                {entry.tag === 'DEFERRED' && (
+                  <span className="text-muted-foreground/80">
+                    {t('supervision.feed.deferred', 'différé')}
+                  </span>
+                )}
                 {detail && (
                   <Button
                     variant="ghost"

@@ -30,7 +30,7 @@
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
 import { applyAutonomy, fetchAutonomy } from './supervisionConfigApi';
-import type { AgentId, AutonomyLevel, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
+import type { AgentId, AutonomyLevel, FeedEntry, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
 import type { SupervisionProvider } from './SupervisionProvider';
 import { buildPropertySnapshot } from './mockData';
 import { mapSpecialistToAgent } from './specialistMapping';
@@ -79,7 +79,7 @@ interface PendingActionDtoShape {
 
 /** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
 interface ActivitySnapshotShape {
-  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string; messageLogId?: number | null; invoiceId?: number | null }>;
+  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string; messageLogId?: number | null; invoiceId?: number | null; tag?: string | null }>;
   autoActions: number;
 }
 
@@ -357,15 +357,21 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
 
     // Feed réel (activité persistée). agentId backend = clé module = AgentId.
     // toolName = clé i18n stable (traduite au rendu ; text = repli).
-    const feed = (activity?.feed ?? []).map((e) => ({
-      id: e.id,
-      agentId: e.agentId as AgentId,
-      at: e.at,
-      text: e.text,
-      toolName: e.toolName,
-      ...(e.messageLogId != null ? { messageLogId: e.messageLogId } : {}),
-      ...(e.invoiceId != null ? { invoiceId: e.invoiceId } : {}),
-    }));
+    const feed = (activity?.feed ?? []).map((e) => {
+      // Nature d'étiquette (Phase 5) : seules les valeurs connues passent (typage strict).
+      const tag: FeedEntry['tag'] = e.tag === 'GUARDRAIL' || e.tag === 'LEARNED' || e.tag === 'DEFERRED'
+        ? (e.tag as FeedEntry['tag']) : undefined;
+      return {
+        id: e.id,
+        agentId: e.agentId as AgentId,
+        at: e.at,
+        text: e.text,
+        toolName: e.toolName,
+        ...(e.messageLogId != null ? { messageLogId: e.messageLogId } : {}),
+        ...(e.invoiceId != null ? { invoiceId: e.invoiceId } : {}),
+        ...(tag ? { tag } : {}),
+      };
+    });
 
     this.lastFullRefreshAt = Date.now();
 

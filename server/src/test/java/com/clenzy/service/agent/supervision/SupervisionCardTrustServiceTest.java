@@ -59,7 +59,10 @@ class SupervisionCardTrustServiceTest {
     @BeforeEach
     void setUp() {
         service = new SupervisionCardTrustService(settingsRepository, autoRuleRepository,
-                suggestionRepository, notificationService, clock, 5);
+                suggestionRepository, notificationService,
+                org.mockito.Mockito.mock(SupervisionActivityService.class),
+                org.mockito.Mockito.mock(com.clenzy.repository.PropertyRepository.class),
+                clock, 5);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
