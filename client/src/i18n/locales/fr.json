@@ -337,7 +337,8 @@
       "release": "Libérer",
       "remind": "Relancer",
       "retry": "Relancer",
-      "republish": "Republier"
+      "republish": "Republier",
+      "send": "Envoyer"
     }
   },
   "channexGuided": {

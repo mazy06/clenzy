@@ -101,5 +101,23 @@ public final class SupervisionActionType {
      */
     public static final String PARITY_REPUBLISH = "PARITY_REPUBLISH";
 
+    /**
+     * Envoie l'avertissement de bruit au voyageur du séjour EN COURS (agent Opérations).
+     * Réutilise {@code NoiseAlertNotificationService.sendGuestWarning} (WhatsApp Meta,
+     * repli email, idempotence « 1 avertissement / séjour / 24 h »). L'org est re-validée
+     * contre l'alerte. EFFET EXTERNE (WhatsApp/email) → exécuté hors transaction.
+     * Params : {@code alertId}.
+     */
+    public static final String NOISE_WARNING_SEND = "NOISE_WARNING_SEND";
+
+    /**
+     * Envoie la relance d'un panier abandonné (agent Communication) pour les orgs SANS
+     * relance automatique : l'agent propose, l'humain valide. Même chemin que le
+     * scheduler (consentement RGPD re-vérifié, étape courante recalculée, compteur
+     * avancé après envoi). EFFET EXTERNE (email) → exécuté hors transaction.
+     * Params : {@code abandonedBookingId}.
+     */
+    public static final String CART_RECOVERY_SEND = "CART_RECOVERY_SEND";
+
     private SupervisionActionType() {}
 }

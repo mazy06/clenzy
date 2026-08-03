@@ -71,6 +71,9 @@ class SuggestionActionExecutorTest {
     @Mock private ReviewReplyDraftService reviewReplyDraftService;
     @Mock private com.clenzy.service.ICalImportService icalImportService;
     @Mock private com.clenzy.integration.channex.service.ChannexSyncService channexSyncService;
+    @Mock private com.clenzy.repository.NoiseAlertRepository noiseAlertRepository;
+    @Mock private com.clenzy.service.NoiseAlertNotificationService noiseAlertNotificationService;
+    @Mock private com.clenzy.scheduler.AbandonedBookingRecoveryScheduler cartRecoveryScheduler;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -90,7 +93,9 @@ class SuggestionActionExecutorTest {
                 securityDepositPaymentService, calendarEngine, calendarDayRepository,
                 yieldAdjustmentRepository, serviceRequestService, reservationRepository,
                 bookingBalanceService, emailService, reviewReplyDraftService,
-                provider(icalImportService), provider(channexSyncService), new ObjectMapper(), clock);
+                provider(icalImportService), provider(channexSyncService),
+                noiseAlertRepository, provider(noiseAlertNotificationService),
+                provider(cartRecoveryScheduler), new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {
@@ -349,5 +354,58 @@ class SuggestionActionExecutorTest {
                 suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Republication Channex");
+    }
+
+    @Test
+    @DisplayName("avertissement bruit : org validee puis envoi delegue au service de notification")
+    void noiseWarningSend_validatesOrgAndSends() {
+        com.clenzy.model.NoiseAlert alert = new com.clenzy.model.NoiseAlert();
+        alert.setOrganizationId(ORG_ID);
+        when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
+        when(noiseAlertNotificationService.sendGuestWarning(alert)).thenReturn(
+                new com.clenzy.service.NoiseAlertNotificationService.GuestWarningOutcome(
+                        true, "whatsapp", null));
+
+        executor.execute(suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}"));
+
+        verify(noiseAlertNotificationService).sendGuestWarning(alert);
+    }
+
+    @Test
+    @DisplayName("avertissement bruit : alerte d'une autre org -> echec explicite, rien d'envoye")
+    void noiseWarningSend_rejectsForeignOrg() {
+        com.clenzy.model.NoiseAlert alert = new com.clenzy.model.NoiseAlert();
+        alert.setOrganizationId(999L);
+        when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("organisation");
+        verifyNoInteractions(noiseAlertNotificationService);
+    }
+
+    @Test
+    @DisplayName("avertissement bruit : envoi ignore par le service -> echec explicite (carte PENDING)")
+    void noiseWarningSend_throwsWhenSkipped() {
+        com.clenzy.model.NoiseAlert alert = new com.clenzy.model.NoiseAlert();
+        alert.setOrganizationId(ORG_ID);
+        when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
+        when(noiseAlertNotificationService.sendGuestWarning(alert)).thenReturn(
+                new com.clenzy.service.NoiseAlertNotificationService.GuestWarningOutcome(
+                        false, null, "deja averti sous 24 h"));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("deja averti");
+    }
+
+    @Test
+    @DisplayName("relance panier : delegue au scheduler avec l'org de la suggestion")
+    void cartRecoverySend_delegatesWithSuggestionOrg() {
+        executor.execute(suggestion(SupervisionActionType.CART_RECOVERY_SEND,
+                "{\"abandonedBookingId\":31}"));
+        verify(cartRecoveryScheduler).sendRecoveryForSupervision(31L, ORG_ID);
     }
 }

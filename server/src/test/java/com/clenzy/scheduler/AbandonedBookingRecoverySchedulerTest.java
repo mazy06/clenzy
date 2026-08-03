@@ -57,7 +57,8 @@ class AbandonedBookingRecoverySchedulerTest {
 
     private AbandonedBookingRecoveryScheduler enabledScheduler() {
         return new AbandonedBookingRecoveryScheduler(repository, abandonedBookingService, emailService,
-            organizationRepository, marketingContactRepository, supervisionActivityService, clock, true,
+            organizationRepository, marketingContactRepository, supervisionActivityService,
+            org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class), clock, true,
             "https://app.clenzy.fr");
     }
 
@@ -92,7 +93,8 @@ class AbandonedBookingRecoverySchedulerTest {
     void disabledFlag_noOp() {
         AbandonedBookingRecoveryScheduler disabled = new AbandonedBookingRecoveryScheduler(
             repository, abandonedBookingService, emailService, organizationRepository,
-            marketingContactRepository, supervisionActivityService, clock, false, "https://app.clenzy.fr");
+            marketingContactRepository, supervisionActivityService,
+            org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class), clock, false, "https://app.clenzy.fr");
 
         disabled.sendRecoveryEmails();
 
@@ -161,15 +163,17 @@ class AbandonedBookingRecoverySchedulerTest {
     }
 
     @Test
-    void orgDisabled_skipped() {
+    void orgDisabled_noAutoEmail_hitlCardPathOnly() {
         when(organizationRepository.findIdsWithAbandonedCartRecoveryDisabled()).thenReturn(Set.of(ORG));
         AbandonedBooking ab = pending(EMAIL, 0, Duration.ofHours(2));
         when(repository.findDueForRecovery(any(), any())).thenReturn(List.of(ab));
 
         enabledScheduler().sendRecoveryEmails();
 
+        // Org sans relance auto : AUCUN email ne part tout seul — le consentement est
+        // désormais consulté pour décider de proposer (ou non) la carte HITL
+        // CART_RECOVERY_SEND, l'envoi n'ayant lieu qu'au clic « Envoyer » de l'opérateur.
         verify(emailService, never()).sendSimpleHtmlEmail(anyString(), anyString(), anyString());
-        verify(marketingContactRepository, never()).findConsentedSubscribedEmails(any(), any());
     }
 
     @Test

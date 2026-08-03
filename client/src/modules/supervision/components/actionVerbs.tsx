@@ -42,6 +42,9 @@ const VERBS: Record<string, ActionVerb> = {
   // Agent Synchronisation (Phase 2)
   ICAL_RETRY: { labelKey: 'supervision.verbs.retry', fallback: 'Relancer', Icon: Refresh },
   PARITY_REPUBLISH: { labelKey: 'supervision.verbs.republish', fallback: 'Republier', Icon: Refresh },
+  // Messages sortants (Phase 2) — le verbe dit qu'un message PART vers le voyageur.
+  NOISE_WARNING_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
+  CART_RECOVERY_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

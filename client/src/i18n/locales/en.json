@@ -337,7 +337,8 @@
       "release": "Release",
       "remind": "Remind",
       "retry": "Retry",
-      "republish": "Republish"
+      "republish": "Republish",
+      "send": "Send"
     }
   },
   "channexGuided": {

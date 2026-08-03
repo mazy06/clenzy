@@ -93,6 +93,9 @@ public class SuggestionActionExecutor {
     // traitement pour ChannexSyncService (symétrie + résilience au conditionnel).
     private final ObjectProvider<com.clenzy.service.ICalImportService> icalImportService;
     private final ObjectProvider<ChannexSyncService> channexSyncService;
+    private final com.clenzy.repository.NoiseAlertRepository noiseAlertRepository;
+    private final ObjectProvider<com.clenzy.service.NoiseAlertNotificationService> noiseAlertNotificationService;
+    private final ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -116,6 +119,9 @@ public class SuggestionActionExecutor {
                                     ReviewReplyDraftService reviewReplyDraftService,
                                     ObjectProvider<com.clenzy.service.ICalImportService> icalImportService,
                                     ObjectProvider<ChannexSyncService> channexSyncService,
+                                    com.clenzy.repository.NoiseAlertRepository noiseAlertRepository,
+                                    ObjectProvider<com.clenzy.service.NoiseAlertNotificationService> noiseAlertNotificationService,
+                                    ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -134,6 +140,9 @@ public class SuggestionActionExecutor {
         this.reviewReplyDraftService = reviewReplyDraftService;
         this.icalImportService = icalImportService;
         this.channexSyncService = channexSyncService;
+        this.noiseAlertRepository = noiseAlertRepository;
+        this.noiseAlertNotificationService = noiseAlertNotificationService;
+        this.cartRecoveryScheduler = cartRecoveryScheduler;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -149,7 +158,9 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.PAYMENT_REMINDER.equals(actionType)
                 || SupervisionActionType.REVIEW_DRAFT_REPLY.equals(actionType)
                 || SupervisionActionType.ICAL_RETRY.equals(actionType)
-                || SupervisionActionType.PARITY_REPUBLISH.equals(actionType);
+                || SupervisionActionType.PARITY_REPUBLISH.equals(actionType)
+                || SupervisionActionType.NOISE_WARNING_SEND.equals(actionType)
+                || SupervisionActionType.CART_RECOVERY_SEND.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -170,8 +181,42 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.REVIEW_DRAFT_REPLY -> applyReviewDraftReply(suggestion);
             case SupervisionActionType.ICAL_RETRY -> applyIcalRetry(suggestion);
             case SupervisionActionType.PARITY_REPUBLISH -> applyParityRepublish(suggestion);
+            case SupervisionActionType.NOISE_WARNING_SEND -> applyNoiseWarningSend(suggestion);
+            case SupervisionActionType.CART_RECOVERY_SEND -> applyCartRecoverySend(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * NOISE_WARNING_SEND — avertit le voyageur du séjour en cours (WhatsApp, repli
+     * email). L'org de la suggestion est re-validée contre l'alerte ({@code findById}
+     * contourne le filtre Hibernate — règle audit n°3). Un envoi ignoré par le service
+     * (pas de séjour en cours, avertissement déjà parti sous 24 h…) échoue EXPLICITEMENT :
+     * l'opérateur voit pourquoi rien n'est parti, la carte reste PENDING.
+     */
+    private void applyNoiseWarningSend(SupervisionSuggestion suggestion) {
+        final long alertId = requiredLongParam(suggestion, "alertId");
+        final com.clenzy.model.NoiseAlert alert = noiseAlertRepository.findById(alertId)
+                .orElseThrow(() -> new IllegalStateException("Alerte bruit introuvable"));
+        if (alert.getOrganizationId() == null
+                || !alert.getOrganizationId().equals(suggestion.getOrganizationId())) {
+            throw new IllegalStateException("Alerte bruit introuvable pour cette organisation");
+        }
+        final var outcome = noiseAlertNotificationService.getObject().sendGuestWarning(alert);
+        if (!outcome.sent()) {
+            throw new IllegalStateException("Avertissement non envoyé : " + outcome.skipReason());
+        }
+    }
+
+    /**
+     * CART_RECOVERY_SEND — envoie la relance du panier abandonné (orgs sans relance
+     * automatique). Toutes les gardes (org, statut PENDING, étape bornée, consentement
+     * RGPD) sont re-vérifiées par {@code sendRecoveryForSupervision} au moment de l'envoi.
+     */
+    private void applyCartRecoverySend(SupervisionSuggestion suggestion) {
+        final long abandonedBookingId = requiredLongParam(suggestion, "abandonedBookingId");
+        cartRecoveryScheduler.getObject()
+                .sendRecoveryForSupervision(abandonedBookingId, suggestion.getOrganizationId());
     }
 
     /**

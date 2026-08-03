@@ -61,6 +61,7 @@ public class AbandonedBookingRecoveryScheduler {
     private final OrganizationRepository organizationRepository;
     private final MarketingContactRepository marketingContactRepository;
     private final SupervisionActivityService supervisionActivityService;
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     private final Clock clock;
     private final boolean enabled;
     private final String baseUrl;
@@ -71,6 +72,7 @@ public class AbandonedBookingRecoveryScheduler {
                                              OrganizationRepository organizationRepository,
                                              MarketingContactRepository marketingContactRepository,
                                              SupervisionActivityService supervisionActivityService,
+                                             com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
                                              Clock clock,
                                              @Value("${clenzy.booking.cart-recovery.enabled:false}") boolean enabled,
                                              @Value("${clenzy.base-url:https://app.clenzy.fr}") String baseUrl) {
@@ -80,6 +82,7 @@ public class AbandonedBookingRecoveryScheduler {
         this.organizationRepository = organizationRepository;
         this.marketingContactRepository = marketingContactRepository;
         this.supervisionActivityService = supervisionActivityService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
         this.clock = clock;
         this.enabled = enabled;
         this.baseUrl = baseUrl;
@@ -102,9 +105,6 @@ public class AbandonedBookingRecoveryScheduler {
         Set<Long> recoveryDisabledOrgs = organizationRepository.findIdsWithAbandonedCartRecoveryDisabled();
         Instant now = clock.instant();
         for (AbandonedBooking ab : due) {
-            if (recoveryDisabledOrgs.contains(ab.getOrganizationId())) {
-                continue;
-            }
             int step = ab.getReminderCount();
             if (step < 0 || step >= STEP_DELAYS.length) {
                 continue; // garde-fou : compteur hors plage (borne max de relances)
@@ -114,6 +114,12 @@ public class AbandonedBookingRecoveryScheduler {
             }
             // Gate RGPD : ne relancer que si l'email est consenti ET toujours abonné (opt-out respecté).
             if (!hasConsent(ab)) {
+                continue;
+            }
+            if (recoveryDisabledOrgs.contains(ab.getOrganizationId())) {
+                // Org SANS relance automatique : l'agent Communication PROPOSE la relance
+                // (carte HITL « Envoyer », constellation métiers Phase 2) au lieu de se taire.
+                suggestRecoveryCard(ab);
                 continue;
             }
             boolean finalStep = step == STEP_DELAYS.length - 1;
@@ -126,6 +132,69 @@ public class AbandonedBookingRecoveryScheduler {
                 log.warn("Relance panier abandonne {} (etape {}) echouee: {}", ab.getId(), step, e.getMessage());
             }
         }
+    }
+
+    /**
+     * Carte HITL {@code CART_RECOVERY_SEND} pour les orgs qui ont DÉSACTIVÉ la relance
+     * automatique : elles ont refusé l'envoi sans contrôle, pas la relance elle-même —
+     * l'agent Communication propose, rien ne part sans le clic « Envoyer » de l'opérateur
+     * (grammaire SUGGEST de la constellation). Conditions identiques au chemin auto
+     * (étape due + consentement RGPD, re-vérifiés à l'apply). Dédup par intitulé : une
+     * seule carte par panier, quel que soit le nombre de runs. Best-effort.
+     */
+    private void suggestRecoveryCard(AbandonedBooking ab) {
+        try {
+            if (ab.getPropertyId() == null) {
+                return; // pas de logement rattaché → pas de constellation où l'afficher
+            }
+            String guest = ab.getGuestName() != null && !ab.getGuestName().isBlank()
+                ? ab.getGuestName() : "un voyageur";
+            String property = ab.getPropertyName() != null && !ab.getPropertyName().isBlank()
+                ? ab.getPropertyName() : "ce logement";
+            String dates = ab.getCheckIn() != null && ab.getCheckOut() != null
+                ? " (" + ab.getCheckIn() + " → " + ab.getCheckOut() + ")" : "";
+            supervisionSuggestionService.recordActionable(
+                ab.getOrganizationId(), ab.getPropertyId(), "com",
+                "Relance du panier de " + guest,
+                "Réservation de " + property + dates + " non finalisée. « Envoyer » adresse "
+                    + "l'email de relance avec le lien de reprise — la relance automatique est "
+                    + "désactivée pour votre organisation, rien ne part sans votre validation.",
+                com.clenzy.service.agent.supervision.SupervisionActionType.CART_RECOVERY_SEND,
+                "{\"abandonedBookingId\":" + ab.getId() + "}", null, "info");
+        } catch (Exception e) {
+            log.debug("Relance panier: carte HITL non enregistree (panier {}): {}",
+                ab.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Envoie la relance pour la carte HITL {@code CART_RECOVERY_SEND} (apply supervision).
+     * Mêmes garanties que la boucle planifiée : org re-validée contre le panier
+     * ({@code findById} contourne le filtre Hibernate — règle audit n°3), statut PENDING,
+     * étape courante recalculée (bornée), consentement RGPD re-vérifié au moment de
+     * l'envoi. L'appelant nous invoque HORS transaction (email = effet externe) ; le
+     * compteur n'avance qu'après envoi réussi, comme dans le chemin auto.
+     */
+    public void sendRecoveryForSupervision(Long abandonedBookingId, Long organizationId) {
+        AbandonedBooking ab = repository.findById(abandonedBookingId)
+            .orElseThrow(() -> new IllegalStateException("Panier abandonné introuvable"));
+        if (ab.getOrganizationId() == null || !ab.getOrganizationId().equals(organizationId)) {
+            throw new IllegalStateException("Panier abandonné introuvable pour cette organisation");
+        }
+        if (ab.getStatus() != com.clenzy.model.AbandonedBookingStatus.PENDING) {
+            throw new IllegalStateException("Panier déjà converti ou clos — relance inutile");
+        }
+        int step = ab.getReminderCount();
+        if (step < 0 || step >= STEP_DELAYS.length) {
+            throw new IllegalStateException("Nombre maximal de relances atteint pour ce panier");
+        }
+        if (!hasConsent(ab)) {
+            throw new IllegalStateException(
+                "Email non consenti ou désabonné (RGPD) — relance impossible");
+        }
+        emailService.sendSimpleHtmlEmail(ab.getGuestEmail(), subject(ab, step), body(ab, step));
+        abandonedBookingService.recordReminderSent(ab, step == STEP_DELAYS.length - 1);
+        recordConstellationActivity(ab, step);
     }
 
     /**
