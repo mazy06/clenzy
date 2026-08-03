@@ -154,5 +154,30 @@ public final class SupervisionActionType {
      */
     public static final String FRAUD_BLOCK = "FRAUD_BLOCK";
 
+    /**
+     * Télédéclare les fiches police COMPLÉTÉES d'une réservation (agent Conformité).
+     * Réutilise {@code ComplianceSubmissionService.submitForReservation} (stratégie par
+     * provider — DGSN, fiche FR… ; provider non intégrable = tracé, retry possible).
+     * EFFET EXTERNE (portail gouvernemental) → hors transaction. Params : {@code reservationId}.
+     */
+    public static final String POLICE_DECLARE = "POLICE_DECLARE";
+
+    /**
+     * Envoie le mandat de gestion en signature électronique (agent Conformité) :
+     * génération du document si absent + lien de signature SES interne au propriétaire,
+     * via {@code ContractSignatureService.requestSignature}. EFFET EXTERNE (email) →
+     * hors transaction. Params : {@code contractId}.
+     */
+    public static final String MANDATE_SIGN_SEND = "MANDATE_SIGN_SEND";
+
+    /**
+     * Envoie le relevé mensuel au propriétaire (agent Propriétaire) pour les orgs SANS
+     * automatisation OWNER_MONTHLY_STATEMENT : montants re-calculés depuis les
+     * reversements PAID par {@code OwnerStatementService.sendStatement} (règle audit
+     * n°1). EFFET EXTERNE (email + PDF) → hors transaction.
+     * Params : {@code ownerId}, {@code from}, {@code to} (ISO).
+     */
+    public static final String OWNER_STATEMENT_SEND = "OWNER_STATEMENT_SEND";
+
     private SupervisionActionType() {}
 }

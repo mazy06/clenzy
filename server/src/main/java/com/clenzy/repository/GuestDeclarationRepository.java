@@ -16,6 +16,19 @@ public interface GuestDeclarationRepository extends JpaRepository<GuestDeclarati
     /** Toutes les declarations d'une reservation (principal + accompagnants), tri stable. */
     List<GuestDeclaration> findByReservationIdOrderByIdAsc(Long reservationId);
 
+    /**
+     * Fiches COMPLÉTÉES non encore télédéclarées d'un logement (scanner POLICE_DECLARE
+     * de la constellation, agent Conformité).
+     */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT d FROM GuestDeclaration d JOIN FETCH d.reservation r "
+            + "WHERE d.organizationId = :orgId AND r.property.id = :propertyId "
+            + "AND d.status = :status AND d.submittedToProvider = false")
+    List<GuestDeclaration> findSubmittableByProperty(
+            @org.springframework.data.repository.query.Param("orgId") Long orgId,
+            @org.springframework.data.repository.query.Param("propertyId") Long propertyId,
+            @org.springframework.data.repository.query.Param("status") com.clenzy.model.DeclarationStatus status);
+
     // --- Purge (fiche de police, 180 j) ---
 
     /**

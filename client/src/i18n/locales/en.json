@@ -339,7 +339,9 @@
       "retry": "Retry",
       "republish": "Republish",
       "send": "Send",
-      "pay": "Pay out"
+      "pay": "Pay out",
+      "declare": "File declaration",
+      "signSend": "Send for signature"
     }
   },
   "channexGuided": {

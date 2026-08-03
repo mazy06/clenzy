@@ -339,7 +339,9 @@
       "retry": "Relancer",
       "republish": "Republier",
       "send": "Envoyer",
-      "pay": "Verser"
+      "pay": "Verser",
+      "declare": "Télédéclarer",
+      "signSend": "Envoyer pour signature"
     }
   },
   "channexGuided": {

@@ -78,6 +78,12 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.service.WelcomeGuideService welcomeGuideService;
     @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
     @Mock private com.clenzy.service.ReservationService reservationService;
+    @Mock private com.clenzy.integration.compliance.submission.ComplianceSubmissionService complianceSubmissionService;
+    @Mock private com.clenzy.repository.ManagementContractRepository managementContractRepository;
+    @Mock private com.clenzy.service.signature.ContractSignatureService contractSignatureService;
+    @Mock private com.clenzy.repository.UserRepository userRepository;
+    @Mock private com.clenzy.repository.OrganizationRepository organizationRepository;
+    @Mock private com.clenzy.service.OwnerStatementService ownerStatementService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -101,6 +107,9 @@ class SuggestionActionExecutorTest {
                 noiseAlertRepository, provider(noiseAlertNotificationService),
                 provider(cartRecoveryScheduler), provider(welcomeGuideService),
                 provider(housekeeperPayoutService), provider(reservationService),
+                provider(complianceSubmissionService), managementContractRepository,
+                provider(contractSignatureService), provider(userRepository),
+                provider(organizationRepository), provider(ownerStatementService),
                 new ObjectMapper(), clock);
     }
 
@@ -501,5 +510,46 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("fiche réservation");
         verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    @DisplayName("fiche police : org validee puis soumission de toutes les fiches du sejour")
+    void policeDeclare_submitsForReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        executor.execute(suggestion(SupervisionActionType.POLICE_DECLARE, "{\"reservationId\":100}"));
+
+        verify(complianceSubmissionService).submitForReservation(RESERVATION_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("mandat : proprietaire sans email -> echec explicite, aucune demande emise")
+    void mandateSignSend_throwsWithoutOwnerEmail() {
+        com.clenzy.model.ManagementContract contract = new com.clenzy.model.ManagementContract();
+        contract.setOwnerId(9L);
+        when(managementContractRepository.findByIdAndOrgId(5L, ORG_ID))
+                .thenReturn(Optional.of(contract));
+        when(userRepository.findById(9L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.MANDATE_SIGN_SEND, "{\"contractId\":5}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("email");
+        verifyNoInteractions(contractSignatureService);
+    }
+
+    @Test
+    @DisplayName("releve proprietaire : periode parsee puis delegation a sendStatement")
+    void ownerStatementSend_delegatesWithPeriod() {
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.empty());
+
+        executor.execute(suggestion(SupervisionActionType.OWNER_STATEMENT_SEND,
+                "{\"ownerId\":9,\"from\":\"2026-07-01\",\"to\":\"2026-07-31\"}"));
+
+        verify(ownerStatementService).sendStatement(9L, ORG_ID,
+                LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Votre conciergerie");
     }
 }

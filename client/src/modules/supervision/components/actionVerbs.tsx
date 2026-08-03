@@ -51,6 +51,10 @@ const VERBS: Record<string, ActionVerb> = {
   // Opérations / Finance (Phase 2)
   CLEANING_PAYOUT: { labelKey: 'supervision.verbs.pay', fallback: 'Verser', Icon: Payments },
   FRAUD_BLOCK: { labelKey: 'supervision.verbs.block', fallback: 'Bloquer', Icon: GppBad },
+  // Conformité / Propriétaire (Phase 2)
+  POLICE_DECLARE: { labelKey: 'supervision.verbs.declare', fallback: 'Télédéclarer', Icon: Check },
+  MANDATE_SIGN_SEND: { labelKey: 'supervision.verbs.signSend', fallback: 'Envoyer pour signature', Icon: Send },
+  OWNER_STATEMENT_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

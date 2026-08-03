@@ -99,6 +99,12 @@ public class SuggestionActionExecutor {
     private final ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService;
     private final ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService;
     private final ObjectProvider<com.clenzy.service.ReservationService> reservationService;
+    private final ObjectProvider<com.clenzy.integration.compliance.submission.ComplianceSubmissionService> complianceSubmissionService;
+    private final com.clenzy.repository.ManagementContractRepository managementContractRepository;
+    private final ObjectProvider<com.clenzy.service.signature.ContractSignatureService> contractSignatureService;
+    private final ObjectProvider<com.clenzy.repository.UserRepository> userRepositoryProvider;
+    private final ObjectProvider<com.clenzy.repository.OrganizationRepository> organizationRepositoryProvider;
+    private final ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -128,6 +134,12 @@ public class SuggestionActionExecutor {
                                     ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService,
                                     ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService,
                                     ObjectProvider<com.clenzy.service.ReservationService> reservationService,
+                                    ObjectProvider<com.clenzy.integration.compliance.submission.ComplianceSubmissionService> complianceSubmissionService,
+                                    com.clenzy.repository.ManagementContractRepository managementContractRepository,
+                                    ObjectProvider<com.clenzy.service.signature.ContractSignatureService> contractSignatureService,
+                                    ObjectProvider<com.clenzy.repository.UserRepository> userRepositoryProvider,
+                                    ObjectProvider<com.clenzy.repository.OrganizationRepository> organizationRepositoryProvider,
+                                    ObjectProvider<com.clenzy.service.OwnerStatementService> ownerStatementService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -152,6 +164,12 @@ public class SuggestionActionExecutor {
         this.welcomeGuideService = welcomeGuideService;
         this.housekeeperPayoutService = housekeeperPayoutService;
         this.reservationService = reservationService;
+        this.complianceSubmissionService = complianceSubmissionService;
+        this.managementContractRepository = managementContractRepository;
+        this.contractSignatureService = contractSignatureService;
+        this.userRepositoryProvider = userRepositoryProvider;
+        this.organizationRepositoryProvider = organizationRepositoryProvider;
+        this.ownerStatementService = ownerStatementService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -172,7 +190,10 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.CART_RECOVERY_SEND.equals(actionType)
                 || SupervisionActionType.GUIDE_SEND.equals(actionType)
                 || SupervisionActionType.REVIEW_REQUEST_SEND.equals(actionType)
-                || SupervisionActionType.CLEANING_PAYOUT.equals(actionType);
+                || SupervisionActionType.CLEANING_PAYOUT.equals(actionType)
+                || SupervisionActionType.POLICE_DECLARE.equals(actionType)
+                || SupervisionActionType.MANDATE_SIGN_SEND.equals(actionType)
+                || SupervisionActionType.OWNER_STATEMENT_SEND.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -199,8 +220,67 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.REVIEW_REQUEST_SEND -> applyReviewRequestSend(suggestion);
             case SupervisionActionType.CLEANING_PAYOUT -> applyCleaningPayout(suggestion);
             case SupervisionActionType.FRAUD_BLOCK -> applyFraudBlock(suggestion);
+            case SupervisionActionType.POLICE_DECLARE -> applyPoliceDeclare(suggestion);
+            case SupervisionActionType.MANDATE_SIGN_SEND -> applyMandateSignSend(suggestion);
+            case SupervisionActionType.OWNER_STATEMENT_SEND -> applyOwnerStatementSend(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * POLICE_DECLARE — soumet toutes les fiches COMPLÉTÉES du séjour à l'autorité via
+     * la stratégie par provider. Org re-validée sur la réservation. EFFET EXTERNE.
+     */
+    private void applyPoliceDeclare(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        complianceSubmissionService.getObject()
+                .submitForReservation(reservation.getId(), suggestion.getOrganizationId());
+    }
+
+    /**
+     * MANDATE_SIGN_SEND — envoie le mandat en signature électronique au propriétaire.
+     * Org re-validée par {@code findByIdAndOrgId}. Email propriétaire requis (échec
+     * explicite sinon — {@code requestSignature} refuse silencieusement, on veut le dire).
+     */
+    private void applyMandateSignSend(SupervisionSuggestion suggestion) {
+        final long contractId = requiredLongParam(suggestion, "contractId");
+        final com.clenzy.model.ManagementContract contract = managementContractRepository
+                .findByIdAndOrgId(contractId, suggestion.getOrganizationId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Mandat introuvable pour cette organisation"));
+        final String ownerEmail = contract.getOwnerId() != null
+                ? userRepositoryProvider.getObject().findById(contract.getOwnerId())
+                        .map(com.clenzy.model.User::getEmail).orElse(null)
+                : null;
+        if (ownerEmail == null || ownerEmail.isBlank()) {
+            throw new IllegalStateException("Propriétaire sans email — signature impossible");
+        }
+        contractSignatureService.getObject().requestSignature(contract, ownerEmail)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Demande de signature non émise (document indisponible ?)"));
+    }
+
+    /**
+     * OWNER_STATEMENT_SEND — envoie le relevé mensuel : montants RE-calculés depuis les
+     * reversements PAID par {@code sendStatement} (règle audit n°1). L'ownership du
+     * propriétaire est garanti par la requête interne org-scopée du service.
+     */
+    private void applyOwnerStatementSend(SupervisionSuggestion suggestion) {
+        final long ownerId = requiredLongParam(suggestion, "ownerId");
+        final LocalDate from;
+        final LocalDate to;
+        try {
+            final JsonNode params = objectMapper.readTree(suggestion.getActionParams());
+            from = LocalDate.parse(params.get("from").asText());
+            to = LocalDate.parse(params.get("to").asText());
+        } catch (Exception e) {
+            throw new IllegalStateException("Période du relevé illisible", e);
+        }
+        final String conciergerieName = organizationRepositoryProvider.getObject()
+                .findById(suggestion.getOrganizationId())
+                .map(com.clenzy.model.Organization::getName).orElse("Votre conciergerie");
+        ownerStatementService.getObject().sendStatement(
+                ownerId, suggestion.getOrganizationId(), from, to, conciergerieName);
     }
 
     /**
