@@ -96,6 +96,7 @@ public class SuggestionActionExecutor {
     private final com.clenzy.repository.NoiseAlertRepository noiseAlertRepository;
     private final ObjectProvider<com.clenzy.service.NoiseAlertNotificationService> noiseAlertNotificationService;
     private final ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler;
+    private final ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -122,6 +123,7 @@ public class SuggestionActionExecutor {
                                     com.clenzy.repository.NoiseAlertRepository noiseAlertRepository,
                                     ObjectProvider<com.clenzy.service.NoiseAlertNotificationService> noiseAlertNotificationService,
                                     ObjectProvider<com.clenzy.scheduler.AbandonedBookingRecoveryScheduler> cartRecoveryScheduler,
+                                    ObjectProvider<com.clenzy.service.WelcomeGuideService> welcomeGuideService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -143,6 +145,7 @@ public class SuggestionActionExecutor {
         this.noiseAlertRepository = noiseAlertRepository;
         this.noiseAlertNotificationService = noiseAlertNotificationService;
         this.cartRecoveryScheduler = cartRecoveryScheduler;
+        this.welcomeGuideService = welcomeGuideService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -160,7 +163,9 @@ public class SuggestionActionExecutor {
                 || SupervisionActionType.ICAL_RETRY.equals(actionType)
                 || SupervisionActionType.PARITY_REPUBLISH.equals(actionType)
                 || SupervisionActionType.NOISE_WARNING_SEND.equals(actionType)
-                || SupervisionActionType.CART_RECOVERY_SEND.equals(actionType);
+                || SupervisionActionType.CART_RECOVERY_SEND.equals(actionType)
+                || SupervisionActionType.GUIDE_SEND.equals(actionType)
+                || SupervisionActionType.REVIEW_REQUEST_SEND.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -183,8 +188,77 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.PARITY_REPUBLISH -> applyParityRepublish(suggestion);
             case SupervisionActionType.NOISE_WARNING_SEND -> applyNoiseWarningSend(suggestion);
             case SupervisionActionType.CART_RECOVERY_SEND -> applyCartRecoverySend(suggestion);
+            case SupervisionActionType.GUIDE_SEND -> applyGuideSend(suggestion);
+            case SupervisionActionType.REVIEW_REQUEST_SEND -> applyReviewRequestSend(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * GUIDE_SEND — envoie le lien du livret d'accueil au voyageur qui arrive demain
+     * (agent Voyageur). Le lien (token borné au séjour) est généré MAINTENANT via
+     * {@code WelcomeGuideService.linkForReservation} — jamais stocké dans la carte.
+     * EFFET EXTERNE (email) → l'orchestration nous invoque hors transaction.
+     */
+    private void applyGuideSend(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        final String email = PostStayReviewScanner.resolveGuestEmail(reservation);
+        if (email == null) {
+            throw new IllegalStateException("Aucun email voyageur pour la réservation "
+                    + reservation.getId());
+        }
+        final String link = welcomeGuideService.getObject().linkForReservation(reservation)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Aucun livret d'accueil publié pour ce logement"));
+        final String guest = reservation.getGuestName() != null && !reservation.getGuestName().isBlank()
+                ? StringUtils.escapeHtml(reservation.getGuestName().strip()) : "Bonjour";
+        final String body = "<p>" + guest + ",</p>"
+                + "<p>Votre arrivée approche ! Retrouvez toutes les informations de votre séjour "
+                + "(accès, wifi, équipements, recommandations) dans votre livret d'accueil :</p>"
+                + "<p><a href=\"" + link + "\">Ouvrir mon livret d'accueil</a></p>"
+                + "<p>Ce lien est personnel et valable pour la durée de votre séjour.</p>";
+        emailService.sendSimpleHtmlEmail(email, "Votre livret d'accueil — arrivée demain", body);
+        log.info("GUIDE_SEND envoyé org={} reservation={}", suggestion.getOrganizationId(),
+                reservation.getId());
+    }
+
+    /**
+     * REVIEW_REQUEST_SEND — demande d'avis post-séjour (agent Voyageur). Le lien
+     * d'avis (token à durée bornée) est généré à l'apply via
+     * {@code WelcomeGuideService.reviewLinkForReservation}. EFFET EXTERNE (email).
+     */
+    private void applyReviewRequestSend(SupervisionSuggestion suggestion) {
+        final Reservation reservation = loadOrgReservation(suggestion);
+        final String email = PostStayReviewScanner.resolveGuestEmail(reservation);
+        if (email == null) {
+            throw new IllegalStateException("Aucun email voyageur pour la réservation "
+                    + reservation.getId());
+        }
+        final String link = welcomeGuideService.getObject().reviewLinkForReservation(reservation)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Aucun livret d'accueil publié — lien d'avis indisponible"));
+        final String guest = reservation.getGuestName() != null && !reservation.getGuestName().isBlank()
+                ? StringUtils.escapeHtml(reservation.getGuestName().strip()) : "Bonjour";
+        final String body = "<p>" + guest + ",</p>"
+                + "<p>Merci pour votre séjour ! Un petit mot de votre part aide énormément : "
+                + "pourriez-vous partager votre expérience ?</p>"
+                + "<p><a href=\"" + link + "\">Laisser mon avis</a></p>";
+        emailService.sendSimpleHtmlEmail(email, "Comment s'est passé votre séjour ?", body);
+        log.info("REVIEW_REQUEST_SEND envoyé org={} reservation={}", suggestion.getOrganizationId(),
+                reservation.getId());
+    }
+
+    /** Charge la réservation de la suggestion en re-validant l'org (règle audit n°3). */
+    private Reservation loadOrgReservation(SupervisionSuggestion suggestion) {
+        final Long reservationId = resolveReservationId(suggestion);
+        final Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Réservation " + reservationId + " introuvable"));
+        if (!suggestion.getOrganizationId().equals(reservation.getOrganizationId())) {
+            throw new IllegalStateException("Réservation " + reservationId
+                    + " hors organisation " + suggestion.getOrganizationId());
+        }
+        return reservation;
     }
 
     /**

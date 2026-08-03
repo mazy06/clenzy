@@ -46,15 +46,18 @@ public class GuestInstructionsScanner {
     private final ReservationRepository reservationRepository;
     private final WelcomeGuideTokenRepository tokenRepository;
     private final SupervisionSuggestionService suggestionService;
+    private final com.clenzy.service.WelcomeGuideService welcomeGuideService;
     private final Clock clock;
 
     public GuestInstructionsScanner(ReservationRepository reservationRepository,
                                     WelcomeGuideTokenRepository tokenRepository,
                                     SupervisionSuggestionService suggestionService,
+                                    com.clenzy.service.WelcomeGuideService welcomeGuideService,
                                     Clock clock) {
         this.reservationRepository = reservationRepository;
         this.tokenRepository = tokenRepository;
         this.suggestionService = suggestionService;
+        this.welcomeGuideService = welcomeGuideService;
         this.clock = clock;
     }
 
@@ -83,7 +86,14 @@ public class GuestInstructionsScanner {
                 if (hasInstructions(reservation.getId())) {
                     continue; // livret / instructions deja transmis
                 }
-                emitMissingInstructions(orgId, propertyId, reservation, tomorrow);
+                // Constellation métiers Phase 2 : si un livret PUBLIÉ existe, la carte
+                // devient ACTIONNABLE (« Envoyer » = GUIDE_SEND, agent Voyageur) ; sans
+                // livret, on garde l'info « instructions manquantes » (agent Communication).
+                if (welcomeGuideService.hasPublishedGuideFor(reservation)) {
+                    emitGuideSend(orgId, propertyId, reservation, tomorrow);
+                } else {
+                    emitMissingInstructions(orgId, propertyId, reservation, tomorrow);
+                }
             }
         } catch (Exception e) {
             log.debug("guest instructions scan failed org={} property={}: {}",
@@ -115,6 +125,30 @@ public class GuestInstructionsScanner {
                         + "ete transmis. Prepare et envoie ses instructions d'arrivee (reservation #%d).",
                 guestName, DATE_FMT.format(checkIn), reservation.getId());
         suggestionService.record(orgId, propertyId, MODULE_COM, TOOL_NAME, title, motif);
+    }
+
+    /**
+     * Carte ACTIONNABLE « Livret d'accueil à envoyer » (agent Voyageur « gst ») : le
+     * logement a un livret publié, le voyageur arrive demain et n'a rien reçu —
+     * « Envoyer » génère le lien borné au séjour et l'adresse par email (GUIDE_SEND).
+     * Titre stable (un séjour à la fois par logement) → dédup fiable.
+     */
+    private void emitGuideSend(Long orgId, Long propertyId,
+                               Reservation reservation, LocalDate checkIn) {
+        final String guestName = reservation.getGuestName() != null
+                && !reservation.getGuestName().isBlank()
+                ? reservation.getGuestName().strip()
+                : "Le voyageur";
+        suggestionService.recordActionableStrict(
+                orgId, propertyId, "gst", reservation.getId(),
+                "Livret d'accueil à envoyer",
+                String.format(
+                        "%s arrive demain (%s) et n'a pas reçu le livret d'accueil. « Envoyer » "
+                                + "génère le lien sécurisé borné au séjour et l'adresse par email "
+                                + "(réservation #%d).",
+                        guestName, DATE_FMT.format(checkIn), reservation.getId()),
+                SupervisionActionType.GUIDE_SEND,
+                "{\"reservationId\":" + reservation.getId() + "}", null, "info");
     }
 
     /** Timezone de la propriete, repli {@code Europe/Paris} si absente ou invalide (regle audit n°9). */

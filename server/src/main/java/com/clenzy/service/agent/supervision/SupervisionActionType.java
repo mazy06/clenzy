@@ -119,5 +119,22 @@ public final class SupervisionActionType {
      */
     public static final String CART_RECOVERY_SEND = "CART_RECOVERY_SEND";
 
+    /**
+     * Envoie le lien du livret d'accueil au voyageur qui arrive DEMAIN (agent Voyageur,
+     * GST). Le lien (token borné à la réservation) est généré à l'apply via
+     * {@code WelcomeGuideService.linkForReservation} — la carte n'est proposée que si un
+     * livret PUBLIÉ existe. EFFET EXTERNE (email) → hors transaction.
+     * Params : {@code reservationId}.
+     */
+    public static final String GUIDE_SEND = "GUIDE_SEND";
+
+    /**
+     * Envoie la demande d'avis post-séjour (agent Voyageur, GST) au voyageur parti la
+     * veille : lien d'avis à durée bornée généré à l'apply via
+     * {@code WelcomeGuideService.reviewLinkForReservation}. EFFET EXTERNE (email) →
+     * hors transaction. Params : {@code reservationId}.
+     */
+    public static final String REVIEW_REQUEST_SEND = "REVIEW_REQUEST_SEND";
+
     private SupervisionActionType() {}
 }

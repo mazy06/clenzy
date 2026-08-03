@@ -52,6 +52,7 @@ public class SupervisionScanService {
     private final GuestInstructionsScanner guestInstructionsScanner;
     private final GuestEmailMissingScanner guestEmailMissingScanner;
     private final GuestMessageFailedScanner guestMessageFailedScanner;
+    private final PostStayReviewScanner postStayReviewScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -66,6 +67,7 @@ public class SupervisionScanService {
                                   GuestInstructionsScanner guestInstructionsScanner,
                                   GuestEmailMissingScanner guestEmailMissingScanner,
                                   GuestMessageFailedScanner guestMessageFailedScanner,
+                                  PostStayReviewScanner postStayReviewScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -79,6 +81,7 @@ public class SupervisionScanService {
         this.guestInstructionsScanner = guestInstructionsScanner;
         this.guestEmailMissingScanner = guestEmailMissingScanner;
         this.guestMessageFailedScanner = guestMessageFailedScanner;
+        this.postStayReviewScanner = postStayReviewScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -144,6 +147,7 @@ public class SupervisionScanService {
         guestInstructionsScanner.scanProperty(orgId, propertyId);
         guestEmailMissingScanner.scanProperty(orgId, propertyId);
         guestMessageFailedScanner.scanProperty(orgId, propertyId);
+        postStayReviewScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -160,6 +164,7 @@ public class SupervisionScanService {
             guestInstructionsScanner.scanProperty(orgId, propertyId);
             guestEmailMissingScanner.scanProperty(orgId, propertyId);
             guestMessageFailedScanner.scanProperty(orgId, propertyId);
+            postStayReviewScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

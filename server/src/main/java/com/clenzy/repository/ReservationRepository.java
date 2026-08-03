@@ -349,6 +349,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * creable malgre un sejour en cours. Les valeurs de statut sont normalisees en minuscules
      * (cf. ICalEventParser), donc la comparaison litterale est sure.
      */
+    /**
+     * Départs récents d'un logement (fenêtre [from, toExclusive) sur checkOut, non
+     * annulés) — scanner post-séjour de la constellation (demande d'avis, agent gst).
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE r.property.id = :propertyId AND r.checkOut >= :from AND r.checkOut < :toExclusive " +
+           "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkOut DESC")
+    List<Reservation> findRecentCheckoutsByPropertyId(
+            @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("toExclusive") LocalDate toExclusive,
+            @Param("orgId") Long orgId);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.property.id = :propertyId AND r.checkOut >= :date " +
            "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkIn ASC")

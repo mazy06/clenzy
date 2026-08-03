@@ -45,6 +45,9 @@ const VERBS: Record<string, ActionVerb> = {
   // Messages sortants (Phase 2) — le verbe dit qu'un message PART vers le voyageur.
   NOISE_WARNING_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
   CART_RECOVERY_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
+  // Agent Voyageur (Phase 2)
+  GUIDE_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
+  REVIEW_REQUEST_SEND: { labelKey: 'supervision.verbs.send', fallback: 'Envoyer', Icon: Send },
 };
 
 /** Verbe CTA du type, ou « Appliquer » (icône Check) hors registre. */

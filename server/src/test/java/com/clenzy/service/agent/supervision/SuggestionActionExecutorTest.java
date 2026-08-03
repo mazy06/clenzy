@@ -1,5 +1,6 @@
 package com.clenzy.service.agent.supervision;
 
+import com.clenzy.model.Guest;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
@@ -74,6 +75,7 @@ class SuggestionActionExecutorTest {
     @Mock private com.clenzy.repository.NoiseAlertRepository noiseAlertRepository;
     @Mock private com.clenzy.service.NoiseAlertNotificationService noiseAlertNotificationService;
     @Mock private com.clenzy.scheduler.AbandonedBookingRecoveryScheduler cartRecoveryScheduler;
+    @Mock private com.clenzy.service.WelcomeGuideService welcomeGuideService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -95,7 +97,8 @@ class SuggestionActionExecutorTest {
                 bookingBalanceService, emailService, reviewReplyDraftService,
                 provider(icalImportService), provider(channexSyncService),
                 noiseAlertRepository, provider(noiseAlertNotificationService),
-                provider(cartRecoveryScheduler), new ObjectMapper(), clock);
+                provider(cartRecoveryScheduler), provider(welcomeGuideService),
+                new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {
@@ -407,5 +410,57 @@ class SuggestionActionExecutorTest {
         executor.execute(suggestion(SupervisionActionType.CART_RECOVERY_SEND,
                 "{\"abandonedBookingId\":31}"));
         verify(cartRecoveryScheduler).sendRecoveryForSupervision(31L, ORG_ID);
+    }
+
+    private Reservation guestReservation(String email) {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        // lenient : le nom n'est lu que sur le chemin d'envoi réussi.
+        org.mockito.Mockito.lenient().when(reservation.getGuestName()).thenReturn("Amina Benali");
+        Guest guest = mock(Guest.class);
+        when(guest.getEmail()).thenReturn(email);
+        when(reservation.getGuest()).thenReturn(guest);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        return reservation;
+    }
+
+    @Test
+    @DisplayName("envoi livret : genere le lien borne au sejour et envoie l'email au voyageur")
+    void guideSend_generatesLinkAndSendsEmail() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(welcomeGuideService.linkForReservation(reservation))
+                .thenReturn(Optional.of("https://app/guide/tok-1"));
+
+        executor.execute(suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("https://app/guide/tok-1"));
+    }
+
+    @Test
+    @DisplayName("envoi livret : aucun livret publie -> echec explicite, rien d'envoye")
+    void guideSend_throwsWithoutPublishedGuide() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(welcomeGuideService.linkForReservation(reservation)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("livret");
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("demande d'avis : genere le lien d'avis borne et envoie l'email au voyageur")
+    void reviewRequestSend_generatesReviewLinkAndSendsEmail() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(welcomeGuideService.reviewLinkForReservation(reservation))
+                .thenReturn(Optional.of("https://app/guide/tok-review"));
+
+        executor.execute(suggestion(SupervisionActionType.REVIEW_REQUEST_SEND,
+                "{\"reservationId\":100}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("https://app/guide/tok-review"));
     }
 }
