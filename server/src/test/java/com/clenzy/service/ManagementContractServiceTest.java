@@ -67,7 +67,7 @@ class ManagementContractServiceTest {
             LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31),
             new BigDecimal("0.2000"), null, false, 30, true, true, "Notes",
             new BigDecimal("0.1500"),
-            null, null, null
+            null, null, null, null, null, null
         );
         when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
         when(propertyRepository.findByIdWithOwner(100L, ORG_ID)).thenReturn(Optional.of(new Property()));
@@ -94,7 +94,7 @@ class ManagementContractServiceTest {
             LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31),
             new BigDecimal("0.2000"), null, false, 30, true, true, "Notes",
             new BigDecimal("0.1500"),
-            null, null, null
+            null, null, null, null, null, null
         );
         when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
         when(propertyRepository.findByIdWithOwner(100L, ORG_ID)).thenReturn(Optional.of(new Property()));
@@ -124,7 +124,7 @@ class ManagementContractServiceTest {
             LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31),
             new BigDecimal("0.2000"), null, false, 30, true, true, "Notes",
             new BigDecimal("0.1500"),
-            null, null, null
+            null, null, null, null, null, null
         );
         when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
         when(propertyRepository.findByIdWithOwner(100L, ORG_ID)).thenReturn(Optional.of(new Property()));
@@ -149,7 +149,7 @@ class ManagementContractServiceTest {
             100L, 10L, ContractType.FULL_MANAGEMENT,
             LocalDate.of(2025, 1, 1), null,
             new BigDecimal("0.2000"), null, null, null, null, null, null, null,
-            null, null, null
+            null, null, null, null, null, null
         );
         when(contractRepository.findActiveByPropertyId(100L, ORG_ID))
             .thenReturn(Optional.of(createContract(ContractStatus.ACTIVE)));
@@ -262,7 +262,7 @@ class ManagementContractServiceTest {
             LocalDate.of(2025, 6, 1), null,
             new BigDecimal("0.1500"), 2, true, 60, false, false, "Updated",
             new BigDecimal("0.1000"),
-            null, null, null
+            null, null, null, null, null, null
         );
 
         ManagementContractDto result = service.updateContract(1L, ORG_ID, request);
@@ -280,7 +280,7 @@ class ManagementContractServiceTest {
             100L, 10L, ContractType.FULL_MANAGEMENT,
             LocalDate.of(2025, 1, 1), null,
             new BigDecimal("0.2000"), null, null, null, null, null, null, null,
-            null, null, null
+            null, null, null, null, null, null
         );
 
         assertThrows(IllegalStateException.class, () -> service.updateContract(1L, ORG_ID, request));

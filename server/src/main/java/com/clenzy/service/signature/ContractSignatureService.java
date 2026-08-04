@@ -66,12 +66,34 @@ public class ContractSignatureService {
     /**
      * Texte de consentement (source de vérité). Affiché sur la page publique et
      * archivé dans le dossier de preuve au moment de la signature.
+     *
+     * <p>La seconde phrase est le <b>mandat déclaratif</b> : sans elle, la
+     * conciergerie télédéclare avec ses propres identifiants pour le compte d'un
+     * propriétaire tiers sans qu'aucune pièce n'établisse qu'elle y est
+     * autorisée. La répartition exacte (fiche de police, taxe de séjour,
+     * licence) est affichée juste au-dessus de la case à cocher, sur la même
+     * page : le texte renvoie à ce que le signataire vient de lire.</p>
+     *
+     * <p>Modifier ce texte n'affecte QUE les signatures futures — chaque demande
+     * archive la version qu'elle a présentée ({@code consentText} sur la
+     * demande). Une signature passée reste opposable sur les termes qu'elle a
+     * réellement affichés.</p>
+     *
+     * <p><b>À faire relire par un juriste avant mise en production.</b> La
+     * formulation ci-dessous est rédigée pour être fidèle au modèle de données,
+     * pas pour trancher une question de droit.</p>
      */
     public static final String CONSENT_TEXT =
             "En cochant cette case et en cliquant sur « Signer le contrat », je reconnais avoir pris "
             + "connaissance du mandat de gestion et de ses conditions, et je consens à le signer "
             + "électroniquement. Cette signature électronique simple (règlement (UE) n°910/2014, eIDAS) "
-            + "m'engage au même titre qu'une signature manuscrite.";
+            + "m'engage au même titre qu'une signature manuscrite. "
+            + "Je reconnais également avoir pris connaissance de la répartition des obligations "
+            + "réglementaires figurant ci-dessus — déclaration des voyageurs (fiche de police), taxe "
+            + "de séjour, licence ou enregistrement du logement — et, pour celles qui y sont "
+            + "attribuées au mandataire, je l'autorise expressément à les accomplir en mon nom et pour "
+            + "mon compte, y compris au moyen de ses propres accès aux téléservices concernés. Les "
+            + "obligations qui me sont attribuées restent à ma charge.";
 
     private final ContractSignatureRequestRepository signatureRequestRepository;
     private final ManagementContractRepository contractRepository;
@@ -236,6 +258,9 @@ public class ContractSignatureService {
                 contract.getStartDate() != null ? contract.getStartDate().format(DATE_FMT) : null,
                 contract.getEndDate() != null ? contract.getEndDate().format(DATE_FMT) : null,
                 contract.getPaymentModel() != null ? contract.getPaymentModel().name() : null,
+                contract.getPoliceDeclarationBy() != null ? contract.getPoliceDeclarationBy().name() : null,
+                contract.getTouristTaxBy() != null ? contract.getTouristTaxBy().name() : null,
+                contract.getLicenceHeldBy() != null ? contract.getLicenceHeldBy().name() : null,
                 resolveDocumentBytes(request).isPresent(),
                 request.getSignedAt() != null ? request.getSignedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm")) : null,
                 request.getSignedByName(),

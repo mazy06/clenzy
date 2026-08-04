@@ -27,6 +27,10 @@ interface SignView {
   startDate: string | null;
   endDate: string | null;
   paymentModel: string | null;
+  /** Mandat déclaratif : AGENCY | OWNER. Ce que le propriétaire délègue — ou garde. */
+  policeDeclarationBy: string | null;
+  touristTaxBy: string | null;
+  licenceHeldBy: string | null;
   documentAvailable: boolean;
   signedAt: string | null;
   signedByName: string | null;
@@ -246,6 +250,32 @@ const ContractSignPage: React.FC = () => {
                 <SummaryRow
                   label={L.collection}
                   value={(view.paymentModel && L.paymentModels[view.paymentModel]) || view.paymentModel || '—'}
+                />
+              </div>
+            </div>
+
+            {/* ── Obligations réglementaires ──
+                 Le mandat de gestion délègue l'exploitation ; celles-ci disent
+                 qui DÉCLARE. Elles s'affichent avant la signature parce que
+                 c'est ce que le propriétaire autorise — un champ qu'il n'aurait
+                 pas lu ne l'engagerait pas. */}
+            <div className={PANEL_CLASS}>
+              <SectionLabel>{L.obligationsTitle}</SectionLabel>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-x-[18px]">
+                <SummaryRow
+                  label={L.policeDeclaration}
+                  value={(view.policeDeclarationBy && L.obligationBearers[view.policeDeclarationBy])
+                    || L.obligationBearers.AGENCY}
+                />
+                <SummaryRow
+                  label={L.touristTax}
+                  value={(view.touristTaxBy && L.obligationBearers[view.touristTaxBy])
+                    || L.obligationBearers.AGENCY}
+                />
+                <SummaryRow
+                  label={L.licence}
+                  value={(view.licenceHeldBy && L.obligationBearers[view.licenceHeldBy])
+                    || L.obligationBearers.AGENCY}
                 />
               </div>
             </div>

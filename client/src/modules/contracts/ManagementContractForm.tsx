@@ -24,6 +24,7 @@ import type {
   PaymentModel,
   CommissionBase,
   OtaFeeBearer,
+  ObligationBearer,
 } from '../../services/api/managementContractsApi';
 import type { SplitRatios } from '../../types/payment';
 
@@ -60,6 +61,16 @@ export const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
 export const OTA_FEE_BEARER_LABELS: Record<OtaFeeBearer, string> = {
   AGENCY: 'La conciergerie (déduits de sa commission)',
   OWNER:  'Le propriétaire (déduits de son reversement)',
+};
+
+/**
+ * Mandat DÉCLARATIF. Sans mention, l'exploitant déclare : c'est le défaut, et
+ * c'est aussi ce qui se passe quand aucun contrat n'existe — un propriétaire
+ * qui gère seul porte ses propres obligations.
+ */
+export const OBLIGATION_BEARER_LABELS: Record<ObligationBearer, string> = {
+  AGENCY: 'La conciergerie',
+  OWNER:  'Le propriétaire',
 };
 
 /**
@@ -141,6 +152,9 @@ export const EMPTY_FORM: CreateManagementContractRequest = {
   paymentModel: 'DIRECT',
   commissionBase: 'GROSS',
   otaFeeBorneBy: 'AGENCY',
+  policeDeclarationBy: 'AGENCY',
+  touristTaxBy: 'AGENCY',
+  licenceHeldBy: 'AGENCY',
   notes: '',
 };
 
@@ -414,6 +428,68 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
             </Field>
           </div>
           <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
+        </div>
+      </FormSection>
+
+      {/* ── Mandat déclaratif ──
+           Le mandat de gestion répartissait l'argent et l'opérationnel, jamais le
+           déclaratif : la conciergerie télédéclarait avec SES identifiants sans
+           que rien n'établisse qu'elle y était autorisée. Ces trois choix doivent
+           figurer dans le texte du mandat signé — sans quoi ils restent un
+           réglage, pas une autorisation. */}
+      <FormSection
+        label="Obligations réglementaires"
+        hint="Qui déclare quoi. Sans mention contraire, c'est la conciergerie — ces choix sont repris dans le mandat signé par le propriétaire."
+      >
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr] gap-3 items-start">
+          <Field>
+            <FieldLabel htmlFor="contract-police-by">Fiche de police</FieldLabel>
+            <NativeSelect
+              id="contract-police-by"
+              className="w-full"
+              value={form.policeDeclarationBy ?? 'AGENCY'}
+              onChange={e => setForm(prev => ({ ...prev, policeDeclarationBy: e.target.value as ObligationBearer }))}
+            >
+              {(Object.entries(OBLIGATION_BEARER_LABELS) as [ObligationBearer, string][]).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </NativeSelect>
+            <FieldDescription>
+              La télédéclaration passe par les identifiants de téléservice du déclarant.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contract-tax-by">Taxe de séjour</FieldLabel>
+            <NativeSelect
+              id="contract-tax-by"
+              className="w-full"
+              value={form.touristTaxBy ?? 'AGENCY'}
+              onChange={e => setForm(prev => ({ ...prev, touristTaxBy: e.target.value as ObligationBearer }))}
+            >
+              {(Object.entries(OBLIGATION_BEARER_LABELS) as [ObligationBearer, string][]).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </NativeSelect>
+            <FieldDescription>
+              Dépôt et reversement auprès de la commune du logement.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contract-licence-by">Licence / enregistrement</FieldLabel>
+            <NativeSelect
+              id="contract-licence-by"
+              className="w-full"
+              value={form.licenceHeldBy ?? 'AGENCY'}
+              onChange={e => setForm(prev => ({ ...prev, licenceHeldBy: e.target.value as ObligationBearer }))}
+            >
+              {(Object.entries(OBLIGATION_BEARER_LABELS) as [ObligationBearer, string][]).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </NativeSelect>
+            <FieldDescription>
+              Titulaire de l'autorisation, donc responsable de son renouvellement.
+            </FieldDescription>
+          </Field>
         </div>
       </FormSection>
 

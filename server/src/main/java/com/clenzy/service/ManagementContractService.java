@@ -116,6 +116,15 @@ public class ManagementContractService {
         contract.setPaymentModel(request.paymentModel() != null ? request.paymentModel() : ManagementContract.PaymentModel.DIRECT);
         contract.setCommissionBase(request.commissionBase() != null ? request.commissionBase() : ManagementContract.CommissionBase.GROSS);
         contract.setOtaFeeBorneBy(request.otaFeeBorneBy() != null ? request.otaFeeBorneBy() : ManagementContract.OtaFeeBearer.AGENCY);
+        // Mandat déclaratif : AGENCY par défaut — sans mention contraire, c est
+        // l exploitant qui déclare. Jamais null : une obligation sans porteur
+        // serait un trou de responsabilité.
+        contract.setPoliceDeclarationBy(request.policeDeclarationBy() != null
+                ? request.policeDeclarationBy() : ManagementContract.ObligationBearer.AGENCY);
+        contract.setTouristTaxBy(request.touristTaxBy() != null
+                ? request.touristTaxBy() : ManagementContract.ObligationBearer.AGENCY);
+        contract.setLicenceHeldBy(request.licenceHeldBy() != null
+                ? request.licenceHeldBy() : ManagementContract.ObligationBearer.AGENCY);
         contract.setMinimumStayNights(request.minimumStayNights());
         contract.setAutoRenew(request.autoRenew() != null ? request.autoRenew() : false);
         contract.setNoticePeriodDays(request.noticePeriodDays() != null ? request.noticePeriodDays() : 30);
@@ -224,6 +233,11 @@ public class ManagementContractService {
                 renewed.setPaymentModel(contract.getPaymentModel());
                 renewed.setCommissionBase(contract.getCommissionBase());
                 renewed.setOtaFeeBorneBy(contract.getOtaFeeBorneBy());
+                // Le mandat déclaratif se reconduit avec le reste : un renouvellement
+                // tacite ne doit pas rendre l agence déclarante à l insu du propriétaire.
+                renewed.setPoliceDeclarationBy(contract.getPoliceDeclarationBy());
+                renewed.setTouristTaxBy(contract.getTouristTaxBy());
+                renewed.setLicenceHeldBy(contract.getLicenceHeldBy());
                 renewed.setMinimumStayNights(contract.getMinimumStayNights());
                 renewed.setAutoRenew(true);
                 renewed.setNoticePeriodDays(contract.getNoticePeriodDays());
@@ -264,6 +278,9 @@ public class ManagementContractService {
         if (request.paymentModel() != null) contract.setPaymentModel(request.paymentModel());
         if (request.commissionBase() != null) contract.setCommissionBase(request.commissionBase());
         if (request.otaFeeBorneBy() != null) contract.setOtaFeeBorneBy(request.otaFeeBorneBy());
+        if (request.policeDeclarationBy() != null) contract.setPoliceDeclarationBy(request.policeDeclarationBy());
+        if (request.touristTaxBy() != null) contract.setTouristTaxBy(request.touristTaxBy());
+        if (request.licenceHeldBy() != null) contract.setLicenceHeldBy(request.licenceHeldBy());
         contract.setMinimumStayNights(request.minimumStayNights());
         if (request.autoRenew() != null) contract.setAutoRenew(request.autoRenew());
         if (request.noticePeriodDays() != null) contract.setNoticePeriodDays(request.noticePeriodDays());

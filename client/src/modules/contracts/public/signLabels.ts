@@ -21,6 +21,12 @@ export interface SignLabels {
   period: string;
   periodOpenEnded: string;
   collection: string;
+  // Mandat déclaratif — ce que le propriétaire délègue, et ce qu'il garde
+  obligationsTitle: string;
+  policeDeclaration: string;
+  touristTax: string;
+  licence: string;
+  obligationBearers: Record<string, string>;
   // Document
   documentTitle: string;
   documentHint: string;
@@ -65,6 +71,11 @@ export const SIGN_LABELS: Record<SignLang, SignLabels> = {
     period: 'Période',
     periodOpenEnded: 'jusqu’à résiliation',
     collection: 'Encaissement',
+    obligationsTitle: 'Obligations réglementaires',
+    policeDeclaration: 'Fiche de police',
+    touristTax: 'Taxe de séjour',
+    licence: 'Licence / enregistrement',
+    obligationBearers: { AGENCY: 'La conciergerie', OWNER: 'Vous, propriétaire' },
     documentTitle: 'Document',
     documentHint: 'Lisez attentivement le mandat avant de signer.',
     documentUnavailable: 'Le document n’est pas disponible pour le moment. Contactez votre gestionnaire.',
@@ -114,6 +125,11 @@ export const SIGN_LABELS: Record<SignLang, SignLabels> = {
     period: 'Period',
     periodOpenEnded: 'until terminated',
     collection: 'Payment collection',
+    obligationsTitle: 'Regulatory obligations',
+    policeDeclaration: 'Police registration',
+    touristTax: 'Tourist tax',
+    licence: 'Licence / registration',
+    obligationBearers: { AGENCY: 'The management company', OWNER: 'You, the owner' },
     documentTitle: 'Document',
     documentHint: 'Please read the mandate carefully before signing.',
     documentUnavailable: 'The document is not available right now. Please contact your manager.',
@@ -163,6 +179,11 @@ export const SIGN_LABELS: Record<SignLang, SignLabels> = {
     period: 'المدة',
     periodOpenEnded: 'حتى الفسخ',
     collection: 'التحصيل',
+    obligationsTitle: 'الالتزامات التنظيمية',
+    policeDeclaration: 'بطاقة الشرطة',
+    touristTax: 'ضريبة الإقامة',
+    licence: 'الرخصة / التسجيل',
+    obligationBearers: { AGENCY: 'شركة الإدارة', OWNER: 'أنت، المالك' },
     documentTitle: 'المستند',
     documentHint: 'يرجى قراءة العقد بعناية قبل التوقيع.',
     documentUnavailable: 'المستند غير متاح حاليًا. يرجى التواصل مع مديرك.',

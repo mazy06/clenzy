@@ -55,7 +55,7 @@ class PublicContractSignatureControllerTest {
 
     private ContractSignaturePublicDto dto() {
         return new ContractSignaturePublicDto("PENDING", "C-2026-001", "MANAGEMENT", "Villa Azur",
-                "Jean Dupont", 0.20, null, null, null, true, null, null, null, "consent");
+                "Jean Dupont", 0.20, null, null, null, "AGENCY", "AGENCY", "AGENCY", true, null, null, null, "consent");
     }
 
     @Nested

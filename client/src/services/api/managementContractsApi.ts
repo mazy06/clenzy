@@ -21,6 +21,12 @@ export type CommissionBase = 'GROSS' | 'NET_OF_OTA_FEE';
  * `OWNER` les déduit du reversement.
  */
 export type OtaFeeBearer = 'AGENCY' | 'OWNER';
+/**
+ * Qui porte une obligation RÉGLEMENTAIRE — distinct des frais OTA, qui sont une
+ * charge financière. Le mandat de gestion répartissait l'argent et
+ * l'opérationnel ; ces trois-là disent qui déclare.
+ */
+export type ObligationBearer = 'AGENCY' | 'OWNER';
 
 export interface ManagementContract {
   id: number;
@@ -41,6 +47,12 @@ export interface ManagementContract {
   commissionBase: CommissionBase;
   /** Qui supporte les frais prélevés par l'OTA. */
   otaFeeBorneBy: OtaFeeBearer;
+  /** Mandat déclaratif : qui télédéclare la fiche de police. */
+  policeDeclarationBy: ObligationBearer;
+  /** Qui dépose et reverse la taxe de séjour. */
+  touristTaxBy: ObligationBearer;
+  /** Au nom de qui la licence ou l'enregistrement est détenu. */
+  licenceHeldBy: ObligationBearer;
   minimumStayNights: number | null;
   autoRenew: boolean;
   noticePeriodDays: number;
@@ -66,6 +78,9 @@ export interface CreateManagementContractRequest {
   paymentModel?: PaymentModel;
   commissionBase?: CommissionBase;
   otaFeeBorneBy?: OtaFeeBearer;
+  policeDeclarationBy?: ObligationBearer;
+  touristTaxBy?: ObligationBearer;
+  licenceHeldBy?: ObligationBearer;
   minimumStayNights?: number | null;
   autoRenew?: boolean;
   noticePeriodDays?: number;
