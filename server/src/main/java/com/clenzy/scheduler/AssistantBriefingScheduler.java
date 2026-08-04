@@ -30,8 +30,10 @@ import java.util.Optional;
  * Scheduler horaire des briefings proactifs.
  *
  * <p>Cron : toutes les heures pile ({@code "0 0 * * * *"}). Pour chaque user
- * dont la pref est activee, on resout l'heure locale dans sa timezone et on
- * declenche le briefing si :
+ * dont la pref EFFECTIVE est activee — enregistree, ou issue de la politique par
+ * defaut appliquee aux proprietaires de logement (cf.
+ * {@code BriefingDefaultPolicy}) — on resout l'heure locale dans sa timezone et
+ * on declenche le briefing si :
  * <ul>
  *   <li>L'heure courante (locale) correspond a {@code timeLocal} (precision heure)</li>
  *   <li>La date n'a pas deja un log d'envoi (idempotence stricte : 1 par jour)</li>
@@ -81,7 +83,7 @@ public class AssistantBriefingScheduler {
     void runFor(LocalDateTime utcNow) {
         List<AssistantBriefingPref> all;
         try {
-            all = prefService.listAllEnabled();
+            all = prefService.listEffectivePrefs();
         } catch (Exception e) {
             log.error("AssistantBriefingScheduler: lookup prefs failed", e);
             return;

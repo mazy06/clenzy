@@ -1,12 +1,16 @@
 package com.clenzy.service.agent.briefing;
 
 import com.clenzy.model.AssistantBriefingPref;
+import com.clenzy.model.UserPreferences;
 import com.clenzy.repository.AssistantBriefingPrefRepository;
+import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.UserPreferencesRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,8 +19,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service de gestion des preferences de briefing proactif par utilisateur.
@@ -37,11 +43,32 @@ public class AssistantBriefingPrefService {
 
     private final AssistantBriefingPrefRepository repository;
     private final ObjectMapper objectMapper;
+    /**
+     * Politique appliquee aux utilisateurs sans preference enregistree. Nullable :
+     * le constructeur historique (tests du CRUD de prefs) ne la fournit pas, et
+     * {@link #listEffectivePrefs()} se replie alors sur les seules prefs stockees.
+     */
+    private final BriefingDefaultPolicy defaultPolicy;
+    private final PropertyRepository propertyRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
 
+    @Autowired
     public AssistantBriefingPrefService(AssistantBriefingPrefRepository repository,
-                                          ObjectMapper objectMapper) {
+                                          ObjectMapper objectMapper,
+                                          BriefingDefaultPolicy defaultPolicy,
+                                          PropertyRepository propertyRepository,
+                                          UserPreferencesRepository userPreferencesRepository) {
         this.repository = repository;
         this.objectMapper = objectMapper;
+        this.defaultPolicy = defaultPolicy;
+        this.propertyRepository = propertyRepository;
+        this.userPreferencesRepository = userPreferencesRepository;
+    }
+
+    /** Constructeur historique — CRUD des preferences seul, sans politique par defaut. */
+    public AssistantBriefingPrefService(AssistantBriefingPrefRepository repository,
+                                          ObjectMapper objectMapper) {
+        this(repository, objectMapper, null, null, null);
     }
 
     @Transactional(readOnly = true)
@@ -51,12 +78,65 @@ public class AssistantBriefingPrefService {
     }
 
     /**
-     * Liste toutes les prefs activees — utilisee par le scheduler. La logique
-     * de matching timezone/heure est appliquee a part par le scheduler.
+     * Preferences EFFECTIVES du tick de scheduler : les preferences enregistrees
+     * et activees, plus — si la politique par defaut est active — une preference
+     * synthetique pour chaque destinataire eligible qui n'en a aucune.
+     *
+     * <p>Les reglages IA n'etant pas exposes aux utilisateurs de l'organisation,
+     * la table reste vide en pratique : sans cette synthese, le scheduler ne
+     * trouverait jamais personne et la synthese hebdomadaire ne partirait jamais.
+     * Cf. {@link BriefingDefaultPolicy}.</p>
+     *
+     * <p><b>Une preference enregistree l'emporte TOUJOURS</b>, y compris
+     * desactivee : on exclut de la synthese tout utilisateur ayant une ligne, pas
+     * seulement ceux qui l'ont activee. Sans cette nuance, un utilisateur qui a
+     * explicitement coupe ses briefings serait re-abonne au deploiement suivant.</p>
+     *
+     * <p>La logique de matching fuseau/heure reste au scheduler.</p>
      */
     @Transactional(readOnly = true)
-    public List<AssistantBriefingPref> listAllEnabled() {
-        return repository.findAllEnabled();
+    public List<AssistantBriefingPref> listEffectivePrefs() {
+        List<AssistantBriefingPref> stored = repository.findAll();
+        List<AssistantBriefingPref> effective = new ArrayList<>(
+                stored.stream().filter(AssistantBriefingPref::isEnabled).toList());
+
+        if (defaultPolicy == null || !defaultPolicy.isEnabled()) {
+            return effective;
+        }
+
+        // Tout utilisateur DEJA porteur d'une ligne est hors politique par defaut,
+        // qu'il l'ait activee ou non.
+        Set<String> configured = stored.stream()
+                .map(AssistantBriefingPref::getKeycloakId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        for (Object[] row : propertyRepository.findBriefingRecipients()) {
+            String keycloakId = (String) row[0];
+            Long organizationId = (Long) row[1];
+            if (keycloakId == null || organizationId == null) continue;
+            if (!configured.add(keycloakId)) continue;  // deja vu (ligne existante ou doublon multi-org)
+            effective.add(defaultPolicy.buildFor(keycloakId, organizationId, resolveTimezone(keycloakId)));
+        }
+        return effective;
+    }
+
+    /**
+     * Fuseau de l'utilisateur, lu dans ses preferences d'interface. C'est lui qui
+     * decide de l'heure d'envoi : un proprietaire a Marrakech ne doit pas recevoir
+     * sa synthese a 6 h du matin parce que le defaut serveur est parisien.
+     * Retourne null si inconnu — {@link BriefingDefaultPolicy} appliquera son repli.
+     */
+    private String resolveTimezone(String keycloakId) {
+        if (userPreferencesRepository == null) return null;
+        try {
+            return userPreferencesRepository.findByKeycloakId(keycloakId)
+                    .map(UserPreferences::getTimezone)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.debug("Fuseau introuvable pour {} : {}", keycloakId, e.getMessage());
+            return null;
+        }
     }
 
     /**

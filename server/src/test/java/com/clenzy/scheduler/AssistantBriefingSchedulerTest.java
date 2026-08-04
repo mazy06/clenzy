@@ -133,7 +133,7 @@ class AssistantBriefingSchedulerTest {
     void runFor_matchingPref_triggersComposeAndDispatch() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
-        when(prefService.listAllEnabled()).thenReturn(List.of(p));
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
         BriefingComposer.BriefingResult result = new BriefingComposer.BriefingResult(
                 42L, "Briefing du jour", AssistantBriefingPref.Frequency.DAILY_MORNING);
         when(composer.compose(p)).thenReturn(result);
@@ -151,7 +151,7 @@ class AssistantBriefingSchedulerTest {
     void runFor_noMatchingHour_skipsAll() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
-        when(prefService.listAllEnabled()).thenReturn(List.of(p));
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
 
         // 12:00 UTC = 13:00 Paris → pas a 08:00 → skip
         scheduler.runFor(LocalDateTime.of(2026, 1, 15, 12, 0));
@@ -164,7 +164,7 @@ class AssistantBriefingSchedulerTest {
     void runFor_idempotent_skipsIfLogAlreadyExists() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
-        when(prefService.listAllEnabled()).thenReturn(List.of(p));
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
         when(logRepository.findByKeycloakIdAndBriefingDate(eq("user-x"), any(LocalDate.class)))
                 .thenReturn(Optional.of(new AssistantBriefingLog()));
 
@@ -179,7 +179,7 @@ class AssistantBriefingSchedulerTest {
     void runFor_composerReturnsNull_logsFailedButNoCrash() {
         AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
-        when(prefService.listAllEnabled()).thenReturn(List.of(p));
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
         when(composer.compose(p)).thenReturn(null);
 
         assertDoesNotThrow(() -> scheduler.runFor(LocalDateTime.of(2026, 1, 15, 7, 0)));
@@ -201,7 +201,7 @@ class AssistantBriefingSchedulerTest {
         AssistantBriefingPref bad = pref("Europe/Paris", LocalTime.of(8, 0),
                 AssistantBriefingPref.Frequency.DAILY_MORNING, true);
         bad.setKeycloakId("user-bad");
-        when(prefService.listAllEnabled()).thenReturn(List.of(bad, ok));
+        when(prefService.listEffectivePrefs()).thenReturn(List.of(bad, ok));
 
         when(composer.compose(bad)).thenThrow(new RuntimeException("boom"));
         when(composer.compose(ok)).thenReturn(new BriefingComposer.BriefingResult(
