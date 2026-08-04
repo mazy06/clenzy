@@ -63,6 +63,21 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
             Long organizationId, Long propertyId, String moduleKey, String title, String status);
 
     /**
+     * Déduplication CONSCIENTE de l'expiration : seule une carte encore VISIBLE
+     * bloque la recréation d'un même intitulé.
+     *
+     * <p>La variante sans expiration au-dessus laissait un trou : passé le TTL,
+     * la carte disparaissait de la lecture ({@code expires_at > now}) mais
+     * gardait le statut PENDING, donc continuait d'interdire la recréation. Une
+     * situation qui persistait — licence qui expire, stock sous le seuil — était
+     * signalée une fois puis plus jamais. Une carte périmée libère désormais la
+     * place : le scan suivant la recrée si le problème est toujours là.</p>
+     */
+    boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+            Long organizationId, Long propertyId, String moduleKey, String title, String status,
+            Instant now);
+
+    /**
      * Cooldown anti-re-suggestion : une carte identique a-t-elle été rejetée récemment ?
      * (même org/logement/module/intitulé, statut donné, {@code dismissed_at} après le seuil).
      */

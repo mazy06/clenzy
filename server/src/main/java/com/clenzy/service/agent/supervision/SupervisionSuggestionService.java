@@ -74,8 +74,9 @@ public class SupervisionSuggestionService {
         }
         String safeTitle = truncate(title.strip(), TITLE_MAX);
         try {
-            boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                    organizationId, propertyId, moduleKey, safeTitle, SupervisionSuggestion.STATUS_PENDING);
+            boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                    organizationId, propertyId, moduleKey, safeTitle,
+                    SupervisionSuggestion.STATUS_PENDING, clock.instant());
             if (dup) {
                 return; // déjà proposé, en attente → on ne duplique pas
             }
@@ -106,8 +107,9 @@ public class SupervisionSuggestionService {
         }
         String safeTitle = truncate(title.strip(), TITLE_MAX);
         try {
-            boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                    organizationId, propertyId, moduleKey, safeTitle, SupervisionSuggestion.STATUS_PENDING);
+            boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                    organizationId, propertyId, moduleKey, safeTitle,
+                    SupervisionSuggestion.STATUS_PENDING, clock.instant());
             if (dup) {
                 return; // déjà proposé, en attente → on ne duplique pas
             }
@@ -262,8 +264,9 @@ public class SupervisionSuggestionService {
                     "Suggestion actionnable incomplete (org/logement/module/titre requis)");
         }
         String safeTitle = truncate(title.strip(), TITLE_MAX);
-        boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                organizationId, propertyId, moduleKey, safeTitle, SupervisionSuggestion.STATUS_PENDING);
+        boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                organizationId, propertyId, moduleKey, safeTitle,
+                SupervisionSuggestion.STATUS_PENDING, clock.instant());
         if (dup) {
             return java.util.Optional.empty();
         }

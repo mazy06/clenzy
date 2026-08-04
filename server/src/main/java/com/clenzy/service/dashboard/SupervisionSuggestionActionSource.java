@@ -3,7 +3,6 @@ package com.clenzy.service.dashboard;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.model.SupervisionSuggestion;
-import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.SupervisionSuggestionRepository;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
 import org.springframework.stereotype.Component;
@@ -39,12 +38,9 @@ public class SupervisionSuggestionActionSource implements ActionItemSource {
             SupervisionActionType.CHARGEBACK_SUBMIT);
 
     private final SupervisionSuggestionRepository suggestionRepository;
-    private final PropertyRepository propertyRepository;
 
-    public SupervisionSuggestionActionSource(SupervisionSuggestionRepository suggestionRepository,
-                                             PropertyRepository propertyRepository) {
+    public SupervisionSuggestionActionSource(SupervisionSuggestionRepository suggestionRepository) {
         this.suggestionRepository = suggestionRepository;
-        this.propertyRepository = propertyRepository;
     }
 
     @Override
@@ -68,12 +64,10 @@ public class SupervisionSuggestionActionSource implements ActionItemSource {
                 // dans une file d'actions.
                 .filter(s -> s.getActionType() != null && !s.getActionType().isBlank())
                 .filter(s -> !ALREADY_COVERED.contains(s.getActionType()))
-                // Périmètre propriétaire : un hôte ne voit que ses logements. Les
-                // cartes org-level (litige, RGPD, site) n'ont pas de logement
-                // propre — elles restent réservées aux profils non restreints.
-                .filter(s -> !ctx.isOwnerScoped()
-                        || (!s.isOrgLevel() && ctx.covers(
-                                propertyRepository.findById(s.getPropertyId()).orElse(null))))
+                // PAS de filtrage par propriétaire ici : la collecte tourne sans
+                // utilisateur (le réconciliateur balaie l'org entière), le périmètre
+                // s'applique à la LECTURE (ActionItemQueryService.visibleToOwner).
+                // Le filtrer ici aurait été du code mort — et une requête par carte.
                 .map(s -> new ActionItemDto(
                         "agent-card:" + s.getId(),
                         ActionItemKind.AGENT_CARD,
