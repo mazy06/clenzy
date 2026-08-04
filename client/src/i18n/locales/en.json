@@ -772,6 +772,117 @@
     "reload": "Reload now",
     "later": "Later"
   },
+  "assistant": {
+    "tagline": "What would you like to know?",
+    "close": "Close",
+    "newConversation": "New conversation",
+    "openDock": "Open the assistant",
+    "closeDock": "Close the assistant",
+    "dockLabel": "Baitly assistant",
+    "empty": {
+      "title": "Ask your question",
+      "body": "I use your Baitly data in real time.",
+      "bodyLong": "Ask me about your properties, bookings, cleanings or key figures. I use your Baitly data in real time."
+    },
+    "suggestions": {
+      "reservations": "Analyse my bookings",
+      "occupancy": "What is my occupancy rate?",
+      "arrivals": "Prepare this week's arrivals",
+      "guestMessage": "Draft a guest message",
+      "compare": "Compare my performance"
+    },
+    "composer": {
+      "placeholder": "Ask for an analysis, an action, a figure…",
+      "hint": "The assistant acts on your data only after your confirmation.",
+      "send": "Send",
+      "stop": "Stop"
+    },
+    "thread": {
+      "thinking": "Thinking…",
+      "attachedImage": "attached image",
+      "viewFullSize": "View {{name}} full size"
+    },
+    "tool": {
+      "failed": "failed",
+      "calendar": {
+        "read": "Calendar checked",
+        "write": "Calendar updated"
+      },
+      "pricing": {
+        "read": "Rates checked",
+        "write": "Rates updated"
+      },
+      "messaging": {
+        "read": "Guests checked",
+        "write": "Message sent"
+      },
+      "operations": {
+        "read": "Jobs checked",
+        "write": "Job updated"
+      },
+      "finance": {
+        "read": "Finances checked",
+        "write": "Financial entry"
+      },
+      "reviews": {
+        "read": "Reviews checked",
+        "write": "Review reply"
+      },
+      "properties": {
+        "read": "Properties checked",
+        "write": "Property updated"
+      },
+      "channels": {
+        "read": "Channels checked",
+        "write": "Channels synced"
+      },
+      "knowledge": {
+        "read": "Documentation searched",
+        "write": "Memory updated"
+      },
+      "data": {
+        "read": "Data checked",
+        "write": "Data updated"
+      }
+    },
+    "decision": {
+      "pending": "Pending",
+      "applied": "Approved",
+      "refused": "Declined",
+      "expired": "Expired",
+      "autoApplied": "Executed, then notified",
+      "apply": "Approve",
+      "adjust": "Adjust",
+      "refuse": "Decline",
+      "why": "Why?",
+      "technicalDetail": "Technical detail",
+      "appliedNotice": "Proposal applied",
+      "refusedNotice": "Proposal dismissed",
+      "expiredNotice": "Proposal expired",
+      "autoAppliedNotice": "Action executed automatically — trust rule active.",
+      "expiresIn": "Expires in {{time}}",
+      "fallbackTitle": "Proposed action"
+    },
+    "context": {
+      "pending_one": "{{count}} proposal to review",
+      "pending_other": "{{count}} proposals to review"
+    },
+    "expand": "Expand",
+    "minimize": "Collapse",
+    "subtitle": "Analysis, actions and answers on your data",
+    "history": {
+      "title": "Recent conversations",
+      "empty": "No conversation yet.",
+      "emptyHint": "Ask your first question.",
+      "untitled": "Untitled",
+      "archive": "Archive “{{title}}”",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "older": "Older"
+    }
+  },
   "common": {
     "help": "Help",
     "save": "Save",

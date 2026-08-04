@@ -43,18 +43,18 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
     <div className="mt-1.5 mb-2">
       {/* Score header — gros chiffre display + statut */}
       {scorePct !== null && (
-        <div className={cn('flex items-baseline gap-[9px] mb-3 px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--accent-soft)]')}>
-          <p className={cn('cn-text-body1 text-[2.25rem] font-semibold leading-[1] tabular-nums tracking-[-0.02em]', critical ? 'text-[var(--err)]' : 'text-[var(--accent)]')} style={{ fontFamily: 'var(--font-display)' }}>
+        <div className={cn('flex items-baseline gap-[9px] mb-3 px-3 py-[10.5px] rounded-xl', critical ? 'bg-destructive-soft' : 'bg-primary-soft')}>
+          <p className={cn('text-[2.25rem] font-semibold leading-none tabular-nums tracking-tight', critical ? 'text-destructive-ink' : 'text-primary')}>
             {scorePct}
             <span className="text-[1.25rem] font-medium ms-0.5">
               %
             </span>
           </p>
           <div>
-            <p className="cn-text-body1 block font-bold text-[var(--faint)] text-[10.5px] uppercase tracking-[.06em]">
+            <p className="block font-bold text-faint text-2xs uppercase tracking-[.06em]">
               Readiness score
             </p>
-            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
+            <p className="text-xs text-muted-foreground">
               {critical ? 'KPI critique en defaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
             </p>
@@ -81,17 +81,17 @@ const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = 
   // property inline, car une classe Tailwind ne peut pas naitre d'une variable.
   return (
     <div
-      className="relative px-[7.5px] py-1.5 rounded-[10px] bg-[var(--card)] border border-solid border-[var(--line)] before:content-[''] before:absolute before:top-2 before:right-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[var(--kpi-dot)]"
+      className="relative rounded-lg border border-border bg-card px-2 py-1.5 before:absolute before:top-2 before:end-2 before:size-1.5 before:rounded-full before:bg-[var(--kpi-dot)] before:content-['']"
       style={{ '--kpi-dot': statusColor } as React.CSSProperties}
     >
-      <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
+      <p className="block text-faint text-2xs font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
         {kpi.name}
       </p>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
+      <p className="text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-foreground">
         {kpi.value}
       </p>
       {kpi.target && (
-        <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5 tabular-nums">
+        <p className="block text-muted-foreground text-2xs mt-0.5 tabular-nums">
           cible {kpi.target}
         </p>
       )}
@@ -101,9 +101,9 @@ const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = 
 
 function statusToColor(status: string | undefined): string {
   switch (status) {
-    case 'OK': return 'var(--ok)';
-    case 'WARNING': return 'var(--warn)';
-    case 'CRITICAL': return 'var(--err)';
-    default: return 'var(--line-2)';
+    case 'OK': return 'var(--color-success-ink)';
+    case 'WARNING': return 'var(--color-warning-ink)';
+    case 'CRITICAL': return 'var(--color-destructive-ink)';
+    default: return 'var(--color-border)';
   }
 }

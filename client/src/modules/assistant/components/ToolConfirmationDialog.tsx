@@ -47,14 +47,14 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
       <DialogContent className="max-w-[600px]">
       <DialogHeader>
         <div className="flex items-center gap-1.5">
-          <div className="w-[32px] h-[32px] rounded-[9px] flex items-center justify-center bg-[var(--warn-soft)] text-[var(--warn)] shrink-0">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning-ink">
             <AlertIcon size={16} strokeWidth={2} />
-          </div>
+          </span>
           <div>
-            <DialogTitle className="block leading-[1.2]">
+            <DialogTitle className="block leading-tight">
               Confirmer l&apos;action
             </DialogTitle>
-            <DialogDescription className="text-[var(--muted)] font-mono text-[11px] font-medium">
+            <DialogDescription className="font-mono text-2xs font-medium text-muted-foreground">
               {pending.toolName}
             </DialogDescription>
           </div>
@@ -62,18 +62,18 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
       </DialogHeader>
 
       <div>
-        <p className="cn-text-body1 mb-3 text-[13px] leading-[1.55] text-[var(--muted)]">
+        <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
           {pending.toolDescription}
         </p>
 
         {parsedArgs && Object.keys(parsedArgs).length > 0 && (
-          <div className="rounded-[10px] overflow-hidden border border-[var(--line)] bg-[var(--field)]">
-            {Object.entries(parsedArgs).map(([key, value], index) => (
-              <div className="flex gap-[9px] px-[9px] py-1.5" style={{ borderTop: index > 0 ? '1px solid var(--line)' : 'none' }} key={key}>
-                <span className="min-w-[100px] font-mono text-[var(--muted)] text-[11.5px] leading-[1.6]">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-muted">
+            {Object.entries(parsedArgs).map(([key, value]) => (
+              <div className="flex gap-2 px-2 py-1.5" key={key}>
+                <span className="min-w-[100px] font-mono text-xs text-muted-foreground">
                   {key}
                 </span>
-                <span className="text-[12.5px] font-medium text-[var(--body)] break-words flex-1">
+                <span className="flex-1 break-words text-xs font-medium text-foreground">
                   {formatArgValue(value)}
                 </span>
               </div>
@@ -82,7 +82,7 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
         )}
 
         {!parsedArgs && (
-          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
+          <p className="text-xs text-muted-foreground">
             Pas d&apos;argument structure (le LLM execute sans parametre).
           </p>
         )}

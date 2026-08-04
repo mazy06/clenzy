@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import {
   Button,
+  Skeleton,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
-import { Add, Delete, Message as MessageIcon } from '../../../icons';
+import { Delete, History as HistoryIcon } from '../../../icons';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
 
 interface ConversationSidebarProps {
@@ -19,18 +21,13 @@ interface ConversationSidebarProps {
 }
 
 /**
- * Sidebar gauche du chat assistant — liste les conversations utilisateur
- * triees par {@code updatedAt} desc.
+ * Panneau « Conversations récentes » — reprise fidèle de la projection :
+ * carte bordée, titre en capitales discrètes, items en pilules (l'actif en
+ * teinte de marque), et le bouton « Nouvelle conversation » en pied de carte.
  *
- * <p>Pattern « Signature » : groupes en overlines 10.5px `--faint`, item actif
- * accent-soft, hover `--hover`, delete revele au survol.</p>
- *
- * <p>Etats :</p>
- * <ul>
- *   <li>loading : skeleton subtil (3 items grises)</li>
- *   <li>empty : message + CTA "Lance une question"</li>
- *   <li>archive en cours : optimistic remove dans la liste, restore si KO</li>
- * </ul>
+ * <p>Les conversations restent groupées par période : la projection n'a que
+ * quatre lignes de démonstration, l'usage réel en accumule des dizaines et
+ * l'ancrage temporel est ce qui permet de s'y retrouver.</p>
  */
 export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   conversations,
@@ -40,53 +37,35 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   onNew,
   onArchive,
 }) => {
+  const { t } = useTranslation();
   const grouped = useMemo(() => groupByPeriod(conversations), [conversations]);
 
   return (
-    <div className="w-full min-[900px]:w-[280px] shrink-0 flex flex-col py-[9px]">
-      <div className="px-2 pb-1.5">
-        {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent.
-            Le kit n'a pas de variante accent-soft : ghost + les memes jetons
-            que l'ancien sx, l'alignement a gauche reste un choix de sidebar. */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onNew}
-          className="w-full justify-start bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent-soft)_80%,var(--accent)_14%)] hover:text-[var(--accent)] shrink"
-        >
-          <Add size={15} strokeWidth={2} />
-          Nouvelle conversation
-        </Button>
-      </div>
+    <div className="flex h-full flex-col rounded-xl border border-border bg-card p-4">
+      <h3 className="m-0 mb-3 flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <HistoryIcon className="size-3.5" /> {t('assistant.history.title')}
+      </h3>
 
-      {/* Scrollbar discrete : borderRadius 3 = 3 x shape.borderRadius (8px) = 24px */}
-      <div className="flex-1 overflow-y-auto px-[4.5px] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[24px]">
+      <div className="-me-1 min-h-0 flex-1 overflow-y-auto pe-1 [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar]:w-1.5">
         {loading && conversations.length === 0 && <SkeletonList />}
 
         {!loading && conversations.length === 0 && (
-          <div className="px-2 py-4 text-center text-[var(--muted)] text-[12.5px] leading-[1.5]">
-            <MessageIcon
-              size={20}
-              strokeWidth={1.5}
-              style={{ opacity: 0.4, marginBottom: 8 }}
-            />
-            <div>Aucune conversation.</div>
-            <div style={{ color: 'var(--faint)', marginTop: 2 }}>
-              Lance ta premiere question.
-            </div>
+          <div className="px-2 py-6 text-center text-xs text-muted-foreground">
+            <p>{t('assistant.history.empty')}</p>
+            <p className="mt-0.5 text-faint">{t('assistant.history.emptyHint')}</p>
           </div>
         )}
 
         {grouped.map((group) => (
-          <div className="mb-2" key={group.label}>
-            <p className="cn-text-body1 block px-2 pt-1.5 pb-0.5 text-[10.5px] tracking-[.06em] uppercase font-bold text-[var(--faint)]">
-              {group.label}
+          <div className="mb-3 flex flex-col gap-1" key={group.labelKey}>
+            <p className="px-2.5 text-2xs font-semibold uppercase tracking-wide text-faint">
+              {t(`assistant.history.${group.labelKey}`)}
             </p>
-            {group.items.map((conv) => (
+            {group.items.map((conversation) => (
               <ConversationItem
-                key={conv.id}
-                conversation={conv}
-                active={conv.id === activeConversationId}
+                key={conversation.id}
+                conversation={conversation}
+                active={conversation.id === activeConversationId}
                 onSelect={onSelect}
                 onArchive={onArchive}
               />
@@ -94,6 +73,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           </div>
         ))}
       </div>
+
+      <Button size="xs" variant="outline" className="mt-3 w-full shrink-0 cursor-pointer" onClick={onNew}>
+        {t('assistant.newConversation')}
+      </Button>
     </div>
   );
 };
@@ -113,10 +96,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onSelect,
   onArchive,
 }) => {
-  const [hovered, setHovered] = useState(false);
+  const { t } = useTranslation();
   const [archiving, setArchiving] = useState(false);
-
-  const title = conversation.title?.trim() || 'Sans titre';
+  const title = conversation.title?.trim() || t('assistant.history.untitled');
 
   const handleArchive = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -125,7 +107,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     try {
       await onArchive(conversation.id);
     } catch (err) {
-      // Le hook restore la liste — pas besoin de faire plus ici
+      // Le hook restaure la liste — rien de plus à faire ici.
       // eslint-disable-next-line no-console
       console.warn('Archive failed:', err);
     } finally {
@@ -136,24 +118,12 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   return (
     <div
       onClick={() => onSelect(conversation.id)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className={cn(
-        'flex items-center gap-[3px] px-[7.5px] py-[4.5px] mx-[3px] rounded-[9px] cursor-pointer',
-        'transition-colors duration-[120ms] motion-reduce:transition-none',
-        active ? 'bg-[var(--accent-soft)]' : 'bg-transparent hover:bg-[var(--hover)]',
+        'group/conv flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-start text-xs outline-none transition-colors duration-150 motion-reduce:transition-none',
+        active ? 'bg-primary-soft font-medium text-primary' : 'text-foreground hover:bg-accent',
       )}
     >
-      <div className="flex-1 min-w-0">
-        <p
-          className={cn(
-            'cn-text-body1 text-[12.5px] truncate leading-[1.35]',
-            active ? 'font-semibold text-[var(--accent)]' : 'font-medium text-[var(--body)]',
-          )}
-        >
-          {title}
-        </p>
-      </div>
+      <span className="min-w-0 flex-1 truncate">{title}</span>
 
       <Tooltip delayDuration={400}>
         <TooltipTrigger asChild>
@@ -166,47 +136,42 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               size="icon-xs"
               onClick={handleArchive}
               disabled={archiving}
-              className={cn(
-                'text-[var(--muted)] transition-opacity duration-[120ms] motion-reduce:transition-none',
-                'hover:bg-[var(--err-soft)] hover:text-[var(--err)] focus-visible:opacity-100',
-                hovered ? 'opacity-100' : 'opacity-0',
-              )}
-              aria-label={`Archiver la conversation ${title}`}
+              className="cursor-pointer text-muted-foreground opacity-0 transition-opacity duration-150 hover:bg-destructive-soft hover:text-destructive-ink focus-visible:opacity-100 group-hover/conv:opacity-100 motion-reduce:transition-none"
+              aria-label={t('assistant.history.archive', { title })}
             >
               <Delete size={13} strokeWidth={1.75} />
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent side="right">Archiver</TooltipContent>
+        <TooltipContent side="left">{t('assistant.history.archive', { title })}</TooltipContent>
       </Tooltip>
     </div>
   );
 };
 
-// ─── Loading skeleton ────────────────────────────────────────────────────────
+// ─── Squelette de chargement ─────────────────────────────────────────────────
 
-const SkeletonList: React.FC = () => {
-  return (
-    <div className="px-0.5 pt-1.5">
-      {[80, 65, 75].map((width) => (
-        <div className="mx-0.5 mb-0.5 py-1.5 px-2" key={width}>
-          <div className="h-[11px] rounded-[6px] bg-[var(--hover)]" style={{ width: `${width}%` }} />
-        </div>
-      ))}
-    </div>
-  );
-};
+const SkeletonList: React.FC = () => (
+  <div className="flex flex-col gap-1">
+    {[80, 65, 75].map((width) => (
+      <div className="px-2.5 py-2" key={width}>
+        <Skeleton className="h-3 rounded" style={{ width: `${width}%` }} />
+      </div>
+    ))}
+  </div>
+);
 
-// ─── Period grouping ─────────────────────────────────────────────────────────
+// ─── Groupement par période ──────────────────────────────────────────────────
 
 interface ConversationGroup {
-  label: string;
+  /** Clé i18n sous {@code assistant.history} (today, yesterday, …). */
+  labelKey: string;
   items: ConversationSummary[];
 }
 
 /**
- * Group conversations into Aujourd'hui / Hier / Cette semaine / Ce mois / Plus ancien.
- * Ordre stable, items deja tries desc par updatedAt en amont.
+ * Groupe les conversations par période. Ordre stable, items déjà triés
+ * par {@code updatedAt} décroissant en amont.
  */
 function groupByPeriod(conversations: ConversationSummary[]): ConversationGroup[] {
   if (conversations.length === 0) return [];
@@ -220,23 +185,23 @@ function groupByPeriod(conversations: ConversationSummary[]): ConversationGroup[
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const groups: Record<string, ConversationSummary[]> = {
-    "Aujourd'hui": [],
-    Hier: [],
-    'Cette semaine': [],
-    'Ce mois': [],
-    'Plus ancien': [],
+    today: [],
+    yesterday: [],
+    thisWeek: [],
+    thisMonth: [],
+    older: [],
   };
 
   for (const c of conversations) {
     const updatedAt = new Date(c.updatedAt);
-    if (updatedAt >= startOfToday) groups["Aujourd'hui"].push(c);
-    else if (updatedAt >= startOfYesterday) groups.Hier.push(c);
-    else if (updatedAt >= startOfWeek) groups['Cette semaine'].push(c);
-    else if (updatedAt >= startOfMonth) groups['Ce mois'].push(c);
-    else groups['Plus ancien'].push(c);
+    if (updatedAt >= startOfToday) groups.today.push(c);
+    else if (updatedAt >= startOfYesterday) groups.yesterday.push(c);
+    else if (updatedAt >= startOfWeek) groups.thisWeek.push(c);
+    else if (updatedAt >= startOfMonth) groups.thisMonth.push(c);
+    else groups.older.push(c);
   }
 
-  // Filtre les groupes vides, preserve l'ordre defini ci-dessus.
+  // Filtre les groupes vides, préserve l'ordre défini ci-dessus.
   return Object.entries(groups)
-    .flatMap(([label, items]) => (items.length > 0 ? [{ label, items }] : []));
+    .flatMap(([labelKey, items]) => (items.length > 0 ? [{ labelKey, items }] : []));
 }

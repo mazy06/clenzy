@@ -51,8 +51,8 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
   if (items.length === 0) {
     return (
       <div className="mt-1.5 mb-2">
-        <div className="p-3 rounded-[12px] bg-[var(--warn-soft)] text-center">
-          <p className="cn-text-body1 text-[12.5px] text-[var(--warn)]">
+        <div className="p-3 rounded-xl bg-warning-soft text-center">
+          <p className="text-xs text-warning-ink">
             Aucune donnee meteo disponible.
           </p>
         </div>
@@ -63,7 +63,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {data.title && (
-        <p className="cn-text-body1 block mb-1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title}
         </p>
       )}
@@ -71,7 +71,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
       {/* Le nombre de colonnes depend des donnees : custom property, la rupture
           sm (600px MUI) reste une variante statique. Scrollbar discrete. */}
       <div
-        className="grid grid-cols-[repeat(4,_minmax(72px,_1fr))] min-[600px]:grid-cols-[var(--wx-cols)] gap-[4.5px] overflow-x-auto [&::-webkit-scrollbar]:h-[4px] [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[16px]"
+        className="grid grid-cols-[repeat(4,_minmax(72px,_1fr))] min-[600px]:grid-cols-[var(--wx-cols)] gap-[4.5px] overflow-x-auto [&::-webkit-scrollbar]:h-[4px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border"
         style={{ '--wx-cols': `repeat(${items.length}, minmax(72px, 1fr))` } as React.CSSProperties}
       >
         {items.map((item) => (
@@ -89,30 +89,30 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
   const tMin = item.tempMin;
 
   return (
-    <div className="px-1 py-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--card)] flex flex-col items-center gap-0.5 min-w-0 text-center">
-      <p className="cn-text-body1 text-[10.5px] font-bold uppercase text-[var(--faint)] tracking-[.05em]">
+    <div className="px-1 py-1.5 rounded-lg border border-border bg-card flex flex-col items-center gap-0.5 min-w-0 text-center">
+      <p className="text-2xs font-bold uppercase text-faint tracking-[.05em]">
         {formatDay(item.date)}
       </p>
-      <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] tabular-nums">
+      <p className="text-2xs text-faint tabular-nums">
         {formatDate(item.date)}
       </p>
       <div className="inline-flex my-[1.5px]" style={{ color: iconColor(item.conditionCode) }}>
         <Icon size={22} />
       </div>
       {tMax !== undefined && tMax !== null && (
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.95rem] font-semibold text-[var(--ink)] tabular-nums leading-[1]">
+        <p className="text-[0.95rem] font-semibold text-foreground tabular-nums leading-[1]">
           {Math.round(tMax)}°
         </p>
       )}
       {tMin !== undefined && tMin !== null && (
-        <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
+        <p className="text-[11px] text-muted-foreground tabular-nums">
           {Math.round(tMin)}°
         </p>
       )}
       {rain > 0.1 && (
-        <div className="inline-flex items-center gap-0.5 mt-0.5 text-[var(--info)]">
+        <div className="inline-flex items-center gap-0.5 mt-0.5 text-info-ink">
           <WeatherDroplets size={10} />
-          <p className="cn-text-body1 text-[10.5px] text-inherit tabular-nums">
+          <p className="text-2xs text-inherit tabular-nums">
             {rain.toFixed(1)}mm
           </p>
         </div>
@@ -143,12 +143,12 @@ function iconFromCode(code: number | null | undefined): WeatherIcon {
 }
 
 function iconColor(code: number | null | undefined): string {
-  if (code == null) return 'var(--faint)';
+  if (code == null) return 'var(--color-faint)';
   if (code === 0) return '#D4A574'; // soleil — accent ambre Baitly (palette validee)
-  if (code >= 95 && code <= 99) return 'var(--warn)';
-  if (code >= 61 && code <= 82) return 'var(--info)';
-  if (code >= 71 && code <= 86) return 'var(--info)';
-  return 'var(--muted)';
+  if (code >= 95 && code <= 99) return 'var(--color-warning-ink)';
+  if (code >= 61 && code <= 82) return 'var(--color-info-ink)';
+  if (code >= 71 && code <= 86) return 'var(--color-info-ink)';
+  return 'var(--color-muted-foreground)';
 }
 
 function formatDay(iso: string): string {

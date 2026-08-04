@@ -1,4 +1,5 @@
 import React from 'react';
+import { WIDGET_OVERLINE } from './chartConstants';
 
 interface EmptyChartProps {
   label?: string;
@@ -7,8 +8,7 @@ interface EmptyChartProps {
 
 /**
  * Placeholder utilise par les chart widgets quand le payload est vide ou
- * malforme. Bg tonal subtil, pas de border (aligne avec la directive design
- * borderless de l'assistant).
+ * malforme.
  *
  * <p>Factorise pour eviter la duplication entre {@code PieChartWidget},
  * {@code BarChartWidget} et {@code LineChartWidget} (Rule of Three : 3
@@ -16,19 +16,13 @@ interface EmptyChartProps {
  */
 export const EmptyChart: React.FC<EmptyChartProps> = ({
   label,
-  message = 'Aucune donnee a afficher',
+  message = 'Aucune donnée à afficher',
 }) => {
   return (
-    <div className="mt-1.5 mb-2">
-      {label && (
-        <p className="cn-text-body1 block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
-          {label}
-        </p>
-      )}
-      <div className="p-4 rounded-[12px] bg-[var(--field)] text-center">
-        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
-          {message}
-        </p>
+    <div className="flex flex-col gap-1.5">
+      {label && <p className={WIDGET_OVERLINE}>{label}</p>}
+      <div className="rounded-xl border border-border bg-muted p-4 text-center">
+        <p className="text-xs text-muted-foreground">{message}</p>
       </div>
     </div>
   );

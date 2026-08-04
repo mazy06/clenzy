@@ -772,6 +772,117 @@
     "reload": "Recharger maintenant",
     "later": "Plus tard"
   },
+  "assistant": {
+    "tagline": "Que veux-tu savoir ?",
+    "close": "Fermer",
+    "newConversation": "Nouvelle conversation",
+    "openDock": "Déplier l'assistant",
+    "closeDock": "Replier l'assistant",
+    "dockLabel": "Assistant Baitly",
+    "empty": {
+      "title": "Pose ta question",
+      "body": "J'utilise tes données Baitly en temps réel.",
+      "bodyLong": "Pose-moi une question sur tes logements, réservations, ménages ou indicateurs. J'utilise tes données Baitly en temps réel."
+    },
+    "suggestions": {
+      "reservations": "Analyse tes réservations",
+      "occupancy": "Quel est mon taux d'occupation ?",
+      "arrivals": "Prépare les arrivées de la semaine",
+      "guestMessage": "Rédige un message voyageur",
+      "compare": "Compare tes performances"
+    },
+    "composer": {
+      "placeholder": "Demande une analyse, une action, un chiffre…",
+      "hint": "L'assistant agit sur tes données après confirmation.",
+      "send": "Envoyer",
+      "stop": "Arrêter"
+    },
+    "thread": {
+      "thinking": "Réfléchit…",
+      "attachedImage": "image jointe",
+      "viewFullSize": "Voir {{name}} en grand"
+    },
+    "tool": {
+      "failed": "échec",
+      "calendar": {
+        "read": "Calendrier consulté",
+        "write": "Calendrier mis à jour"
+      },
+      "pricing": {
+        "read": "Tarifs consultés",
+        "write": "Tarifs mis à jour"
+      },
+      "messaging": {
+        "read": "Voyageurs consultés",
+        "write": "Message envoyé"
+      },
+      "operations": {
+        "read": "Interventions consultées",
+        "write": "Intervention mise à jour"
+      },
+      "finance": {
+        "read": "Finances consultées",
+        "write": "Écriture financière"
+      },
+      "reviews": {
+        "read": "Avis consultés",
+        "write": "Réponse à un avis"
+      },
+      "properties": {
+        "read": "Logements consultés",
+        "write": "Logement mis à jour"
+      },
+      "channels": {
+        "read": "Canaux consultés",
+        "write": "Canaux synchronisés"
+      },
+      "knowledge": {
+        "read": "Documentation consultée",
+        "write": "Mémoire mise à jour"
+      },
+      "data": {
+        "read": "Données consultées",
+        "write": "Donnée mise à jour"
+      }
+    },
+    "decision": {
+      "pending": "En attente",
+      "applied": "Validé",
+      "refused": "Refusé",
+      "expired": "Expiré",
+      "autoApplied": "Exécuté puis notifié",
+      "apply": "Appliquer",
+      "adjust": "Ajuster",
+      "refuse": "Refuser",
+      "why": "Pourquoi ?",
+      "technicalDetail": "Détail technique",
+      "appliedNotice": "Proposition appliquée",
+      "refusedNotice": "Proposition écartée",
+      "expiredNotice": "Proposition expirée",
+      "autoAppliedNotice": "Action exécutée automatiquement — règle de confiance active.",
+      "expiresIn": "Expire dans {{time}}",
+      "fallbackTitle": "Action proposée"
+    },
+    "context": {
+      "pending_one": "{{count}} proposition à valider",
+      "pending_other": "{{count}} propositions à valider"
+    },
+    "expand": "Agrandir",
+    "minimize": "Réduire",
+    "subtitle": "Analyse, actions et réponses sur tes données",
+    "history": {
+      "title": "Conversations récentes",
+      "empty": "Aucune conversation.",
+      "emptyHint": "Lance ta première question.",
+      "untitled": "Sans titre",
+      "archive": "Archiver « {{title}} »",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine",
+      "thisMonth": "Ce mois",
+      "older": "Plus ancien"
+    }
+  },
   "common": {
     "help": "Aide",
     "save": "Enregistrer",

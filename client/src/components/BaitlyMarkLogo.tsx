@@ -26,7 +26,7 @@ import React, { useId } from 'react';
  *
  * <h3>Compat API</h3>
  * L'interface de props est identique à l'ancien composant : tous les
- * consommateurs (Sidebar, AuthLayout, AssistantWidget, Inscription…) continuent
+ * consommateurs (Sidebar, AuthLayout, AssistantDockTab, Inscription…) continuent
  * de fonctionner sans changement. Le mapping des props :
  * <ul>
  *   <li>{@code variant} : {@code mark} (maison) / {@code wordmark} (typo) /

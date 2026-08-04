@@ -23,13 +23,7 @@ import OnboardingDockMount from '../../components/OnboardingDockMount';
 // Assistant en lazy : son sous-arbre (react-markdown, dialog plein écran, useAgent)
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
 // écran de s'afficher sans lui (la bulle apparaît dès que son chunk arrive).
-const AssistantWidget = lazy(() => import('../../components/AssistantWidget'));
 const AssistantDockTab = lazy(() => import('../../components/AssistantDockTab'));
-
-// Présentation de l'assistant — les deux coexistent le temps de trancher :
-//  - 'dock' : encoche « classeur » collée en bas à droite (phrases animées + chevron)
-//  - 'fab'  : logo flottant draggable + bulle Popper (présentation historique)
-const ASSISTANT_PRESENTATION: 'dock' | 'fab' = 'dock';
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -175,10 +169,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       {/* Assistant : accessible depuis toutes les pages, agrandissable en
           plein ecran. Unique point d'entree de l'assistant (la page dediee
-          /assistant a ete supprimee). Deux presentations disponibles, choisies
-          via ASSISTANT_PRESENTATION ci-dessus. */}
+          /assistant a ete supprimee). */}
       <Suspense fallback={null}>
-        {ASSISTANT_PRESENTATION === 'dock' ? <AssistantDockTab /> : <AssistantWidget />}
+        <AssistantDockTab />
       </Suspense>
     </SidebarProvider>
     </ScreenChromeProvider>

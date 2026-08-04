@@ -120,13 +120,13 @@ const UnknownPayloadFallback: React.FC<{
   if (entries.length === 0) return null;
 
   return (
-    <div className="mt-1.5 mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
+    <div className="mt-1.5 mb-2 p-2 rounded-lg border border-border bg-card">
       {entries.map(([k, v]) => (
         <div className="flex gap-1.5 py-0.5" key={k}>
-          <p className="cn-text-body1 min-w-[100px] text-[var(--muted)] text-[11.5px] leading-[1.6]">
+          <p className="min-w-[100px] text-muted-foreground text-xs leading-[1.6]">
             {k}
           </p>
-          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
+          <p className="text-xs text-foreground font-medium tabular-nums">
             {String(v)}
           </p>
         </div>

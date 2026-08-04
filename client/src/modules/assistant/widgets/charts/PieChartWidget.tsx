@@ -12,8 +12,11 @@ import {
   CHART_SERIES_COLORS,
   humanizeStatus,
   CHART_PRIMARY,
+  WIDGET_CARD,
+  WIDGET_OVERLINE,
 } from './chartConstants';
 import { EmptyChart } from './EmptyChart';
+import { cn } from '../../../../utils/cn';
 
 interface PieChartDataPoint {
   name: string;
@@ -53,14 +56,10 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
   }
 
   return (
-    <div className="mt-1.5 mb-2">
-      {data.title && (
-        <p className="cn-text-body1 block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
-          {data.title}
-        </p>
-      )}
+    <div className="flex flex-col gap-1.5">
+      {data.title && <p className={WIDGET_OVERLINE}>{data.title}</p>}
 
-      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[180px_1fr] gap-3 items-center p-[9px] rounded-[12px] bg-[var(--field)]">
+      <div className={cn(WIDGET_CARD, 'grid grid-cols-[1fr] items-center gap-3 min-[900px]:grid-cols-[180px_1fr]')}>
         {/* Donut */}
         <div style={{ height: CHART_HEIGHT }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -99,21 +98,21 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
             const pct = total > 0 ? (entry.value / total) * 100 : 0;
             return (
               <div className="flex items-center gap-1" key={entry.name}>
-                <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: entry.color }} />
-                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] flex-1 leading-[1.2]">
+                <span className="size-2 shrink-0 rounded-sm" style={{ backgroundColor: entry.color }} />
+                <p className="flex-1 text-xs leading-tight text-muted-foreground">
                   {humanizeStatus(entry.name)}
                 </p>
-                <p className="cn-text-body1 text-[11.5px] font-bold text-[var(--ink)] min-w-[20px] text-end tabular-nums">
+                <p className="min-w-5 text-end text-xs font-semibold tabular-nums text-foreground">
                   {entry.value}
                 </p>
-                <div className="w-[40px] h-[4px] bg-[var(--hover)] rounded-[16px] overflow-hidden shrink-0">
+                <div className="h-1 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
                   {/* Largeur et teinte sont calculees par entree : elles passent par `style`. */}
                   <div
-                    className="h-full rounded-[16px] transition-[width] duration-[400ms] ease-[ease] motion-reduce:transition-none"
+                    className="h-full rounded-full transition-[width] duration-[400ms] motion-reduce:transition-none"
                     style={{ width: `${pct}%`, backgroundColor: entry.color }}
                   />
                 </div>
-                <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] min-w-[28px] text-end tabular-nums">
+                <p className="min-w-7 text-end text-2xs tabular-nums text-faint">
                   {pct.toFixed(0)}%
                 </p>
               </div>
@@ -130,11 +129,13 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
 const CenterLabel: React.FC<{ cx: number; cy: number; total: number; label: string }> = ({
   cx, cy, total, label,
 }) => (
+  // Couleurs en tokens : les hex figes d'origine (#1E293B) restaient sombres
+  // sur fond sombre — le libelle central doit suivre le theme.
   <g>
-    <text x={cx} y={cy - 4} textAnchor="middle" fill="#1E293B" fontSize={18} fontWeight={800}>
+    <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--color-foreground)" fontSize={18} fontWeight={700}>
       {total}
     </text>
-    <text x={cx} y={cy + 12} textAnchor="middle" fill="#94A3B8" fontSize={9} fontWeight={500}>
+    <text x={cx} y={cy + 12} textAnchor="middle" fill="var(--color-muted-foreground)" fontSize={9} fontWeight={500}>
       {label}
     </text>
   </g>
@@ -152,16 +153,12 @@ const PieCustomTooltip: React.FC<{ active?: boolean; payload?: PieTooltipPayload
   if (!active || !payload?.length) return null;
   const entry = payload[0];
   return (
-    <div className="bg-[var(--card)] border border-solid border-[var(--line)] rounded-[12px] px-[7.5px] py-[4.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
-      <div className="flex items-center gap-1">
-        <div className="w-[10px] h-[10px] rounded-[3px] shrink-0" style={{ backgroundColor: entry.payload.color || CHART_PRIMARY }} />
+    <div className="rounded-lg border border-border bg-popover px-2 py-1 text-popover-foreground">
+      <div className="flex items-center gap-1.5">
+        <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: entry.payload.color || CHART_PRIMARY }} />
         <div>
-          <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink)] leading-[1.2]">
-            {humanizeStatus(entry.name)}
-          </p>
-          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
-            {entry.value}
-          </p>
+          <p className="text-xs font-semibold leading-tight">{humanizeStatus(entry.name)}</p>
+          <p className="text-xs tabular-nums text-muted-foreground">{entry.value}</p>
         </div>
       </div>
     </div>

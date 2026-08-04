@@ -36,11 +36,12 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
-        <div className="inline-flex items-center gap-[4.5px] px-[7.5px] h-[28px] rounded-[7992px] text-[11.5px] font-semibold text-[var(--muted)] bg-[var(--card)] border border-solid border-[var(--line)] cursor-help tabular-nums select-none hover:border-[var(--line-2)]" style={{ transition: 'border-color .15s' }} aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}>
-          <span className="font-semibold text-[var(--body)]">{costLabel}</span>
-          <span className="text-[var(--faint)]">
-            · {tokensLabel} tokens
-          </span>
+        <div
+          className="inline-flex h-7 cursor-help select-none items-center gap-1 rounded-full border border-border bg-card px-2 text-xs font-medium tabular-nums text-muted-foreground transition-colors duration-150 hover:border-muted-foreground/40 motion-reduce:transition-none"
+          aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}
+        >
+          <span className="font-semibold text-foreground">{costLabel}</span>
+          <span className="text-faint">· {tokensLabel} tokens</span>
         </div>
       </TooltipTrigger>
       <TooltipContent side="bottom" align="end">
@@ -57,7 +58,7 @@ const UsageTooltipContent: React.FC<{
   loading: boolean;
 }> = ({ usage, loading }) => {
   if (loading) {
-    return <span className="cn-text-caption">Chargement…</span>;
+    return <span className="text-xs">Chargement…</span>;
   }
   if (!usage || usage.requestCount === 0) {
     return (
@@ -107,7 +108,7 @@ const UsageTooltipContent: React.FC<{
 
       {usage.byModel.length > 0 && (
         <>
-          <div className="mt-1.5 pt-[4.5px]" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)' }}>
+          <div className="mt-1.5 border-t border-current/20 pt-1">
             <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
               Par modele
             </span>
